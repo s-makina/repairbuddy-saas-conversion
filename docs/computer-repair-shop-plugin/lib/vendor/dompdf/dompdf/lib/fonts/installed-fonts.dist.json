@@ -1,0 +1,98 @@
+{
+    "sans-serif": {
+        "normal": "Helvetica",
+        "bold": "Helvetica-Bold",
+        "italic": "Helvetica-Oblique",
+        "bold_italic": "Helvetica-BoldOblique"
+    },
+    "times": {
+        "normal": "Times-Roman",
+        "bold": "Times-Bold",
+        "italic": "Times-Italic",
+        "bold_italic": "Times-BoldItalic"
+    },
+    "times-roman": {
+        "normal": "Times-Roman",
+        "bold": "Times-Bold",
+        "italic": "Times-Italic",
+        "bold_italic": "Times-BoldItalic"
+    },
+    "courier": {
+        "normal": "Courier",
+        "bold": "Courier-Bold",
+        "italic": "Courier-Oblique",
+        "bold_italic": "Courier-BoldOblique"
+    },
+    "helvetica": {
+        "normal": "Helvetica",
+        "bold": "Helvetica-Bold",
+        "italic": "Helvetica-Oblique",
+        "bold_italic": "Helvetica-BoldOblique"
+    },
+    "zapfdingbats": {
+        "normal": "ZapfDingbats",
+        "bold": "ZapfDingbats",
+        "italic": "ZapfDingbats",
+        "bold_italic": "ZapfDingbats"
+    },
+    "symbol": {
+        "normal": "Symbol",
+        "bold": "Symbol",
+        "italic": "Symbol",
+        "bold_italic": "Symbol"
+    },
+    "serif": {
+        "normal": "Times-Roman",
+        "bold": "Times-Bold",
+        "italic": "Times-Italic",
+        "bold_italic": "Times-BoldItalic"
+    },
+    "monospace": {
+        "normal": "Courier",
+        "bold": "Courier-Bold",
+        "italic": "Courier-Oblique",
+        "bold_italic": "Courier-BoldOblique"
+    },
+    "fixed": {
+        "normal": "Courier",
+        "bold": "Courier-Bold",
+        "italic": "Courier-Oblique",
+        "bold_italic": "Courier-BoldOblique"
+    },
+    "noto": {
+        "normal": "NotoSans-Regular",
+        "bold": "NotoSans-Bold",
+        "italic": "NotoSans-Italic",
+        "bold_italic": "NotoSans-BoldItalic"
+    },
+    "noto-sans": {
+        "normal": "NotoSans-Regular",
+        "bold": "NotoSans-Bold",
+        "italic": "NotoSans-Italic",
+        "bold_italic": "NotoSans-BoldItalic"
+    },
+    "noto-sans-arabic": {
+        "normal": "NotoSansArabic-Regular",
+        "bold": "NotoSansArabic-Bold",
+        "italic": "NotoSansArabic-Italic",
+        "bold_italic": "NotoSansArabic-BoldItalic"
+    },
+    "noto-sans-sc": {
+        "normal": "NotoSansSC-Regular",
+        "bold": "NotoSansSC-Bold",
+        "italic": "NotoSansSC-Italic",
+        "bold_italic": "NotoSansSC-BoldItalic"
+    },
+    "noto-sans-jp": {
+        "normal": "NotoSansJP-Regular",
+        "bold": "NotoSansJP-Bold",
+        "italic": "NotoSansJP-Italic",
+        "bold_italic": "NotoSansJP-BoldItalic"
+    },
+    "noto-sans-kr": {
+        "normal": "NotoSansKR-Regular",
+        "bold": "NotoSansKR-Bold",
+        "italic": "NotoSansKR-Italic",
+        "bold_italic": "NotoSansKR-BoldItalic"
+    }
+}
