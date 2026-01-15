@@ -60,7 +60,11 @@ Route::prefix('{tenant}')
                 ->middleware('permission:users.manage');
             Route::post('/users', [\App\Http\Controllers\Api\App\UserController::class, 'store'])
                 ->middleware('permission:users.manage');
+            Route::put('/users/{user}', [\App\Http\Controllers\Api\App\UserController::class, 'update'])
+                ->middleware('permission:users.manage');
             Route::patch('/users/{user}/role', [\App\Http\Controllers\Api\App\UserController::class, 'updateRole'])
+                ->middleware('permission:users.manage');
+            Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\App\UserController::class, 'updateStatus'])
                 ->middleware('permission:users.manage');
         });
     });

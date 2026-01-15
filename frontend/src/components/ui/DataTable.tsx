@@ -17,7 +17,9 @@ export type DataTableFilterOption<V> = {
   value: V;
 };
 
-export type DataTableFilter<T, V extends string | number> = {
+export type DataTableFilterValue = string | number;
+
+export type DataTableFilter<T, V extends DataTableFilterValue> = {
   id: string;
   label: string;
   value: V;
@@ -60,7 +62,7 @@ export function DataTable<T>({
     placeholder?: string;
     getSearchText?: (row: T) => string;
   };
-  filters?: Array<DataTableFilter<T, any>>;
+  filters?: Array<DataTableFilter<T, DataTableFilterValue>>;
   pageSizeOptions?: number[];
   initialPageSize?: number;
   server?: DataTableServerState;
@@ -160,7 +162,9 @@ export function DataTable<T>({
                   className="w-full min-w-[180px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
                   value={String(f.value)}
                   onChange={(e) => {
-                    f.onChange(e.target.value as any);
+                    const selected = f.options.find((opt) => String(opt.value) === e.target.value);
+                    const nextValue: DataTableFilterValue = selected ? selected.value : e.target.value;
+                    f.onChange(nextValue);
                     setPageIndex(0);
                   }}
                 >

@@ -27,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'tenant_id',
         'role',
         'role_id',
+        'status',
         'is_admin',
         'otp_enabled',
         'otp_secret',

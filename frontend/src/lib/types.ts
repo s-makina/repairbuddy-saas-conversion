@@ -2,6 +2,8 @@ export type TenantStatus = "active" | "inactive";
 
 export type UserRole = "owner" | "member" | string;
 
+export type UserStatus = "pending" | "active" | "inactive" | "suspended";
+
 export interface Permission {
   id: number;
   name: string;
@@ -34,6 +36,7 @@ export interface User {
   role?: UserRole | null;
   role_id?: number | null;
   role_model?: Role | null;
+  status?: UserStatus | null;
   is_admin: boolean;
   otp_enabled?: boolean;
   otp_confirmed_at?: string | null;
