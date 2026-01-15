@@ -4,9 +4,9 @@ import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageInner() {
   const auth = useAuth();
   const searchParams = useSearchParams();
 
@@ -87,5 +87,17 @@ export default function VerifyEmailPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-sm text-zinc-500">Loading...</div>
+      }
+    >
+      <VerifyEmailPageInner />
+    </Suspense>
   );
 }
