@@ -3,11 +3,29 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --rb-blue: #063e70;
+  --rb-orange: #fd6742;
+  --rb-surface: #ffffff;
+  --rb-surface-muted: #f7f7f7;
+  --rb-border: #ededed;
+  --rb-text: #2c304d;
+  --rb-shadow: 0 1px 15px 1px rgba(52, 40, 104, 0.08);
+  --rb-radius-sm: 5px;
+  --rb-radius-md: 10px;
+  --rb-radius-lg: 15px;
+  --rb-radius-xl: 20px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-rb-blue: var(--rb-blue);
+  --color-rb-orange: var(--rb-orange);
+  --color-rb-surface: var(--rb-surface);
+  --color-rb-surface-muted: var(--rb-surface-muted);
+  --color-rb-border: var(--rb-border);
+  --color-rb-text: var(--rb-text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -22,5 +40,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
