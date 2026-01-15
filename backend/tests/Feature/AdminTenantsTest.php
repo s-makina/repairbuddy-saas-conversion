@@ -38,4 +38,25 @@ class AdminTenantsTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'tenants');
     }
+
+    public function test_non_admin_cannot_list_tenants(): void
+    {
+        $user = User::query()->create([
+            'name' => 'User',
+            'email' => 'user@example.com',
+            'password' => Hash::make('password'),
+            'is_admin' => false,
+            'role' => 'owner',
+        ]);
+
+        $token = $user->createToken('api')->plainTextToken;
+
+        $response = $this
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$token,
+            ])
+            ->getJson('/api/admin/tenants');
+
+        $response->assertStatus(403);
+    }
 }

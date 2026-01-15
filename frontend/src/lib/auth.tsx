@@ -9,6 +9,7 @@ type AuthPayload = {
   token: string;
   user: User;
   tenant: Tenant | null;
+  permissions: string[];
 };
 
 type RegisterPayload = {
@@ -36,6 +37,7 @@ export type LoginResult =
 type MePayload = {
   user: User | null;
   tenant: Tenant | null;
+  permissions: string[];
 };
 
 type AuthContextValue = {
@@ -43,8 +45,10 @@ type AuthContextValue = {
   token: string | null;
   user: User | null;
   tenant: Tenant | null;
+  permissions: string[];
   isAuthenticated: boolean;
   isAdmin: boolean;
+  can: (permission: string) => boolean;
   refresh: () => Promise<void>;
   login: (email: string, password: string) => Promise<LoginResult>;
   loginOtp: (otpLoginToken: string, code: string) => Promise<void>;
@@ -66,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
     const currentToken = getToken();
@@ -73,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokenState(null);
       setUser(null);
       setTenant(null);
+      setPermissions([]);
       setLoading(false);
       return;
     }
@@ -87,16 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTokenState(null);
         setUser(null);
         setTenant(null);
+        setPermissions([]);
       } else {
         setTokenState(currentToken);
         setUser(me.user);
         setTenant(me.tenant);
+        setPermissions(Array.isArray(me.permissions) ? me.permissions : []);
       }
     } catch {
       clearToken();
       setTokenState(null);
       setUser(null);
       setTenant(null);
+      setPermissions([]);
     } finally {
       setLoading(false);
     }
@@ -117,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokenState(payload.token);
       setUser(payload.user);
       setTenant(payload.tenant);
+      setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
       return { status: "ok" };
     }
 
@@ -137,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTokenState(payload.token);
     setUser(payload.user);
     setTenant(payload.tenant);
+    setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
   }, []);
 
   const register = useCallback(async (input: {
@@ -174,20 +185,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokenState(null);
       setUser(null);
       setTenant(null);
+      setPermissions([]);
     }
   }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const isAuthenticated = Boolean(token);
     const isAdmin = Boolean(user?.is_admin);
+    const can = (permission: string) => {
+      if (isAdmin) return true;
+      return permissions.includes(permission);
+    };
 
     return {
       loading,
       token,
       user,
       tenant,
+      permissions,
       isAuthenticated,
       isAdmin,
+      can,
       refresh,
       login,
       loginOtp,
@@ -195,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resendVerificationEmail,
       logout,
     };
-  }, [loading, token, user, tenant, refresh, login, loginOtp, register, resendVerificationEmail, logout]);
+  }, [loading, token, user, tenant, permissions, refresh, login, loginOtp, register, resendVerificationEmail, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

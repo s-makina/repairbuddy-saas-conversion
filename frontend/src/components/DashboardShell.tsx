@@ -268,64 +268,64 @@ export function DashboardShell({
         {
           items: [
             { label: "Home", href: "/", icon: "home", show: true },
-            { label: "Admin", href: "/admin", icon: "admin", show: auth.isAdmin },
-            { label: "Dashboard", href: tenantBaseHref ?? "/app", icon: "dashboard", show: Boolean(tenantBaseHref) },
+            { label: "Admin", href: "/admin", icon: "admin", show: auth.can("admin.access") },
+            { label: "Dashboard", href: tenantBaseHref ?? "/app", icon: "dashboard", show: Boolean(tenantBaseHref) && auth.can("dashboard.view") },
           ],
         },
         {
           title: "Operations",
           items: [
-            { label: "Appointments", href: tenantPlaceholderHref("appointments"), icon: "calendar", show: Boolean(tenantBaseHref) },
-            { label: "Jobs", href: tenantPlaceholderHref("jobs"), icon: "wrench", show: Boolean(tenantBaseHref) },
-            { label: "Estimates", href: tenantPlaceholderHref("estimates"), icon: "file", show: Boolean(tenantBaseHref) },
-            { label: "Services", href: tenantPlaceholderHref("services"), icon: "services", show: Boolean(tenantBaseHref) },
+            { label: "Appointments", href: tenantPlaceholderHref("appointments"), icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
+            { label: "Jobs", href: tenantPlaceholderHref("jobs"), icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
+            { label: "Estimates", href: tenantPlaceholderHref("estimates"), icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
+            { label: "Services", href: tenantPlaceholderHref("services"), icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
           ],
         },
         {
           title: "Inventory",
           items: [
-            { label: "Devices", href: tenantPlaceholderHref("devices"), icon: "devices", show: Boolean(tenantBaseHref) },
-            { label: "Device Brands", href: tenantPlaceholderHref("device-brands"), icon: "tags", show: Boolean(tenantBaseHref) },
-            { label: "Device Types", href: tenantPlaceholderHref("device-types"), icon: "tags", show: Boolean(tenantBaseHref) },
-            { label: "Parts", href: tenantPlaceholderHref("parts"), icon: "parts", show: Boolean(tenantBaseHref) },
+            { label: "Devices", href: tenantPlaceholderHref("devices"), icon: "devices", show: Boolean(tenantBaseHref) && auth.can("devices.view") },
+            { label: "Device Brands", href: tenantPlaceholderHref("device-brands"), icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_brands.view") },
+            { label: "Device Types", href: tenantPlaceholderHref("device-types"), icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_types.view") },
+            { label: "Parts", href: tenantPlaceholderHref("parts"), icon: "parts", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
           ],
         },
         {
           title: "Finance",
           items: [
-            { label: "Payments", href: tenantPlaceholderHref("payments"), icon: "payments", show: Boolean(tenantBaseHref) },
-            { label: "Reports", href: tenantPlaceholderHref("reports"), icon: "reports", show: Boolean(tenantBaseHref) },
-            { label: "Expenses", href: tenantPlaceholderHref("expenses"), icon: "calculator", show: Boolean(tenantBaseHref) },
+            { label: "Payments", href: tenantPlaceholderHref("payments"), icon: "payments", show: Boolean(tenantBaseHref) && auth.can("payments.view") },
+            { label: "Reports", href: tenantPlaceholderHref("reports"), icon: "reports", show: Boolean(tenantBaseHref) && auth.can("reports.view") },
+            { label: "Expenses", href: tenantPlaceholderHref("expenses"), icon: "calculator", show: Boolean(tenantBaseHref) && auth.can("expenses.view") },
             {
               label: "Expense Categories",
               href: tenantPlaceholderHref("expense-categories"),
               icon: "calculator",
-              show: Boolean(tenantBaseHref),
+              show: Boolean(tenantBaseHref) && auth.can("expense_categories.view"),
             },
           ],
         },
         {
           title: "People",
           items: [
-            { label: "Clients", href: tenantPlaceholderHref("clients"), icon: "users", show: Boolean(tenantBaseHref) },
-            { label: "Customer Devices", href: tenantPlaceholderHref("customer-devices"), icon: "devices", show: Boolean(tenantBaseHref) },
-            { label: "Technicians", href: tenantPlaceholderHref("technicians"), icon: "users", show: Boolean(tenantBaseHref) },
-            { label: "Managers", href: tenantPlaceholderHref("managers"), icon: "users", show: Boolean(tenantBaseHref) },
+            { label: "Clients", href: tenantPlaceholderHref("clients"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("clients.view") },
+            { label: "Customer Devices", href: tenantPlaceholderHref("customer-devices"), icon: "devices", show: Boolean(tenantBaseHref) && auth.can("customer_devices.view") },
+            { label: "Technicians", href: tenantPlaceholderHref("technicians"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("technicians.view") },
+            { label: "Managers", href: tenantPlaceholderHref("managers"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },
           ],
         },
         {
           title: "Quality",
           items: [
-            { label: "Job Reviews", href: tenantPlaceholderHref("job-reviews"), icon: "review", show: Boolean(tenantBaseHref) },
+            { label: "Job Reviews", href: tenantPlaceholderHref("job-reviews"), icon: "review", show: Boolean(tenantBaseHref) && auth.can("job_reviews.view") },
           ],
         },
         {
           title: "Tools",
           items: [
-            { label: "Time Logs", href: tenantPlaceholderHref("time-logs"), icon: "clock", show: Boolean(tenantBaseHref) },
-            { label: "Manage Hourly Rates", href: tenantPlaceholderHref("hourly-rates"), icon: "clock", show: Boolean(tenantBaseHref) },
-            { label: "Reminder Logs", href: tenantPlaceholderHref("reminder-logs"), icon: "clock", show: Boolean(tenantBaseHref) },
-            { label: "Print Screen", href: tenantPlaceholderHref("print-screen"), icon: "printer", show: Boolean(tenantBaseHref) },
+            { label: "Time Logs", href: tenantPlaceholderHref("time-logs"), icon: "clock", show: Boolean(tenantBaseHref) && auth.can("time_logs.view") },
+            { label: "Manage Hourly Rates", href: tenantPlaceholderHref("hourly-rates"), icon: "clock", show: Boolean(tenantBaseHref) && auth.can("hourly_rates.view") },
+            { label: "Reminder Logs", href: tenantPlaceholderHref("reminder-logs"), icon: "clock", show: Boolean(tenantBaseHref) && auth.can("reminder_logs.view") },
+            { label: "Print Screen", href: tenantPlaceholderHref("print-screen"), icon: "printer", show: Boolean(tenantBaseHref) && auth.can("print_screen.view") },
           ],
         },
         {
@@ -335,19 +335,19 @@ export function DashboardShell({
               label: "Security",
               href: tenantSlug ? `/app/${tenantSlug}/security` : "/app",
               icon: "shield",
-              show: !auth.isAdmin && Boolean(tenantSlug),
+              show: Boolean(tenantSlug) && auth.can("security.manage"),
             },
             {
               label: "Profile",
               href: auth.isAdmin ? "/admin/profile" : tenantSlug ? `/app/${tenantSlug}/profile` : "/profile",
               icon: "profile",
-              show: auth.isAuthenticated,
+              show: auth.isAuthenticated && auth.can("profile.manage"),
             },
             {
               label: "Settings",
               href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/settings",
               icon: "settings",
-              show: auth.isAuthenticated,
+              show: auth.isAuthenticated && auth.can("settings.manage"),
             },
           ],
         },
@@ -355,7 +355,7 @@ export function DashboardShell({
         title?: string;
         items: Array<{ label: string; href: string; icon: React.ComponentProps<typeof MenuIcon>["name"]; show?: boolean }>;
       }>,
-    [auth.isAdmin, auth.isAuthenticated, tenantBaseHref, tenantPlaceholderHref, tenantSlug],
+    [auth, tenantBaseHref, tenantPlaceholderHref, tenantSlug],
   );
 
   const resolvedNavSections = React.useMemo(() => {

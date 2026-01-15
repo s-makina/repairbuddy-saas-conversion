@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'permission' => \App\Http\Middleware\EnsurePermission::class,
             'tenant' => \App\Http\Middleware\ResolveTenant::class,
             'tenant.member' => \App\Http\Middleware\EnsureTenantMember::class,
             'verified' => \App\Http\Middleware\EnsureEmailVerifiedJson::class,

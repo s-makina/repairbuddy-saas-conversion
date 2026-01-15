@@ -28,8 +28,10 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group(function () {
-    Route::get('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index']);
-    Route::post('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])->middleware('throttle:auth');
+    Route::get('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index'])
+        ->middleware('permission:admin.tenants.read');
+    Route::post('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.tenants.write']);
 });
 
 Route::prefix('{tenant}')

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Permissions;
 use App\Support\Totp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -122,6 +123,7 @@ class AuthController extends Controller
             'token' => $token,
             'user' => $user,
             'tenant' => $user->tenant,
+            'permissions' => Permissions::forUser($user),
         ]);
     }
 
@@ -162,6 +164,7 @@ class AuthController extends Controller
             'token' => $token,
             'user' => $user,
             'tenant' => $user->tenant,
+            'permissions' => Permissions::forUser($user),
         ]);
     }
 
@@ -296,6 +299,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'tenant' => $user?->tenant,
+            'permissions' => Permissions::forUser($user),
         ]);
     }
 }

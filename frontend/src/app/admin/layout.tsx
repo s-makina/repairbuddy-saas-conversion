@@ -6,7 +6,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <RequireAuth adminOnly>
+    <RequireAuth requiredPermission="admin.access">
       <DashboardShell title="Admin dashboard">{children}</DashboardShell>
     </RequireAuth>
   );

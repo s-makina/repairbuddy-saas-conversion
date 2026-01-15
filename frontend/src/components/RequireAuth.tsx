@@ -7,9 +7,11 @@ import { useAuth } from "@/lib/auth";
 export function RequireAuth({
   children,
   adminOnly = false,
+  requiredPermission,
 }: {
   children: React.ReactNode;
   adminOnly?: boolean;
+  requiredPermission?: string;
 }) {
   const auth = useAuth();
   const router = useRouter();
@@ -30,8 +32,13 @@ export function RequireAuth({
 
     if (adminOnly && !auth.isAdmin) {
       router.replace("/app");
+      return;
     }
-  }, [adminOnly, auth.isAdmin, auth.isAuthenticated, auth.loading, auth.user, pathname, router]);
+
+    if (requiredPermission && !auth.can(requiredPermission)) {
+      router.replace("/app");
+    }
+  }, [adminOnly, auth, requiredPermission, pathname, router]);
 
   if (auth.loading) {
     return (
@@ -50,6 +57,10 @@ export function RequireAuth({
   }
 
   if (adminOnly && !auth.isAdmin) {
+    return null;
+  }
+
+  if (requiredPermission && !auth.can(requiredPermission)) {
     return null;
   }
 
