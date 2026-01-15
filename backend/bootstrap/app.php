@@ -12,6 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->throttleApi('60,1');
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'tenant' => \App\Http\Middleware\ResolveTenant::class,

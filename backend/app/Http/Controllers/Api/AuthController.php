@@ -31,7 +31,21 @@ class AuthController extends Controller
         $tenantSlug = $validated['tenant_slug'] ?? null;
 
         if ($tenantSlug) {
-            $tenant = Tenant::query()->where('slug', $tenantSlug)->firstOrFail();
+            if (Tenant::query()->where('slug', $tenantSlug)->exists()) {
+                return response()->json([
+                    'message' => 'The tenant slug is already taken.',
+                    'errors' => [
+                        'tenant_slug' => ['The tenant slug is already taken.'],
+                    ],
+                ], 422);
+            }
+
+            $tenant = Tenant::query()->create([
+                'name' => $validated['tenant_name'] ?? $tenantSlug,
+                'slug' => $tenantSlug,
+                'status' => 'active',
+                'contact_email' => $validated['email'],
+            ]);
         } else {
             $name = $validated['tenant_name'] ?? 'Tenant';
             $baseSlug = Str::slug($name) ?: 'tenant';

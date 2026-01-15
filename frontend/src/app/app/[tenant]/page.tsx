@@ -8,6 +8,9 @@ import React, { useEffect, useState } from "react";
 type DashboardPayload = {
   tenant: Tenant;
   user: User;
+  metrics: {
+    notes_count: number;
+  };
 };
 
 export default function TenantDashboardPage() {
@@ -59,15 +62,19 @@ export default function TenantDashboardPage() {
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
       {data ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-lg border bg-white p-4">
-            <div className="text-xs font-semibold text-zinc-500">Tenant</div>
-            <div className="mt-1 text-sm">{data.tenant.name}</div>
+            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Active Notes</div>
+            <div className="mt-2 text-2xl font-bold">{data.metrics.notes_count}</div>
+          </div>
+          <div className="rounded-lg border bg-white p-4">
+            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tenant</div>
+            <div className="mt-2 text-sm font-medium">{data.tenant.name}</div>
             <div className="mt-1 text-xs text-zinc-500">Slug: {data.tenant.slug}</div>
           </div>
           <div className="rounded-lg border bg-white p-4">
-            <div className="text-xs font-semibold text-zinc-500">Signed in as</div>
-            <div className="mt-1 text-sm">{data.user.name}</div>
+            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Signed in as</div>
+            <div className="mt-2 text-sm font-medium">{data.user.name}</div>
             <div className="mt-1 text-xs text-zinc-500">{data.user.email}</div>
           </div>
         </div>

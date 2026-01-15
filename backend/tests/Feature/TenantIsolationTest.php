@@ -26,13 +26,14 @@ class TenantIsolationTest extends TestCase
             'status' => 'active',
         ]);
 
-        $userA = User::query()->create([
+        $userA = User::query()->forceCreate([
             'name' => 'User A',
             'email' => 'user-a@example.com',
             'password' => Hash::make('password'),
             'tenant_id' => $tenantA->id,
             'role' => 'member',
             'is_admin' => false,
+            'email_verified_at' => now(),
         ]);
 
         $tokenA = $userA->createToken('api')->plainTextToken;

@@ -13,6 +13,9 @@ class DashboardController extends Controller
         return response()->json([
             'tenant' => TenantContext::tenant(),
             'user' => $request->user(),
+            'metrics' => [
+                'notes_count' => \App\Models\TenantNote::query()->count(),
+            ],
         ]);
     }
 }
