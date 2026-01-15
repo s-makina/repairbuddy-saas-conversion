@@ -15,25 +15,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $superAdminEmail = (string) env('SUPERADMIN_EMAIL', 'superadmin@repairbuddy.com');
+        $superAdminPassword = (string) env('SUPERADMIN_PASSWORD', 'Password123!@#Aa');
+
         $tenant = Tenant::query()->firstOrCreate([
             'slug' => 'demo',
         ], [
             'name' => 'Demo Tenant',
             'status' => 'active',
-            'contact_email' => 'demo-owner@example.com',
+            'contact_email' => 'demo-owner@repairbuddy.com',
         ]);
 
         User::query()->updateOrCreate([
-            'email' => 'admin@example.com',
+            'email' => $superAdminEmail,
         ], [
-            'name' => 'Platform Admin',
-            'password' => Hash::make('Password123!@#Aa'),
+            'name' => 'Super Admin',
+            'password' => Hash::make($superAdminPassword),
             'is_admin' => true,
             'email_verified_at' => now(),
         ]);
 
         User::query()->updateOrCreate([
-            'email' => 'demo-owner@example.com',
+            'email' => 'sarah@repairbuddy.com',
         ], [
             'name' => 'Demo Owner',
             'password' => Hash::make('Password123!@#Aa'),
