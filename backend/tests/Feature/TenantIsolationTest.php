@@ -40,9 +40,8 @@ class TenantIsolationTest extends TestCase
         $createA = $this
             ->withHeaders([
                 'Authorization' => 'Bearer '.$tokenA,
-                'X-Tenant' => $tenantA->slug,
             ])
-            ->postJson('/api/app/notes', [
+            ->postJson('/api/'.$tenantA->slug.'/app/notes', [
                 'title' => 'Note A',
                 'body' => 'Hello',
             ]);
@@ -52,18 +51,16 @@ class TenantIsolationTest extends TestCase
         $listWrongTenant = $this
             ->withHeaders([
                 'Authorization' => 'Bearer '.$tokenA,
-                'X-Tenant' => $tenantB->slug,
             ])
-            ->getJson('/api/app/notes');
+            ->getJson('/api/'.$tenantB->slug.'/app/notes');
 
         $listWrongTenant->assertStatus(403);
 
         $listA = $this
             ->withHeaders([
                 'Authorization' => 'Bearer '.$tokenA,
-                'X-Tenant' => $tenantA->slug,
             ])
-            ->getJson('/api/app/notes');
+            ->getJson('/api/'.$tenantA->slug.'/app/notes');
 
         $listA->assertStatus(200);
         $listA->assertJsonCount(1, 'notes');

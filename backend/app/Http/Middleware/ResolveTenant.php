@@ -16,6 +16,11 @@ class ResolveTenant
 
         $tenantSlug = null;
 
+        if ($resolution === 'path') {
+            $param = config('tenancy.route_param', 'tenant');
+            $tenantSlug = $request->route($param);
+        }
+
         if ($resolution === 'header') {
             $tenantSlug = $request->header(config('tenancy.header'));
         }

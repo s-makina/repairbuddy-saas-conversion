@@ -24,9 +24,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])->middleware('throttle:auth');
 });
 
-Route::prefix('app')->middleware(['auth:sanctum', 'tenant', 'tenant.member'])->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
+Route::prefix('{tenant}')
+    ->where(['tenant' => '[A-Za-z0-9\-]+' ])
+    ->middleware(['tenant'])
+    ->group(function () {
+        Route::prefix('app')->middleware(['auth:sanctum', 'tenant.member'])->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
 
-    Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
-    Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
-});
+            Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
+            Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
+        });
+    });
