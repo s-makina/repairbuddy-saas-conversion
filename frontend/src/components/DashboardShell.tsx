@@ -6,7 +6,9 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
+import { Card } from "@/components/ui/Card";
+import { UserMenu } from "@/components/ui/UserMenu";
 
 export function DashboardShell({
   title,
@@ -22,6 +24,8 @@ export function DashboardShell({
 
   const userName = auth.user?.name ?? "";
   const userEmail = auth.user?.email ?? "";
+  const userAvatarUrl = auth.user?.avatar_url ?? null;
+
   const userInitials = userName
     .split(" ")
     .filter(Boolean)
@@ -41,6 +45,56 @@ export function DashboardShell({
     },
   ];
 
+  const pageLabel = (() => {
+    if (pathname === "/admin") return "Tenants";
+
+    if (pathname.startsWith("/app/")) {
+      const parts = pathname.split("/").filter(Boolean);
+      if (parts.length === 2) {
+        return "Dashboard";
+      }
+
+      if (parts.length >= 3) {
+        return parts[2]
+          .split("-")
+          .filter(Boolean)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+      }
+      return "App";
+    }
+
+    if (pathname === "/") return "Home";
+    if (pathname === "/login") return "Login";
+    if (pathname === "/register") return "Register";
+    if (pathname === "/verify-email") return "Verify Email";
+
+    const last = pathname.split("/").filter(Boolean).slice(-1)[0] ?? "";
+    return last
+      .split("-")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ") || "Page";
+  })();
+
+  const breadcrumbText = (() => {
+    if (pathname.startsWith("/app/")) return `App / ${pageLabel}`;
+    if (pathname.startsWith("/admin")) return `Admin / ${pageLabel}`;
+    return pageLabel;
+  })();
+
+  const profileHref = (() => {
+    if (auth.isAdmin) return "/admin/profile";
+    if (tenantSlug) return `/app/${tenantSlug}/profile`;
+    return "/profile";
+  })();
+
+  const settingsHref = (() => {
+    if (auth.isAdmin) return "/admin/settings";
+    if (tenantSlug) return `/app/${tenantSlug}/settings`;
+    return "/settings";
+  })();
+
   return (
     <div className="min-h-screen bg-[var(--rb-surface-muted)] text-[var(--rb-text)]">
       <div className="flex min-h-screen">
@@ -55,14 +109,17 @@ export function DashboardShell({
                 priority
               />
             </div>
-            <div className="mt-2 text-xs text-zinc-600">{title}</div>
+            {/* <div className="mt-2 text-xs text-zinc-600">{title}</div> */}
           </div>
 
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
             {navItems
               .filter((x) => x.show)
               .map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
                 return (
                   <Link
@@ -83,32 +140,45 @@ export function DashboardShell({
 
           <div className="border-t border-white/10 p-3">
             <div className="flex items-center gap-3 rounded-[var(--rb-radius-md)] bg-white/5 px-3 py-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-semibold">
-                {userInitials || "U"}
-              </div>
+              <Avatar
+                src={userAvatarUrl}
+                alt={userName || "User"}
+                fallback={userInitials || "U"}
+                size={36}
+                className="bg-white/15"
+              />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-white">
-                  {userName || "User"}
-                </div>
+                <div className="truncate text-sm font-semibold text-white">{userName || "User"}</div>
                 <div className="truncate text-xs text-white/70">{userEmail || ""}</div>
               </div>
-            </div>
-
-            <div className="mt-3">
-              <Button
-                className="w-full justify-center border-white/20 bg-transparent text-white hover:bg-white/10"
-                variant="outline"
-                onClick={() => void auth.logout()}
-                type="button"
-              >
-                Logout
-              </Button>
             </div>
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
+          <div className="mx-auto w-full max-w-6xl px-4">
+            <Card className="mt-6 px-5 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    {breadcrumbText}
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-[var(--rb-text)]">{pageLabel}</div>
+                </div>
+
+                <UserMenu
+                  userName={userName}
+                  userEmail={userEmail}
+                  avatarUrl={userAvatarUrl}
+                  profileHref={profileHref}
+                  settingsHref={settingsHref}
+                  onLogout={() => void auth.logout()}
+                />
+              </div>
+            </Card>
+          </div>
+
+          <main className="mx-auto w-full max-w-6xl px-4 pb-8">{children}</main>
         </div>
       </div>
     </div>
