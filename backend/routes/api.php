@@ -66,5 +66,7 @@ Route::prefix('{tenant}')
                 ->middleware('permission:users.manage');
             Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\App\UserController::class, 'updateStatus'])
                 ->middleware('permission:users.manage');
+            Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
+                ->middleware('permission:users.manage');
         });
     });

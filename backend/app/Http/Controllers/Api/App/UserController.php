@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class UserController extends Controller
@@ -204,6 +205,46 @@ class UserController extends Controller
 
         return response()->json([
             'user' => $user->load('roleModel'),
+        ]);
+    }
+
+    public function sendPasswordResetLink(Request $request, string $user)
+    {
+        $tenantId = TenantContext::tenantId();
+
+        if (! ctype_digit($user)) {
+            return response()->json([
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        $userModel = User::query()->where('id', (int) $user)->first();
+
+        if (! $userModel) {
+            return response()->json([
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        if ((int) $userModel->tenant_id !== (int) $tenantId || $userModel->is_admin) {
+            return response()->json([
+                'message' => 'Forbidden.',
+            ], 403);
+        }
+
+        $status = Password::sendResetLink([
+            'email' => $userModel->email,
+        ]);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json([
+                'message' => 'Failed to send reset link.',
+                'status' => $status,
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Reset link sent.',
         ]);
     }
 }

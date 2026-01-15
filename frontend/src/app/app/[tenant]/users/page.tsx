@@ -171,6 +171,28 @@ export default function TenantUsersPage() {
     }
   }
 
+  async function onSendPasswordReset(userId: number) {
+    setActionBusyUserId(userId);
+    setError(null);
+    setStatus(null);
+
+    try {
+      await apiFetch<{ message: string }>(`/api/${tenant}/app/users/${userId}/reset-password`, {
+        method: "POST",
+      });
+
+      setStatus("Password reset link sent.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to send password reset link.");
+      }
+    } finally {
+      setActionBusyUserId(null);
+    }
+  }
+
   useEffect(() => {
     setPageIndex(0);
     void load({ includeRoles: true });
@@ -527,8 +549,8 @@ export default function TenantUsersPage() {
                       label: "Role",
                       value: roleFilter,
                       options: roleOptions,
-                      onChange: (value: string) => {
-                        setRoleFilter(value);
+                      onChange: (value) => {
+                        setRoleFilter(String(value));
                         setPageIndex(0);
                       },
                     },
@@ -537,8 +559,8 @@ export default function TenantUsersPage() {
                       label: "Status",
                       value: statusFilter,
                       options: statusOptions,
-                      onChange: (value: string) => {
-                        setStatusFilter(value);
+                      onChange: (value) => {
+                        setStatusFilter(String(value));
                         setPageIndex(0);
                       },
                     },
@@ -612,6 +634,26 @@ export default function TenantUsersPage() {
                                   disabled={rowBusy}
                                 >
                                   Edit
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    close();
+                                    openConfirm({
+                                      title: "Send password reset",
+                                      message: (
+                                        <div>
+                                          Send a password reset link to <span className="font-semibold">{u.email}</span>?
+                                        </div>
+                                      ),
+                                      action: async () => onSendPasswordReset(u.id),
+                                    });
+                                  }}
+                                  disabled={rowBusy}
+                                >
+                                  Reset password
                                 </DropdownMenuItem>
 
                                 <DropdownMenuSeparator />

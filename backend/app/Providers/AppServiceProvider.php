@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Support\TenantContext;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSent;
@@ -29,6 +31,22 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('auth', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
+        });
+
+        ResetPassword::createUrlUsing(function (mixed $notifiable, string $token) {
+            $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
+            $tenantSlug = TenantContext::tenant()?->slug;
+            $email = method_exists($notifiable, 'getEmailForPasswordReset')
+                ? (string) $notifiable->getEmailForPasswordReset()
+                : (string) ($notifiable->email ?? '');
+
+            $qs = http_build_query([
+                'token' => $token,
+                'email' => $email,
+                'tenant' => $tenantSlug,
+            ]);
+
+            return $frontendUrl.'/reset-password?'.$qs;
         });
 
         Event::listen(MessageSent::class, function (MessageSent $event) {
