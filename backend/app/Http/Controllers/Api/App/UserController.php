@@ -12,17 +12,52 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $tenantId = TenantContext::tenantId();
 
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'role' => ['nullable', 'string', 'max:50'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $q = is_string($validated['q'] ?? null) ? trim($validated['q']) : '';
+        $role = is_string($validated['role'] ?? null) ? $validated['role'] : null;
+        $perPage = (int) ($validated['per_page'] ?? 10);
+
+        $query = User::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_admin', false)
+            ->with(['roleModel'])
+            ->orderBy('id', 'desc');
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%");
+            });
+        }
+
+        if (is_string($role) && $role !== '' && $role !== 'all') {
+            if ($role === 'none') {
+                $query->whereNull('role_id');
+            } elseif (ctype_digit($role)) {
+                $query->where('role_id', (int) $role);
+            }
+        }
+
+        $paginator = $query->paginate($perPage);
+
         return response()->json([
-            'users' => User::query()
-                ->where('tenant_id', $tenantId)
-                ->where('is_admin', false)
-                ->with(['roleModel'])
-                ->orderBy('id', 'desc')
-                ->get(),
+            'users' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
         ]);
     }
 
