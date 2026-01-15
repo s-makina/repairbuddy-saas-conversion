@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 
@@ -212,18 +213,41 @@ class UserController extends Controller
     {
         $tenantId = TenantContext::tenantId();
 
+        Log::info('users.reset_password.requested', [
+            'tenant_id' => $tenantId,
+            'user_param' => $user,
+        ]);
+
         if (! ctype_digit($user)) {
-            return response()->json([
-                'message' => 'User not found.',
-            ], 404);
+            $payload = [
+                'message' => 'Invalid user id.',
+            ];
+
+            if (config('app.debug')) {
+                $payload['debug'] = [
+                    'tenant_id' => $tenantId,
+                    'user_param' => $user,
+                ];
+            }
+
+            return response()->json($payload, 422);
         }
 
         $userModel = User::query()->where('id', (int) $user)->first();
 
         if (! $userModel) {
-            return response()->json([
+            $payload = [
                 'message' => 'User not found.',
-            ], 404);
+            ];
+
+            if (config('app.debug')) {
+                $payload['debug'] = [
+                    'tenant_id' => $tenantId,
+                    'user_param' => $user,
+                ];
+            }
+
+            return response()->json($payload, 404);
         }
 
         if ((int) $userModel->tenant_id !== (int) $tenantId || $userModel->is_admin) {
