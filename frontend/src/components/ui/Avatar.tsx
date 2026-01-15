@@ -18,7 +18,14 @@ export function Avatar({
   className?: string;
 }) {
   const containerClass = cn(
-    "relative inline-flex items-center justify-center overflow-hidden rounded-full bg-white/15 text-sm font-semibold text-white",
+      "relative inline-flex items-center justify-center overflow-hidden rounded-full",
+      // Accessible background + text contrast
+      "bg-slate-200 text-slate-800",
+      "dark:bg-slate-700 dark:text-slate-100",
+      // Visual separation
+      "ring-1 ring-black/10 dark:ring-white/10",
+      // Typography
+      "text-sm font-semibold leading-none",
     className,
   );
 
@@ -36,11 +43,13 @@ export function Avatar({
           width={size}
           height={size}
           className="h-full w-full object-cover"
-          loader={({ src: loaderSrc }) => loaderSrc}
+          loader={({ src }) => src}
           unoptimized
         />
       ) : (
-        <span className="select-none">{fallback}</span>
+        <span className="select-none uppercase">
+          {fallback}
+        </span>
       )}
     </span>
   );

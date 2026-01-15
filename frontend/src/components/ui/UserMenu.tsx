@@ -69,15 +69,22 @@ export function UserMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-2 rounded-[var(--rb-radius-md)] bg-[var(--rb-blue)] px-2.5 py-2 text-white",
-          "hover:bg-[var(--rb-orange)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+          "group inline-flex items-center gap-2 rounded-full border px-3 py-1.5",
+          "bg-[var(--rb-surface-muted)] text-zinc-600 border-[var(--rb-border)]",
+          "hover:bg-white hover:text-[var(--rb-text)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(6,62,112,0.20)] focus-visible:ring-offset-2 focus-visible:ring-offset-white",
         )}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <Avatar src={avatarUrl} alt={userName || "User"} fallback={initials} size={32} className="bg-white/15" />
-        <span className="hidden max-w-[160px] truncate text-sm font-semibold text-white sm:inline">
+        <Avatar
+          src={avatarUrl}
+          alt={userName || "User"}
+          fallback={initials}
+          size={32}
+          className="bg-[var(--rb-blue)] text-white"
+        />
+        <span className="hidden max-w-[160px] truncate text-sm font-semibold text-current sm:inline">
           {userName || "User"}
         </span>
       </button>
