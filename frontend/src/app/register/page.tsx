@@ -30,7 +30,7 @@ export default function RegisterPage() {
         tenant_name: tenantName || undefined,
       });
 
-      router.replace("/");
+      router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -85,6 +85,7 @@ export default function RegisterPage() {
             <label className="text-sm font-medium" htmlFor="password">
               Password
             </label>
+            <div className="text-xs text-zinc-500">Minimum 12 chars, mixed case, number, and symbol.</div>
             <input
               className="w-full rounded-md border px-3 py-2 text-sm"
               id="password"
@@ -93,7 +94,7 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               required
-              minLength={8}
+              minLength={12}
             />
           </div>
 

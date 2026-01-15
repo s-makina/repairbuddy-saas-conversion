@@ -39,6 +39,14 @@ export function DashboardShell({
                 App
               </Link>
             ) : null}
+            {!auth.isAdmin && auth.tenant?.slug ? (
+              <Link
+                className="text-zinc-600 hover:text-zinc-900"
+                href={`/app/${auth.tenant.slug}/security`}
+              >
+                Security
+              </Link>
+            ) : null}
             <button
               className="rounded-md border bg-white px-3 py-1.5 hover:bg-zinc-50"
               onClick={() => void auth.logout()}

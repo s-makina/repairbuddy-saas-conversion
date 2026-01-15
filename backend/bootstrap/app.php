@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'tenant' => \App\Http\Middleware\ResolveTenant::class,
             'tenant.member' => \App\Http\Middleware\EnsureTenantMember::class,
+            'verified' => \App\Http\Middleware\EnsureEmailVerifiedJson::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

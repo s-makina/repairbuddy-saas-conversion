@@ -11,6 +11,28 @@ type AuthPayload = {
   tenant: Tenant | null;
 };
 
+type RegisterPayload = {
+  verification_required: true;
+  user: User;
+  tenant: Tenant | null;
+};
+
+type LoginOtpRequiredPayload = {
+  otp_required: true;
+  otp_login_token: string;
+};
+
+type LoginVerificationRequiredPayload = {
+  verification_required: true;
+};
+
+type LoginPayload = AuthPayload | LoginOtpRequiredPayload | LoginVerificationRequiredPayload;
+
+export type LoginResult =
+  | { status: "ok" }
+  | { status: "otp_required"; otp_login_token: string }
+  | { status: "verification_required" };
+
 type MePayload = {
   user: User | null;
   tenant: Tenant | null;
@@ -24,7 +46,8 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isAdmin: boolean;
   refresh: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  loginOtp: (otpLoginToken: string, code: string) => Promise<void>;
   register: (input: {
     name: string;
     email: string;
@@ -32,6 +55,7 @@ type AuthContextValue = {
     tenant_name?: string;
     tenant_slug?: string;
   }) => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -82,10 +106,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const payload = await apiFetch<AuthPayload>("/api/auth/login", {
+  const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
+    const payload = await apiFetch<LoginPayload>("/api/auth/login", {
       method: "POST",
       body: { email, password },
+    });
+
+    if ("token" in payload && typeof payload.token === "string") {
+      setToken(payload.token);
+      setTokenState(payload.token);
+      setUser(payload.user);
+      setTenant(payload.tenant);
+      return { status: "ok" };
+    }
+
+    if ("otp_required" in payload && payload.otp_required) {
+      return { status: "otp_required", otp_login_token: payload.otp_login_token };
+    }
+
+    return { status: "verification_required" };
+  }, []);
+
+  const loginOtp = useCallback(async (otpLoginToken: string, code: string) => {
+    const payload = await apiFetch<AuthPayload>("/api/auth/login/otp", {
+      method: "POST",
+      body: { otp_login_token: otpLoginToken, code },
     });
 
     setToken(payload.token);
@@ -101,15 +146,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tenant_name?: string;
     tenant_slug?: string;
   }) => {
-    const payload = await apiFetch<AuthPayload>("/api/auth/register", {
+    await apiFetch<RegisterPayload>("/api/auth/register", {
       method: "POST",
       body: input,
     });
+  }, []);
 
-    setToken(payload.token);
-    setTokenState(payload.token);
-    setUser(payload.user);
-    setTenant(payload.tenant);
+  const resendVerificationEmail = useCallback(async (email: string) => {
+    await apiFetch<{ status: "ok" }>("/api/auth/email/resend", {
+      method: "POST",
+      body: { email },
+    });
   }, []);
 
   const logout = useCallback(async () => {
@@ -143,10 +190,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       refresh,
       login,
+      loginOtp,
       register,
+      resendVerificationEmail,
       logout,
     };
-  }, [loading, token, user, tenant, refresh, login, register, logout]);
+  }, [loading, token, user, tenant, refresh, login, loginOtp, register, resendVerificationEmail, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

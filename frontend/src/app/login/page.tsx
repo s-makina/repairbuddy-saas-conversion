@@ -15,6 +15,8 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoginToken, setOtpLoginToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -24,9 +26,25 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      await auth.login(email, password);
+      if (otpLoginToken) {
+        await auth.loginOtp(otpLoginToken, otpCode);
+        router.replace(next || "/");
+        return;
+      }
 
-      router.replace(next || "/");
+      const res = await auth.login(email, password);
+
+      if (res.status === "ok") {
+        router.replace(next || "/");
+        return;
+      }
+
+      if (res.status === "verification_required") {
+        router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      setOtpLoginToken(res.otp_login_token);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -59,30 +77,50 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               required
+              disabled={Boolean(otpLoginToken)}
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="password">
-              Password
-            </label>
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              required
-            />
-          </div>
+          {!otpLoginToken ? (
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="password">
+                Password
+              </label>
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                required
+              />
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="otp">
+                OTP code
+              </label>
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                id="otp"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                pattern="\\d{6}"
+                placeholder="6-digit code"
+                required
+              />
+            </div>
+          )}
 
           <button
             className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
             type="submit"
             disabled={submitting}
           >
-            {submitting ? "Signing in..." : "Sign in"}
+            {submitting ? "Signing in..." : otpLoginToken ? "Verify code" : "Sign in"}
           </button>
         </form>
 

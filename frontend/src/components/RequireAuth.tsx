@@ -23,10 +23,15 @@ export function RequireAuth({
       return;
     }
 
+    if (auth.user && !auth.user.email_verified_at) {
+      router.replace(`/verify-email?email=${encodeURIComponent(auth.user.email)}`);
+      return;
+    }
+
     if (adminOnly && !auth.isAdmin) {
       router.replace("/app");
     }
-  }, [adminOnly, auth.isAdmin, auth.isAuthenticated, auth.loading, pathname, router]);
+  }, [adminOnly, auth.isAdmin, auth.isAuthenticated, auth.loading, auth.user, pathname, router]);
 
   if (auth.loading) {
     return (
@@ -37,6 +42,10 @@ export function RequireAuth({
   }
 
   if (!auth.isAuthenticated) {
+    return null;
+  }
+
+  if (auth.user && !auth.user.email_verified_at) {
     return null;
   }
 

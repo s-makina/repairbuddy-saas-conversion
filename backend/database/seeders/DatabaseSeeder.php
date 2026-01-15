@@ -23,22 +23,24 @@ class DatabaseSeeder extends Seeder
             'contact_email' => 'demo-owner@example.com',
         ]);
 
-        User::query()->firstOrCreate([
+        User::query()->updateOrCreate([
             'email' => 'admin@example.com',
         ], [
             'name' => 'Platform Admin',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('Password123!@#Aa'),
             'is_admin' => true,
+            'email_verified_at' => now(),
         ]);
 
-        User::query()->firstOrCreate([
+        User::query()->updateOrCreate([
             'email' => 'demo-owner@example.com',
         ], [
             'name' => 'Demo Owner',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('Password123!@#Aa'),
             'tenant_id' => $tenant->id,
             'role' => 'owner',
             'is_admin' => false,
+            'email_verified_at' => now(),
         ]);
     }
 }

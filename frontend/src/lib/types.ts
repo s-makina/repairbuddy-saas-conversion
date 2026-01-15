@@ -16,9 +16,12 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  email_verified_at?: string | null;
   tenant_id?: number | null;
   role?: UserRole | null;
   is_admin: boolean;
+  otp_enabled?: boolean;
+  otp_confirmed_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

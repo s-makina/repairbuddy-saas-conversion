@@ -90,8 +90,17 @@ Source: `docs/proposal_contents.txt` (Milestone 1: Weeks 1–2)
 
 - [ ] Implement user registration flow (as required by proposal)
   - [ ] Define whether registration creates a tenant automatically or joins an existing one
+  - [ ] Email verification required before first login/token issuance
+    - [ ] Verification email sending configured (dev: log/mailtrap)
+    - [ ] Verify link flow returns user to frontend confirmation screen
+    - [ ] Resend verification email endpoint/UI
 - [ ] Implement login/logout
   - [ ] Secure password hashing
+  - [ ] Optional per-user OTP (TOTP) support
+    - [ ] Enable/setup OTP for a user (secret + provisioning URI)
+    - [ ] Confirm OTP setup with code
+    - [ ] Disable OTP (password + code)
+    - [ ] OTP-required login challenge when enabled
   - [ ] Rate limiting on auth endpoints
   - [ ] Session invalidation on logout
 - [ ] Implement "current user" endpoint
