@@ -1,0 +1,92 @@
+PROJECT PROPOSAL: RepairBuddy SaaS Conversion 
+Project: WordPress Plugin to Standalone SaaS Platform 
+Proposed Timeline: 8 Weeks (Phase 1 – Core Platform) 
+EXECUTIVE SUMMARY 
+This proposal outlines the transformation of the RepairBuddy WordPress plugin into a 
+standalone, multi-tenant SaaS platform. By decoupling from WordPress, the system will achieve 
+improved performance, scalability, and long-term maintainability, enabling reliable growth and 
+easier future expansion. 
+The objective of this phase is to deliver a production-ready core SaaS platform with all essential 
+functionality required for real-world usage, including multi-tenancy, repair workflows, billing 
+readiness, and operational stability. The system will be built with a clear foundation for future 
+enhancements and additional modules. 
+TARGET ARCHITECTURE 
+The recommended architecture is designed to ensure security, scalability, and long-term 
+maintainability: 
+• Backend: Laravel 11 (Modern PHP) 
+• Frontend: React 18 (Single Page Application) 
+• Database: PostgreSQL 
+This stack enables strong tenant-level data isolation, consistent performance, and clean 
+separation of concerns. The architecture is provider-agnostic and suitable for deployment across 
+multiple hosting environments. 
+Note: The proposed timeline and cost assume timely feedback, clear requirements, and no major 
+scope expansion during the development phase. 
+DEVELOPMENT ROADMAP & MILESTONES (Phase 1 – Core SaaS Platform) 
+Milestone 1: SaaS Foundation & Multi-Tenant Setup  
+Duration: Weeks 1–2  
+Investment: MWK 400,000  
+Scope: 
+• Analysis and extraction of core logic from the existing WordPress plugin 
+• Standalone Laravel project setup 
+• Secure authentication (admin and tenant users) 
+• Multi-tenant database architecture with strict tenant data isolation 
+• Base dashboard structure  
+Acceptance Criteria: 
+• Users can register, authenticate, and access tenant-specific dashboards 
+• Tenant data is securely isolated 
+• Development environment is deployed and stable 
+Milestone 2: Core Repair Management Platform  
+Duration: Weeks 3–5  
+Investment: MWK 600,000  
+Scope: 
+• Repair job intake and management 
+• Repair status lifecycle (received, in progress, completed) 
+• Technician assignment and management 
+• Customer-facing repair status portal 
+• System notifications (email-based) 
+Acceptance Criteria: 
+• End-to-end repair workflow is fully functional 
+• Technicians can manage jobs from the platform 
+• Customers can securely track repair progress 
+Milestone 3: Billing, Operations & Production Readiness  
+Duration: Weeks 6–8  
+Investment: MWK 500,000  
+Scope: 
+• Invoicing module 
+• Subscription billing automationual payment recording (Phase 1) 
+• Automated online payments 
+• Inventory tracking (core functionality) 
+• SaaS configuration (tenant limits, basic plan controls) 
+• Final quality assurance, bug fixing, and deployment preparation  
+Acceptance Criteria: 
+• Platform is stable and ready for production use 
+• Core operational and financial workflows are functional 
+• System is ready for onboarding real tenants 
+Total Phase 1 Investment: MWK 1,500,000 
+PAYMENT STRUCTURE 
+To ensure steady progress, quality delivery, and uninterrupted development, payments are 
+aligned with milestone completion. 
+Payment Terms: Each milestone is payable upon successful delivery and verification against the 
+agreed acceptance criteria. This structure ensures clear visibility into progress, shared 
+accountability, and consistent development momentum throughout the project lifecycle. 
+BUDGET ALIGNMENT 
+To ensure the scope and delivery approach remain aligned with your expectations, I would be 
+happy to understand if you have an anticipated budget range or maximum planned expenditure 
+for this phase. This will allow fine-tuning of priorities while ensuring the best possible value is 
+delivered within the agreed investment. 
+I’m flexible and open to discussion, particularly given the opportunity for long-term 
+collaboration across multiple projects. 
+STABILIZATION & FUTURE PHASES 
+The project includes final stabilization activities such as: 
+• Bug fixes and refinements 
+• Performance tuning 
+• Deployment readiness checks 
+Future phases may include: 
+• Advanced reporting and analytics 
+• Mobile applications 
+• Third-party integrations 
+These enhancements can be planned and scoped separately once Phase 1 is complete. 
+NEXT STEPS 
+1. Confirm approval of the proposed scope, timeline, and budget 
+2. Finalize milestone start dates and communication cadence 
+3. Commence development with Milestone 1
