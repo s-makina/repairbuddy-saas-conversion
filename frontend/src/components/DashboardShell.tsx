@@ -311,6 +311,8 @@ export function DashboardShell({
             { label: "Customer Devices", href: tenantPlaceholderHref("customer-devices"), icon: "devices", show: Boolean(tenantBaseHref) && auth.can("customer_devices.view") },
             { label: "Technicians", href: tenantPlaceholderHref("technicians"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("technicians.view") },
             { label: "Managers", href: tenantPlaceholderHref("managers"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },
+            { label: "Users", href: tenantSlug ? `/app/${tenantSlug}/users` : "/app", icon: "users", show: Boolean(tenantSlug) && auth.can("users.manage") },
+            { label: "Roles", href: tenantSlug ? `/app/${tenantSlug}/roles` : "/app", icon: "shield", show: Boolean(tenantSlug) && auth.can("roles.manage") },
           ],
         },
         {

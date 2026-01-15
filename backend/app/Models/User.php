@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'password',
         'tenant_id',
         'role',
+        'role_id',
         'is_admin',
         'otp_enabled',
         'otp_secret',
@@ -62,5 +63,10 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function roleModel(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
     }
 }

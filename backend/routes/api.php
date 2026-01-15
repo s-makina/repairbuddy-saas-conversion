@@ -43,5 +43,24 @@ Route::prefix('{tenant}')
 
             Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
             Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
+
+            Route::get('/permissions', [\App\Http\Controllers\Api\App\PermissionController::class, 'index'])
+                ->middleware('permission:roles.manage');
+
+            Route::get('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'index'])
+                ->middleware('permission:roles.manage');
+            Route::post('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'store'])
+                ->middleware('permission:roles.manage');
+            Route::put('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'update'])
+                ->middleware('permission:roles.manage');
+            Route::delete('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'destroy'])
+                ->middleware('permission:roles.manage');
+
+            Route::get('/users', [\App\Http\Controllers\Api\App\UserController::class, 'index'])
+                ->middleware('permission:users.manage');
+            Route::post('/users', [\App\Http\Controllers\Api\App\UserController::class, 'store'])
+                ->middleware('permission:users.manage');
+            Route::patch('/users/{user}/role', [\App\Http\Controllers\Api\App\UserController::class, 'updateRole'])
+                ->middleware('permission:users.manage');
         });
     });

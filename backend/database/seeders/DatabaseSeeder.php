@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -45,5 +46,17 @@ class DatabaseSeeder extends Seeder
             'is_admin' => false,
             'email_verified_at' => now(),
         ]);
+
+        $ownerRoleId = Role::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('name', 'Owner')
+            ->value('id');
+
+        if ($ownerRoleId) {
+            User::query()->where('email', 'sarah@repairbuddy.com')->update([
+                'role_id' => $ownerRoleId,
+                'role' => null,
+            ]);
+        }
     }
 }

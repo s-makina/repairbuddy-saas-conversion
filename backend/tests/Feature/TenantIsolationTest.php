@@ -14,6 +14,15 @@ class TenantIsolationTest extends TestCase
 
     public function test_tenant_member_cannot_access_other_tenant_data(): void
     {
+        $unauthRoles = $this->getJson('/api/tenant-a/app/roles');
+        $unauthRoles->assertStatus(401);
+
+        $unauthUsers = $this->getJson('/api/tenant-a/app/users');
+        $unauthUsers->assertStatus(401);
+
+        $unauthPermissions = $this->getJson('/api/tenant-a/app/permissions');
+        $unauthPermissions->assertStatus(401);
+
         $tenantA = Tenant::query()->create([
             'name' => 'Tenant A',
             'slug' => 'tenant-a',
@@ -37,6 +46,30 @@ class TenantIsolationTest extends TestCase
         ]);
 
         $tokenA = $userA->createToken('api')->plainTextToken;
+
+        $rolesForbidden = $this
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$tokenA,
+            ])
+            ->getJson('/api/'.$tenantA->slug.'/app/roles');
+
+        $rolesForbidden->assertStatus(403);
+
+        $usersForbidden = $this
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$tokenA,
+            ])
+            ->getJson('/api/'.$tenantA->slug.'/app/users');
+
+        $usersForbidden->assertStatus(403);
+
+        $permissionsForbidden = $this
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$tokenA,
+            ])
+            ->getJson('/api/'.$tenantA->slug.'/app/permissions');
+
+        $permissionsForbidden->assertStatus(403);
 
         $createA = $this
             ->withHeaders([

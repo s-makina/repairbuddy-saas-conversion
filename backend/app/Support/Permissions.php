@@ -47,6 +47,9 @@ class Permissions
             'security.manage',
             'profile.manage',
             'settings.manage',
+
+            'users.manage',
+            'roles.manage',
         ];
     }
 
@@ -58,6 +61,20 @@ class Permissions
 
         if ($user->is_admin) {
             return self::all();
+        }
+
+        $known = array_fill_keys(self::all(), true);
+
+        if ($user->role_id) {
+            $role = $user->roleModel;
+
+            if ($role && (int) $role->tenant_id === (int) $user->tenant_id) {
+                $permissions = $role->permissions()->pluck('name')->all();
+
+                return array_values(array_unique(array_values(array_filter($permissions, function (string $p) use ($known) {
+                    return isset($known[$p]);
+                }))));
+            }
         }
 
         $role = (string) ($user->role ?? '');
@@ -90,6 +107,8 @@ class Permissions
                 'security.manage',
                 'profile.manage',
                 'settings.manage',
+                'users.manage',
+                'roles.manage',
             ],
             'member' => [
                 'app.access',
@@ -105,8 +124,6 @@ class Permissions
         ];
 
         $permissions = $map[$role] ?? ['app.access', 'dashboard.view', 'profile.manage'];
-
-        $known = array_fill_keys(self::all(), true);
 
         return array_values(array_unique(array_values(array_filter($permissions, function (string $p) use ($known) {
             return isset($known[$p]);
