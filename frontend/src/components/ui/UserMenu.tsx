@@ -68,12 +68,16 @@ export function UserMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-[var(--rb-radius-sm)] px-2 py-1.5 hover:bg-[var(--rb-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)] focus-visible:ring-offset-2"
+        className={cn(
+          "inline-flex items-center gap-2 rounded-[var(--rb-radius-md)] bg-[var(--rb-blue)] px-2.5 py-2 text-white",
+          "hover:bg-[var(--rb-orange)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+        )}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <Avatar src={avatarUrl} alt={userName || "User"} fallback={initials} size={32} className="bg-[var(--rb-blue)]" />
-        <span className="hidden max-w-[160px] truncate text-sm font-medium text-[var(--rb-text)] sm:inline">
+        <Avatar src={avatarUrl} alt={userName || "User"} fallback={initials} size={32} className="bg-white/15" />
+        <span className="hidden max-w-[160px] truncate text-sm font-semibold text-white sm:inline">
           {userName || "User"}
         </span>
       </button>

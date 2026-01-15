@@ -17,6 +17,7 @@ export function DashboardShell({
   title: string;
   children: React.ReactNode;
 }) {
+  void title;
   const auth = useAuth();
   const pathname = usePathname();
 
@@ -109,7 +110,6 @@ export function DashboardShell({
                 priority
               />
             </div>
-            {/* <div className="mt-2 text-xs text-zinc-600">{title}</div> */}
           </div>
 
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
@@ -178,7 +178,7 @@ export function DashboardShell({
             </Card>
           </div>
 
-          <main className="mx-auto w-full max-w-6xl px-4 pb-8">{children}</main>
+          <main className="mx-auto mt-6 w-full max-w-6xl px-4 pb-8">{children}</main>
         </div>
       </div>
     </div>

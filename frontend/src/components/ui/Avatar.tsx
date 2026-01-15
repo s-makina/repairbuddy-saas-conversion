@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React from "react";
 import { cn } from "@/lib/cn";
 
@@ -29,11 +30,14 @@ export function Avatar({
       title={alt}
     >
       {src ? (
-        <img
+        <Image
           alt={alt}
           src={src}
+          width={size}
+          height={size}
           className="h-full w-full object-cover"
-          referrerPolicy="no-referrer"
+          loader={({ src: loaderSrc }) => loaderSrc}
+          unoptimized
         />
       ) : (
         <span className="select-none">{fallback}</span>
