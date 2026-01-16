@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import QRCode from "react-qr-code";
 import React, { useEffect, useMemo, useState } from "react";
 
 type OtpSetupPayload = {
@@ -135,6 +136,20 @@ export default function SecurityPage() {
                     Add this account in your authenticator app using the secret below.
                   </div>
 
+                  {setup.otpauth_uri ? (
+                    <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-4">
+                      <div className="text-xs font-semibold text-zinc-500">Scan QR code</div>
+                      <div className="mt-3 flex items-center justify-center">
+                        <div className="rounded-[12px] bg-white p-3 ring-1 ring-[var(--rb-border)]">
+                          <QRCode value={setup.otpauth_uri} size={176} />
+                        </div>
+                      </div>
+                      <div className="mt-3 text-xs text-zinc-600">
+                        If you can’t scan, you can still add it manually using the secret below.
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3">
                     <div className="text-xs font-semibold text-zinc-500">Secret</div>
                     <div className="mt-1 font-mono text-sm break-all">{setup.secret}</div>
@@ -155,10 +170,11 @@ export default function SecurityPage() {
                         className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
                         id="otp_code"
                         value={code}
-                        onChange={(e) => setCode(e.target.value)}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                         type="text"
                         inputMode="numeric"
-                        pattern="\\d{6}"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
                         required
                       />
                     </div>
@@ -197,10 +213,11 @@ export default function SecurityPage() {
                   className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
                   id="disable_code"
                   value={disableCode}
-                  onChange={(e) => setDisableCode(e.target.value)}
+                  onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   type="text"
                   inputMode="numeric"
-                  pattern="\\d{6}"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
                   required
                 />
               </div>

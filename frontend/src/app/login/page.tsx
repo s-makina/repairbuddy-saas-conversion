@@ -273,7 +273,8 @@ function LoginPageInner() {
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   type="text"
                   inputMode="numeric"
-                  pattern="\\d{6}"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
                   placeholder="6-digit code"
                   autoComplete="one-time-code"
                   required
