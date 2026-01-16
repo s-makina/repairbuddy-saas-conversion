@@ -15,6 +15,7 @@ export class ApiError extends Error {
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string | null;
+  timeoutMs?: number;
 };
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
@@ -34,11 +35,34 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     body = JSON.stringify(options.body);
   }
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-    body,
-  });
+  const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : 15000;
+  const controller = options.signal ? null : new AbortController();
+  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  let res: Response;
+
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+      body,
+      signal: controller?.signal ?? options.signal,
+    });
+  } catch (err) {
+    if (controller && timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError("Request timed out", 408, null);
+    }
+
+    throw err;
+  } finally {
+    if (controller && timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+  }
 
   const contentType = res.headers.get("content-type") || "";
   const isJson = contentType.includes("application/json");
