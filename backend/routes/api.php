@@ -14,6 +14,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:auth');
     Route::post('/login/otp', [\App\Http\Controllers\Api\AuthController::class, 'loginOtp'])->middleware('throttle:auth');
     Route::post('/email/resend', [\App\Http\Controllers\Api\AuthController::class, 'resendVerificationEmail'])->middleware('throttle:auth');
+    Route::post('/password/email', [\App\Http\Controllers\Api\AuthController::class, 'sendResetLinkEmail'])->middleware('throttle:auth');
+    Route::post('/password/reset', [\App\Http\Controllers\Api\AuthController::class, 'resetPassword'])->middleware('throttle:auth');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);

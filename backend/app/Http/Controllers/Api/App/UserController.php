@@ -14,7 +14,16 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    protected function ensureTenantUser(User $user): void
+    {
+        $tenantId = TenantContext::tenantId();
+
+        if ((int) $user->tenant_id !== (int) $tenantId || $user->is_admin) {
+            abort(403, 'Forbidden.');
+        }
+    }
+
+    public function index(Request $request, string $tenant)
     {
         $tenantId = TenantContext::tenantId();
 
@@ -71,7 +80,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, string $tenant)
     {
         $tenantId = TenantContext::tenantId();
 
@@ -111,15 +120,10 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function updateRole(Request $request, User $user)
+    public function updateRole(Request $request, string $tenant, User $user)
     {
         $tenantId = TenantContext::tenantId();
-
-        if ((int) $user->tenant_id !== (int) $tenantId || $user->is_admin) {
-            return response()->json([
-                'message' => 'Forbidden.',
-            ], 403);
-        }
+        $this->ensureTenantUser($user);
 
         $validated = $request->validate([
             'role_id' => ['required', 'integer'],
@@ -143,15 +147,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, string $tenant, User $user)
     {
-        $tenantId = TenantContext::tenantId();
-
-        if ((int) $user->tenant_id !== (int) $tenantId || $user->is_admin) {
-            return response()->json([
-                'message' => 'Forbidden.',
-            ], 403);
-        }
+        $this->ensureTenantUser($user);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -186,15 +184,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, User $user)
+    public function updateStatus(Request $request, string $tenant, User $user)
     {
-        $tenantId = TenantContext::tenantId();
-
-        if ((int) $user->tenant_id !== (int) $tenantId || $user->is_admin) {
-            return response()->json([
-                'message' => 'Forbidden.',
-            ], 403);
-        }
+        $this->ensureTenantUser($user);
 
         $validated = $request->validate([
             'status' => ['required', 'in:pending,active,inactive,suspended'],
@@ -209,55 +201,12 @@ class UserController extends Controller
         ]);
     }
 
-    public function sendPasswordResetLink(Request $request, string $user)
+    public function sendPasswordResetLink(Request $request, string $tenant, User $user)
     {
-        $tenantId = TenantContext::tenantId();
-
-        Log::info('users.reset_password.requested', [
-            'tenant_id' => $tenantId,
-            'user_param' => $user,
-        ]);
-
-        if (! ctype_digit($user)) {
-            $payload = [
-                'message' => 'Invalid user id.',
-            ];
-
-            if (config('app.debug')) {
-                $payload['debug'] = [
-                    'tenant_id' => $tenantId,
-                    'user_param' => $user,
-                ];
-            }
-
-            return response()->json($payload, 422);
-        }
-
-        $userModel = User::query()->where('id', (int) $user)->first();
-
-        if (! $userModel) {
-            $payload = [
-                'message' => 'User not found.',
-            ];
-
-            if (config('app.debug')) {
-                $payload['debug'] = [
-                    'tenant_id' => $tenantId,
-                    'user_param' => $user,
-                ];
-            }
-
-            return response()->json($payload, 404);
-        }
-
-        if ((int) $userModel->tenant_id !== (int) $tenantId || $userModel->is_admin) {
-            return response()->json([
-                'message' => 'Forbidden.',
-            ], 403);
-        }
+        $this->ensureTenantUser($user);
 
         $status = Password::sendResetLink([
-            'email' => $userModel->email,
+            'email' => $user->email,
         ]);
 
         if ($status !== Password::RESET_LINK_SENT) {

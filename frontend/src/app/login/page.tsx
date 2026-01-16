@@ -56,6 +56,87 @@ function LoginPageInner() {
     }
   }
 
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  async function onForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      await apiFetch<{ message: string }>("/api/auth/password/email", {
+        method: "POST",
+        body: { email },
+      });
+      setResetSent(true);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to send reset link.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (forgotPassword) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-xl border bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-semibold">Forgot Password</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {resetSent
+              ? "Check your email for a link to reset your password."
+              : "Enter your email address and we'll send you a link to reset your password."}
+          </p>
+
+          {error ? <div className="mt-4 text-sm text-red-600">{error}</div> : null}
+
+          {!resetSent ? (
+            <form className="mt-6 space-y-4" onSubmit={onForgotPassword}>
+              <div className="space-y-1">
+                <label className="text-sm font-medium" htmlFor="reset_email">
+                  Email
+                </label>
+                <input
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  id="reset_email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  required
+                />
+              </div>
+
+              <button
+                className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+                type="submit"
+                disabled={submitting}
+              >
+                {submitting ? "Sending..." : "Send Reset Link"}
+              </button>
+            </form>
+          ) : null}
+
+          <div className="mt-4 text-center">
+            <button
+              className="text-sm text-zinc-600 hover:text-zinc-900 underline"
+              onClick={() => {
+                setForgotPassword(false);
+                setResetSent(false);
+                setError(null);
+              }}
+            >
+              Back to login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md rounded-xl border bg-white p-6">
@@ -83,9 +164,18 @@ function LoginPageInner() {
 
           {!otpLoginToken ? (
             <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="password">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium" htmlFor="password">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-zinc-500 hover:text-zinc-900"
+                  onClick={() => setForgotPassword(true)}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 className="w-full rounded-md border px-3 py-2 text-sm"
                 id="password"

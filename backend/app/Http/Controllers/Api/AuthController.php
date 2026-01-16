@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AuthController extends Controller
@@ -276,6 +277,60 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'ok',
+        ]);
+    }
+
+    public function sendResetLinkEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $status = Password::sendResetLink($validated);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json([
+                'message' => 'Failed to send reset link.',
+                'status' => $status,
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Reset link sent.',
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => [
+                'required',
+                'confirmed',
+                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
+            ],
+        ]);
+
+        $status = Password::reset(
+            $validated,
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Failed to reset password.',
+                'status' => $status,
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Your password has been reset.',
         ]);
     }
 
