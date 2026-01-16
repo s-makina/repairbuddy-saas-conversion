@@ -163,7 +163,7 @@ export default function RegisterPage() {
 
           <div className="space-y-1">
             <label className="text-sm font-medium" htmlFor="tenant_name">
-              Tenant name (optional)
+              Company name
             </label>
             <Input
               id="tenant_name"
@@ -172,6 +172,7 @@ export default function RegisterPage() {
               type="text"
               placeholder="e.g. Acme Repair"
               disabled={submitting}
+              required
             />
           </div>
 

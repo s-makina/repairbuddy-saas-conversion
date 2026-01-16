@@ -29,7 +29,7 @@ export function AuthLayout({
   children,
   footer,
 }: {
-  title: string;
+  title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
