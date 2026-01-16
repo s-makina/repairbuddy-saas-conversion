@@ -2,6 +2,10 @@
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { AuthLayout } from "@/components/auth/AuthLayout";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useMemo, useState } from "react";
@@ -39,54 +43,54 @@ function VerifyEmailPageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-xl border bg-white p-6">
-        <h1 className="text-lg font-semibold">Verify your email</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          We sent you a verification link. Click it to activate your account.
-        </p>
+    <AuthLayout
+      title="Verify your email"
+      description={
+        verified
+          ? "Your email is verified. You can now sign in."
+          : "We sent you a verification link. Click it to activate your account."
+      }
+      footer={
+        <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/login">
+          Go to sign in
+        </Link>
+      }
+    >
+      <div className="space-y-4">
+        {status ? <Alert variant="success" title="Status">{status}</Alert> : null}
+        {error ? <Alert variant="danger" title="Unable to resend">{error}</Alert> : null}
 
-        {status ? <div className="mt-4 text-sm text-green-700">{status}</div> : null}
-        {error ? <div className="mt-4 text-sm text-red-600">{error}</div> : null}
+        {!verified ? (
+          <form className="space-y-4" onSubmit={onResend}>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="email">
+                Email
+              </label>
+              <Input
+                id="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                required
+                disabled={submitting}
+                placeholder="you@company.com"
+              />
+            </div>
 
-        <form className="mt-6 space-y-4" onSubmit={onResend}>
-          <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="email">
-              Email
-            </label>
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              id="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              required
-            />
-          </div>
-
-          <button
-            className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-            type="submit"
-            disabled={submitting}
-          >
-            {submitting ? "Sending..." : "Resend verification email"}
-          </button>
-        </form>
-
-        <div className="mt-4 text-sm text-zinc-600">
-          <Link className="text-zinc-900 underline" href="/login">
-            Go to login
-          </Link>
-        </div>
+            <Button className="w-full" type="submit" disabled={submitting}>
+              {submitting ? "Sending..." : "Resend verification email"}
+            </Button>
+          </form>
+        ) : null}
 
         {auth.isAuthenticated ? (
-          <div className="mt-2 text-xs text-zinc-500">
-            You are signed in. If verification is complete, refresh the page.
+          <div className="text-xs text-zinc-600">
+            You are signed in. If verification just completed, refresh the page.
           </div>
         ) : null}
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 

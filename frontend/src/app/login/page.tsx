@@ -1,10 +1,52 @@
 "use client";
 
 import { useAuth } from "@/lib/auth";
-import { ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
+import { AuthLayout } from "@/components/auth/AuthLayout";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { Suspense, useMemo, useState } from "react";
+
+function EyeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+    </svg>
+  );
+}
+
+function EyeOffIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+      <path d="M9.9 4.2A10.4 10.4 0 0 1 12 4c6.5 0 10 8 10 8a18.2 18.2 0 0 1-2.2 3.2" />
+      <path d="M6.1 6.1A18.5 18.5 0 0 0 2 12s3.5 7 10 7a10.7 10.7 0 0 0 5.1-1.2" />
+      <path d="M2 2l20 20" />
+    </svg>
+  );
+}
 
 function LoginPageInner() {
   const auth = useAuth();
@@ -15,14 +57,17 @@ function LoginPageInner() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpLoginToken, setOtpLoginToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setStatus(null);
     setSubmitting(true);
 
     try {
@@ -62,6 +107,7 @@ function LoginPageInner() {
   async function onForgotPassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setStatus(null);
     setSubmitting(true);
 
     try {
@@ -70,6 +116,7 @@ function LoginPageInner() {
         body: { email },
       });
       setResetSent(true);
+      setStatus("If that email exists, we sent a reset link.");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -83,145 +130,183 @@ function LoginPageInner() {
 
   if (forgotPassword) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-xl border bg-white p-6 shadow-sm">
-          <h1 className="text-lg font-semibold">Forgot Password</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {resetSent
-              ? "Check your email for a link to reset your password."
-              : "Enter your email address and we'll send you a link to reset your password."}
-          </p>
-
-          {error ? <div className="mt-4 text-sm text-red-600">{error}</div> : null}
+      <AuthLayout
+        title="Reset your password"
+        description={
+          resetSent
+            ? "Check your inbox for the reset link."
+            : "Enter your email address and we’ll send you a secure reset link."
+        }
+        footer={
+          <button
+            type="button"
+            className="font-medium text-[var(--rb-text)] underline underline-offset-4"
+            onClick={() => {
+              setForgotPassword(false);
+              setResetSent(false);
+              setError(null);
+              setStatus(null);
+            }}
+          >
+            Back to sign in
+          </button>
+        }
+      >
+        <div className="space-y-4">
+          {error ? <Alert variant="danger" title="Something went wrong">{error}</Alert> : null}
+          {status ? <Alert variant="success" title="Check your email">{status}</Alert> : null}
 
           {!resetSent ? (
-            <form className="mt-6 space-y-4" onSubmit={onForgotPassword}>
+            <form className="space-y-4" onSubmit={onForgotPassword}>
               <div className="space-y-1">
                 <label className="text-sm font-medium" htmlFor="reset_email">
                   Email
                 </label>
-                <input
-                  className="w-full rounded-md border px-3 py-2 text-sm"
+                <Input
                   id="reset_email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   required
+                  autoComplete="email"
+                  placeholder="you@company.com"
+                  disabled={submitting}
                 />
               </div>
 
-              <button
-                className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-                type="submit"
-                disabled={submitting}
-              >
-                {submitting ? "Sending..." : "Send Reset Link"}
-              </button>
+              <Button className="w-full" type="submit" disabled={submitting}>
+                {submitting ? "Sending..." : "Send reset link"}
+              </Button>
             </form>
           ) : null}
-
-          <div className="mt-4 text-center">
-            <button
-              className="text-sm text-zinc-600 hover:text-zinc-900 underline"
-              onClick={() => {
-                setForgotPassword(false);
-                setResetSent(false);
-                setError(null);
-              }}
-            >
-              Back to login
-            </button>
-          </div>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-xl border bg-white p-6">
-        <h1 className="text-lg font-semibold">Login</h1>
-        <p className="mt-1 text-sm text-zinc-500">Sign in to access your dashboard.</p>
+    <AuthLayout
+      title={otpLoginToken ? "Enter verification code" : "Sign in"}
+      description={
+        otpLoginToken
+          ? "For your security, enter the 6-digit code to complete sign-in."
+          : "Sign in to access your dashboard."
+      }
+      footer={
+        <>
+          Don’t have an account?{" "}
+          <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/register">
+            Create one
+          </Link>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error ? <Alert variant="danger" title="Sign in failed">{error}</Alert> : null}
 
-        {error ? <div className="mt-4 text-sm text-red-600">{error}</div> : null}
-
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-1">
             <label className="text-sm font-medium" htmlFor="email">
               Email
             </label>
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
+            <Input
               id="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               required
-              disabled={Boolean(otpLoginToken)}
+              disabled={Boolean(otpLoginToken) || submitting}
+              placeholder="you@company.com"
             />
           </div>
 
           {!otpLoginToken ? (
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <label className="text-sm font-medium" htmlFor="password">
                   Password
                 </label>
                 <button
                   type="button"
-                  className="text-xs text-zinc-500 hover:text-zinc-900"
-                  onClick={() => setForgotPassword(true)}
+                  className="text-xs font-medium text-zinc-600 hover:text-[var(--rb-text)]"
+                  onClick={() => {
+                    setForgotPassword(true);
+                    setResetSent(false);
+                    setError(null);
+                    setStatus(null);
+                  }}
                 >
                   Forgot password?
                 </button>
               </div>
-              <input
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                required
-              />
+
+              <div className="relative">
+                <Input
+                  id="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  required
+                  disabled={submitting}
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="otp">
-                OTP code
-              </label>
-              <input
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                id="otp"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                type="text"
-                inputMode="numeric"
-                pattern="\\d{6}"
-                placeholder="6-digit code"
-                required
-              />
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <label className="text-sm font-medium" htmlFor="otp">
+                  Verification code
+                </label>
+                <Input
+                  id="otp"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\\d{6}"
+                  placeholder="6-digit code"
+                  autoComplete="one-time-code"
+                  required
+                  disabled={submitting}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs text-zinc-600">Didn’t mean to use this account?</div>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[var(--rb-text)] underline underline-offset-4"
+                  onClick={() => {
+                    setOtpLoginToken(null);
+                    setOtpCode("");
+                    setPassword("");
+                    setError(null);
+                    setStatus(null);
+                  }}
+                  disabled={submitting}
+                >
+                  Use different email
+                </button>
+              </div>
             </div>
           )}
 
-          <button
-            className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-            type="submit"
-            disabled={submitting}
-          >
+          <Button className="w-full" type="submit" disabled={submitting}>
             {submitting ? "Signing in..." : otpLoginToken ? "Verify code" : "Sign in"}
-          </button>
+          </Button>
         </form>
-
-        <div className="mt-4 text-sm text-zinc-600">
-          Don’t have an account?{" "}
-          <Link className="text-zinc-900 underline" href="/register">
-            Register
-          </Link>
-        </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 
