@@ -12,6 +12,8 @@ class Permissions
             'admin.access',
             'admin.tenants.read',
             'admin.tenants.write',
+            'admin.plans.read',
+            'admin.plans.write',
 
             'app.access',
 
@@ -63,19 +65,26 @@ class Permissions
 
         if ($user->is_admin) {
             $adminRole = (string) ($user->admin_role ?? '');
+            if ($adminRole === '') {
+                $adminRole = 'platform_admin';
+            }
 
             $adminMap = [
                 'platform_admin' => self::all(),
                 'support_agent' => [
                     'admin.access',
                     'admin.tenants.read',
+                    'admin.plans.read',
                 ],
                 'billing_admin' => [
                     'admin.access',
+                    'admin.plans.read',
+                    'admin.plans.write',
                 ],
                 'read_only_auditor' => [
                     'admin.access',
                     'admin.tenants.read',
+                    'admin.plans.read',
                 ],
             ];
 

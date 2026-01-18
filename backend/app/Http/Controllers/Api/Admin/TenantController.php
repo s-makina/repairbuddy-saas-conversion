@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
+use App\Models\Plan;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -495,6 +496,63 @@ class TenantController extends Controller
         return response()->json([
             'owner_user_id' => $owner->id,
             'password' => $newPassword,
+        ]);
+    }
+
+    public function setPlan(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $before = [
+            'plan_id' => $tenant->plan_id,
+        ];
+
+        $planId = $validated['plan_id'] ?? null;
+        $plan = $planId ? Plan::query()->find($planId) : null;
+
+        $tenant->forceFill([
+            'plan_id' => $plan?->id,
+        ])->save();
+
+        PlatformAudit::log($request, 'tenant.plan_set', $tenant, $validated['reason'] ?? null, [
+            'before' => $before,
+            'after' => [
+                'plan_id' => $tenant->plan_id,
+            ],
+        ]);
+
+        return response()->json([
+            'tenant' => $tenant->fresh()->load('plan'),
+        ]);
+    }
+
+    public function setEntitlementOverrides(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'entitlement_overrides' => ['nullable', 'array'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $before = [
+            'entitlement_overrides' => $tenant->entitlement_overrides,
+        ];
+
+        $tenant->forceFill([
+            'entitlement_overrides' => $validated['entitlement_overrides'] ?? null,
+        ])->save();
+
+        PlatformAudit::log($request, 'tenant.entitlement_overrides_set', $tenant, $validated['reason'] ?? null, [
+            'before' => $before,
+            'after' => [
+                'entitlement_overrides' => $tenant->entitlement_overrides,
+            ],
+        ]);
+
+        return response()->json([
+            'tenant' => $tenant->fresh()->load('plan'),
         ]);
     }
 }

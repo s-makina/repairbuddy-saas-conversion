@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Tenant extends Model
 {
@@ -14,6 +15,8 @@ class Tenant extends Model
         'slug',
         'status',
         'contact_email',
+        'plan_id',
+        'entitlement_overrides',
         'activated_at',
         'suspended_at',
         'suspension_reason',
@@ -29,6 +32,12 @@ class Tenant extends Model
             'suspended_at' => 'datetime',
             'closed_at' => 'datetime',
             'data_retention_days' => 'integer',
+            'entitlement_overrides' => 'array',
         ];
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
     }
 }

@@ -52,6 +52,24 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::post('/tenants/{tenant}/owner/reset-password', [\App\Http\Controllers\Api\Admin\TenantController::class, 'resetOwnerPassword'])
         ->whereNumber('tenant')
         ->middleware('permission:admin.tenants.write');
+
+    Route::put('/tenants/{tenant}/plan', [\App\Http\Controllers\Api\Admin\TenantController::class, 'setPlan'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::put('/tenants/{tenant}/entitlements', [\App\Http\Controllers\Api\Admin\TenantController::class, 'setEntitlementOverrides'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+
+    Route::get('/plans', [\App\Http\Controllers\Api\Admin\PlanController::class, 'index'])
+        ->middleware('permission:admin.plans.read');
+    Route::post('/plans', [\App\Http\Controllers\Api\Admin\PlanController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.plans.write']);
+    Route::put('/plans/{plan}', [\App\Http\Controllers\Api\Admin\PlanController::class, 'update'])
+        ->whereNumber('plan')
+        ->middleware('permission:admin.plans.write');
+    Route::delete('/plans/{plan}', [\App\Http\Controllers\Api\Admin\PlanController::class, 'destroy'])
+        ->whereNumber('plan')
+        ->middleware('permission:admin.plans.write');
 });
 
 Route::prefix('{tenant}')
@@ -60,6 +78,8 @@ Route::prefix('{tenant}')
     ->group(function () {
         Route::prefix('app')->middleware(['auth:sanctum', 'verified', 'tenant.member'])->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
+
+            Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);
 
             Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
             Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
