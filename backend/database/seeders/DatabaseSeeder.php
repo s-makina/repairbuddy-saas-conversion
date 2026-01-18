@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
     {
         $superAdminEmail = (string) env('SUPERADMIN_EMAIL', 'superadmin@repairbuddy.com');
         $superAdminPassword = (string) env('SUPERADMIN_PASSWORD', 'Password123!@#Aa');
+        $superAdminRole = (string) env('SUPERADMIN_ROLE', 'platform_admin');
 
         $tenant = Tenant::query()->firstOrCreate([
             'slug' => 'demo',
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Super Admin',
             'password' => Hash::make($superAdminPassword),
             'is_admin' => true,
+            'admin_role' => $superAdminRole,
             'email_verified_at' => now(),
         ]);
 
