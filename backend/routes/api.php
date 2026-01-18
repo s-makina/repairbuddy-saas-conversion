@@ -19,7 +19,7 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
-        Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
+        Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('impersonation');
 
         Route::middleware('verified')->group(function () {
             Route::post('/otp/setup', [\App\Http\Controllers\Api\AuthController::class, 'otpSetup']);
@@ -70,13 +70,23 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::delete('/plans/{plan}', [\App\Http\Controllers\Api\Admin\PlanController::class, 'destroy'])
         ->whereNumber('plan')
         ->middleware('permission:admin.plans.write');
+
+    Route::post('/impersonation', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'store'])
+        ->middleware('permission:admin.impersonation.start');
+    Route::post('/impersonation/{session}/stop', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'stop'])
+        ->whereNumber('session')
+        ->middleware('permission:admin.impersonation.stop');
+
+    Route::get('/tenants/{tenant}/diagnostics', [\App\Http\Controllers\Api\Admin\TenantDiagnosticsController::class, 'show'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.diagnostics.read');
 });
 
 Route::prefix('{tenant}')
     ->where(['tenant' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant'])
     ->group(function () {
-        Route::prefix('app')->middleware(['auth:sanctum', 'verified', 'tenant.member'])->group(function () {
+        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member'])->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
 
             Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);

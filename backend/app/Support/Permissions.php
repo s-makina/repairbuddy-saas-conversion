@@ -14,6 +14,9 @@ class Permissions
             'admin.tenants.write',
             'admin.plans.read',
             'admin.plans.write',
+            'admin.impersonation.start',
+            'admin.impersonation.stop',
+            'admin.diagnostics.read',
 
             'app.access',
 
@@ -75,6 +78,9 @@ class Permissions
                     'admin.access',
                     'admin.tenants.read',
                     'admin.plans.read',
+                    'admin.impersonation.start',
+                    'admin.impersonation.stop',
+                    'admin.diagnostics.read',
                 ],
                 'billing_admin' => [
                     'admin.access',
@@ -85,6 +91,7 @@ class Permissions
                     'admin.access',
                     'admin.tenants.read',
                     'admin.plans.read',
+                    'admin.diagnostics.read',
                 ],
             ];
 

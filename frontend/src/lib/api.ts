@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/config";
 import { getToken } from "@/lib/token";
+import { getImpersonationSessionId } from "@/lib/impersonation";
 
 export class ApiError extends Error {
   status: number;
@@ -15,6 +16,7 @@ export class ApiError extends Error {
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string | null;
+  impersonationSessionId?: number | null;
   timeoutMs?: number;
 };
 
@@ -27,6 +29,14 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const token = options.token ?? getToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const impersonationSessionId =
+    typeof options.impersonationSessionId === "number" || options.impersonationSessionId === null
+      ? options.impersonationSessionId
+      : getImpersonationSessionId();
+  if (typeof impersonationSessionId === "number" && Number.isFinite(impersonationSessionId) && impersonationSessionId > 0) {
+    headers.set("X-RB-Impersonation", String(impersonationSessionId));
   }
 
   let body: BodyInit | undefined;
@@ -84,6 +94,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 type ApiDownloadOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string | null;
+  impersonationSessionId?: number | null;
   timeoutMs?: number;
   filename?: string;
 };
@@ -97,6 +108,14 @@ export async function apiDownload(path: string, options: ApiDownloadOptions = {}
   const token = options.token ?? getToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const impersonationSessionId =
+    typeof options.impersonationSessionId === "number" || options.impersonationSessionId === null
+      ? options.impersonationSessionId
+      : getImpersonationSessionId();
+  if (typeof impersonationSessionId === "number" && Number.isFinite(impersonationSessionId) && impersonationSessionId > 0) {
+    headers.set("X-RB-Impersonation", String(impersonationSessionId));
   }
 
   let body: BodyInit | undefined;

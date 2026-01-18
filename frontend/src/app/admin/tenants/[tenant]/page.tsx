@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { Tenant, User } from "@/lib/types";
 import { RequireAuth } from "@/components/RequireAuth";
+import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -17,9 +18,19 @@ type TenantDetailPayload = {
   owner: User | null;
 };
 
+type ImpersonationStartPayload = {
+  session: {
+    id: number;
+    tenant_id: number;
+    target_user_id: number;
+    expires_at?: string | null;
+  };
+};
+
 export default function AdminTenantDetailPage() {
   const params = useParams<{ tenant: string }>();
   const router = useRouter();
+  const auth = useAuth();
 
   const tenantId = Number(params.tenant);
 
@@ -31,6 +42,7 @@ export default function AdminTenantDetailPage() {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
 
   const [reason, setReason] = useState<string>("");
+  const [referenceId, setReferenceId] = useState<string>("");
   const [closeRetentionDays, setCloseRetentionDays] = useState<string>("");
 
   const [resetPasswordInput, setResetPasswordInput] = useState<string>("");
@@ -86,6 +98,28 @@ export default function AdminTenantDetailPage() {
     },
     [actionBusy, load],
   );
+
+  async function onStartImpersonation() {
+    if (!tenant || !owner) return;
+
+    await runAction("impersonate", async () => {
+      const res = await apiFetch<ImpersonationStartPayload>("/api/admin/impersonation", {
+        method: "POST",
+        body: {
+          tenant_id: tenant.id,
+          target_user_id: owner.id,
+          reason: reason.trim() || "support",
+          reference_id: referenceId.trim() || `tenant-${tenant.id}`,
+          duration_minutes: 60,
+        },
+      });
+
+      if (res.session?.id) {
+        await auth.refresh();
+        router.push(`/app/${tenant.slug}`);
+      }
+    });
+  }
 
   async function onSuspend() {
     await runAction("suspend", async () => {
@@ -227,6 +261,13 @@ export default function AdminTenantDetailPage() {
                   </div>
 
                   <div>
+                    <div className="text-sm font-medium text-[var(--rb-text)]">Reference ID (required for impersonation)</div>
+                    <div className="mt-1">
+                      <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. ticket-1234" />
+                    </div>
+                  </div>
+
+                  <div>
                     <div className="text-sm font-medium text-[var(--rb-text)]">Close retention days (optional)</div>
                     <div className="mt-1">
                       <Input value={closeRetentionDays} onChange={(e) => setCloseRetentionDays(e.target.value)} placeholder="e.g. 30" inputMode="numeric" />
@@ -235,6 +276,14 @@ export default function AdminTenantDetailPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={onStartImpersonation}
+                    disabled={!!actionBusy || !tenant || !owner || tenant.status === "closed"}
+                  >
+                    {actionBusy === "impersonate" ? "Starting..." : "Impersonate owner"}
+                  </Button>
                   <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || tenant.status === "closed"}>
                     {actionBusy === "suspend" ? "Suspending..." : "Suspend"}
                   </Button>

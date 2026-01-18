@@ -6,8 +6,10 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
+import { apiFetch } from "@/lib/api";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { UserMenu } from "@/components/ui/UserMenu";
 
 function MenuIcon({
@@ -627,6 +629,45 @@ export function DashboardShell({
 
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="mx-auto w-full max-w-6xl px-4">
+            {auth.isImpersonating ? (
+              <Card className="mt-6 border border-amber-200 bg-amber-50 px-5 py-3">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="text-sm text-amber-900">
+                    <span className="font-semibold">Impersonation active.</span>{" "}
+                    <span>
+                      Acting as {auth.user?.email}
+                      {auth.actorUser?.email ? ` (by ${auth.actorUser.email})` : ""}.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const sessionId = auth.impersonation?.session_id;
+                        try {
+                          if (sessionId) {
+                            await apiFetch(`/api/admin/impersonation/${sessionId}/stop`, {
+                              method: "POST",
+                              impersonationSessionId: null,
+                              body: {
+                                reason: "ended_by_user",
+                              },
+                            });
+                          }
+                        } finally {
+                          auth.clearImpersonation();
+                          await auth.refresh();
+                        }
+                      }}
+                    >
+                      Exit impersonation
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
             <Card className="mt-6 px-5 py-4">
               <div className="flex items-center justify-between">
                 <div>

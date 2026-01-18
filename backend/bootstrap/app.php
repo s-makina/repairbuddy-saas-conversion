@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => \App\Http\Middleware\ResolveTenant::class,
             'tenant.member' => \App\Http\Middleware\EnsureTenantMember::class,
             'verified' => \App\Http\Middleware\EnsureEmailVerifiedJson::class,
+            'impersonation' => \App\Http\Middleware\ApplyImpersonation::class,
+            'impersonation.audit' => \App\Http\Middleware\AuditImpersonatedWrites::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

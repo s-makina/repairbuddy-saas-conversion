@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\AuthEvent;
 use App\Models\User;
 use App\Support\Permissions;
 use App\Support\Totp;
@@ -19,6 +20,19 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AuthController extends Controller
 {
+    protected function logAuthEvent(Request $request, string $eventType, ?User $user = null, ?string $email = null, ?Tenant $tenant = null, array $metadata = []): void
+    {
+        AuthEvent::query()->create([
+            'tenant_id' => $tenant?->id ?? $user?->tenant_id,
+            'user_id' => $user?->id,
+            'email' => $email,
+            'event_type' => $eventType,
+            'ip' => $request->ip(),
+            'user_agent' => (string) $request->userAgent(),
+            'metadata' => $metadata,
+        ]);
+    }
+
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -161,6 +175,8 @@ class AuthController extends Controller
 
         $user->sendEmailVerificationNotification();
 
+        $this->logAuthEvent($request, 'register_success', $user, $user->email, $tenant);
+
         return response()->json([
             'verification_required' => true,
             'user' => $user,
@@ -178,12 +194,16 @@ class AuthController extends Controller
         $user = User::query()->where('email', $validated['email'])->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            $this->logAuthEvent($request, 'login_failed', null, $validated['email'], null);
+
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 422);
         }
 
         if (! $user->hasVerifiedEmail()) {
+            $this->logAuthEvent($request, 'login_unverified', $user, $user->email, $user->tenant);
+
             return response()->json([
                 'message' => 'Email address not verified.',
                 'verification_required' => true,
@@ -195,6 +215,8 @@ class AuthController extends Controller
 
             Cache::put('otp_login:'.$otpLoginToken, (int) $user->id, now()->addMinutes(5));
 
+            $this->logAuthEvent($request, 'login_otp_required', $user, $user->email, $user->tenant);
+
             return response()->json([
                 'otp_required' => true,
                 'otp_login_token' => $otpLoginToken,
@@ -202,6 +224,8 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('api')->plainTextToken;
+
+        $this->logAuthEvent($request, 'login_success', $user, $user->email, $user->tenant);
 
         return response()->json([
             'token' => $token,
@@ -221,6 +245,8 @@ class AuthController extends Controller
         $userId = Cache::get('otp_login:'.$validated['otp_login_token']);
 
         if (! $userId) {
+            $this->logAuthEvent($request, 'login_otp_expired', null, null, null);
+
             return response()->json([
                 'message' => 'OTP challenge expired.',
             ], 422);
@@ -229,12 +255,16 @@ class AuthController extends Controller
         $user = User::query()->find($userId);
 
         if (! $user || ! $user->hasVerifiedEmail() || ! $user->otp_enabled || ! $user->otp_secret) {
+            $this->logAuthEvent($request, 'login_otp_invalid', $user, $user?->email, $user?->tenant);
+
             return response()->json([
                 'message' => 'OTP challenge invalid.',
             ], 422);
         }
 
         if (! Totp::verify($user->otp_secret, $validated['code'])) {
+            $this->logAuthEvent($request, 'login_otp_failed', $user, $user->email, $user->tenant);
+
             return response()->json([
                 'message' => 'Invalid OTP code.',
             ], 422);
@@ -244,176 +274,13 @@ class AuthController extends Controller
 
         $token = $user->createToken('api')->plainTextToken;
 
+        $this->logAuthEvent($request, 'login_otp_success', $user, $user->email, $user->tenant);
+
         return response()->json([
             'token' => $token,
             'user' => $user,
             'tenant' => $user->tenant,
             'permissions' => Permissions::forUser($user),
-        ]);
-    }
-
-    public function resendVerificationEmail(Request $request)
-    {
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-        ]);
-
-        $user = User::query()->where('email', $validated['email'])->first();
-
-        if ($user && ! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
-        }
-
-        return response()->json([
-            'status' => 'ok',
-        ]);
-    }
-
-    public function otpSetup(Request $request)
-    {
-        $user = $request->user();
-
-        if (! $user) {
-            return response()->json([
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-
-        $secret = Totp::generateSecret();
-        $user->forceFill([
-            'otp_enabled' => false,
-            'otp_secret' => $secret,
-            'otp_confirmed_at' => null,
-        ])->save();
-
-        $issuer = (string) config('app.name', 'RepairBuddy');
-        $uri = Totp::provisioningUri($issuer, $user->email, $secret);
-
-        return response()->json([
-            'secret' => $secret,
-            'otpauth_uri' => $uri,
-        ]);
-    }
-
-    public function otpConfirm(Request $request)
-    {
-        $validated = $request->validate([
-            'code' => ['required', 'string'],
-        ]);
-
-        $user = $request->user();
-
-        if (! $user || ! $user->otp_secret) {
-            return response()->json([
-                'message' => 'OTP not initialized.',
-            ], 422);
-        }
-
-        if (! Totp::verify($user->otp_secret, $validated['code'])) {
-            return response()->json([
-                'message' => 'Invalid OTP code.',
-            ], 422);
-        }
-
-        $user->forceFill([
-            'otp_enabled' => true,
-            'otp_confirmed_at' => now(),
-        ])->save();
-
-        return response()->json([
-            'status' => 'ok',
-        ]);
-    }
-
-    public function otpDisable(Request $request)
-    {
-        $validated = $request->validate([
-            'password' => ['required', 'string'],
-            'code' => ['required', 'string'],
-        ]);
-
-        $user = $request->user();
-
-        if (! $user || ! $user->otp_enabled || ! $user->otp_secret) {
-            return response()->json([
-                'message' => 'OTP is not enabled.',
-            ], 422);
-        }
-
-        if (! Hash::check($validated['password'], $user->password)) {
-            return response()->json([
-                'message' => 'Invalid password.',
-            ], 422);
-        }
-
-        if (! Totp::verify($user->otp_secret, $validated['code'])) {
-            return response()->json([
-                'message' => 'Invalid OTP code.',
-            ], 422);
-        }
-
-        $user->forceFill([
-            'otp_enabled' => false,
-            'otp_secret' => null,
-            'otp_confirmed_at' => null,
-        ])->save();
-
-        return response()->json([
-            'status' => 'ok',
-        ]);
-    }
-
-    public function sendResetLinkEmail(Request $request)
-    {
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-        ]);
-
-        $status = Password::sendResetLink($validated);
-
-        if ($status !== Password::RESET_LINK_SENT) {
-            return response()->json([
-                'message' => 'Failed to send reset link.',
-                'status' => $status,
-            ], 422);
-        }
-
-        return response()->json([
-            'message' => 'Reset link sent.',
-        ]);
-    }
-
-    public function resetPassword(Request $request)
-    {
-        $validated = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
-            'password' => [
-                'required',
-                'confirmed',
-                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
-            ],
-        ]);
-
-        $status = Password::reset(
-            $validated,
-            function (User $user, string $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                    'remember_token' => Str::random(60),
-                ])->save();
-            }
-        );
-
-        if ($status !== Password::PASSWORD_RESET) {
-            return response()->json([
-                'message' => 'Failed to reset password.',
-                'status' => $status,
-            ], 422);
-        }
-
-        return response()->json([
-            'message' => 'Your password has been reset.',
         ]);
     }
 
@@ -423,6 +290,7 @@ class AuthController extends Controller
 
         if ($user) {
             $user->currentAccessToken()?->delete();
+            $this->logAuthEvent($request, 'logout', $user, $user->email, $user->tenant);
         }
 
         return response()->json([
@@ -434,10 +302,25 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
+        $actor = $request->attributes->get('impersonator_user');
+        $session = $request->attributes->get('impersonation_session');
+
+        $actorUser = $actor instanceof User ? $actor : null;
+
         return response()->json([
             'user' => $user,
             'tenant' => $user?->tenant,
             'permissions' => Permissions::forUser($user),
+            'actor_user' => $actorUser,
+            'actor_permissions' => $actorUser ? Permissions::forUser($actorUser) : [],
+            'impersonation' => $session ? [
+                'session_id' => $session->id ?? null,
+                'tenant_id' => $session->tenant_id ?? null,
+                'target_user_id' => $session->target_user_id ?? null,
+                'started_at' => $session->started_at?->toIso8601String(),
+                'expires_at' => $session->expires_at?->toIso8601String(),
+                'reference_id' => $session->reference_id ?? null,
+            ] : null,
         ]);
     }
 }

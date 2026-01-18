@@ -49,3 +49,12 @@ export interface User {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface ImpersonationInfo {
+  session_id: number;
+  tenant_id: number;
+  target_user_id: number;
+  started_at?: string | null;
+  expires_at?: string | null;
+  reference_id?: string | null;
+}

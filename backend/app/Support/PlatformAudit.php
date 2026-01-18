@@ -13,6 +13,13 @@ class PlatformAudit
     {
         $user = $request->user();
 
+        return self::logAs($request, $user instanceof User ? $user : null, $action, $tenant, $reason, $metadata);
+    }
+
+    public static function logAs(Request $request, ?User $actor, string $action, ?Tenant $tenant = null, ?string $reason = null, array $metadata = []): PlatformAuditLog
+    {
+        $user = $actor;
+
         return PlatformAuditLog::query()->create([
             'actor_user_id' => $user instanceof User ? $user->id : null,
             'tenant_id' => $tenant?->id,

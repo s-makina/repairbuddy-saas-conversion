@@ -3,7 +3,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { clearToken, getToken, setToken } from "@/lib/token";
-import type { Tenant, User } from "@/lib/types";
+import { clearImpersonationSessionId, setImpersonationSessionId } from "@/lib/impersonation";
+import type { ImpersonationInfo, Tenant, User } from "@/lib/types";
 
 type AuthPayload = {
   token: string;
@@ -38,16 +39,23 @@ type MePayload = {
   user: User | null;
   tenant: Tenant | null;
   permissions: string[];
+  actor_user?: User | null;
+  actor_permissions?: string[];
+  impersonation?: ImpersonationInfo | null;
 };
 
 type AuthContextValue = {
   loading: boolean;
   token: string | null;
   user: User | null;
+  actorUser: User | null;
   tenant: Tenant | null;
   permissions: string[];
+  actorPermissions: string[];
+  impersonation: ImpersonationInfo | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isImpersonating: boolean;
   can: (permission: string) => boolean;
   refresh: () => Promise<void>;
   login: (email: string, password: string) => Promise<LoginResult>;
@@ -61,6 +69,7 @@ type AuthContextValue = {
   }) => Promise<void>;
   resendVerificationEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  clearImpersonation: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -69,16 +78,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [actorUser, setActorUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [actorPermissions, setActorPermissions] = useState<string[]>([]);
+  const [impersonation, setImpersonation] = useState<ImpersonationInfo | null>(null);
+
+  const clearImpersonation = useCallback(() => {
+    clearImpersonationSessionId();
+    setActorUser(null);
+    setActorPermissions([]);
+    setImpersonation(null);
+  }, []);
 
   const refresh = useCallback(async () => {
     const currentToken = getToken();
     if (!currentToken) {
       setTokenState(null);
       setUser(null);
+      setActorUser(null);
       setTenant(null);
       setPermissions([]);
+      setActorPermissions([]);
+      setImpersonation(null);
       setLoading(false);
       return;
     }
@@ -90,22 +112,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!me.user) {
         clearToken();
+        clearImpersonationSessionId();
         setTokenState(null);
         setUser(null);
+        setActorUser(null);
         setTenant(null);
         setPermissions([]);
+        setActorPermissions([]);
+        setImpersonation(null);
       } else {
         setTokenState(currentToken);
         setUser(me.user);
         setTenant(me.tenant);
         setPermissions(Array.isArray(me.permissions) ? me.permissions : []);
+
+        setActorUser(me.actor_user ?? null);
+        setActorPermissions(Array.isArray(me.actor_permissions) ? me.actor_permissions : []);
+        setImpersonation(me.impersonation ?? null);
+        if (me.impersonation?.session_id) {
+          setImpersonationSessionId(me.impersonation.session_id);
+        } else {
+          clearImpersonationSessionId();
+        }
       }
     } catch {
       clearToken();
+      clearImpersonationSessionId();
       setTokenState(null);
       setUser(null);
+      setActorUser(null);
       setTenant(null);
       setPermissions([]);
+      setActorPermissions([]);
+      setImpersonation(null);
     } finally {
       setLoading(false);
     }
@@ -182,16 +221,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       clearToken();
+      clearImpersonationSessionId();
       setTokenState(null);
       setUser(null);
+      setActorUser(null);
       setTenant(null);
       setPermissions([]);
+      setActorPermissions([]);
+      setImpersonation(null);
     }
   }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const isAuthenticated = Boolean(token);
     const isAdmin = Boolean(user?.is_admin);
+    const isImpersonating = Boolean(impersonation?.session_id);
     const can = (permission: string) => {
       return permissions.includes(permission);
     };
@@ -200,10 +244,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       token,
       user,
+      actorUser,
       tenant,
       permissions,
+      actorPermissions,
+      impersonation,
       isAuthenticated,
       isAdmin,
+      isImpersonating,
       can,
       refresh,
       login,
@@ -211,8 +259,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       resendVerificationEmail,
       logout,
+      clearImpersonation,
     };
-  }, [loading, token, user, tenant, permissions, refresh, login, loginOtp, register, resendVerificationEmail, logout]);
+  }, [
+    loading,
+    token,
+    user,
+    actorUser,
+    tenant,
+    permissions,
+    actorPermissions,
+    impersonation,
+    refresh,
+    login,
+    loginOtp,
+    register,
+    resendVerificationEmail,
+    logout,
+    clearImpersonation,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
