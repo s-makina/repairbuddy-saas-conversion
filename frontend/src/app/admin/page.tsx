@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
+import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
 export default function AdminDashboardPage() {
@@ -23,9 +24,22 @@ export default function AdminDashboardPage() {
   const statusOptions = useMemo(() => {
     return [
       { label: "All statuses", value: "all" },
+      { label: "Trial", value: "trial" },
       { label: "Active", value: "active" },
-      { label: "Inactive", value: "inactive" },
+      { label: "Past due", value: "past_due" },
+      { label: "Suspended", value: "suspended" },
+      { label: "Closed", value: "closed" },
     ];
+  }, []);
+
+  const statusVariant = useMemo(() => {
+    return (status: Tenant["status"]) => {
+      if (status === "active") return "success" as const;
+      if (status === "trial") return "info" as const;
+      if (status === "past_due") return "warning" as const;
+      if (status === "suspended") return "danger" as const;
+      return "default" as const;
+    };
   }, []);
 
   useEffect(() => {
@@ -159,8 +173,19 @@ export default function AdminDashboardPage() {
                 id: "status",
                 header: "Status",
                 sortId: "status",
-                cell: (t) => <Badge>{t.status}</Badge>,
+                cell: (t) => <Badge variant={statusVariant(t.status)}>{t.status}</Badge>,
                 className: "whitespace-nowrap",
+              },
+              {
+                id: "actions",
+                header: "",
+                cell: (t) => (
+                  <Link className="text-sm text-[var(--rb-blue)] hover:underline" href={`/admin/tenants/${t.id}`}>
+                    View
+                  </Link>
+                ),
+                className: "whitespace-nowrap text-right",
+                headerClassName: "text-right",
               },
               {
                 id: "contact_email",

@@ -197,3 +197,138 @@ Milestone 1 is complete when all are true:
 - [ ] Admin and tenant users can authenticate and see tenant-specific dashboards
 - [ ] A stable dev/staging deployment is available for review
 - [ ] A written extraction/mapping deliverable exists for the next milestones
+
+---
+
+# Landlord (Platform Admin) Module — Phased Checklist
+
+Assumptions:
+
+- [ ] **Single database** with strict `tenant_id` scoping for tenant-owned data
+- [ ] Billing provider integration will be done later, but **billing infrastructure** must be in place now (provider-agnostic)
+- [ ] **Impersonation mode** is supported with a **complete audit trail**
+
+---
+
+## Phase L1 — Platform admin access, tenant directory, and lifecycle
+
+- [ ] Define platform admin roles (landlord RBAC)
+  - [ ] `platform_admin` (full)
+  - [ ] `support_agent` (impersonation + diagnostics)
+  - [ ] `billing_admin` (billing-only actions)
+  - [ ] `read_only_auditor` (audit + tenant read-only)
+- [ ] Create platform admin navigation + route group
+  - [ ] `/admin/tenants`
+  - [ ] `/admin/tenants/{tenant}`
+- [ ] Tenant directory (admin UI + API)
+  - [ ] List/search/filter tenants by status/plan/date
+  - [ ] Tenant detail page (metadata + health summary)
+- [ ] Tenant model enhancements (beyond Milestone 1 minimum)
+  - [ ] Tenant `status` supports at least: `trial`, `active`, `past_due`, `suspended`, `closed`
+  - [ ] Record lifecycle timestamps (created/activated/suspended/closed)
+  - [ ] Store tenant contact + billing contact fields (even before billing integration)
+- [ ] Tenant provisioning (admin-driven)
+  - [ ] Create tenant with owner user
+  - [ ] Reset tenant owner password flow (admin-triggered, secure)
+- [ ] Tenant suspension/unsuspension
+  - [ ] Suspension reason + actor recorded
+  - [ ] Enforce restrictions when suspended (define read/write behavior)
+- [ ] Tenant offboarding
+  - [ ] Close tenant (soft close)
+  - [ ] Retention window field(s) (for future deletion policies)
+
+---
+
+## Phase L2 — Plans, entitlements, feature flags, and limits
+
+- [ ] Plan catalog (data model + admin UI)
+  - [ ] Create/edit plans (name, code)
+  - [ ] Plan metadata fields prepared for billing (price display, billing interval)
+- [ ] Entitlements engine
+  - [ ] Feature flags by plan (boolean flags)
+  - [ ] Limits/quotas by plan (numeric limits)
+  - [ ] Per-tenant overrides (override plan defaults)
+- [ ] Enforcement points
+  - [ ] Backend policies/middleware enforce entitlements for protected modules
+  - [ ] Frontend uses entitlements to hide/disable UI (but backend remains authoritative)
+- [ ] Tenant configuration surface
+  - [ ] Tenant settings page in admin: plan assignment + overrides
+  - [ ] Audit all entitlement changes (who/when/what)
+
+---
+
+## Phase L3 — Support tooling + audited impersonation
+
+- [ ] Impersonation design decisions
+  - [ ] Define who can impersonate (RBAC)
+  - [ ] Define session duration + expiration behavior
+  - [ ] Define what actions are allowed during impersonation (recommended: allow, but audit everything)
+- [ ] Impersonation workflow
+  - [ ] Require reason + ticket/reference ID
+  - [ ] Start impersonation (platform user -> tenant user)
+  - [ ] Visible banner in UI while impersonating
+  - [ ] Stop impersonation (explicit + automatic timeout)
+- [ ] Audit trail requirements
+  - [ ] Log: impersonator user, target tenant, target user, reason, start/end timestamps, IP/user agent
+  - [ ] Log sensitive actions taken during impersonation (at minimum: writes and permission changes)
+- [ ] Tenant diagnostics (per-tenant)
+  - [ ] Recent auth events
+  - [ ] Recent failed jobs/background tasks (if applicable)
+  - [ ] Recent outbound communications (email/SMS logs if enabled later)
+
+---
+
+## Phase L4 — Billing infrastructure (provider-agnostic, no integration yet)
+
+- [ ] Billing domain model (tables + relationships)
+  - [ ] Billing customer (maps to a tenant)
+  - [ ] Subscription (plan, status, renewal dates)
+  - [ ] Invoices (amounts, currency, state)
+  - [ ] Payments (attempts, outcomes)
+  - [ ] Credits/adjustments (optional)
+- [ ] Billing status state machine (drives product access)
+  - [ ] Define transitions: `trial -> active -> past_due -> suspended -> closed`
+  - [ ] Define grace periods and restriction levels
+- [ ] Provider abstraction
+  - [ ] Define a billing provider interface (create customer, sync subscription, handle webhook events)
+  - [ ] Store provider identifiers (e.g., `provider_customer_id`, `provider_subscription_id`)
+- [ ] Webhook ingestion infrastructure (even before provider selection)
+  - [ ] Signed webhook endpoint framework with verification hooks
+  - [ ] Event log table: store raw payload + processing status
+  - [ ] Idempotency keys to prevent double-processing
+- [ ] Product access enforcement
+  - [ ] Gate entitlements by billing status (e.g., `past_due` restricts certain features)
+  - [ ] Admin override for billing status (highly restricted + audited)
+- [ ] Billing admin screens (minimal)
+  - [ ] View tenant billing state and history
+  - [ ] Manual set status (with reason) for testing/support
+
+---
+
+## Phase L5 — Security, governance, and operational robustness
+
+- [ ] Platform audit logging (beyond impersonation)
+  - [ ] Log tenant lifecycle changes
+  - [ ] Log plan/entitlement changes
+  - [ ] Log role/permission changes
+- [ ] Data export and retention
+  - [ ] Export tenant data (admin-triggered)
+  - [ ] Retention policy fields + scheduled enforcement hooks
+- [ ] Abuse prevention
+  - [ ] Per-tenant rate limiting strategy (API + auth)
+  - [ ] Lockdown/maintenance mode per tenant
+- [ ] Monitoring and alerting (baseline)
+  - [ ] Per-tenant error rate tracking (at least logs filtered by `tenant_id`)
+  - [ ] Alert on repeated auth failures and elevated 5xx rates
+
+---
+
+## Phase L6 — RepairBuddy-specific landlord controls
+
+- [ ] Customer portal access controls (per tenant)
+  - [ ] Enable/disable case-number-based access without login
+  - [ ] Optional extra verification mode (email/phone OTP)
+  - [ ] Rate limits and abuse controls for status check endpoint
+- [ ] Communications enablement (per tenant)
+  - [ ] Toggle email/SMS channels (implementation later, but flags now)
+  - [ ] Store sender identity metadata fields (for later deliverability compliance)

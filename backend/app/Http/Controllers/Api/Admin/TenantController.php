@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\PlatformAudit;
 use App\Support\Permissions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -45,7 +46,9 @@ class TenantController extends Controller
         }
 
         if (is_string($status) && $status !== '' && $status !== 'all') {
-            if (in_array($status, ['active', 'inactive'], true)) {
+            $allowedStatuses = ['trial', 'active', 'past_due', 'suspended', 'closed'];
+
+            if (in_array($status, $allowedStatuses, true)) {
                 $query->where('tenants.status', $status);
             }
         }
@@ -314,6 +317,7 @@ class TenantController extends Controller
                 'slug' => $slug,
                 'status' => 'active',
                 'contact_email' => $validated['contact_email'] ?? $validated['owner_email'],
+                'activated_at' => now(),
             ]);
 
             foreach (Permissions::all() as $permName) {
@@ -355,9 +359,142 @@ class TenantController extends Controller
             return [$tenant, $owner];
         });
 
+        PlatformAudit::log($request, 'tenant.created', $tenant, null, [
+            'owner_user_id' => $owner->id,
+        ]);
+
         return response()->json([
             'tenant' => $tenant,
             'owner' => $owner,
         ], 201);
+    }
+
+    public function show(Request $request, Tenant $tenant)
+    {
+        return response()->json([
+            'tenant' => $tenant,
+            'owner' => User::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('role', 'owner')
+                ->orderBy('id')
+                ->first(),
+        ]);
+    }
+
+    public function suspend(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($tenant->status === 'closed') {
+            return response()->json([
+                'message' => 'Tenant is closed.',
+            ], 422);
+        }
+
+        if ($tenant->status !== 'suspended') {
+            $tenant->forceFill([
+                'status' => 'suspended',
+                'suspended_at' => now(),
+                'suspension_reason' => $validated['reason'] ?? null,
+            ])->save();
+
+            PlatformAudit::log($request, 'tenant.suspended', $tenant, $validated['reason'] ?? null);
+        }
+
+        return response()->json([
+            'tenant' => $tenant->fresh(),
+        ]);
+    }
+
+    public function unsuspend(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($tenant->status === 'closed') {
+            return response()->json([
+                'message' => 'Tenant is closed.',
+            ], 422);
+        }
+
+        if ($tenant->status === 'suspended') {
+            $tenant->forceFill([
+                'status' => 'active',
+                'suspended_at' => null,
+                'suspension_reason' => null,
+                'activated_at' => $tenant->activated_at ?? now(),
+            ])->save();
+
+            PlatformAudit::log($request, 'tenant.unsuspended', $tenant, $validated['reason'] ?? null);
+        }
+
+        return response()->json([
+            'tenant' => $tenant->fresh(),
+        ]);
+    }
+
+    public function close(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+            'data_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
+        ]);
+
+        if ($tenant->status !== 'closed') {
+            $tenant->forceFill([
+                'status' => 'closed',
+                'closed_at' => now(),
+                'closed_reason' => $validated['reason'] ?? null,
+                'data_retention_days' => $validated['data_retention_days'] ?? $tenant->data_retention_days,
+            ])->save();
+
+            PlatformAudit::log($request, 'tenant.closed', $tenant, $validated['reason'] ?? null, [
+                'data_retention_days' => $validated['data_retention_days'] ?? null,
+            ]);
+        }
+
+        return response()->json([
+            'tenant' => $tenant->fresh(),
+        ]);
+    }
+
+    public function resetOwnerPassword(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'min:12'],
+        ]);
+
+        $owner = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('role', 'owner')
+            ->orderBy('id')
+            ->first();
+
+        if (! $owner) {
+            return response()->json([
+                'message' => 'Owner user not found.',
+            ], 404);
+        }
+
+        $newPassword = is_string($validated['password'] ?? null) && $validated['password'] !== ''
+            ? $validated['password']
+            : Str::password(16);
+
+        $owner->forceFill([
+            'password' => Hash::make($newPassword),
+        ])->save();
+
+        PlatformAudit::log($request, 'tenant.owner_password_reset', $tenant, $validated['reason'] ?? null, [
+            'owner_user_id' => $owner->id,
+        ]);
+
+        return response()->json([
+            'owner_user_id' => $owner->id,
+            'password' => $newPassword,
+        ]);
     }
 }

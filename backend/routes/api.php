@@ -34,8 +34,24 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->middleware('permission:admin.tenants.read');
     Route::get('/tenants/export', [\App\Http\Controllers\Api\Admin\TenantController::class, 'export'])
         ->middleware('permission:admin.tenants.read');
+    Route::get('/tenants/{tenant}', [\App\Http\Controllers\Api\Admin\TenantController::class, 'show'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.read');
     Route::post('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.tenants.write']);
+
+    Route::patch('/tenants/{tenant}/suspend', [\App\Http\Controllers\Api\Admin\TenantController::class, 'suspend'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::patch('/tenants/{tenant}/unsuspend', [\App\Http\Controllers\Api\Admin\TenantController::class, 'unsuspend'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::patch('/tenants/{tenant}/close', [\App\Http\Controllers\Api\Admin\TenantController::class, 'close'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::post('/tenants/{tenant}/owner/reset-password', [\App\Http\Controllers\Api\Admin\TenantController::class, 'resetOwnerPassword'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
 });
 
 Route::prefix('{tenant}')

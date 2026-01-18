@@ -193,7 +193,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAuthenticated = Boolean(token);
     const isAdmin = Boolean(user?.is_admin);
     const can = (permission: string) => {
-      if (isAdmin) return true;
       return permissions.includes(permission);
     };
 

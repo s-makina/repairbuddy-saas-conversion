@@ -59,11 +59,32 @@ class Permissions
             return [];
         }
 
-        if ($user->is_admin) {
-            return self::all();
-        }
-
         $known = array_fill_keys(self::all(), true);
+
+        if ($user->is_admin) {
+            $adminRole = (string) ($user->admin_role ?? '');
+
+            $adminMap = [
+                'platform_admin' => self::all(),
+                'support_agent' => [
+                    'admin.access',
+                    'admin.tenants.read',
+                ],
+                'billing_admin' => [
+                    'admin.access',
+                ],
+                'read_only_auditor' => [
+                    'admin.access',
+                    'admin.tenants.read',
+                ],
+            ];
+
+            $permissions = $adminMap[$adminRole] ?? ['admin.access'];
+
+            return array_values(array_unique(array_values(array_filter($permissions, function (string $p) use ($known) {
+                return isset($known[$p]);
+            }))));
+        }
 
         if ($user->role_id) {
             $role = $user->roleModel;
@@ -134,10 +155,6 @@ class Permissions
     {
         if (! $user) {
             return false;
-        }
-
-        if ($user->is_admin) {
-            return true;
         }
 
         return in_array($permission, self::forUser($user), true);

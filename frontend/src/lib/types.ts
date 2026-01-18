@@ -1,4 +1,4 @@
-export type TenantStatus = "active" | "inactive";
+export type TenantStatus = "trial" | "active" | "past_due" | "suspended" | "closed";
 
 export type UserRole = "owner" | "member" | string;
 
@@ -22,6 +22,12 @@ export interface Tenant {
   slug: string;
   status: TenantStatus;
   contact_email?: string | null;
+  activated_at?: string | null;
+  suspended_at?: string | null;
+  suspension_reason?: string | null;
+  closed_at?: string | null;
+  closed_reason?: string | null;
+  data_retention_days?: number | null;
   created_at?: string;
   updated_at?: string;
 }

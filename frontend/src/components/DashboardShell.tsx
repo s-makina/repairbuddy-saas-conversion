@@ -269,6 +269,7 @@ export function DashboardShell({
           items: [
             { label: "Home", href: "/", icon: "home", show: true },
             { label: "Admin", href: "/admin", icon: "admin", show: auth.can("admin.access") },
+            { label: "Tenants", href: "/admin/tenants", icon: "admin", show: auth.can("admin.tenants.read") },
             { label: "Dashboard", href: tenantBaseHref ?? "/app", icon: "dashboard", show: Boolean(tenantBaseHref) && auth.can("dashboard.view") },
           ],
         },
