@@ -6,14 +6,77 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\TenantContext;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class UserController extends Controller
 {
+    protected function buildIndexQuery(array $validated, bool $withRelations = true)
+    {
+        $tenantId = TenantContext::tenantId();
+
+        $q = is_string($validated['q'] ?? null) ? trim($validated['q']) : '';
+        $role = is_string($validated['role'] ?? null) ? $validated['role'] : null;
+        $status = is_string($validated['status'] ?? null) ? $validated['status'] : null;
+        $sort = is_string($validated['sort'] ?? null) ? $validated['sort'] : null;
+        $dir = is_string($validated['dir'] ?? null) ? strtolower($validated['dir']) : null;
+
+        $allowedSorts = [
+            'id' => 'users.id',
+            'name' => 'users.name',
+            'email' => 'users.email',
+            'status' => 'users.status',
+            'created_at' => 'users.created_at',
+        ];
+
+        $query = User::query()
+            ->where('users.tenant_id', $tenantId)
+            ->where('users.is_admin', false);
+
+        if ($withRelations) {
+            $query->with(['roleModel']);
+        }
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('users.name', 'like', "%{$q}%")
+                    ->orWhere('users.email', 'like', "%{$q}%");
+            });
+        }
+
+        if (is_string($role) && $role !== '' && $role !== 'all') {
+            if ($role === 'none') {
+                $query->whereNull('users.role_id');
+            } elseif (ctype_digit($role)) {
+                $query->where('users.role_id', (int) $role);
+            }
+        }
+
+        if (is_string($status) && $status !== '' && $status !== 'all') {
+            if (in_array($status, ['pending', 'active', 'inactive', 'suspended'], true)) {
+                $query->where('users.status', $status);
+            }
+        }
+
+        $sortCol = $allowedSorts[$sort ?? ''] ?? null;
+        $sortDir = in_array($dir, ['asc', 'desc'], true) ? $dir : null;
+
+        if ($sortCol && $sortDir) {
+            $query->orderBy($sortCol, $sortDir);
+            $query->orderBy('users.id', 'desc');
+        } else {
+            $query->orderBy('users.id', 'desc');
+        }
+
+        return $query;
+    }
+
     protected function ensureTenantUser(User $user): void
     {
         $tenantId = TenantContext::tenantId();
@@ -25,47 +88,19 @@ class UserController extends Controller
 
     public function index(Request $request, string $tenant)
     {
-        $tenantId = TenantContext::tenantId();
-
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
             'role' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', 'string', 'max:20'],
+            'sort' => ['nullable', 'string', 'max:50'],
+            'dir' => ['nullable', 'string', 'in:asc,desc'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $q = is_string($validated['q'] ?? null) ? trim($validated['q']) : '';
-        $role = is_string($validated['role'] ?? null) ? $validated['role'] : null;
-        $status = is_string($validated['status'] ?? null) ? $validated['status'] : null;
         $perPage = (int) ($validated['per_page'] ?? 10);
 
-        $query = User::query()
-            ->where('tenant_id', $tenantId)
-            ->where('is_admin', false)
-            ->with(['roleModel'])
-            ->orderBy('id', 'desc');
-
-        if ($q !== '') {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('email', 'like', "%{$q}%");
-            });
-        }
-
-        if (is_string($role) && $role !== '' && $role !== 'all') {
-            if ($role === 'none') {
-                $query->whereNull('role_id');
-            } elseif (ctype_digit($role)) {
-                $query->where('role_id', (int) $role);
-            }
-        }
-
-        if (is_string($status) && $status !== '' && $status !== 'all') {
-            if (in_array($status, ['pending', 'active', 'inactive', 'suspended'], true)) {
-                $query->where('status', $status);
-            }
-        }
+        $query = $this->buildIndexQuery($validated, true);
 
         $paginator = $query->paginate($perPage);
 
@@ -77,6 +112,166 @@ class UserController extends Controller
                 'total' => $paginator->total(),
                 'last_page' => $paginator->lastPage(),
             ],
+        ]);
+    }
+
+    public function export(Request $request, string $tenant)
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'role' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'string', 'max:20'],
+            'sort' => ['nullable', 'string', 'max:50'],
+            'dir' => ['nullable', 'string', 'in:asc,desc'],
+            'format' => ['required', 'string', 'in:csv,xlsx,pdf'],
+        ]);
+
+        $format = $validated['format'];
+
+        $tenantId = TenantContext::tenantId();
+
+        set_time_limit(0);
+
+        $query = $this->buildIndexQuery($validated, false)
+            ->leftJoin('roles', function ($join) use ($tenantId) {
+                $join->on('roles.id', '=', 'users.role_id')
+                    ->where('roles.tenant_id', '=', $tenantId);
+            })
+            ->select([
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.status',
+                'users.created_at',
+                'roles.name as role_name',
+            ]);
+
+        $timestamp = now()->format('Ymd_His');
+
+        if ($format === 'csv') {
+            $filename = "users_{$timestamp}.csv";
+
+            return response()->streamDownload(function () use ($query) {
+                $out = fopen('php://output', 'w');
+                if ($out === false) {
+                    return;
+                }
+
+                fputcsv($out, ['ID', 'Name', 'Email', 'Role', 'Status', 'Created At']);
+
+                foreach ($query->cursor() as $row) {
+                    $createdAt = isset($row->created_at) ? (string) $row->created_at : '';
+                    fputcsv($out, [
+                        (string) ($row->id ?? ''),
+                        (string) ($row->name ?? ''),
+                        (string) ($row->email ?? ''),
+                        (string) ($row->role_name ?? ''),
+                        (string) ($row->status ?? ''),
+                        $createdAt,
+                    ]);
+                }
+
+                fclose($out);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        if ($format === 'pdf') {
+            $filename = "users_{$timestamp}.pdf";
+
+            $maxRows = 2000;
+            $rows = $query->limit($maxRows + 1)->get();
+
+            if ($rows->count() > $maxRows) {
+                return response()->json([
+                    'message' => 'Too many rows for PDF export. Please narrow your filters.',
+                ], 422);
+            }
+
+            $escape = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+            $html = '<!doctype html><html><head><meta charset="utf-8">'
+                . '<style>'
+                . 'body{font-family:DejaVu Sans, sans-serif; font-size:12px; color:#111;}'
+                . 'h1{font-size:16px; margin:0 0 10px 0;}'
+                . 'table{width:100%; border-collapse:collapse;}'
+                . 'th,td{border:1px solid #ddd; padding:6px; vertical-align:top;}'
+                . 'th{background:#f5f5f5; font-weight:700;}'
+                . '</style>'
+                . '</head><body>'
+                . '<h1>Users Export</h1>'
+                . '<table><thead><tr>'
+                . '<th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created At</th>'
+                . '</tr></thead><tbody>';
+
+            foreach ($rows as $row) {
+                $html .= '<tr>'
+                    . '<td>' . $escape($row->id ?? '') . '</td>'
+                    . '<td>' . $escape($row->name ?? '') . '</td>'
+                    . '<td>' . $escape($row->email ?? '') . '</td>'
+                    . '<td>' . $escape($row->role_name ?? '') . '</td>'
+                    . '<td>' . $escape($row->status ?? '') . '</td>'
+                    . '<td>' . $escape($row->created_at ?? '') . '</td>'
+                    . '</tr>';
+            }
+
+            $html .= '</tbody></table></body></html>';
+
+            $pdf = Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
+        if (! class_exists(Spreadsheet::class) || ! class_exists(Xlsx::class)) {
+            return response()->json([
+                'message' => 'XLSX export is not available because PhpSpreadsheet is not installed on the server.',
+            ], 501);
+        }
+
+        $filename = "users_{$timestamp}.xlsx";
+
+        $maxRows = 50000;
+        $rows = [];
+        $count = 0;
+        foreach ($query->cursor() as $row) {
+            $count++;
+            if ($count > $maxRows) {
+                return response()->json([
+                    'message' => 'Too many rows for XLSX export. Please narrow your filters.',
+                ], 422);
+            }
+            $rows[] = $row;
+        }
+
+        return response()->streamDownload(function () use ($rows) {
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $headers = ['ID', 'Name', 'Email', 'Role', 'Status', 'Created At'];
+            $sheet->fromArray($headers, null, 'A1');
+
+            $r = 2;
+            foreach ($rows as $row) {
+                $sheet->fromArray([
+                    (string) ($row->id ?? ''),
+                    (string) ($row->name ?? ''),
+                    (string) ($row->email ?? ''),
+                    (string) ($row->role_name ?? ''),
+                    (string) ($row->status ?? ''),
+                    isset($row->created_at) ? (string) $row->created_at : '',
+                ], null, 'A'.$r);
+                $r++;
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 

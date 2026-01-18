@@ -32,6 +32,8 @@ Route::prefix('auth')->group(function () {
 Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group(function () {
     Route::get('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index'])
         ->middleware('permission:admin.tenants.read');
+    Route::get('/tenants/export', [\App\Http\Controllers\Api\Admin\TenantController::class, 'export'])
+        ->middleware('permission:admin.tenants.read');
     Route::post('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.tenants.write']);
 });
@@ -59,6 +61,8 @@ Route::prefix('{tenant}')
                 ->middleware('permission:roles.manage');
 
             Route::get('/users', [\App\Http\Controllers\Api\App\UserController::class, 'index'])
+                ->middleware('permission:users.manage');
+            Route::get('/users/export', [\App\Http\Controllers\Api\App\UserController::class, 'export'])
                 ->middleware('permission:users.manage');
             Route::post('/users', [\App\Http\Controllers\Api\App\UserController::class, 'store'])
                 ->middleware('permission:users.manage');

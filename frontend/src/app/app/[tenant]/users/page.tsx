@@ -82,6 +82,7 @@ export default function TenantUsersPage() {
   const [pageIndex, setPageIndex] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [sort, setSort] = useState<{ id: string; dir: "asc" | "desc" } | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editUserId, setEditUserId] = useState<number | null>(null);
@@ -141,6 +142,10 @@ export default function TenantUsersPage() {
       if (q.trim().length > 0) qs.set("q", q.trim());
       if (roleFilter && roleFilter !== "all") qs.set("role", roleFilter);
       if (statusFilter && statusFilter !== "all") qs.set("status", statusFilter);
+      if (sort?.id && sort?.dir) {
+        qs.set("sort", sort.id);
+        qs.set("dir", sort.dir);
+      }
       qs.set("page", String(pageIndex + 1));
       qs.set("per_page", String(pageSize));
 
@@ -195,6 +200,7 @@ export default function TenantUsersPage() {
 
   useEffect(() => {
     setPageIndex(0);
+    setSort(null);
     void load({ includeRoles: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant]);
@@ -203,7 +209,7 @@ export default function TenantUsersPage() {
     if (typeof tenant !== "string" || tenant.length === 0) return;
     void load({ includeRoles: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant, q, roleFilter, statusFilter, pageIndex, pageSize]);
+  }, [q, roleFilter, statusFilter, pageIndex, pageSize, sort?.id, sort?.dir]);
 
   async function onCreateUser(e: React.FormEvent) {
     e.preventDefault();
@@ -542,7 +548,18 @@ export default function TenantUsersPage() {
                       setPageIndex(0);
                     },
                     totalRows: totalUsers,
+                    sort,
+                    onSortChange: (next) => {
+                      setSort(next);
+                      setPageIndex(0);
+                    },
                   }}
+                  exportConfig={{
+                    url: `/api/${tenant}/app/users/export`,
+                    formats: ["csv", "xlsx", "pdf"],
+                    filename: ({ format }) => `users_export.${format}`,
+                  }}
+                  columnVisibilityKey={`rb:datatable:${tenant}:users`}
                   filters={[
                     {
                       id: "role",
@@ -569,6 +586,7 @@ export default function TenantUsersPage() {
                     {
                       id: "name",
                       header: "Name",
+                      sortId: "name",
                       cell: (u) => (
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-[var(--rb-text)]">{u.name}</div>
@@ -576,6 +594,14 @@ export default function TenantUsersPage() {
                         </div>
                       ),
                       className: "max-w-[340px]",
+                    },
+                    {
+                      id: "email",
+                      header: "Email",
+                      sortId: "email",
+                      hiddenByDefault: true,
+                      cell: (u) => <div className="text-sm text-zinc-700">{u.email}</div>,
+                      className: "whitespace-nowrap",
                     },
                     {
                       id: "role",
@@ -593,6 +619,7 @@ export default function TenantUsersPage() {
                     {
                       id: "status",
                       header: "Status",
+                      sortId: "status",
                       className: "whitespace-nowrap",
                       cell: (u) => {
                         const s = (u.status ?? "active") as UserStatus;

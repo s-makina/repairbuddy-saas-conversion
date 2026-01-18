@@ -80,3 +80,85 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   return data as T;
 }
+
+type ApiDownloadOptions = Omit<RequestInit, "body"> & {
+  body?: unknown;
+  token?: string | null;
+  timeoutMs?: number;
+  filename?: string;
+};
+
+export async function apiDownload(path: string, options: ApiDownloadOptions = {}): Promise<void> {
+  const url = `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  const headers = new Headers(options.headers);
+  headers.set("Accept", "application/octet-stream");
+
+  const token = options.token ?? getToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  let body: BodyInit | undefined;
+  if (options.body !== undefined) {
+    headers.set("Content-Type", "application/json");
+    body = JSON.stringify(options.body);
+  }
+
+  const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : 30000;
+  const controller = options.signal ? null : new AbortController();
+  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  let res: Response;
+
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+      body,
+      signal: controller?.signal ?? options.signal,
+    });
+  } catch (err) {
+    if (controller && timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError("Request timed out", 408, null);
+    }
+
+    throw err;
+  } finally {
+    if (controller && timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  if (!res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    const data = isJson ? await res.json().catch(() => null) : await res.text().catch(() => "");
+    const message =
+      (data && typeof data === "object" && "message" in (data as Record<string, unknown>)
+        ? String((data as Record<string, unknown>).message)
+        : `Request failed with status ${res.status}`) || "Request failed";
+    throw new ApiError(message, res.status, data);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  const header = res.headers.get("content-disposition") || "";
+  const match = /filename\*?=(?:UTF-8''|\")?([^;\"\n]+)\"?/i.exec(header);
+  const filenameFromHeader = match?.[1] ? decodeURIComponent(match[1]) : null;
+  const filename = options.filename ?? filenameFromHeader ?? "export";
+
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(objectUrl);
+}
