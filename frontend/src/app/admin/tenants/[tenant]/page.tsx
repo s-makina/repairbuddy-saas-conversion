@@ -30,6 +30,16 @@ type MockInvoice = {
   due_at: string | null;
 };
 
+ type MockReceipt = {
+  id: string;
+  number: string;
+  invoice_number: string;
+  amount_cents: number;
+  currency: string;
+  paid_at: string;
+  payment_method: string;
+ };
+
 function Sparkline({
   data,
   stroke = "var(--rb-blue)",
@@ -234,6 +244,18 @@ export default function AdminTenantDetailPage() {
       },
     ];
 
+     const receipts: MockReceipt[] = invoices
+      .filter((inv) => inv.status === "paid")
+      .map((inv) => ({
+        id: `rcpt_${inv.id}`,
+        number: inv.number.replace(/^RB-/, "RCPT-"),
+        invoice_number: inv.number,
+        amount_cents: inv.amount_cents,
+        currency: inv.currency,
+        paid_at: inv.issued_at,
+        payment_method: `${paymentMethod.brand} •••• ${paymentMethod.last4}`,
+      }));
+
     const upcomingInvoice = {
       subtotal_cents: 4900,
       tax_cents: 0,
@@ -242,7 +264,7 @@ export default function AdminTenantDetailPage() {
       next_attempt_at: "2026-02-01T00:00:00Z",
     };
 
-    return { subscription, paymentMethod, invoices, upcomingInvoice };
+    return { subscription, paymentMethod, invoices, receipts, upcomingInvoice };
   }, [tenant?.contact_email, tenantId]);
 
   const billingStatusBadgeVariant = useMemo(() => {
@@ -737,8 +759,9 @@ export default function AdminTenantDetailPage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                          <Card className="bg-[var(--rb-surface-muted)]">
+                        <div className="-mx-1 overflow-x-auto px-1 pb-2">
+                          <div className="flex gap-4">
+                            <Card className="w-[340px] shrink-0 bg-[var(--rb-surface-muted)]">
                             <CardContent className="pt-5">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -777,7 +800,7 @@ export default function AdminTenantDetailPage() {
                             </CardContent>
                           </Card>
 
-                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <Card className="w-[340px] shrink-0 bg-[var(--rb-surface-muted)]">
                             <CardContent className="pt-5">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -802,7 +825,7 @@ export default function AdminTenantDetailPage() {
                             </CardContent>
                           </Card>
 
-                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <Card className="w-[340px] shrink-0 bg-[var(--rb-surface-muted)]">
                             <CardContent className="pt-5">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -832,11 +855,20 @@ export default function AdminTenantDetailPage() {
                               </div>
                             </CardContent>
                           </Card>
-                      </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                      <div className="mt-4">
+                    <Card>
+                      <CardHeader>
+                        <div className="min-w-0">
+                          <CardTitle>Invoices</CardTitle>
+                          <CardDescription>All invoices for this tenant (mock data for now).</CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
                         <DataTable
-                          title="Invoices"
                           data={billing.invoices}
                           loading={false}
                           emptyMessage="No invoices."
@@ -890,7 +922,71 @@ export default function AdminTenantDetailPage() {
                             },
                           ]}
                         />
-                      </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <div className="min-w-0">
+                          <CardTitle>Receipts</CardTitle>
+                          <CardDescription>Payment receipts (mock data derived from paid invoices).</CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <DataTable
+                          data={billing.receipts}
+                          loading={false}
+                          emptyMessage="No receipts."
+                          getRowId={(r) => r.id}
+                          search={{
+                            placeholder: "Search receipt or invoice number...",
+                            getSearchText: (r) => `${r.number} ${r.invoice_number} ${r.payment_method}`,
+                          }}
+                          columns={[
+                            {
+                              id: "number",
+                              header: "Receipt",
+                              cell: (r) => (
+                                <div className="min-w-0">
+                                  <div className="truncate font-semibold text-[var(--rb-text)]">{r.number}</div>
+                                  <div className="truncate text-xs text-zinc-600">Invoice {r.invoice_number}</div>
+                                </div>
+                              ),
+                              className: "max-w-[320px]",
+                            },
+                            {
+                              id: "paid",
+                              header: "Paid",
+                              cell: (r) => <div className="text-sm text-zinc-700">{formatDateTime(r.paid_at)}</div>,
+                              className: "whitespace-nowrap",
+                            },
+                            {
+                              id: "method",
+                              header: "Method",
+                              cell: (r) => <div className="text-sm text-zinc-700">{r.payment_method}</div>,
+                              className: "whitespace-nowrap",
+                            },
+                            {
+                              id: "amount",
+                              header: "Amount",
+                              cell: (r) => <div className="text-sm font-medium text-zinc-700">{formatMoney(r.amount_cents, r.currency)}</div>,
+                              className: "whitespace-nowrap",
+                              headerClassName: "whitespace-nowrap",
+                            },
+                            {
+                              id: "actions",
+                              header: "",
+                              cell: (r) => (
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => window.alert(`View receipt ${r.number} (mock)`)}>View</Button>
+                                  <Button variant="outline" size="sm" onClick={() => window.alert(`Download receipt ${r.number} (mock)`)}>Download</Button>
+                                </div>
+                              ),
+                              className: "whitespace-nowrap text-right",
+                              headerClassName: "text-right",
+                            },
+                          ]}
+                        />
                       </CardContent>
                     </Card>
                   </div>
