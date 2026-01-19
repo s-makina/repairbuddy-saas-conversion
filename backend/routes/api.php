@@ -32,6 +32,8 @@ Route::prefix('auth')->group(function () {
 Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group(function () {
     Route::get('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index'])
         ->middleware('permission:admin.tenants.read');
+    Route::get('/tenants/stats', [\App\Http\Controllers\Api\Admin\TenantController::class, 'stats'])
+        ->middleware('permission:admin.tenants.read');
     Route::get('/tenants/export', [\App\Http\Controllers\Api\Admin\TenantController::class, 'export'])
         ->middleware('permission:admin.tenants.read');
     Route::get('/tenants/{tenant}', [\App\Http\Controllers\Api\Admin\TenantController::class, 'show'])

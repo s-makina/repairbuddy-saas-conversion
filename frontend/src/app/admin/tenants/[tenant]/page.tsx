@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import type { Tenant, User } from "@/lib/types";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
+import { formatDateTime } from "@/lib/datetime";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -48,6 +49,12 @@ export default function AdminTenantDetailPage() {
   const [resetPasswordInput, setResetPasswordInput] = useState<string>("");
   const [resetResult, setResetResult] = useState<{ owner_user_id: number; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const canImpersonate = !!tenant && !!owner && tenant.status !== "closed";
+  const canSuspend = !!tenant && tenant.status !== "closed";
+  const canUnsuspend = !!tenant && tenant.status === "suspended";
+  const canClose = !!tenant && tenant.status !== "closed";
+  const canResetOwnerPassword = !!tenant && !!owner && tenant.status !== "closed";
 
   const statusVariant = useMemo(() => {
     return (status: Tenant["status"]) => {
@@ -182,128 +189,138 @@ export default function AdminTenantDetailPage() {
     <RequireAuth requiredPermission="admin.tenants.read">
       <div className="space-y-6">
         <PageHeader
-          title={tenant ? `Tenant: ${tenant.name}` : "Tenant"}
-          description={tenant ? `ID ${tenant.id} • ${tenant.slug}` : ""}
+          title={tenant ? tenant.name : "Tenant"}
+          description={tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : ""}
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => router.back()}>
+                Back
+              </Button>
+              <Button variant="outline" size="sm" onClick={load} disabled={loading || !!actionBusy}>
+                Refresh
+              </Button>
+            </>
+          }
         />
 
-        {loading ? <div className="text-sm text-zinc-500">Loading tenant...</div> : null}
-        {error ? <div className="text-sm text-red-600">{error}</div> : null}
+        {loading ? <div className="text-sm text-zinc-500">Loading tenant…</div> : null}
+        {error ? (
+          <Alert variant="danger" title="Could not load tenant">
+            {error}
+          </Alert>
+        ) : null}
 
         {tenant ? (
-          <div className="space-y-6">
-            <Card className="shadow-none">
-              <CardHeader className="flex flex-row items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <CardTitle className="truncate">Tenant details</CardTitle>
-                </div>
-                <Badge variant={statusVariant(tenant.status)}>{tenant.status}</Badge>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div>
-                    <div className="text-xs text-zinc-500">Contact email</div>
-                    <div className="text-sm text-[var(--rb-text)]">{tenant.contact_email ?? "—"}</div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <Card>
+                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate">Overview</CardTitle>
+                    <div className="mt-1 text-sm text-zinc-600">Status and key account details</div>
                   </div>
-                  <div>
-                    <div className="text-xs text-zinc-500">Created</div>
-                    <div className="text-sm text-[var(--rb-text)]">{tenant.created_at ?? "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500">Activated</div>
-                    <div className="text-sm text-[var(--rb-text)]">{tenant.activated_at ?? "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500">Suspended</div>
-                    <div className="text-sm text-[var(--rb-text)]">{tenant.suspended_at ?? "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500">Closed</div>
-                    <div className="text-sm text-[var(--rb-text)]">{tenant.closed_at ?? "—"}</div>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <Button variant="outline" size="sm" onClick={() => router.back()}>
-                    Back
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-none">
-              <CardHeader>
-                <CardTitle>Owner</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {owner ? (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-[var(--rb-text)]">{owner.name}</div>
-                    <div className="text-sm text-zinc-600">{owner.email}</div>
-                    <div className="text-xs text-zinc-500">User ID: {owner.id}</div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-zinc-600">No owner found.</div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-none">
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div>
-                    <div className="text-sm font-medium text-[var(--rb-text)]">Reason (optional)</div>
-                    <div className="mt-1">
-                      <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ticket ID / reason" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-medium text-[var(--rb-text)]">Reference ID (required for impersonation)</div>
-                    <div className="mt-1">
-                      <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. ticket-1234" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-medium text-[var(--rb-text)]">Close retention days (optional)</div>
-                    <div className="mt-1">
-                      <Input value={closeRetentionDays} onChange={(e) => setCloseRetentionDays(e.target.value)} placeholder="e.g. 30" inputMode="numeric" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={onStartImpersonation}
-                    disabled={!!actionBusy || !tenant || !owner || tenant.status === "closed"}
-                  >
-                    {actionBusy === "impersonate" ? "Starting..." : "Impersonate owner"}
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || tenant.status === "closed"}>
-                    {actionBusy === "suspend" ? "Suspending..." : "Suspend"}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || tenant.status !== "suspended"}>
-                    {actionBusy === "unsuspend" ? "Unsuspending..." : "Unsuspend"}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || tenant.status === "closed"}>
-                    {actionBusy === "close" ? "Closing..." : "Close"}
-                  </Button>
-                </div>
-
-                <div className="border-t border-[var(--rb-border)] pt-4">
-                  <div className="text-sm font-semibold text-[var(--rb-text)]">Force-reset owner password</div>
-                  <div className="mt-1 text-sm text-zinc-600">
-                    This will immediately change the owner password. The new password is shown once below. Treat it as a secret.
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <Badge className="shrink-0" variant={statusVariant(tenant.status)}>
+                    {tenant.status}
+                  </Badge>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <div className="text-sm font-medium text-[var(--rb-text)]">Set a specific password (optional)</div>
+                      <div className="text-xs text-zinc-500">Contact email</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">{tenant.contact_email ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Created</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.created_at ?? null)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Activated</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.activated_at ?? null)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Suspended</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.suspended_at ?? null)}</div>
+                      {tenant.suspension_reason ? (
+                        <div className="mt-1 text-xs text-zinc-500">Reason: {tenant.suspension_reason}</div>
+                      ) : null}
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Closed</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.closed_at ?? null)}</div>
+                      {tenant.closed_reason ? (
+                        <div className="mt-1 text-xs text-zinc-500">Reason: {tenant.closed_reason}</div>
+                      ) : null}
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Data retention</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">
+                        {typeof tenant.data_retention_days === "number" ? `${tenant.data_retention_days} days` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Support context</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-medium text-[var(--rb-text)]">Reason</div>
+                      <div className="mt-1">
+                        <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ticket ID / reason (optional)" />
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">Used for audit trails when performing admin actions.</div>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-medium text-[var(--rb-text)]">Reference ID</div>
+                      <div className="mt-1">
+                        <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. ticket-1234" />
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">Required to start impersonation.</div>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-medium text-[var(--rb-text)]">Close retention days</div>
+                      <div className="mt-1">
+                        <Input value={closeRetentionDays} onChange={(e) => setCloseRetentionDays(e.target.value)} placeholder="e.g. 30" inputMode="numeric" />
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">Optional: overrides retention when closing the tenant.</div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="primary" size="sm" onClick={onStartImpersonation} disabled={!!actionBusy || !canImpersonate}>
+                      {actionBusy === "impersonate" ? "Starting…" : "Impersonate owner"}
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || !canSuspend}>
+                      {actionBusy === "suspend" ? "Suspending…" : "Suspend"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || !canUnsuspend}>
+                      {actionBusy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || !canClose}>
+                      {actionBusy === "close" ? "Closing…" : "Close tenant"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Security</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert variant="warning" title="Force-reset owner password">
+                    This will immediately change the owner password. The new password is shown once below. Treat it as a secret.
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-medium text-[var(--rb-text)]">Set a specific password</div>
                       <div className="mt-1">
                         <Input
                           value={resetPasswordInput}
@@ -312,47 +329,80 @@ export default function AdminTenantDetailPage() {
                           type="password"
                         />
                       </div>
+                      <div className="mt-1 text-xs text-zinc-500">Optional. If empty, a secure password is generated.</div>
                     </div>
 
                     <div className="flex items-end">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={onResetOwnerPassword}
-                        disabled={!!actionBusy || !owner || tenant.status === "closed"}
-                      >
-                        {actionBusy === "reset-owner-password" ? "Resetting..." : "Reset owner password"}
+                      <Button variant="primary" size="sm" onClick={onResetOwnerPassword} disabled={!!actionBusy || !canResetOwnerPassword}>
+                        {actionBusy === "reset-owner-password" ? "Resetting…" : "Reset owner password"}
                       </Button>
                     </div>
                   </div>
 
                   {resetResult ? (
-                    <div className="mt-4 space-y-2">
-                      <Alert variant="warning" title="New password generated">
-                        <div className="space-y-2">
-                          <div className="break-all font-mono text-sm text-[var(--rb-text)]">{resetResult.password}</div>
-                          <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" onClick={onCopyPassword}>
-                              {copied ? "Copied" : "Copy"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setResetResult(null);
-                                setCopied(false);
-                              }}
-                            >
-                              Hide
-                            </Button>
-                          </div>
+                    <Alert variant="warning" title="New password generated">
+                      <div className="space-y-2">
+                        <div className="break-all font-mono text-sm text-[var(--rb-text)]">{resetResult.password}</div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" onClick={onCopyPassword}>
+                            {copied ? "Copied" : "Copy"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setResetResult(null);
+                              setCopied(false);
+                            }}
+                          >
+                            Hide
+                          </Button>
                         </div>
-                      </Alert>
-                    </div>
+                      </div>
+                    </Alert>
                   ) : null}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Owner</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {owner ? (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-[var(--rb-text)]">{owner.name}</div>
+                      <div className="text-sm text-zinc-600">{owner.email}</div>
+                      <div className="text-xs text-zinc-500">User ID: {owner.id}</div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-zinc-600">No owner found.</div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button variant="primary" size="sm" onClick={onStartImpersonation} disabled={!!actionBusy || !canImpersonate} className="w-full">
+                    {actionBusy === "impersonate" ? "Starting…" : "Impersonate owner"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={onSuspend} disabled={!!actionBusy || !canSuspend} className="w-full">
+                    {actionBusy === "suspend" ? "Suspending…" : "Suspend"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || !canUnsuspend} className="w-full">
+                    {actionBusy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || !canClose} className="w-full">
+                    {actionBusy === "close" ? "Closing…" : "Close tenant"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         ) : null}
       </div>

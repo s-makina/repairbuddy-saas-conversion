@@ -67,6 +67,42 @@ class TenantController extends Controller
         return $query;
     }
 
+    public function stats(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $query = $this->buildIndexQuery($validated);
+
+        $rows = $query
+            ->select(['tenants.status', DB::raw('count(*) as c')])
+            ->groupBy('tenants.status')
+            ->get();
+
+        $byStatus = [
+            'trial' => 0,
+            'active' => 0,
+            'past_due' => 0,
+            'suspended' => 0,
+            'closed' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $status = (string) ($row->status ?? '');
+            $count = (int) ($row->c ?? 0);
+            if (array_key_exists($status, $byStatus)) {
+                $byStatus[$status] = $count;
+            }
+        }
+
+        return response()->json([
+            'total' => array_sum($byStatus),
+            'by_status' => $byStatus,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $validated = $request->validate([
