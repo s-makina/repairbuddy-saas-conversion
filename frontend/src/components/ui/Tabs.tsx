@@ -71,6 +71,8 @@ export function TabsTrigger({
   const ctx = useTabsContext();
   const selected = ctx.value === value;
 
+  const { onClick, ...rest } = props;
+
   return (
     <button
       type="button"
@@ -78,13 +80,16 @@ export function TabsTrigger({
       aria-selected={selected}
       aria-controls={`${ctx.baseId}-panel-${value}`}
       id={`${ctx.baseId}-tab-${value}`}
-      onClick={() => ctx.setValue(value)}
+      onClick={(e) => {
+        ctx.setValue(value);
+        onClick?.(e);
+      }}
       className={cn(
         "h-9 rounded-[var(--rb-radius-sm)] px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-white",
         selected ? "bg-[var(--rb-surface-muted)] text-[var(--rb-text)]" : "text-zinc-600 hover:bg-[var(--rb-surface-muted)]",
         className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }

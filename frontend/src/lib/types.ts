@@ -4,6 +4,17 @@ export type UserRole = "owner" | "member" | string;
 
 export type UserStatus = "pending" | "active" | "inactive" | "suspended";
 
+export interface Plan {
+  id: number;
+  name: string;
+  code: string;
+  price_display?: string | null;
+  billing_interval?: string | null;
+  entitlements?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Permission {
   id: number;
   name: string;
@@ -22,6 +33,9 @@ export interface Tenant {
   slug: string;
   status: TenantStatus;
   contact_email?: string | null;
+  plan_id?: number | null;
+  plan?: Plan | null;
+  entitlement_overrides?: Record<string, unknown> | null;
   activated_at?: string | null;
   suspended_at?: string | null;
   suspension_reason?: string | null;
@@ -57,4 +71,31 @@ export interface ImpersonationInfo {
   started_at?: string | null;
   expires_at?: string | null;
   reference_id?: string | null;
+}
+
+export interface PlatformAuditLog {
+  id: number;
+  actor_user_id?: number | null;
+  tenant_id?: number | null;
+  action: string;
+  reason?: string | null;
+  metadata?: Record<string, unknown> | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  actor?: User | null;
+}
+
+export interface AuthEvent {
+  id: number;
+  tenant_id?: number | null;
+  user_id?: number | null;
+  email?: string | null;
+  event_type: string;
+  ip?: string | null;
+  user_agent?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
 }

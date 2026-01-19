@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Plan;
+use App\Models\PlatformAuditLog;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Entitlements;
 use App\Support\PlatformAudit;
 use App\Support\Permissions;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -409,12 +411,63 @@ class TenantController extends Controller
     public function show(Request $request, Tenant $tenant)
     {
         return response()->json([
-            'tenant' => $tenant,
+            'tenant' => $tenant->load('plan'),
             'owner' => User::query()
                 ->where('tenant_id', $tenant->id)
                 ->where('role', 'owner')
                 ->orderBy('id')
                 ->first(),
+        ]);
+    }
+
+    public function entitlements(Request $request, Tenant $tenant)
+    {
+        $tenant->loadMissing('plan');
+
+        $planEntitlements = is_array($tenant->plan?->entitlements) ? $tenant->plan->entitlements : [];
+        $overrides = is_array($tenant->entitlement_overrides) ? $tenant->entitlement_overrides : [];
+
+        return response()->json([
+            'tenant' => $tenant,
+            'plan' => $tenant->plan,
+            'plan_entitlements' => $planEntitlements,
+            'entitlement_overrides' => $overrides,
+            'effective_entitlements' => Entitlements::forTenant($tenant),
+        ]);
+    }
+
+    public function audit(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'limit' => ['nullable', 'integer', 'min:1', 'max:200'],
+            'action' => ['nullable', 'string', 'max:255'],
+            'actor_user_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $limit = (int) ($validated['limit'] ?? 50);
+        $action = is_string($validated['action'] ?? null) ? trim((string) $validated['action']) : '';
+        $actorUserId = isset($validated['actor_user_id']) ? (int) $validated['actor_user_id'] : null;
+
+        $query = PlatformAuditLog::query()
+            ->where('tenant_id', $tenant->id);
+
+        if ($action !== '') {
+            $query->where('action', $action);
+        }
+
+        if ($actorUserId && $actorUserId > 0) {
+            $query->where('actor_user_id', $actorUserId);
+        }
+
+        $logs = $query
+            ->with('actor')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'tenant' => $tenant,
+            'audit' => $logs,
         ]);
     }
 

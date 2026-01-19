@@ -39,6 +39,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::get('/tenants/{tenant}', [\App\Http\Controllers\Api\Admin\TenantController::class, 'show'])
         ->whereNumber('tenant')
         ->middleware('permission:admin.tenants.read');
+    Route::get('/tenants/{tenant}/entitlements', [\App\Http\Controllers\Api\Admin\TenantController::class, 'entitlements'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.read');
+    Route::get('/tenants/{tenant}/audit', [\App\Http\Controllers\Api\Admin\TenantController::class, 'audit'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.read');
     Route::post('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.tenants.write']);
 

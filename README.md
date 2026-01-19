@@ -487,3 +487,102 @@ Store entity status:
 - Feature inventory is **in progress**.
 - Module mapping is **in progress**.
 - Next step after completing the inventory: produce a final “module catalog” for implementation planning.
+
+---
+
+# Platform Admin Tenant Detail Page Plan (`/admin/tenants/{id}`)
+
+This section defines the target structure for the **landlord/platform admin** tenant detail page (internal ops screen) at:
+
+- `/admin/tenants/{id}`
+
+Goal: provide a single operational control panel for a tenant: identity + health + plan/entitlements + billing + diagnostics + auditability + safe actions.
+
+## Proposed tabs
+
+### 1) Overview
+
+- Tenant identity: ID, name, slug, status, timestamps (created/activated/suspended/closed)
+- Plan + effective entitlements summary
+- Operational snapshot KPIs (real data): users, jobs, payments, last login
+- Quick actions: impersonate, suspend/unsuspend, close, add internal note, open diagnostics
+
+### 2) Users & Access
+
+- Owner card: name/email, MFA enabled, status, last login
+- Users snapshot/table: status, role, last login, created
+- Actions: disable/enable user, send reset link, force logout (user or tenant-wide)
+
+### 3) Plan & Entitlements
+
+- Plan picker (set/clear) with required reason
+- Effective entitlements view (plan defaults + overrides)
+- Overrides editor (form preferred; JSON fallback)
+- Change history (from audit log)
+
+### 4) Billing
+
+Replace current mock UI with a provider-agnostic, DB-backed view:
+
+- Subscription status, current period, next renewal
+- Last payment, failed payments count
+- Invoices list (and downloads) when supported
+- Actions: open billing portal (only if configured), optional manual overrides if policy allows
+
+### 5) Diagnostics
+
+- Tenant health checks (queue/email/SMS/webhooks/storage)
+- Recent errors (tenant-scoped, sanitized)
+- Optional performance summaries (latency, slow endpoints) if instrumentation exists
+
+### 6) Audit Log
+
+- Tenant-scoped audit timeline: action, actor, timestamp, reason, reference_id
+- Before/after diffs for plan/entitlements/status changes
+- Export (CSV)
+
+### 7) Support & Internal Notes
+
+- Internal notes (staff-only), tagged/pinned
+- Support tickets list + create ticket
+- Optional attachments (screenshots/log exports)
+
+### 8) Danger Zone
+
+- Suspend/unsuspend/close tenant
+- Typed confirmations for destructive actions
+- Password reset for owner (high-risk): reason required, “copy once”, always audited
+
+## API mapping
+
+### Existing APIs (already in backend)
+
+- `GET /api/admin/tenants/{tenant}`: tenant + owner
+- `PATCH /api/admin/tenants/{tenant}/suspend`
+- `PATCH /api/admin/tenants/{tenant}/unsuspend`
+- `PATCH /api/admin/tenants/{tenant}/close`
+- `POST /api/admin/tenants/{tenant}/owner/reset-password`
+- `PUT /api/admin/tenants/{tenant}/plan`
+- `PUT /api/admin/tenants/{tenant}/entitlements`
+- `POST /api/admin/impersonation`
+- `GET /api/admin/tenants/{tenant}/diagnostics`
+
+### Missing APIs (recommended to make the page fully operational)
+
+- Tenant summary payload (KPIs + plan + effective entitlements)
+  - Option A: expand `GET /api/admin/tenants/{tenant}` to include `plan`, `kpis`, `effective_entitlements`
+  - Option B: add `GET /api/admin/tenants/{tenant}/summary`
+- Entitlements read endpoints
+  - `GET /api/admin/tenants/{tenant}/entitlements` (effective + overrides + defaults)
+- Audit log read endpoints
+  - `GET /api/admin/tenants/{tenant}/audit` (filterable timeline)
+  - `GET /api/admin/audit/{event}` (full details/diff)
+- Landlord user management endpoints (if not requiring impersonation)
+  - `GET /api/admin/tenants/{tenant}/users`
+  - `PATCH /api/admin/tenants/{tenant}/users/{user}/status`
+  - `POST /api/admin/tenants/{tenant}/users/{user}/reset-password-link`
+  - `POST /api/admin/tenants/{tenant}/sessions/revoke` (tenant-wide)
+- Billing read endpoints (provider-agnostic)
+  - `GET /api/admin/tenants/{tenant}/billing`
+  - `GET /api/admin/tenants/{tenant}/billing/invoices`
+  - Optional: `POST /api/admin/tenants/{tenant}/billing/sync`
