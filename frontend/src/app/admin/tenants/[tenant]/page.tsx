@@ -30,6 +30,76 @@ type MockInvoice = {
   due_at: string | null;
 };
 
+function Sparkline({
+  data,
+  stroke = "var(--rb-blue)",
+  fill = "transparent",
+  height = 28,
+}: {
+  data: number[];
+  stroke?: string;
+  fill?: string;
+  height?: number;
+}) {
+  const w = 120;
+  const h = height;
+
+  const safe = data.length >= 2 ? data : [0, 0];
+  const min = Math.min(...safe);
+  const max = Math.max(...safe);
+  const range = max - min || 1;
+
+  const points = safe.map((v, idx) => {
+    const x = (idx / (safe.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return { x, y };
+  });
+
+  const d = points
+    .map((p, i) => {
+      const cmd = i === 0 ? "M" : "L";
+      return `${cmd}${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+    })
+    .join(" ");
+
+  const areaD = `${d} L ${w.toFixed(2)},${h.toFixed(2)} L 0,${h.toFixed(2)} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-[28px] w-full" preserveAspectRatio="none" aria-hidden="true">
+      <path d={areaD} fill={fill} />
+      <path d={d} fill="none" stroke={stroke} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BarSpark({
+  data,
+  color = "rgba(37, 99, 235, 0.8)",
+  height = 44,
+}: {
+  data: number[];
+  color?: string;
+  height?: number;
+}) {
+  const w = 180;
+  const h = height;
+  const safe = data.length > 0 ? data : [0];
+  const max = Math.max(...safe, 1);
+  const gap = 4;
+  const barW = Math.max(2, (w - gap * (safe.length - 1)) / safe.length);
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-[44px] w-full" preserveAspectRatio="none" aria-hidden="true">
+      {safe.map((v, idx) => {
+        const x = idx * (barW + gap);
+        const bh = (v / max) * h;
+        const y = h - bh;
+        return <rect key={idx} x={x} y={y} width={barW} height={bh} rx="2" fill={color} />;
+      })}
+    </svg>
+  );
+}
+
 type TenantDetailPayload = {
   tenant: Tenant;
   owner: User | null;
@@ -191,6 +261,49 @@ export default function AdminTenantDetailPage() {
       if (s === "past_due") return "warning" as const;
       if (s === "void") return "default" as const;
       return "default" as const;
+    };
+  }, []);
+
+  const reporting = useMemo(() => {
+    const kpis = {
+      mrr_cents: 4900,
+      currency: "USD",
+      active_users: 7,
+      seats_included: 5,
+      open_tickets: 2,
+      jobs_30d: 41,
+      invoices_30d_cents: 14700,
+      failed_payments_90d: 0,
+      churn_risk: "low" as "low" | "medium" | "high",
+      last_login_at: "2026-01-18T10:12:00Z",
+      last_payment_at: "2025-12-01T00:00:00Z",
+      series: {
+        mrr: [4200, 4200, 4500, 4700, 4900, 4900, 4900],
+        jobs: [6, 7, 8, 7, 9, 10, 9],
+        payments: [0, 4900, 0, 4900, 0, 0, 4900],
+        jobs_bar: [2, 4, 3, 5, 6, 4, 7, 6, 5, 8, 7, 9],
+        ticket_bar: [1, 0, 2, 1, 3, 1, 0, 1, 2, 1, 0, 1],
+      },
+    };
+
+    const snapshot = {
+      jobs_7d: 9,
+      jobs_30d: 41,
+      estimates_7d: 6,
+      estimates_30d: 18,
+      payments_7d_cents: 4900,
+      payments_30d_cents: 14700,
+      refunds_30d_cents: 0,
+    };
+
+    return { kpis, snapshot };
+  }, [tenantId]);
+
+  const churnBadgeVariant = useMemo(() => {
+    return (risk: "low" | "medium" | "high") => {
+      if (risk === "low") return "success" as const;
+      if (risk === "medium") return "warning" as const;
+      return "danger" as const;
     };
   }, []);
 
@@ -357,166 +470,368 @@ export default function AdminTenantDetailPage() {
                 </TabsList>
 
                 <TabsContent value="overview">
-                  <Card>
-                    <CardHeader className="flex flex-row items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <CardTitle className="truncate">Overview</CardTitle>
-                        <div className="mt-1 text-sm text-zinc-600">Status and key account details</div>
-                      </div>
-                      <Badge className="shrink-0" variant={statusVariant(tenant.status)}>
-                        {tenant.status}
-                      </Badge>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                          <div className="text-xs text-zinc-500">Contact email</div>
-                          <div className="mt-1 text-sm text-[var(--rb-text)]">{tenant.contact_email ?? "—"}</div>
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader className="flex flex-row items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <CardTitle className="truncate">Overview</CardTitle>
+                          <div className="mt-1 text-sm text-zinc-600">Status and key account details</div>
                         </div>
-                        <div>
-                          <div className="text-xs text-zinc-500">Created</div>
-                          <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.created_at ?? null)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-zinc-500">Activated</div>
-                          <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.activated_at ?? null)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-zinc-500">Suspended</div>
-                          <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.suspended_at ?? null)}</div>
-                          {tenant.suspension_reason ? (
-                            <div className="mt-1 text-xs text-zinc-500">Reason: {tenant.suspension_reason}</div>
-                          ) : null}
-                        </div>
-                        <div>
-                          <div className="text-xs text-zinc-500">Closed</div>
-                          <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.closed_at ?? null)}</div>
-                          {tenant.closed_reason ? (
-                            <div className="mt-1 text-xs text-zinc-500">Reason: {tenant.closed_reason}</div>
-                          ) : null}
-                        </div>
-                        <div>
-                          <div className="text-xs text-zinc-500">Data retention</div>
-                          <div className="mt-1 text-sm text-[var(--rb-text)]">
-                            {typeof tenant.data_retention_days === "number" ? `${tenant.data_retention_days} days` : "—"}
+                        <Badge className="shrink-0" variant={statusVariant(tenant.status)}>
+                          {tenant.status}
+                        </Badge>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                            <div className="text-xs text-zinc-500">Contact email</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">{tenant.contact_email ?? "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-zinc-500">Created</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.created_at ?? null)}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-zinc-500">Activated</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.activated_at ?? null)}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-zinc-500">Suspended</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.suspended_at ?? null)}</div>
+                            {tenant.suspension_reason ? (
+                              <div className="mt-1 text-xs text-zinc-500">Reason: {tenant.suspension_reason}</div>
+                            ) : null}
+                          </div>
+                          <div>
+                            <div className="text-xs text-zinc-500">Closed</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">{formatDateTime(tenant.closed_at ?? null)}</div>
+                            {tenant.closed_reason ? (
+                              <div className="mt-1 text-xs text-zinc-500">Reason: {tenant.closed_reason}</div>
+                            ) : null}
+                          </div>
+                          <div>
+                            <div className="text-xs text-zinc-500">Data retention</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">
+                              {typeof tenant.data_retention_days === "number" ? `${tenant.data_retention_days} days` : "—"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <CardTitle>Reporting</CardTitle>
+                            <CardDescription>Mock summary stats (UI only).</CardDescription>
+                          </div>
+                          <Badge variant={churnBadgeVariant(reporting.kpis.churn_risk)}>{reporting.kpis.churn_risk} risk</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="text-xs font-medium tracking-wide text-zinc-500">MRR</div>
+                              <div className="mt-1 text-2xl font-semibold text-[var(--rb-text)]">
+                                {formatMoney(reporting.kpis.mrr_cents, reporting.kpis.currency)}
+                              </div>
+                              <div className="mt-1 text-sm text-zinc-600">Current plan revenue</div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="text-xs font-medium tracking-wide text-zinc-500">Users</div>
+                              <div className="mt-1 text-2xl font-semibold text-[var(--rb-text)]">{reporting.kpis.active_users}</div>
+                              <div className="mt-1 text-sm text-zinc-600">Seats included: {reporting.kpis.seats_included}</div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="text-xs font-medium tracking-wide text-zinc-500">Open tickets</div>
+                              <div className="mt-1 text-2xl font-semibold text-[var(--rb-text)]">{reporting.kpis.open_tickets}</div>
+                              <div className="mt-1 text-sm text-zinc-600">Support workload</div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="text-xs font-medium tracking-wide text-zinc-500">Jobs (30d)</div>
+                              <div className="mt-1 text-2xl font-semibold text-[var(--rb-text)]">{reporting.kpis.jobs_30d}</div>
+                              <div className="mt-1 text-sm text-zinc-600">Operational volume</div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="text-xs font-medium tracking-wide text-zinc-500">Invoices (30d)</div>
+                              <div className="mt-1 text-2xl font-semibold text-[var(--rb-text)]">
+                                {formatMoney(reporting.kpis.invoices_30d_cents, reporting.kpis.currency)}
+                              </div>
+                              <div className="mt-1 text-sm text-zinc-600">Total billed</div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="text-xs font-medium tracking-wide text-zinc-500">Health</div>
+                              <div className="mt-1 flex items-center gap-2">
+                                <Badge variant={reporting.kpis.failed_payments_90d > 0 ? "warning" : "success"}>
+                                  {reporting.kpis.failed_payments_90d > 0 ? "payment issues" : "ok"}
+                                </Badge>
+                                <div className="text-sm text-zinc-600">Failed payments (90d): {reporting.kpis.failed_payments_90d}</div>
+                              </div>
+                              <div className="mt-2 grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Last login</div>
+                                  <div className="text-sm text-zinc-700">{formatDateTime(reporting.kpis.last_login_at)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Last payment</div>
+                                  <div className="text-sm text-zinc-700">{formatDateTime(reporting.kpis.last_payment_at)}</div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        <div className="mt-5">
+                          <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Last 30 days snapshot</div>
+                          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                              <div className="text-xs text-zinc-500">Jobs</div>
+                              <div className="mt-1 text-sm font-semibold text-[var(--rb-text)]">
+                                {reporting.snapshot.jobs_7d} (7d) / {reporting.snapshot.jobs_30d} (30d)
+                              </div>
+                            </div>
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                              <div className="text-xs text-zinc-500">Estimates</div>
+                              <div className="mt-1 text-sm font-semibold text-[var(--rb-text)]">
+                                {reporting.snapshot.estimates_7d} (7d) / {reporting.snapshot.estimates_30d} (30d)
+                              </div>
+                            </div>
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                              <div className="text-xs text-zinc-500">Payments collected</div>
+                              <div className="mt-1 text-sm font-semibold text-[var(--rb-text)]">
+                                {formatMoney(reporting.snapshot.payments_7d_cents, reporting.kpis.currency)} (7d)
+                              </div>
+                              <div className="mt-1 text-xs text-zinc-600">{formatMoney(reporting.snapshot.payments_30d_cents, reporting.kpis.currency)} (30d)</div>
+                            </div>
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                              <div className="text-xs text-zinc-500">Refunds</div>
+                              <div className="mt-1 text-sm font-semibold text-[var(--rb-text)]">
+                                {formatMoney(reporting.snapshot.refunds_30d_cents, reporting.kpis.currency)} (30d)
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <div className="min-w-0">
+                          <CardTitle>Graphs</CardTitle>
+                          <CardDescription>Mock chart summaries for the tenant (UI only).</CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">MRR trend</div>
+                                  <div className="mt-1 text-sm text-zinc-600">Last 7 periods</div>
+                                </div>
+                                <Badge variant="info">mock</Badge>
+                              </div>
+                              <div className="mt-4">
+                                <Sparkline data={reporting.kpis.series.mrr} stroke="var(--rb-blue)" fill="rgba(37, 99, 235, 0.10)" height={44} />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">Jobs trend</div>
+                                  <div className="mt-1 text-sm text-zinc-600">Last 7 periods</div>
+                                </div>
+                                <Badge variant="info">mock</Badge>
+                              </div>
+                              <div className="mt-4">
+                                <Sparkline data={reporting.kpis.series.jobs} stroke="#16a34a" fill="rgba(22, 163, 74, 0.10)" height={44} />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">Payments trend</div>
+                                  <div className="mt-1 text-sm text-zinc-600">Last 7 periods</div>
+                                </div>
+                                <Badge variant="info">mock</Badge>
+                              </div>
+                              <div className="mt-4">
+                                <Sparkline data={reporting.kpis.series.payments} stroke="var(--rb-orange)" fill="rgba(249, 115, 22, 0.12)" height={44} />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)] lg:col-span-2">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">Jobs trend (weekly)</div>
+                                  <div className="mt-1 text-sm text-zinc-600">Last 12 weeks</div>
+                                </div>
+                                <Badge variant="info">mock</Badge>
+                              </div>
+                              <div className="mt-4">
+                                <BarSpark data={reporting.kpis.series.jobs_bar} color="rgba(22, 163, 74, 0.80)" />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">Tickets created</div>
+                                  <div className="mt-1 text-sm text-zinc-600">Last 12 weeks</div>
+                                </div>
+                                <Badge variant="info">mock</Badge>
+                              </div>
+                              <div className="mt-4">
+                                <BarSpark data={reporting.kpis.series.ticket_bar} color="rgba(249, 115, 22, 0.85)" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="billing">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <CardTitle>Subscription &amp; Billing</CardTitle>
-                          <CardDescription>Mock billing information (UI only, no live provider yet).</CardDescription>
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <CardTitle>Subscription &amp; Billing</CardTitle>
+                            <CardDescription>Mock billing information (UI only, no live provider yet).</CardDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => window.alert("Billing portal (mock)")}>
+                              Open billing portal
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => window.alert("Billing portal (mock)")}>
-                            Open billing portal
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                        <Card className="bg-[var(--rb-surface-muted)]">
-                          <CardContent className="pt-5">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-xs font-medium tracking-wide text-zinc-500">Subscription</div>
-                                <div className="mt-1 truncate text-xl font-semibold text-[var(--rb-text)]">{billing.subscription.plan_name}</div>
-                                <div className="mt-1 text-sm text-zinc-600">
-                                  {billing.subscription.seats_used}/{billing.subscription.seats_included} seats used
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-xs font-medium tracking-wide text-zinc-500">Subscription</div>
+                                  <div className="mt-1 truncate text-xl font-semibold text-[var(--rb-text)]">{billing.subscription.plan_name}</div>
+                                  <div className="mt-1 text-sm text-zinc-600">
+                                    {billing.subscription.seats_used}/{billing.subscription.seats_included} seats used
+                                  </div>
+                                </div>
+                                <Badge variant={billingStatusBadgeVariant(billing.subscription.status)}>{billing.subscription.status}</Badge>
+                              </div>
+                              <div className="mt-4 grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Period start</div>
+                                  <div className="text-sm text-zinc-700">{formatDateTime(billing.subscription.current_period_start)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Period end</div>
+                                  <div className="text-sm text-zinc-700">{formatDateTime(billing.subscription.current_period_end)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Renewal</div>
+                                  <div className="text-sm text-zinc-700">
+                                    {formatMoney(billing.subscription.renewal_amount_cents, billing.subscription.currency)} / month
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Cancel</div>
+                                  <div className="text-sm text-zinc-700">{billing.subscription.cancel_at_period_end ? "At period end" : "No"}</div>
                                 </div>
                               </div>
-                              <Badge variant={billingStatusBadgeVariant(billing.subscription.status)}>{billing.subscription.status}</Badge>
-                            </div>
-                            <div className="mt-4 grid grid-cols-2 gap-3">
-                              <div>
-                                <div className="text-xs font-medium text-zinc-500">Period start</div>
-                                <div className="text-sm text-zinc-700">{formatDateTime(billing.subscription.current_period_start)}</div>
+                              <div className="mt-4 flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => window.alert("Change plan (mock)")}>Change plan</Button>
+                                <Button variant="outline" size="sm" onClick={() => window.alert("Cancel subscription (mock)")}>Cancel</Button>
                               </div>
-                              <div>
-                                <div className="text-xs font-medium text-zinc-500">Period end</div>
-                                <div className="text-sm text-zinc-700">{formatDateTime(billing.subscription.current_period_end)}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs font-medium text-zinc-500">Renewal</div>
-                                <div className="text-sm text-zinc-700">
-                                  {formatMoney(billing.subscription.renewal_amount_cents, billing.subscription.currency)} / month
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-xs font-medium text-zinc-500">Cancel</div>
-                                <div className="text-sm text-zinc-700">{billing.subscription.cancel_at_period_end ? "At period end" : "No"}</div>
-                              </div>
-                            </div>
-                            <div className="mt-4 flex items-center gap-2">
-                              <Button variant="outline" size="sm" onClick={() => window.alert("Change plan (mock)")}>Change plan</Button>
-                              <Button variant="outline" size="sm" onClick={() => window.alert("Cancel subscription (mock)")}>Cancel</Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                            </CardContent>
+                          </Card>
 
-                        <Card className="bg-[var(--rb-surface-muted)]">
-                          <CardContent className="pt-5">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-xs font-medium tracking-wide text-zinc-500">Payment method</div>
-                                <div className="mt-1 truncate text-xl font-semibold text-[var(--rb-text)]">
-                                  {billing.paymentMethod.brand} •••• {billing.paymentMethod.last4}
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-xs font-medium tracking-wide text-zinc-500">Payment method</div>
+                                  <div className="mt-1 truncate text-xl font-semibold text-[var(--rb-text)]">
+                                    {billing.paymentMethod.brand} •••• {billing.paymentMethod.last4}
+                                  </div>
+                                  <div className="mt-1 text-sm text-zinc-600">
+                                    Expires {String(billing.paymentMethod.exp_month).padStart(2, "0")}/{billing.paymentMethod.exp_year}
+                                  </div>
                                 </div>
-                                <div className="mt-1 text-sm text-zinc-600">
-                                  Expires {String(billing.paymentMethod.exp_month).padStart(2, "0")}/{billing.paymentMethod.exp_year}
+                                <Badge variant="default">default</Badge>
+                              </div>
+                              <div className="mt-4">
+                                <div className="text-xs font-medium text-zinc-500">Billing email</div>
+                                <div className="text-sm text-zinc-700">{billing.paymentMethod.billing_email}</div>
+                              </div>
+                              <div className="mt-4 flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => window.alert("Update payment method (mock)")}>Update</Button>
+                                <Button variant="outline" size="sm" onClick={() => window.alert("Add payment method (mock)")}>Add</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-[var(--rb-surface-muted)]">
+                            <CardContent className="pt-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-xs font-medium tracking-wide text-zinc-500">Upcoming invoice</div>
+                                  <div className="mt-1 truncate text-xl font-semibold text-[var(--rb-text)]">
+                                    {formatMoney(billing.upcomingInvoice.total_cents, billing.upcomingInvoice.currency)}
+                                  </div>
+                                  <div className="mt-1 text-sm text-zinc-600">Next charge: {formatDateTime(billing.upcomingInvoice.next_attempt_at)}</div>
+                                </div>
+                                <Badge variant="info">preview</Badge>
+                              </div>
+
+                              <div className="mt-4 grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Subtotal</div>
+                                  <div className="text-sm text-zinc-700">{formatMoney(billing.upcomingInvoice.subtotal_cents, billing.upcomingInvoice.currency)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-medium text-zinc-500">Tax</div>
+                                  <div className="text-sm text-zinc-700">{formatMoney(billing.upcomingInvoice.tax_cents, billing.upcomingInvoice.currency)}</div>
                                 </div>
                               </div>
-                              <Badge variant="default">default</Badge>
-                            </div>
-                            <div className="mt-4">
-                              <div className="text-xs font-medium text-zinc-500">Billing email</div>
-                              <div className="text-sm text-zinc-700">{billing.paymentMethod.billing_email}</div>
-                            </div>
-                            <div className="mt-4 flex items-center gap-2">
-                              <Button variant="outline" size="sm" onClick={() => window.alert("Update payment method (mock)")}>Update</Button>
-                              <Button variant="outline" size="sm" onClick={() => window.alert("Add payment method (mock)")}>Add</Button>
-                            </div>
-                          </CardContent>
-                        </Card>
 
-                        <Card className="bg-[var(--rb-surface-muted)]">
-                          <CardContent className="pt-5">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-xs font-medium tracking-wide text-zinc-500">Upcoming invoice</div>
-                                <div className="mt-1 truncate text-xl font-semibold text-[var(--rb-text)]">
-                                  {formatMoney(billing.upcomingInvoice.total_cents, billing.upcomingInvoice.currency)}
-                                </div>
-                                <div className="mt-1 text-sm text-zinc-600">Next charge: {formatDateTime(billing.upcomingInvoice.next_attempt_at)}</div>
+                              <div className="mt-4 flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => window.alert("Download upcoming invoice (mock)")}>Download</Button>
+                                <Button variant="outline" size="sm" onClick={() => window.alert("Update billing details (mock)")}>Billing details</Button>
                               </div>
-                              <Badge variant="info">preview</Badge>
-                            </div>
-
-                            <div className="mt-4 grid grid-cols-2 gap-3">
-                              <div>
-                                <div className="text-xs font-medium text-zinc-500">Subtotal</div>
-                                <div className="text-sm text-zinc-700">{formatMoney(billing.upcomingInvoice.subtotal_cents, billing.upcomingInvoice.currency)}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs font-medium text-zinc-500">Tax</div>
-                                <div className="text-sm text-zinc-700">{formatMoney(billing.upcomingInvoice.tax_cents, billing.upcomingInvoice.currency)}</div>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 flex items-center gap-2">
-                              <Button variant="outline" size="sm" onClick={() => window.alert("Download upcoming invoice (mock)")}>Download</Button>
-                              <Button variant="outline" size="sm" onClick={() => window.alert("Update billing details (mock)")}>Billing details</Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                            </CardContent>
+                          </Card>
                       </div>
 
                       <div className="mt-4">
@@ -576,69 +891,73 @@ export default function AdminTenantDetailPage() {
                           ]}
                         />
                       </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="support">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Support context</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div>
-                          <div className="text-sm font-medium text-[var(--rb-text)]">Reason</div>
-                          <div className="mt-1">
-                            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ticket ID / reason (optional)" />
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Support context</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div>
+                            <div className="text-sm font-medium text-[var(--rb-text)]">Reason</div>
+                            <div className="mt-1">
+                              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ticket ID / reason (optional)" />
+                            </div>
+                            <div className="mt-1 text-xs text-zinc-500">Used for audit trails when performing admin actions.</div>
                           </div>
-                          <div className="mt-1 text-xs text-zinc-500">Used for audit trails when performing admin actions.</div>
+
+                          <div>
+                            <div className="text-sm font-medium text-[var(--rb-text)]">Reference ID</div>
+                            <div className="mt-1">
+                              <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. ticket-1234" />
+                            </div>
+                            <div className="mt-1 text-xs text-zinc-500">Required to start impersonation.</div>
+                          </div>
+
+                          <div>
+                            <div className="text-sm font-medium text-[var(--rb-text)]">Close retention days</div>
+                            <div className="mt-1">
+                              <Input value={closeRetentionDays} onChange={(e) => setCloseRetentionDays(e.target.value)} placeholder="e.g. 30" inputMode="numeric" />
+                            </div>
+                            <div className="mt-1 text-xs text-zinc-500">Optional: overrides retention when closing the tenant.</div>
+                          </div>
                         </div>
 
-                        <div>
-                          <div className="text-sm font-medium text-[var(--rb-text)]">Reference ID</div>
-                          <div className="mt-1">
-                            <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. ticket-1234" />
-                          </div>
-                          <div className="mt-1 text-xs text-zinc-500">Required to start impersonation.</div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="primary" size="sm" onClick={onStartImpersonation} disabled={!!actionBusy || !canImpersonate}>
+                            {actionBusy === "impersonate" ? "Starting…" : "Impersonate owner"}
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || !canSuspend}>
+                            {actionBusy === "suspend" ? "Suspending…" : "Suspend"}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || !canUnsuspend}>
+                            {actionBusy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || !canClose}>
+                            {actionBusy === "close" ? "Closing…" : "Close tenant"}
+                          </Button>
                         </div>
-
-                        <div>
-                          <div className="text-sm font-medium text-[var(--rb-text)]">Close retention days</div>
-                          <div className="mt-1">
-                            <Input value={closeRetentionDays} onChange={(e) => setCloseRetentionDays(e.target.value)} placeholder="e.g. 30" inputMode="numeric" />
-                          </div>
-                          <div className="mt-1 text-xs text-zinc-500">Optional: overrides retention when closing the tenant.</div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="primary" size="sm" onClick={onStartImpersonation} disabled={!!actionBusy || !canImpersonate}>
-                          {actionBusy === "impersonate" ? "Starting…" : "Impersonate owner"}
-                        </Button>
-                        <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || !canSuspend}>
-                          {actionBusy === "suspend" ? "Suspending…" : "Suspend"}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || !canUnsuspend}>
-                          {actionBusy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || !canClose}>
-                          {actionBusy === "close" ? "Closing…" : "Close tenant"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="security">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Security</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Alert variant="warning" title="Force-reset owner password">
-                        This will immediately change the owner password. The new password is shown once below. Treat it as a secret.
-                      </Alert>
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Security</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Alert variant="warning" title="Force-reset owner password">
+                          This will immediately change the owner password. The new password is shown once below. Treat it as a secret.
+                        </Alert>
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
@@ -685,6 +1004,7 @@ export default function AdminTenantDetailPage() {
                       ) : null}
                     </CardContent>
                   </Card>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
