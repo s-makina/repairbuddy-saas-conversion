@@ -12,6 +12,27 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { UserMenu } from "@/components/ui/UserMenu";
 
+type DashboardHeaderConfig = {
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  breadcrumb?: React.ReactNode;
+  actions?: React.ReactNode;
+};
+
+type DashboardHeaderContextValue = {
+  setHeader: (next: DashboardHeaderConfig | null) => void;
+};
+
+const DashboardHeaderContext = React.createContext<DashboardHeaderContextValue | null>(null);
+
+export function useDashboardHeader() {
+  const ctx = React.useContext(DashboardHeaderContext);
+  if (!ctx) {
+    throw new Error("useDashboardHeader must be used within <DashboardShell />");
+  }
+  return ctx;
+}
+
 function MenuIcon({
   name,
   className,
@@ -243,6 +264,8 @@ export function DashboardShell({
   void title;
   const auth = useAuth();
   const pathname = usePathname();
+
+  const [header, setHeader] = React.useState<DashboardHeaderConfig | null>(null);
 
   const tenantSlug = auth.tenant?.slug ?? null;
 
@@ -483,9 +506,14 @@ export function DashboardShell({
     return "/settings";
   })();
 
+  const headerCtx = React.useMemo<DashboardHeaderContextValue>(() => {
+    return { setHeader };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[var(--rb-surface-muted)] text-[var(--rb-text)]">
-      <div className="flex min-h-screen">
+    <DashboardHeaderContext.Provider value={headerCtx}>
+      <div className="min-h-screen bg-[var(--rb-surface-muted)] text-[var(--rb-text)]">
+        <div className="flex min-h-screen">
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col bg-[var(--rb-blue)] text-white">
           <div className="border-b border-white/10 bg-white px-4 py-5 text-[var(--rb-text)]">
             <div className="flex items-center gap-3">
@@ -627,8 +655,8 @@ export function DashboardShell({
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="mx-auto w-full max-w-6xl px-4">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="mx-auto w-full max-w-6xl px-4">
             {auth.isImpersonating ? (
               <Card className="mt-6 border border-amber-200 bg-amber-50 px-5 py-3">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -668,30 +696,37 @@ export function DashboardShell({
               </Card>
             ) : null}
 
-            <Card className="mt-6 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    {breadcrumbText}
+              <Card className="mt-6 px-5 py-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      {header?.breadcrumb ?? breadcrumbText}
+                    </div>
+                    <div className="mt-1 truncate text-lg font-semibold text-[var(--rb-text)]">
+                      {header?.title ?? pageLabel}
+                    </div>
+                    {header?.subtitle ? <div className="mt-1 text-sm text-zinc-600">{header.subtitle}</div> : null}
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-[var(--rb-text)]">{pageLabel}</div>
+
+                  <div className="flex items-center gap-2">
+                    {header?.actions ? <div className="flex items-center gap-2">{header.actions}</div> : null}
+                    <UserMenu
+                      userName={userName}
+                      userEmail={userEmail}
+                      avatarUrl={userAvatarUrl}
+                      profileHref={profileHref}
+                      settingsHref={settingsHref}
+                      onLogout={() => void auth.logout()}
+                    />
+                  </div>
                 </div>
+              </Card>
+            </div>
 
-                <UserMenu
-                  userName={userName}
-                  userEmail={userEmail}
-                  avatarUrl={userAvatarUrl}
-                  profileHref={profileHref}
-                  settingsHref={settingsHref}
-                  onLogout={() => void auth.logout()}
-                />
-              </div>
-            </Card>
+            <main className="mx-auto mt-6 w-full max-w-6xl px-4 pb-8">{children}</main>
           </div>
-
-          <main className="mx-auto mt-6 w-full max-w-6xl px-4 pb-8">{children}</main>
         </div>
       </div>
-    </div>
+    </DashboardHeaderContext.Provider>
   );
 }

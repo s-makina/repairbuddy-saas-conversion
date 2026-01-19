@@ -5,9 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { Tenant, User } from "@/lib/types";
 import { RequireAuth } from "@/components/RequireAuth";
+import { useDashboardHeader } from "@/components/DashboardShell";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime } from "@/lib/datetime";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +48,7 @@ export default function AdminTenantDetailPage() {
   const params = useParams<{ tenant: string }>();
   const router = useRouter();
   const auth = useAuth();
+  const dashboardHeader = useDashboardHeader();
 
   const tenantId = Number(params.tenant);
 
@@ -218,6 +219,28 @@ export default function AdminTenantDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    dashboardHeader.setHeader({
+      breadcrumb: "Admin / Tenants",
+      title: tenant ? tenant.name : `Tenant ${tenantId}`,
+      subtitle: tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : `Tenant ID ${tenantId}`,
+      actions: (
+        <>
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            Back
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} disabled={loading || !!actionBusy}>
+            Refresh
+          </Button>
+        </>
+      ),
+    });
+
+    return () => {
+      dashboardHeader.setHeader(null);
+    };
+  }, [actionBusy, dashboardHeader, load, loading, router, tenant, tenantId]);
+
   const runAction = useCallback(
     async (name: string, fn: () => Promise<void>) => {
       if (actionBusy) return;
@@ -315,21 +338,6 @@ export default function AdminTenantDetailPage() {
   return (
     <RequireAuth requiredPermission="admin.tenants.read">
       <div className="space-y-6">
-        {/* <PageHeader
-          title={tenant ? tenant.name : `Tenant ${tenantId}`}
-          description={tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : `Tenant ID ${tenantId}`}
-          actions={
-            <>
-              <Button variant="outline" size="sm" onClick={() => router.back()}>
-                Back
-              </Button>
-              <Button variant="outline" size="sm" onClick={load} disabled={loading || !!actionBusy}>
-                Refresh
-              </Button>
-            </>
-          }
-        /> */}
-
         {loading ? <div className="text-sm text-zinc-500">Loading tenant…</div> : null}
         {error ? (
           <Alert variant="danger" title="Could not load tenant">
