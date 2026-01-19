@@ -582,7 +582,284 @@ Replace current mock UI with a provider-agnostic, DB-backed view:
   - `PATCH /api/admin/tenants/{tenant}/users/{user}/status`
   - `POST /api/admin/tenants/{tenant}/users/{user}/reset-password-link`
   - `POST /api/admin/tenants/{tenant}/sessions/revoke` (tenant-wide)
-- Billing read endpoints (provider-agnostic)
+ - Billing read endpoints (provider-agnostic)
   - `GET /api/admin/tenants/{tenant}/billing`
   - `GET /api/admin/tenants/{tenant}/billing/invoices`
   - Optional: `POST /api/admin/tenants/{tenant}/billing/sync`
+
+---
+
+# Configurable subscription packages (architecture plan)
+
+Goal: implement configurable subscription packages (plans, entitlements, pricing) for RepairBuddy SaaS, while keeping billing **provider-agnostic** so a provider (Stripe/Paddle/etc.) can be integrated later without rewriting business logic.
+
+## Scope
+
+- **Subscriptions are tenant-only** (one subscription per `tenant_id`).
+- **Admin-configurable**:
+  - Plan names/marketing content
+  - Entitlements (feature flags + limits)
+  - Full pricing (monthly/annual, trial, currency)
+- **Required in scope**: taxes + invoicing.
+- **Grandfathering**: configurable per catalog change (can be yes/no depending on the change).
+
+## Design principles
+
+- **App is the source of truth for entitlements**: billing proves payment; the app determines what is allowed.
+- **Immutable versions** for anything that impacts billing/entitlements:
+  - Editing a plan that impacts customers creates a **new version**.
+  - Existing subscriptions keep pointing at their purchased version unless migrated.
+- **Strict tenant scoping**: all subscription, invoice, and entitlement checks must filter by `tenant_id`.
+- **Auditability**: all plan changes, entitlement changes, subscription state changes, and invoice actions produce events.
+
+## Domain model (recommended)
+
+### Catalog (global)
+
+- `billing_plans`
+  - Stable identity: `code`, `name`, `description`, `is_public`
+- `billing_plan_versions` (immutable snapshots)
+  - `plan_id`, `version`, `status` (`draft|active|retired`), `effective_from`
+- `billing_prices` (immutable prices)
+  - `plan_version_id`, `currency`, `amount_cents`, `interval_unit` (`month|year`), `trial_days`, `is_default`, `effective_from`
+
+Currency decision:
+
+- Currency is **per-tenant**.
+- Operational implication: on subscription assignment/change, validate that a matching `billing_prices.currency` exists for the tenant’s currency.
+
+### Entitlements
+
+- `entitlement_definitions`
+  - Global catalog of entitlements with types: `boolean|integer|decimal|string|json`
+  - Examples:
+    - `max_users` (integer)
+    - `customer_portal_enabled` (boolean)
+- `plan_entitlements`
+  - `plan_version_id`, `entitlement_key`, `value_json`
+
+### Tenant subscription (tenant-scoped)
+
+- `tenant_subscriptions`
+  - `tenant_id`, `status`, `plan_version_id`, `price_id`, period dates, cancel flags
+- Provider placeholders for later integration:
+  - `billing_provider_accounts` (global)
+  - `tenant_billing_customers` (tenant+provider mapping)
+  - `tenant_billing_subscriptions` (subscription+provider mapping)
+
+### Invoicing (tenant-scoped)
+
+- `invoices` + `invoice_lines`
+  - Store tax snapshots and amounts as-of invoice issuance.
+- `invoice_sequences`
+  - Controls invoice numbering.
+
+### Audit trail
+
+- `subscription_events`
+  - Append-only, tenant-scoped timeline for subscription and invoice events.
+
+## Subscription lifecycle (state machine)
+
+Recommended subscription states:
+
+- `trialing`
+- `active`
+- `past_due`
+- `paused` (optional)
+- `canceled`
+
+Recommended transitions:
+
+- **Create**: `trialing` (if trial) else `active`
+- **Renew**: extend `current_period_end`, issue invoice
+- **Upgrade**: immediate entitlements change (policy-driven)
+- **Downgrade**: schedule at period end (recommended)
+- **Cancel**: cancel at period end (default) or immediate (admin)
+- **Payment failure**: move to `past_due` + grace policy
+
+## Provider-agnostic billing abstraction
+
+Introduce a billing interface with a pluggable adapter layer:
+
+- Catalog remains in local DB.
+- Provider adapter (later) offers capabilities like:
+  - `createCheckoutSession(tenant_id, price_id, addons[])`
+  - `syncSubscription(provider_subscription_id)`
+  - `cancelSubscription(...)`
+  - `changeSubscriptionPrice(...)`
+
+For now (no provider), support **manual/ops flows**:
+
+- Admin can activate a tenant subscription internally.
+- Invoices can be issued and marked paid manually (with full audit log).
+
+## Taxes and invoicing approach
+
+Minimum viable model (works now, extensible later):
+
+- Maintain a tax catalog:
+  - `tax_profiles` + `tax_rates` with effective dates
+- On invoice issuance:
+  - snapshot tax rates into invoice lines
+  - compute totals and lock the invoice
+
+Tax decision:
+
+- Use **VAT rules** (customer country + VAT number), including reverse charge / 0% VAT scenarios when applicable.
+- Store VAT evidence as invoice snapshots (example):
+  - customer country
+  - VAT number (if provided)
+  - whether VAT was applied and why (reason code)
+
+## Admin UI / configuration rules
+
+- Editing plan marketing fields is safe anytime.
+- Changes to entitlements or pricing create a new plan version.
+- Support scheduling with `effective_from`.
+- On activation, choose grandfathering policy:
+  - keep existing subscriptions on their current version
+  - migrate subscriptions at renewal or immediately
+
+## Milestones (implementation backlog)
+
+1) **Schema + seed catalog**
+2) **Subscription + invoice core**
+3) **Entitlement enforcement layer**
+4) **Admin UI for plan builder**
+5) **Provider integration later (adapter + webhooks + reconciliation)**
+
+## Phased implementation plan (assignable to AI agents)
+
+This plan assumes no external billing provider initially, but keeps clear seams for adding one later. Currency is **per-tenant** and taxes use **VAT rules**.
+
+### Phase 0: Alignment & invariants
+
+- Agent: **Architect Agent**
+- Deliverables:
+  - Confirm invariants: tenant-only subscription, strict `tenant_id` scoping, immutable plan versioning.
+  - Finalize VAT scenarios supported in v1 (same-country VAT, reverse charge, non-VAT).
+  - Decide seller country source (env/config) and invoice numbering format.
+- Acceptance checks:
+  - Written decisions captured in this README section.
+
+### Phase 1: Database schema + migrations
+
+- Agent: **DB/Migrations Agent**
+- Deliverables:
+  - Migrations for:
+    - `billing_plans`, `billing_plan_versions`, `billing_prices`
+    - `entitlement_definitions`, `plan_entitlements`
+    - `tenant_subscriptions`, `subscription_events`
+    - `invoice_sequences`, `invoices`, `invoice_lines`
+    - VAT/tax catalog tables (e.g., `tax_profiles`, `tax_rates`) and invoice tax snapshot fields
+  - Add tenant billing fields:
+    - `tenants.currency`
+    - `tenants.billing_country`, `tenants.billing_vat_number` (nullable)
+    - `tenants.billing_address_json` (or structured fields)
+  - Seed data:
+    - entitlement definitions (start with `max_users` + 3-5 feature flags)
+    - initial plan(s) + version(s) + price(s) for at least 1 currency
+- Acceptance checks:
+  - Migrations run cleanly on empty DB.
+  - Unique constraints enforce “1 default price per plan-version/currency/interval”.
+
+### Phase 2: Core domain services (backend)
+
+- Agent: **Backend Domain Agent**
+- Deliverables:
+  - `EntitlementsService`:
+    - resolve effective entitlements from subscription’s `plan_version_id`
+    - typed getters and caching strategy
+  - `SubscriptionService`:
+    - create/change/cancel subscription
+    - enforce per-tenant currency compatibility with `billing_prices.currency`
+    - emit `subscription_events`
+- Acceptance checks:
+  - Unit tests for entitlement resolution and currency mismatch failures.
+
+### Phase 3: VAT + invoicing engine
+
+- Agent: **Billing/Tax Agent**
+- Deliverables:
+  - `InvoicingService`:
+    - invoice number generation via `invoice_sequences`
+    - build invoice lines from subscription price
+    - VAT computation (country + VAT number + seller country)
+    - snapshot VAT evidence into `invoices.tax_details_json` and line fields
+  - Invoice status transitions:
+    - `draft -> issued -> paid` (+ optional `void`)
+  - PDF generation integration (reuse existing PDF approach where applicable)
+- Acceptance checks:
+  - Test cases for VAT scenarios:
+    - same-country VAT applied
+    - reverse charge / 0% VAT when VAT number is provided and rules allow
+    - non-VAT region handling (if applicable to your target markets)
+
+### Phase 4: Admin APIs
+
+- Agent: **Backend API Agent**
+- Deliverables:
+  - Catalog APIs (admin):
+    - plan CRUD (marketing fields)
+    - version create-from-current, activate/retire
+    - prices CRUD per version
+    - entitlements CRUD per version
+  - Tenant billing APIs (admin):
+    - assign/change/cancel subscription
+    - issue invoice, mark paid, list invoices, download invoice PDF
+  - Authorization: platform admin only
+- Acceptance checks:
+  - API requests are tenant-safe and audited.
+  - Attempts to mutate an active plan version are rejected.
+
+### Phase 5: Admin UI (catalog + tenant billing)
+
+- Agent: **Frontend Admin UI Agent**
+- Deliverables:
+  - Plan builder UI:
+    - plan list/detail
+    - version editor (draft), activation wizard (grandfathering policy)
+    - entitlements editor (typed)
+    - price editor filtered by currency
+  - Tenant billing UI:
+    - show current subscription + currency + VAT info
+    - assign/change plan with currency validation
+    - invoices list + issue + mark paid + download
+- Acceptance checks:
+  - UI prevents selecting prices not matching tenant currency.
+  - UI displays VAT evidence snapshot on invoice view.
+
+### Phase 6: Enforcement + guards
+
+- Agent: **Product Enforcement Agent**
+- Deliverables:
+  - Enforce `max_users` on user creation/invite.
+  - Enforce 1-2 feature flags end-to-end (UI + API guard).
+  - Add clear error messaging for over-limit operations.
+- Acceptance checks:
+  - Over-limit attempts fail predictably.
+  - Feature flags actually disable relevant endpoints and UI actions.
+
+### Phase 7: QA, hardening, and observability
+
+- Agent: **QA/Testing Agent**
+- Deliverables:
+  - Integration tests for:
+    - plan versioning immutability
+    - subscription lifecycle
+    - invoice issuance and VAT snapshots
+  - Regression checks for tenant scoping.
+  - Minimal logging for subscription/invoice events.
+- Acceptance checks:
+  - Test suite passes and critical flows are covered.
+
+### Phase 8 (later): Provider integration
+
+- Agent: **Provider Integration Agent**
+- Deliverables:
+  - Implement billing provider adapter(s)
+  - Webhook ingestion + reconciliation jobs
+  - Replace manual payment marking with provider events
+- Acceptance checks:
+  - Provider subscription state reconciles with `tenant_subscriptions` without breaking entitlements.
