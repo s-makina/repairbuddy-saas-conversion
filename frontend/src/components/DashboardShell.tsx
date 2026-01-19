@@ -287,7 +287,19 @@ export function DashboardShell({
     [tenantBaseHref],
   );
 
-  const navSections = React.useMemo(
+  type NavItem = {
+    label: string;
+    href: string;
+    icon: React.ComponentProps<typeof MenuIcon>["name"];
+    show: boolean;
+  };
+
+  type NavSection = {
+    title?: string;
+    items: NavItem[];
+  };
+
+  const navSections = React.useMemo<NavSection[]>(
     () =>
       [
         {
@@ -379,21 +391,34 @@ export function DashboardShell({
             },
           ],
         },
-      ] satisfies Array<{
-        title?: string;
-        items: Array<{ label: string; href: string; icon: React.ComponentProps<typeof MenuIcon>["name"]; show?: boolean }>;
-      }>,
+      ],
     [auth, tenantBaseHref, tenantPlaceholderHref, tenantSlug],
   );
+
+  const activeNavHref = React.useMemo(() => {
+    const allItems = navSections.flatMap((s) => s.items).filter((x) => x.show);
+
+    const matches = allItems
+      .map((item) => {
+        if (item.href === "/") {
+          return pathname === "/" ? { href: item.href, score: 1 } : { href: item.href, score: -1 };
+        }
+
+        const isMatch = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        return isMatch ? { href: item.href, score: item.href.length } : { href: item.href, score: -1 };
+      })
+      .filter((m) => m.score >= 0)
+      .sort((a, b) => b.score - a.score);
+
+    return matches[0]?.href ?? null;
+  }, [navSections, pathname]);
 
   const resolvedNavSections = React.useMemo(() => {
     return navSections
       .map((section, idx) => {
         const key = section.title ? `section:${section.title}` : `section:${idx}`;
         const items = section.items.filter((x) => x.show);
-        const hasActiveItem = items.some((item) => {
-          return item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-        });
+        const hasActiveItem = !!activeNavHref && items.some((item) => item.href === activeNavHref);
 
         return {
           key,
@@ -403,7 +428,7 @@ export function DashboardShell({
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [navSections, pathname]);
+  }, [activeNavHref, navSections]);
 
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({});
 
@@ -533,10 +558,7 @@ export function DashboardShell({
                 return (
                   <div key={section.key} className="space-y-1">
                     {section.items.map((item) => {
-                      const isActive =
-                        item.href === "/"
-                          ? pathname === "/"
-                          : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                      const isActive = !!activeNavHref && item.href === activeNavHref;
 
                       return (
                         <Link
@@ -608,10 +630,7 @@ export function DashboardShell({
                     <div className={cn("space-y-1", isOpen ? "pt-1" : "pt-0", !isOpen ? "pointer-events-none" : "")}
                     >
                       {section.items.map((item) => {
-                        const isActive =
-                          item.href === "/"
-                            ? pathname === "/"
-                            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                        const isActive = !!activeNavHref && item.href === activeNavHref;
 
                         return (
                           <Link

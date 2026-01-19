@@ -108,7 +108,7 @@ export default function AdminTenantDetailPage() {
   const [copied, setCopied] = useState(false);
 
   const canImpersonate = !!tenant && !!owner && tenant.status !== "closed";
-  const canSuspend = !!tenant && tenant.status !== "closed";
+  const canSuspend = !!tenant && tenant.status !== "closed" && tenant.status !== "suspended";
   const canUnsuspend = !!tenant && tenant.status === "suspended";
   const canClose = !!tenant && tenant.status !== "closed";
   const canResetOwnerPassword = !!tenant && !!owner && tenant.status !== "closed";
@@ -616,25 +616,26 @@ export default function AdminTenantDetailPage() {
                       </Alert>
                     ) : null}
 
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <CardTitle>Diagnostics</CardTitle>
-                            <CardDescription>Recent auth activity and platform actions for this tenant.</CardDescription>
-                          </div>
-                          <Button variant="outline" size="sm" onClick={() => void loadDiagnostics()} disabled={diagnosticsLoading || !!actionBusy}>
-                            Refresh
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {diagnosticsLoading ? <div className="text-sm text-zinc-500">Loading diagnostics…</div> : null}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-[var(--rb-text)]">Diagnostics</div>
+                        <div className="mt-1 text-sm text-zinc-600">Recent auth activity and platform actions for this tenant.</div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => void loadDiagnostics()} disabled={diagnosticsLoading || !!actionBusy}>
+                        Refresh
+                      </Button>
+                    </div>
 
-                        {diagnostics ? (
-                          <div className="space-y-6">
+                    {diagnosticsLoading ? <div className="text-sm text-zinc-500">Loading diagnostics…</div> : null}
+
+                    {diagnostics ? (
+                      <div className="space-y-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Recent auth events</CardTitle>
+                          </CardHeader>
+                          <CardContent>
                             <DataTable
-                              title="Recent auth events"
                               data={Array.isArray(diagnostics.recent_auth_events) ? diagnostics.recent_auth_events : []}
                               loading={false}
                               emptyMessage="No auth events found."
@@ -670,9 +671,15 @@ export default function AdminTenantDetailPage() {
                                 },
                               ]}
                             />
+                          </CardContent>
+                        </Card>
 
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Recent platform actions</CardTitle>
+                          </CardHeader>
+                          <CardContent>
                             <DataTable
-                              title="Recent platform actions"
                               data={Array.isArray(diagnostics.recent_platform_audit) ? diagnostics.recent_platform_audit : []}
                               loading={false}
                               emptyMessage="No platform audit events found."
@@ -708,12 +715,12 @@ export default function AdminTenantDetailPage() {
                                 },
                               ]}
                             />
-                          </div>
-                        ) : (
-                          <div className="text-sm text-zinc-600">No diagnostics loaded yet.</div>
-                        )}
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-zinc-600">No diagnostics loaded yet.</div>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -807,7 +814,7 @@ export default function AdminTenantDetailPage() {
                             <div className="mt-1">
                               <Input value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. ticket-1234" />
                             </div>
-                            <div className="mt-1 text-xs text-zinc-500">Required to start impersonation.</div>
+                            <div className="mt-1 text-xs text-zinc-500">Optional. If empty, defaults to tenant-{tenant.id}.</div>
                           </div>
 
                           <div>
@@ -818,20 +825,46 @@ export default function AdminTenantDetailPage() {
                             <div className="mt-1 text-xs text-zinc-500">Optional: overrides retention when closing the tenant.</div>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
 
-                        <div className="flex flex-wrap gap-2">
-                          <Button variant="primary" size="sm" onClick={onStartImpersonation} disabled={!!actionBusy || !canImpersonate}>
-                            {actionBusy === "impersonate" ? "Starting…" : "Impersonate owner"}
-                          </Button>
-                          <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || !canSuspend}>
-                            {actionBusy === "suspend" ? "Suspending…" : "Suspend"}
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || !canUnsuspend}>
-                            {actionBusy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || !canClose}>
-                            {actionBusy === "close" ? "Closing…" : "Close tenant"}
-                          </Button>
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <CardTitle>Tenant actions</CardTitle>
+                            <CardDescription>Operational actions that affect tenant access and security.</CardDescription>
+                          </div>
+                          <Badge className="shrink-0" variant={statusVariant(tenant.status)}>
+                            {tenant.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-[var(--rb-text)]">Impersonation</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="primary" size="sm" onClick={onStartImpersonation} disabled={!!actionBusy || !canImpersonate}>
+                              {actionBusy === "impersonate" ? "Starting…" : "Impersonate owner"}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-zinc-500">Starts a temporary session as the tenant owner for support.</div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-[var(--rb-text)]">Access / lifecycle</div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="secondary" size="sm" onClick={onSuspend} disabled={!!actionBusy || !canSuspend}>
+                              {actionBusy === "suspend" ? "Suspending…" : "Suspend"}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={onUnsuspend} disabled={!!actionBusy || !canUnsuspend}>
+                              {actionBusy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={onClose} disabled={!!actionBusy || !canClose}>
+                              {actionBusy === "close" ? "Closing…" : "Close tenant"}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-zinc-500">Suspend blocks access. Close is destructive and final.</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -965,7 +998,7 @@ export default function AdminTenantDetailPage() {
             </div>
           }
           confirmText="Close tenant"
-          confirmVariant="outline"
+          confirmVariant="secondary"
           busy={actionBusy === "close"}
           onCancel={() => setConfirmCloseOpen(false)}
           onConfirm={() => void onConfirmClose()}
