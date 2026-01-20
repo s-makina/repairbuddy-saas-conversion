@@ -17,6 +17,10 @@ class Tenant extends Model
         'contact_email',
         'plan_id',
         'entitlement_overrides',
+        'currency',
+        'billing_country',
+        'billing_vat_number',
+        'billing_address_json',
         'activated_at',
         'suspended_at',
         'suspension_reason',
@@ -33,6 +37,7 @@ class Tenant extends Model
             'closed_at' => 'datetime',
             'data_retention_days' => 'integer',
             'entitlement_overrides' => 'array',
+            'billing_address_json' => 'array',
         ];
     }
 

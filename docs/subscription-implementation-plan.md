@@ -12,6 +12,22 @@ This plan assumes no external billing provider initially, but keeps clear seams 
 - Acceptance checks:
   - Written decisions captured in this plan.
 
+### Phase 0 decisions (captured)
+
+- Invariants
+  - Subscriptions are **tenant-owned** (no per-user subscriptions).
+  - All tenant-owned records must have a non-null `tenant_id` and must be queried through strict tenant scoping (DB foreign keys + app-level tenant scoping).
+  - Plan versioning is **immutable** once a version is active/retired. Changes require creating a new `billing_plan_versions` row.
+- VAT scenarios in v1
+  - Same-country VAT: apply VAT based on `tax_rates` for `seller_country == buyer_country`.
+  - Reverse charge: when `buyer_vat_number` is present and `buyer_country != seller_country`, invoice VAT is 0% and the invoice tax snapshot must record the reverse-charge reason.
+  - Non-VAT: if no applicable VAT rate is configured for the buyer country, treat VAT as 0% and record “no rate configured” in the tax snapshot.
+- Seller country source
+  - Seller country comes from env/config: `BILLING_SELLER_COUNTRY` (ISO 3166-1 alpha-2).
+- Invoice numbering format
+  - Invoice numbers are per-tenant sequential per calendar year via `invoice_sequences`.
+  - Format: `RB-{TENANT_SLUG}-{YYYY}-{NNNNNN}` (6-digit zero-padded sequence).
+
 ## Phase 1: Database schema + migrations
 
 - Agent: **DB/Migrations Agent**
