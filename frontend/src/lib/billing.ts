@@ -23,6 +23,23 @@ export async function getBillingCatalog(args?: {
   return apiFetch<BillingCatalogPayload>(`/api/admin/billing/catalog${qs.toString() ? `?${qs.toString()}` : ""}`);
 }
 
+export async function createBillingPlan(args: {
+  name: string;
+  code?: string;
+  description?: string;
+  isActive?: boolean;
+}): Promise<{ plan: BillingPlan }> {
+  return apiFetch<{ plan: BillingPlan }>("/api/admin/billing/plans", {
+    method: "POST",
+    body: {
+      name: args.name,
+      code: args.code?.trim() || undefined,
+      description: args.description?.trim() || undefined,
+      is_active: typeof args.isActive === "boolean" ? args.isActive : undefined,
+    },
+  });
+}
+
 export type TenantSubscriptionsPayload = {
   tenant: Tenant;
   subscriptions: TenantSubscription[];

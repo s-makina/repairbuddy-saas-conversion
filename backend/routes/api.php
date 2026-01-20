@@ -82,6 +82,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::get('/billing/catalog', [\App\Http\Controllers\Api\Admin\BillingCatalogController::class, 'catalog'])
         ->middleware('permission:admin.billing.read');
 
+    Route::post('/billing/plans', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.billing.write']);
+
     Route::post('/impersonation', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'store'])
         ->middleware('permission:admin.impersonation.start');
     Route::post('/impersonation/{session}/stop', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'stop'])
