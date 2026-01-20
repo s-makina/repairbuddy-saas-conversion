@@ -85,6 +85,46 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::post('/billing/plans', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.billing.write']);
 
+    Route::put('/billing/plans/{plan}', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'update'])
+        ->whereNumber('plan')
+        ->middleware('permission:admin.billing.write');
+
+    Route::post('/billing/plans/{plan}/versions/draft-from-active', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'createDraftFromActive'])
+        ->whereNumber('plan')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/billing/versions/{version}/validate', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'validateDraft'])
+        ->whereNumber('version')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/billing/versions/{version}/entitlements/sync', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'syncEntitlements'])
+        ->whereNumber('version')
+        ->middleware('permission:admin.billing.write');
+
+    Route::post('/billing/versions/{version}/prices', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'pricesStore'])
+        ->whereNumber('version')
+        ->middleware('permission:admin.billing.write');
+    Route::patch('/billing/prices/{price}', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'pricesUpdate'])
+        ->whereNumber('price')
+        ->middleware('permission:admin.billing.write');
+    Route::delete('/billing/prices/{price}', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'pricesDelete'])
+        ->whereNumber('price')
+        ->middleware('permission:admin.billing.write');
+
+    Route::post('/billing/versions/{version}/activate', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'activate'])
+        ->whereNumber('version')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/billing/versions/{version}/retire', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'retire'])
+        ->whereNumber('version')
+        ->middleware('permission:admin.billing.write');
+
+    Route::post('/billing/entitlement-definitions', [\App\Http\Controllers\Api\Admin\BillingEntitlementDefinitionController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.billing.write']);
+    Route::put('/billing/entitlement-definitions/{definition}', [\App\Http\Controllers\Api\Admin\BillingEntitlementDefinitionController::class, 'update'])
+        ->whereNumber('definition')
+        ->middleware('permission:admin.billing.write');
+    Route::delete('/billing/entitlement-definitions/{definition}', [\App\Http\Controllers\Api\Admin\BillingEntitlementDefinitionController::class, 'destroy'])
+        ->whereNumber('definition')
+        ->middleware('permission:admin.billing.write');
+
     Route::post('/impersonation', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'store'])
         ->middleware('permission:admin.impersonation.start');
     Route::post('/impersonation/{session}/stop', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'stop'])

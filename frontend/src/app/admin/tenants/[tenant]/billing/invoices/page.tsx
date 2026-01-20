@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
+import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import {
   createInvoiceFromSubscription,
   downloadInvoicePdf,
@@ -45,7 +47,14 @@ export default function AdminTenantInvoicesPage() {
   const [createDraftError, setCreateDraftError] = useState<string | null>(null);
 
   const [confirmIssue, setConfirmIssue] = useState<{ open: boolean; invoiceId: number | null }>({ open: false, invoiceId: null });
-  const [confirmPaid, setConfirmPaid] = useState<{ open: boolean; invoiceId: number | null }>({ open: false, invoiceId: null });
+
+  const [statusFilter, setStatusFilter] = useState<string>("");
+
+  const [paidOpen, setPaidOpen] = useState(false);
+  const [paidInvoiceId, setPaidInvoiceId] = useState<number | null>(null);
+  const [paidAt, setPaidAt] = useState<string>("");
+  const [paidMethod, setPaidMethod] = useState<string>("");
+  const [paidNote, setPaidNote] = useState<string>("");
 
   useEffect(() => {
     dashboardHeader.setHeader({
@@ -88,7 +97,7 @@ export default function AdminTenantInvoicesPage() {
         setLoading(true);
         setError(null);
 
-        const res = await getTenantInvoices({ tenantId, limit: 100 });
+        const res = await getTenantInvoices({ tenantId, limit: 100, status: statusFilter.trim() || undefined });
         if (!alive) return;
 
         setTenant(res.tenant);
@@ -108,7 +117,7 @@ export default function AdminTenantInvoicesPage() {
     return () => {
       alive = false;
     };
-  }, [tenantId, reloadNonce]);
+  }, [statusFilter, tenantId, reloadNonce]);
 
   useEffect(() => {
     let alive = true;
@@ -187,7 +196,13 @@ export default function AdminTenantInvoicesPage() {
   async function onPaid(invoiceId: number) {
     setBusyRow((prev) => ({ ...prev, [invoiceId]: "paid" }));
     try {
-      await markInvoicePaid({ tenantId, invoiceId });
+      await markInvoicePaid({
+        tenantId,
+        invoiceId,
+        paidAt: paidAt.trim() || undefined,
+        paidMethod: paidMethod.trim() || undefined,
+        paidNote: paidNote.trim() || undefined,
+      });
       setReloadNonce((v) => v + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to mark invoice as paid.");
@@ -226,9 +241,22 @@ export default function AdminTenantInvoicesPage() {
               <CardTitle className="truncate">Invoice actions</CardTitle>
               <div className="mt-1 text-sm text-zinc-600">Create drafts from the current subscription, then issue/mark paid.</div>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => void onCreateDraft()} disabled={createDraftBusy || subsLoading}>
-              {createDraftBusy ? "Creating…" : "Create invoice draft"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                disabled={loading}
+              >
+                <option value="">All statuses</option>
+                <option value="draft">draft</option>
+                <option value="issued">issued</option>
+                <option value="paid">paid</option>
+              </select>
+              <Button variant="secondary" size="sm" onClick={() => void onCreateDraft()} disabled={createDraftBusy || subsLoading}>
+                {createDraftBusy ? "Creating…" : "Create invoice draft"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {createDraftError ? <div className="text-sm text-red-600">{createDraftError}</div> : null}
@@ -304,7 +332,13 @@ export default function AdminTenantInvoicesPage() {
                       variant="primary"
                       size="sm"
                       disabled={!canPaid || busy === "paid"}
-                      onClick={() => setConfirmPaid({ open: true, invoiceId: inv.id })}
+                      onClick={() => {
+                        setPaidInvoiceId(inv.id);
+                        setPaidAt(new Date().toISOString().slice(0, 10));
+                        setPaidMethod("");
+                        setPaidNote("");
+                        setPaidOpen(true);
+                      }}
                     >
                       {busy === "paid" ? "Marking…" : "Paid"}
                     </Button>
@@ -331,20 +365,61 @@ export default function AdminTenantInvoicesPage() {
           }}
         />
 
-        <ConfirmDialog
-          open={confirmPaid.open}
-          title="Mark invoice as paid"
-          message="This will mark the invoice as paid."
-          confirmText="Mark paid"
-          confirmVariant="primary"
-          busy={!!confirmPaid.invoiceId && busyRow[confirmPaid.invoiceId] === "paid"}
-          onCancel={() => setConfirmPaid({ open: false, invoiceId: null })}
-          onConfirm={() => {
-            const id = confirmPaid.invoiceId;
-            setConfirmPaid({ open: false, invoiceId: null });
-            if (id) void onPaid(id);
+        <Modal
+          open={paidOpen}
+          onClose={() => {
+            const id = paidInvoiceId;
+            if (id && busyRow[id] === "paid") return;
+            setPaidOpen(false);
           }}
-        />
+          title="Mark invoice as paid"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const id = paidInvoiceId;
+                  if (id && busyRow[id] === "paid") return;
+                  setPaidOpen(false);
+                }}
+                disabled={!!paidInvoiceId && busyRow[paidInvoiceId] === "paid"}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const id = paidInvoiceId;
+                  if (!id) return;
+                  void onPaid(id);
+                  setPaidOpen(false);
+                }}
+                disabled={!paidInvoiceId || (!!paidInvoiceId && busyRow[paidInvoiceId] === "paid")}
+              >
+                {!!paidInvoiceId && busyRow[paidInvoiceId] === "paid" ? "Marking…" : "Mark paid"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="text-sm text-zinc-700">This will mark the invoice as paid and record payment details.</div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Payment date</label>
+              <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Method (optional)</label>
+              <Input value={paidMethod} onChange={(e) => setPaidMethod(e.target.value)} placeholder="e.g. bank transfer" />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Note (optional)</label>
+              <Input value={paidNote} onChange={(e) => setPaidNote(e.target.value)} placeholder="Internal note…" />
+            </div>
+          </div>
+        </Modal>
       </div>
     </RequireAuth>
   );

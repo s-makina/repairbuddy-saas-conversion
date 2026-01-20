@@ -209,6 +209,8 @@ export interface Invoice {
   tax_details_json?: Record<string, unknown> | null;
   issued_at?: string | null;
   paid_at?: string | null;
+  paid_method?: string | null;
+  paid_note?: string | null;
   created_at?: string;
   updated_at?: string;
   lines?: InvoiceLine[];

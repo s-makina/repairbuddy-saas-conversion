@@ -8,10 +8,14 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { getBillingCatalog } from "@/lib/billing";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { createBillingPlan, getBillingCatalog } from "@/lib/billing";
+import { useAuth } from "@/lib/auth";
 import type { BillingPlan } from "@/lib/types";
 
 export default function AdminBillingPlansPage() {
+  const auth = useAuth();
   const dashboardHeader = useDashboardHeader();
 
   const [loading, setLoading] = useState(true);
@@ -19,25 +23,90 @@ export default function AdminBillingPlansPage() {
   const [plans, setPlans] = useState<BillingPlan[]>([]);
   const [reloadNonce, setReloadNonce] = useState(0);
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [isActive, setIsActive] = useState(true);
+
+  const canWrite = auth.can("admin.billing.write");
+
+  function resetCreateForm() {
+    setCreateError(null);
+    setName("");
+    setCode("");
+    setDescription("");
+    setIsActive(true);
+  }
+
   useEffect(() => {
     dashboardHeader.setHeader({
       breadcrumb: "Admin / Billing",
       title: "Billing plans",
       subtitle: "View billing catalog (plans, versions, prices)",
       actions: (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setReloadNonce((v) => v + 1)}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/billing/builder">
+            <Button variant="outline" size="sm" disabled={loading}>
+              Builder (mock)
+            </Button>
+          </Link>
+          {canWrite ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                resetCreateForm();
+                setCreateOpen(true);
+              }}
+              disabled={loading}
+            >
+              New plan
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setReloadNonce((v) => v + 1)}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </div>
       ),
     });
 
     return () => dashboardHeader.setHeader(null);
-  }, [dashboardHeader, loading]);
+  }, [canWrite, dashboardHeader, loading]);
+
+  async function onCreate() {
+    const nextName = name.trim();
+    if (!nextName) {
+      setCreateError("Name is required.");
+      return;
+    }
+
+    setCreateBusy(true);
+    setCreateError(null);
+
+    try {
+      await createBillingPlan({
+        name: nextName,
+        code,
+        description,
+        isActive,
+      });
+
+      setCreateOpen(false);
+      setReloadNonce((v) => v + 1);
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "Failed to create billing plan.");
+    } finally {
+      setCreateBusy(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -161,6 +230,66 @@ export default function AdminBillingPlansPage() {
           </Link>
           .
         </div>
+
+        <Modal
+          open={createOpen}
+          onClose={() => {
+            if (!createBusy) setCreateOpen(false);
+          }}
+          title="Create billing plan"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!createBusy) setCreateOpen(false);
+                }}
+                disabled={createBusy}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={() => void onCreate()} disabled={createBusy}>
+                {createBusy ? "Creating…" : "Create"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {createError ? (
+              <Alert variant="danger" title="Cannot create plan">
+                {createError}
+              </Alert>
+            ) : null}
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Name</label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Starter" />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Code (optional)</label>
+              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. starter" />
+              <div className="text-xs text-zinc-500">If empty, it will be generated from the name.</div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Description (optional)</label>
+              <textarea
+                className="min-h-[90px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short description shown to admins…"
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+              Active
+            </label>
+
+            <div className="text-xs text-zinc-500">A draft version v1 will be created automatically.</div>
+          </div>
+        </Modal>
       </div>
     </RequireAuth>
   );

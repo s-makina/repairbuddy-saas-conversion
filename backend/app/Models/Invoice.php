@@ -29,6 +29,8 @@ class Invoice extends Model
         'tax_details_json',
         'issued_at',
         'paid_at',
+        'paid_method',
+        'paid_note',
     ];
 
     protected function casts(): array

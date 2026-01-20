@@ -108,7 +108,7 @@ class InvoicingService
         });
     }
 
-    public function markPaid(Invoice $invoice): Invoice
+    public function markPaid(Invoice $invoice, ?\DateTimeInterface $paidAt = null, ?string $paidMethod = null, ?string $paidNote = null): Invoice
     {
         return DB::transaction(function () use ($invoice) {
             if ($invoice->status !== 'issued') {
@@ -117,7 +117,9 @@ class InvoicingService
 
             $invoice->forceFill([
                 'status' => 'paid',
-                'paid_at' => now(),
+                'paid_at' => $paidAt ?: now(),
+                'paid_method' => $paidMethod,
+                'paid_note' => $paidNote,
             ])->save();
 
             return $invoice;

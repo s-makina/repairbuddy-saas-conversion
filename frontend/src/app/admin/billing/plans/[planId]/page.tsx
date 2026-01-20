@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useDashboardHeader } from "@/components/DashboardShell";
 import { Alert } from "@/components/ui/Alert";
@@ -10,19 +11,26 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
-import { getBillingCatalog } from "@/lib/billing";
+import { createDraftBillingPlanVersionFromActive, getBillingCatalog } from "@/lib/billing";
+import { useAuth } from "@/lib/auth";
 import type { BillingPlan, BillingPlanVersion } from "@/lib/types";
 
 export default function AdminBillingPlanDetailPage() {
   const params = useParams<{ planId: string }>();
   const dashboardHeader = useDashboardHeader();
+  const router = useRouter();
+  const auth = useAuth();
 
   const planId = Number(params.planId);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [draftBusy, setDraftBusy] = useState(false);
   const [plan, setPlan] = useState<BillingPlan | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
+
+  const canWrite = auth.can("admin.billing.write");
 
   useEffect(() => {
     dashboardHeader.setHeader({
@@ -36,6 +44,28 @@ export default function AdminBillingPlanDetailPage() {
               Back
             </Button>
           </Link>
+          {canWrite ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={loading || draftBusy || !Number.isFinite(planId) || planId <= 0}
+              onClick={async () => {
+                if (draftBusy) return;
+                try {
+                  setDraftBusy(true);
+                  setActionError(null);
+                  const res = await createDraftBillingPlanVersionFromActive({ planId });
+                  router.push(`/admin/billing/plans/${planId}/versions/${res.version.id}`);
+                } catch (e) {
+                  setActionError(e instanceof Error ? e.message : "Failed to create draft version.");
+                } finally {
+                  setDraftBusy(false);
+                }
+              }}
+            >
+              {draftBusy ? "Creating…" : "Create draft"}
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={() => setReloadNonce((v) => v + 1)} disabled={loading}>
             Refresh
           </Button>
@@ -94,6 +124,12 @@ export default function AdminBillingPlanDetailPage() {
         {error ? (
           <Alert variant="danger" title="Could not load plan">
             {error}
+          </Alert>
+        ) : null}
+
+        {actionError ? (
+          <Alert variant="danger" title="Action failed">
+            {actionError}
           </Alert>
         ) : null}
 

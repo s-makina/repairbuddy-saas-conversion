@@ -14,6 +14,7 @@ use App\Support\Billing\InvoicingService;
 use App\Support\PlatformAudit;
 use App\Support\SubscriptionService;
 use App\Support\TenantContext;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 
 class BillingController extends Controller
@@ -265,7 +266,11 @@ class BillingController extends Controller
                 ->where('id', $invoice)
                 ->firstOrFail();
 
-            $updated = (new InvoicingService())->markPaid($inv);
+            $paidAt = isset($validated['paid_at']) ? Carbon::parse((string) $validated['paid_at']) : null;
+            $paidMethod = isset($validated['paid_method']) && $validated['paid_method'] !== '' ? (string) $validated['paid_method'] : null;
+            $paidNote = isset($validated['paid_note']) && $validated['paid_note'] !== '' ? (string) $validated['paid_note'] : null;
+
+            $updated = (new InvoicingService())->markPaid($inv, $paidAt, $paidMethod, $paidNote);
         } finally {
             TenantContext::set(null);
         }
@@ -273,6 +278,8 @@ class BillingController extends Controller
         PlatformAudit::log($request, 'billing.invoice.paid', $tenant, $validated['reason'] ?? null, [
             'invoice_id' => $invoice,
             'invoice_number' => $updated->invoice_number,
+            'paid_at' => $updated->paid_at,
+            'paid_method' => $updated->paid_method,
         ]);
 
         return response()->json([

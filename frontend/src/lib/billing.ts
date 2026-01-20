@@ -1,10 +1,13 @@
-import { apiDownload, apiFetch } from "@/lib/api";
+import { ApiError, apiDownload, apiFetch } from "@/lib/api";
 import type {
   BillingPlan,
+  BillingPlanVersion,
+  BillingPrice,
   EntitlementDefinition,
   Invoice,
   Tenant,
   TenantSubscription,
+  PlanEntitlement,
 } from "@/lib/types";
 
 export type BillingCatalogPayload = {
@@ -36,6 +39,201 @@ export async function createBillingPlan(args: {
       code: args.code?.trim() || undefined,
       description: args.description?.trim() || undefined,
       is_active: typeof args.isActive === "boolean" ? args.isActive : undefined,
+    },
+  });
+}
+
+export async function updateBillingPlan(args: {
+  planId: number;
+  name: string;
+  code: string;
+  description?: string;
+  isActive?: boolean;
+  reason?: string;
+}): Promise<{ plan: BillingPlan }> {
+  return apiFetch<{ plan: BillingPlan }>(`/api/admin/billing/plans/${args.planId}`, {
+    method: "PUT",
+    body: {
+      name: args.name,
+      code: args.code,
+      description: args.description?.trim() || undefined,
+      is_active: typeof args.isActive === "boolean" ? args.isActive : undefined,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function createDraftBillingPlanVersionFromActive(args: {
+  planId: number;
+  reason?: string;
+}): Promise<{ version: BillingPlanVersion }> {
+  return apiFetch<{ version: BillingPlanVersion }>(`/api/admin/billing/plans/${args.planId}/versions/draft-from-active`, {
+    method: "POST",
+    body: {
+      reason: args.reason,
+    },
+  });
+}
+
+export async function validateBillingPlanVersionDraft(args: {
+  versionId: number;
+  reason?: string;
+}): Promise<{ status: "ok" } | { message: string; errors?: string[] }> {
+  try {
+    return await apiFetch<any>(`/api/admin/billing/versions/${args.versionId}/validate`, {
+      method: "POST",
+      body: {
+        reason: args.reason,
+      },
+    });
+  } catch (e) {
+    if (e instanceof ApiError) {
+      const data = e.data;
+      if (data && typeof data === "object") {
+        return data as any;
+      }
+    }
+    throw e;
+  }
+}
+
+export async function syncBillingPlanVersionEntitlements(args: {
+  versionId: number;
+  entitlements: Array<Pick<PlanEntitlement, "entitlement_definition_id" | "value_json">>;
+  reason?: string;
+}): Promise<{ version: BillingPlanVersion }> {
+  return apiFetch<{ version: BillingPlanVersion }>(`/api/admin/billing/versions/${args.versionId}/entitlements/sync`, {
+    method: "POST",
+    body: {
+      entitlements: args.entitlements,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function createBillingPrice(args: {
+  versionId: number;
+  currency: string;
+  interval: "month" | "year" | string;
+  amountCents: number;
+  trialDays?: number | null;
+  isDefault?: boolean;
+  reason?: string;
+}): Promise<{ price: BillingPrice; version: BillingPlanVersion }> {
+  return apiFetch<{ price: BillingPrice; version: BillingPlanVersion }>(`/api/admin/billing/versions/${args.versionId}/prices`, {
+    method: "POST",
+    body: {
+      currency: args.currency,
+      interval: args.interval,
+      amount_cents: args.amountCents,
+      trial_days: typeof args.trialDays === "number" ? args.trialDays : undefined,
+      is_default: typeof args.isDefault === "boolean" ? args.isDefault : undefined,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function updateBillingPrice(args: {
+  priceId: number;
+  amountCents: number;
+  trialDays?: number | null;
+  isDefault?: boolean;
+  reason?: string;
+}): Promise<{ price: BillingPrice; version: BillingPlanVersion }> {
+  return apiFetch<{ price: BillingPrice; version: BillingPlanVersion }>(`/api/admin/billing/prices/${args.priceId}`, {
+    method: "PATCH",
+    body: {
+      amount_cents: args.amountCents,
+      trial_days: typeof args.trialDays === "number" ? args.trialDays : undefined,
+      is_default: typeof args.isDefault === "boolean" ? args.isDefault : undefined,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function deleteBillingPrice(args: {
+  priceId: number;
+  reason?: string;
+}): Promise<{ status: "ok"; version: BillingPlanVersion }> {
+  return apiFetch<{ status: "ok"; version: BillingPlanVersion }>(`/api/admin/billing/prices/${args.priceId}`, {
+    method: "DELETE",
+    body: {
+      reason: args.reason,
+    },
+  });
+}
+
+export async function activateBillingPlanVersion(args: {
+  versionId: number;
+  confirm: string;
+  reason?: string;
+}): Promise<{ version: BillingPlanVersion }> {
+  return apiFetch<{ version: BillingPlanVersion }>(`/api/admin/billing/versions/${args.versionId}/activate`, {
+    method: "POST",
+    body: {
+      confirm: args.confirm,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function retireBillingPlanVersion(args: {
+  versionId: number;
+  reason?: string;
+}): Promise<{ version: BillingPlanVersion }> {
+  return apiFetch<{ version: BillingPlanVersion }>(`/api/admin/billing/versions/${args.versionId}/retire`, {
+    method: "POST",
+    body: {
+      reason: args.reason,
+    },
+  });
+}
+
+export async function createEntitlementDefinition(args: {
+  code?: string;
+  name: string;
+  valueType: string;
+  description?: string;
+}): Promise<{ definition: EntitlementDefinition }> {
+  return apiFetch<{ definition: EntitlementDefinition }>("/api/admin/billing/entitlement-definitions", {
+    method: "POST",
+    body: {
+      code: args.code?.trim() || undefined,
+      name: args.name,
+      value_type: args.valueType,
+      description: args.description?.trim() || undefined,
+    },
+  });
+}
+
+export async function updateEntitlementDefinition(args: {
+  id: number;
+  code: string;
+  name: string;
+  valueType: string;
+  description?: string;
+  reason?: string;
+}): Promise<{ definition: EntitlementDefinition }> {
+  return apiFetch<{ definition: EntitlementDefinition }>(`/api/admin/billing/entitlement-definitions/${args.id}`, {
+    method: "PUT",
+    body: {
+      code: args.code,
+      name: args.name,
+      value_type: args.valueType,
+      description: args.description?.trim() || undefined,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function deleteEntitlementDefinition(args: {
+  id: number;
+  reason?: string;
+}): Promise<{ status: "ok" }> {
+  return apiFetch<{ status: "ok" }>(`/api/admin/billing/entitlement-definitions/${args.id}`, {
+    method: "DELETE",
+    body: {
+      reason: args.reason,
     },
   });
 }
@@ -137,11 +335,17 @@ export async function issueInvoice(args: {
 export async function markInvoicePaid(args: {
   tenantId: number;
   invoiceId: number;
+  paidAt?: string;
+  paidMethod?: string;
+  paidNote?: string;
   reason?: string;
 }): Promise<{ invoice: Invoice }> {
   return apiFetch<{ invoice: Invoice }>(`/api/admin/tenants/${args.tenantId}/invoices/${args.invoiceId}/paid`, {
     method: "POST",
     body: {
+      paid_at: args.paidAt,
+      paid_method: args.paidMethod,
+      paid_note: args.paidNote,
       reason: args.reason,
     },
   });

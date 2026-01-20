@@ -113,6 +113,11 @@ export default function AdminTenantInvoiceDetailPage() {
     return "default" as const;
   };
 
+  const taxDetails = (invoice?.tax_details_json && typeof invoice.tax_details_json === "object" ? (invoice.tax_details_json as any) : null) as any;
+  const taxScenario = typeof taxDetails?.scenario === "string" ? taxDetails.scenario : null;
+  const taxReason = typeof taxDetails?.reason === "string" ? taxDetails.reason : null;
+  const taxRate = typeof taxDetails?.rate_percent === "number" || typeof taxDetails?.rate_percent === "string" ? String(taxDetails.rate_percent) : null;
+
   return (
     <RequireAuth requiredPermission="admin.billing.read">
       <div className="space-y-6">
@@ -154,6 +159,14 @@ export default function AdminTenantInvoiceDetailPage() {
                   <div className="mt-1 text-sm text-zinc-800">{formatDateTime(invoice.paid_at ?? null)}</div>
                 </div>
                 <div>
+                  <div className="text-xs text-zinc-500">Paid method</div>
+                  <div className="mt-1 text-sm text-zinc-800">{invoice.paid_method ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-zinc-500">Paid note</div>
+                  <div className="mt-1 text-sm text-zinc-800">{invoice.paid_note ?? "—"}</div>
+                </div>
+                <div>
                   <div className="text-xs text-zinc-500">Seller → Buyer</div>
                   <div className="mt-1 text-sm text-zinc-800">
                     {invoice.seller_country} → {invoice.billing_country ?? "—"}
@@ -190,6 +203,12 @@ export default function AdminTenantInvoiceDetailPage() {
               className: "whitespace-nowrap",
             },
             {
+              id: "tax_rate",
+              header: "Tax %",
+              cell: (l) => <div className="text-sm text-zinc-700">{l.tax_rate_percent ?? "—"}</div>,
+              className: "whitespace-nowrap",
+            },
+            {
               id: "tax",
               header: "Tax",
               cell: (l) => <div className="text-sm text-zinc-700">{formatMoney({ amountCents: l.tax_cents, currency: invoice?.currency ?? null })}</div>,
@@ -206,12 +225,38 @@ export default function AdminTenantInvoiceDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>VAT / tax snapshot</CardTitle>
+            <CardTitle>VAT / tax evidence</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="max-h-[320px] overflow-auto rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3 text-xs text-zinc-700">
-              {JSON.stringify(invoice?.tax_details_json ?? null, null, 2)}
-            </pre>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <div className="text-xs text-zinc-500">Scenario</div>
+                <div className="mt-1 text-sm text-zinc-800">{taxScenario ?? "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">Reason</div>
+                <div className="mt-1 text-sm text-zinc-800">{taxReason ?? "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">Rate</div>
+                <div className="mt-1 text-sm text-zinc-800">{taxRate !== null ? `${taxRate}%` : "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">VAT number present?</div>
+                <div className="mt-1 text-sm text-zinc-800">{invoice?.billing_vat_number ? "Yes" : "No"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500">Buyer VAT number</div>
+                <div className="mt-1 text-sm text-zinc-800">{invoice?.billing_vat_number ?? "—"}</div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="text-xs font-semibold text-zinc-600">Raw snapshot</div>
+              <pre className="mt-2 max-h-[320px] overflow-auto rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3 text-xs text-zinc-700">
+                {JSON.stringify(invoice?.tax_details_json ?? null, null, 2)}
+              </pre>
+            </div>
           </CardContent>
         </Card>
       </div>

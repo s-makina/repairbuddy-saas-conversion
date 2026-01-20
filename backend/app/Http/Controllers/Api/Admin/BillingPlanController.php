@@ -54,4 +54,34 @@ class BillingPlanController extends Controller
             'plan' => $plan->load(['versions.prices', 'versions.entitlements.definition']),
         ], 201);
     }
+
+    public function update(Request $request, BillingPlan $plan)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:64', 'unique:billing_plans,code,'.$plan->id],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $before = $plan->toArray();
+
+        $plan->forceFill([
+            'name' => $validated['name'],
+            'code' => $validated['code'],
+            'description' => $validated['description'] ?? null,
+            'is_active' => (bool) ($validated['is_active'] ?? $plan->is_active),
+        ])->save();
+
+        PlatformAudit::log($request, 'billing.plan.updated', null, $validated['reason'] ?? null, [
+            'billing_plan_id' => $plan->id,
+            'before' => $before,
+            'after' => $plan->toArray(),
+        ]);
+
+        return response()->json([
+            'plan' => $plan->fresh()->load(['versions.prices', 'versions.entitlements.definition']),
+        ]);
+    }
 }
