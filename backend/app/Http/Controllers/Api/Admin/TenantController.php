@@ -9,9 +9,11 @@ use App\Models\PlatformAuditLog;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Support\Entitlements;
+use App\Models\TenantSubscription;
+use App\Support\EntitlementsService;
 use App\Support\PlatformAudit;
 use App\Support\Permissions;
+use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -422,17 +424,38 @@ class TenantController extends Controller
 
     public function entitlements(Request $request, Tenant $tenant)
     {
-        $tenant->loadMissing('plan');
-
-        $planEntitlements = is_array($tenant->plan?->entitlements) ? $tenant->plan->entitlements : [];
         $overrides = is_array($tenant->entitlement_overrides) ? $tenant->entitlement_overrides : [];
+
+        TenantContext::set($tenant);
+
+        $subscription = TenantSubscription::query()
+            ->with(['planVersion.plan', 'planVersion.entitlements.definition', 'price'])
+            ->orderByDesc('id')
+            ->first();
+
+        $planEntitlements = [];
+        if ($subscription?->planVersion) {
+            foreach ($subscription->planVersion->entitlements as $row) {
+                $code = (string) ($row->definition?->code ?? '');
+                if ($code === '') {
+                    continue;
+                }
+                $planEntitlements[$code] = $row->value_json;
+            }
+        }
+
+        $effective = (new EntitlementsService())->resolveForTenant($tenant);
+
+        TenantContext::set(null);
 
         return response()->json([
             'tenant' => $tenant,
-            'plan' => $tenant->plan,
+            'subscription' => $subscription,
+            'plan' => $subscription?->planVersion?->plan,
+            'plan_version' => $subscription?->planVersion,
             'plan_entitlements' => $planEntitlements,
             'entitlement_overrides' => $overrides,
-            'effective_entitlements' => Entitlements::forTenant($tenant),
+            'effective_entitlements' => $effective,
         ]);
     }
 

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
-use App\Support\Entitlements;
+use App\Models\TenantSubscription;
+use App\Support\EntitlementsService;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 
@@ -13,10 +14,16 @@ class EntitlementController extends Controller
     {
         $tenant = TenantContext::tenant();
 
+        $subscription = $tenant
+            ? TenantSubscription::query()->with(['planVersion.plan', 'price'])->orderByDesc('id')->first()
+            : null;
+
         return response()->json([
             'tenant' => $tenant,
-            'plan' => $tenant?->plan,
-            'entitlements' => $tenant ? Entitlements::forTenant($tenant) : [],
+            'subscription' => $subscription,
+            'plan' => $subscription?->planVersion?->plan,
+            'plan_version' => $subscription?->planVersion,
+            'entitlements' => $tenant ? (new EntitlementsService())->resolveForTenant($tenant) : [],
         ]);
     }
 }
