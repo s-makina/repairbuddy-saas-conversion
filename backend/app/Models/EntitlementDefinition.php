@@ -14,5 +14,6 @@ class EntitlementDefinition extends Model
         'name',
         'value_type',
         'description',
+        'is_premium',
     ];
 }

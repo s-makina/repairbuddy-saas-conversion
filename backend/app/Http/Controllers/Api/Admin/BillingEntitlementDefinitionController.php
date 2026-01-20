@@ -17,6 +17,7 @@ class BillingEntitlementDefinitionController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'value_type' => ['required', 'string', 'max:64'],
             'description' => ['nullable', 'string'],
+            'is_premium' => ['nullable', 'boolean'],
         ]);
 
         $code = $validated['code'] ?? Str::slug($validated['name']);
@@ -34,6 +35,7 @@ class BillingEntitlementDefinitionController extends Controller
             'name' => $validated['name'],
             'value_type' => $validated['value_type'],
             'description' => $validated['description'] ?? null,
+            'is_premium' => (bool) ($validated['is_premium'] ?? false),
         ]);
 
         PlatformAudit::log($request, 'billing.entitlement_definition.created', null, null, [
@@ -53,6 +55,7 @@ class BillingEntitlementDefinitionController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'value_type' => ['required', 'string', 'max:64'],
             'description' => ['nullable', 'string'],
+            'is_premium' => ['nullable', 'boolean'],
             'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -63,6 +66,7 @@ class BillingEntitlementDefinitionController extends Controller
             'name' => $validated['name'],
             'value_type' => $validated['value_type'],
             'description' => $validated['description'] ?? null,
+            'is_premium' => (bool) ($validated['is_premium'] ?? $definition->is_premium ?? false),
         ])->save();
 
         PlatformAudit::log($request, 'billing.entitlement_definition.updated', null, $validated['reason'] ?? null, [

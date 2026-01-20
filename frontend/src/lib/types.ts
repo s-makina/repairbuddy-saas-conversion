@@ -149,6 +149,7 @@ export interface EntitlementDefinition {
   name: string;
   value_type: string;
   description?: string | null;
+  is_premium?: boolean;
   created_at?: string;
   updated_at?: string;
 }

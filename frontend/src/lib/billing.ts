@@ -194,6 +194,7 @@ export async function createEntitlementDefinition(args: {
   name: string;
   valueType: string;
   description?: string;
+  isPremium?: boolean;
 }): Promise<{ definition: EntitlementDefinition }> {
   return apiFetch<{ definition: EntitlementDefinition }>("/api/admin/billing/entitlement-definitions", {
     method: "POST",
@@ -202,6 +203,7 @@ export async function createEntitlementDefinition(args: {
       name: args.name,
       value_type: args.valueType,
       description: args.description?.trim() || undefined,
+      is_premium: typeof args.isPremium === "boolean" ? args.isPremium : undefined,
     },
   });
 }
@@ -212,6 +214,7 @@ export async function updateEntitlementDefinition(args: {
   name: string;
   valueType: string;
   description?: string;
+  isPremium?: boolean;
   reason?: string;
 }): Promise<{ definition: EntitlementDefinition }> {
   return apiFetch<{ definition: EntitlementDefinition }>(`/api/admin/billing/entitlement-definitions/${args.id}`, {
@@ -221,6 +224,7 @@ export async function updateEntitlementDefinition(args: {
       name: args.name,
       value_type: args.valueType,
       description: args.description?.trim() || undefined,
+      is_premium: typeof args.isPremium === "boolean" ? args.isPremium : undefined,
       reason: args.reason,
     },
   });

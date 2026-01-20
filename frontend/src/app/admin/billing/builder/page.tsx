@@ -12,6 +12,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { getBillingCatalog } from "@/lib/billing";
+import type { EntitlementDefinition } from "@/lib/types";
 
 type BuilderPrice = {
   id: number;
@@ -22,24 +24,10 @@ type BuilderPrice = {
   isDefault: boolean;
 };
 
-type BuilderEntitlementDefinition = {
-  id: number;
-  code: string;
-  name: string;
-  valueType: "boolean" | "integer" | "json";
-  description?: string;
-};
-
 type BuilderEntitlement = {
   entitlement_definition_id: number;
   value_json: unknown;
 };
-
-const MOCK_DEFS: BuilderEntitlementDefinition[] = [
-  { id: 1, code: "max_open_tickets", name: "Max open tickets", valueType: "integer", description: "Maximum number of simultaneously open tickets." },
-  { id: 2, code: "priority_support", name: "Priority support", valueType: "boolean", description: "Enables priority support handling." },
-  { id: 3, code: "features", name: "Features", valueType: "json", description: "Feature flags / feature metadata." },
-];
 
 function formatCents(cents: number, currency: string) {
   const c = Number.isFinite(cents) ? cents : 0;
@@ -64,8 +52,16 @@ export default function AdminBillingBuilderPage() {
     { id: 1, currency: "EUR", interval: "month", amountCents: 2900, trialDays: 14, isDefault: true },
   ]);
 
-  const [enabledEntitlements, setEnabledEntitlements] = useState<Record<number, boolean>>({ 1: true, 2: false, 3: false });
-  const [entitlementValue, setEntitlementValue] = useState<Record<number, unknown>>({ 1: 10, 2: false, 3: { beta: false } });
+  const [defsLoading, setDefsLoading] = useState(true);
+  const [defsError, setDefsError] = useState<string | null>(null);
+  const [definitions, setDefinitions] = useState<EntitlementDefinition[]>([]);
+
+  const premiumDefinitions = useMemo(() => {
+    return (Array.isArray(definitions) ? definitions : []).filter((d) => Boolean(d.is_premium));
+  }, [definitions]);
+
+  const [enabledEntitlements, setEnabledEntitlements] = useState<Record<number, boolean>>({});
+  const [entitlementValue, setEntitlementValue] = useState<Record<number, unknown>>({});
 
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const [priceBusy, setPriceBusy] = useState(false);
@@ -105,6 +101,58 @@ export default function AdminBillingBuilderPage() {
     return () => dashboardHeader.setHeader(null);
   }, [dashboardHeader]);
 
+  useEffect(() => {
+    let alive = true;
+
+    async function loadDefs() {
+      try {
+        setDefsLoading(true);
+        setDefsError(null);
+
+        const res = await getBillingCatalog({ includeInactive: true });
+        if (!alive) return;
+        setDefinitions(Array.isArray(res.entitlement_definitions) ? res.entitlement_definitions : []);
+      } catch (e) {
+        if (!alive) return;
+        setDefsError(e instanceof Error ? e.message : "Failed to load entitlement definitions.");
+        setDefinitions([]);
+      } finally {
+        if (!alive) return;
+        setDefsLoading(false);
+      }
+    }
+
+    void loadDefs();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!Array.isArray(premiumDefinitions)) return;
+
+    setEnabledEntitlements((prev) => {
+      const next = { ...prev };
+      for (const d of premiumDefinitions) {
+        if (typeof next[d.id] === "undefined") next[d.id] = false;
+      }
+      return next;
+    });
+
+    setEntitlementValue((prev) => {
+      const next = { ...prev };
+      for (const d of premiumDefinitions) {
+        if (typeof next[d.id] === "undefined") {
+          if (d.value_type === "boolean") next[d.id] = false;
+          else if (d.value_type === "integer") next[d.id] = 0;
+          else next[d.id] = null;
+        }
+      }
+      return next;
+    });
+  }, [premiumDefinitions]);
+
   const validationErrors = useMemo(() => {
     const errs: string[] = [];
 
@@ -128,7 +176,7 @@ export default function AdminBillingBuilderPage() {
 
   const summary = useMemo(() => {
     const entitlements: BuilderEntitlement[] = [];
-    for (const def of MOCK_DEFS) {
+    for (const def of premiumDefinitions) {
       if (!enabledEntitlements[def.id]) continue;
       entitlements.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
     }
@@ -153,7 +201,7 @@ export default function AdminBillingBuilderPage() {
       })),
       entitlements,
     };
-  }, [enabledEntitlements, entitlementValue, planActive, planCode, planDescription, planName, prices, versionNumber, versionStatus]);
+  }, [enabledEntitlements, entitlementValue, planActive, planCode, planDescription, planName, premiumDefinitions, prices, versionNumber, versionStatus]);
 
   function goNext() {
     setActivated(false);
@@ -246,12 +294,6 @@ export default function AdminBillingBuilderPage() {
     setPrices((prev) => prev.filter((x) => x.id !== p.id));
   }
 
-  const stepBadge = (i: number) => {
-    if (i === step) return <Badge variant="info">{i + 1}</Badge>;
-    if (i < step) return <Badge variant="success">{i + 1}</Badge>;
-    return <Badge variant="default">{i + 1}</Badge>;
-  };
-
   return (
     <RequireAuth requiredPermission="admin.billing.read">
       <div className="space-y-6">
@@ -260,18 +302,53 @@ export default function AdminBillingBuilderPage() {
             <CardTitle>Builder steps</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-2">
-              {steps.map((label, i) => (
-                <button
-                  key={label}
-                  className="flex items-center gap-2 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  onClick={() => setStep(i)}
-                  type="button"
-                >
-                  {stepBadge(i)}
-                  <span className={i === step ? "font-semibold" : ""}>{label}</span>
-                </button>
-              ))}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm text-zinc-600">
+                  Step {step + 1} of {steps.length}
+                </div>
+                <Badge variant={step === steps.length - 1 ? "info" : "default"}>{steps[step]}</Badge>
+              </div>
+
+              <div className="overflow-x-auto">
+                <div className="flex min-w-[780px] items-center">
+                  {steps.map((label, i) => {
+                    const isActive = i === step;
+                    const isDone = i < step;
+
+                    const circleClass = isActive
+                      ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_40%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_88%)] text-[var(--rb-blue)]"
+                      : isDone
+                        ? "border-[color:color-mix(in_srgb,#16a34a,white_40%)] bg-[color:color-mix(in_srgb,#16a34a,white_88%)] text-[#166534]"
+                        : "border-[var(--rb-border)] bg-white text-zinc-600";
+
+                    const labelClass = isActive ? "text-zinc-900" : isDone ? "text-zinc-800" : "text-zinc-500";
+
+                    const connectorClass = i < step ? "bg-[#16a34a]" : "bg-[var(--rb-border)]";
+
+                    return (
+                      <React.Fragment key={label}>
+                        <button
+                          type="button"
+                          onClick={() => setStep(i)}
+                          className="flex items-center gap-3 rounded-[var(--rb-radius-sm)] px-2 py-1 text-left"
+                        >
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold ${circleClass}`}>
+                            {i + 1}
+                          </div>
+                          <div className={`text-sm font-medium ${labelClass}`}>{label}</div>
+                        </button>
+
+                        {i < steps.length - 1 ? (
+                          <div className="flex-1 px-2">
+                            <div className={`h-[2px] w-full ${connectorClass}`} />
+                          </div>
+                        ) : null}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -425,7 +502,21 @@ export default function AdminBillingBuilderPage() {
               <CardTitle>Entitlements</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {MOCK_DEFS.map((def) => {
+              {defsError ? (
+                <Alert variant="danger" title="Could not load entitlement definitions">
+                  {defsError}
+                </Alert>
+              ) : null}
+
+              {defsLoading ? <div className="text-sm text-zinc-600">Loading features…</div> : null}
+
+              {!defsLoading && premiumDefinitions.length === 0 ? (
+                <Alert variant="warning" title="No premium features">
+                  Mark features as premium in Admin / Billing / Entitlements to make them available in the builder.
+                </Alert>
+              ) : null}
+
+              {premiumDefinitions.map((def) => {
                 const enabled = Boolean(enabledEntitlements[def.id]);
                 const value = entitlementValue[def.id];
 
@@ -436,7 +527,7 @@ export default function AdminBillingBuilderPage() {
                         <div className="text-sm font-semibold text-zinc-900">
                           {def.name} <span className="text-xs font-normal text-zinc-500">({def.code})</span>
                         </div>
-                        <div className="mt-1 text-xs text-zinc-500">Type: {def.valueType}</div>
+                        <div className="mt-1 text-xs text-zinc-500">Type: {def.value_type}</div>
                         {def.description ? <div className="mt-1 text-xs text-zinc-500">{def.description}</div> : null}
                       </div>
                       <label className="flex items-center gap-2 text-sm">
@@ -451,7 +542,7 @@ export default function AdminBillingBuilderPage() {
 
                     {enabled ? (
                       <div className="mt-3">
-                        {def.valueType === "boolean" ? (
+                        {def.value_type === "boolean" ? (
                           <label className="flex items-center gap-2 text-sm">
                             <input
                               type="checkbox"
@@ -460,7 +551,7 @@ export default function AdminBillingBuilderPage() {
                             />
                             Value
                           </label>
-                        ) : def.valueType === "integer" ? (
+                        ) : def.value_type === "integer" ? (
                           <div className="space-y-1">
                             <label className="text-sm font-medium">Value</label>
                             <Input
