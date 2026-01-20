@@ -37,6 +37,27 @@ class BillingController extends Controller
         }
     }
 
+    public function invoicesShow(Request $request, Tenant $tenant, int $invoice)
+    {
+        TenantContext::set($tenant);
+
+        try {
+            $inv = Invoice::query()
+                ->withoutGlobalScope(TenantScope::class)
+                ->where('tenant_id', $tenant->id)
+                ->where('id', $invoice)
+                ->with(['lines', 'subscription.planVersion.plan', 'subscription.price'])
+                ->firstOrFail();
+
+            return response()->json([
+                'tenant' => $tenant,
+                'invoice' => $inv,
+            ]);
+        } finally {
+            TenantContext::set(null);
+        }
+    }
+
     public function subscriptionsAssign(Request $request, Tenant $tenant)
     {
         $actor = $request->user();

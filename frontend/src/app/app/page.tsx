@@ -3,12 +3,12 @@
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 
 export default function AppIndexPage() {
   const auth = useAuth();
   const router = useRouter();
-  const [missingTenant, setMissingTenant] = useState(false);
+  const missingTenant = !auth.loading && auth.isAuthenticated && !auth.isAdmin && !auth.tenant?.slug;
 
   useEffect(() => {
     if (auth.loading) return;
@@ -26,7 +26,6 @@ export default function AppIndexPage() {
     const slug = auth.tenant?.slug;
 
     if (!slug) {
-      setMissingTenant(true);
       return;
     }
 
@@ -39,7 +38,7 @@ export default function AppIndexPage() {
         <div className="w-full max-w-md rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white p-6 shadow-[var(--rb-shadow)]">
           <div className="text-base font-semibold text-[var(--rb-text)]">Workspace not found</div>
           <div className="mt-2 text-sm text-zinc-600">
-            Your account is signed in, but it isn't linked to a workspace (tenant) yet.
+            Your account is signed in, but it isn&apos;t linked to a workspace (tenant) yet.
           </div>
           <div className="mt-5 flex flex-col gap-2">
             <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useId, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useId, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 
 type TabsContextValue = {
@@ -35,13 +35,16 @@ export function Tabs({
 
   const current = typeof value === "string" ? value : internal;
 
-  const setValue = (next: string) => {
-    if (!next) return;
-    if (onValueChange) onValueChange(next);
-    if (typeof value !== "string") setInternal(next);
-  };
+  const setValue = useCallback(
+    (next: string) => {
+      if (!next) return;
+      if (onValueChange) onValueChange(next);
+      if (typeof value !== "string") setInternal(next);
+    },
+    [onValueChange, value],
+  );
 
-  const ctx = useMemo<TabsContextValue>(() => ({ value: current, setValue, baseId }), [baseId, current]);
+  const ctx = useMemo<TabsContextValue>(() => ({ value: current, setValue, baseId }), [baseId, current, setValue]);
 
   return (
     <TabsContext.Provider value={ctx}>

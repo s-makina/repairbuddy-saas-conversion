@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import type { AuthEvent, Plan, PlatformAuditLog, Tenant, User } from "@/lib/types";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -226,6 +227,11 @@ export default function AdminTenantDetailPage() {
       subtitle: tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : `Tenant ID ${tenantId}`,
       actions: (
         <>
+          <Link href={`/admin/tenants/${tenantId}/billing`}>
+            <Button variant="outline" size="sm">
+              Billing
+            </Button>
+          </Link>
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             Back
           </Button>

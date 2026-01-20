@@ -79,6 +79,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->whereNumber('plan')
         ->middleware('permission:admin.plans.write');
 
+    Route::get('/billing/catalog', [\App\Http\Controllers\Api\Admin\BillingCatalogController::class, 'catalog'])
+        ->middleware('permission:admin.billing.read');
+
     Route::post('/impersonation', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'store'])
         ->middleware('permission:admin.impersonation.start');
     Route::post('/impersonation/{session}/stop', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'stop'])
@@ -102,6 +105,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
     Route::get('/tenants/{tenant}/invoices', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesIndex'])
         ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.read');
+    Route::get('/tenants/{tenant}/invoices/{invoice}', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesShow'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
         ->middleware('permission:admin.billing.read');
     Route::post('/tenants/{tenant}/invoices', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesCreateFromSubscription'])
         ->whereNumber('tenant')
