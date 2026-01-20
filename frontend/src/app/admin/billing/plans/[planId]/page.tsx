@@ -10,10 +10,122 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable } from "@/components/ui/DataTable";
+import { Input } from "@/components/ui/Input";
 import { createDraftBillingPlanVersionFromActive, getBillingCatalog } from "@/lib/billing";
 import { useAuth } from "@/lib/auth";
-import type { BillingPlan, BillingPlanVersion } from "@/lib/types";
+import type { BillingPlan, BillingPlanVersion, BillingPrice } from "@/lib/types";
+
+const MOCK_PLAN: BillingPlan = {
+  id: 1,
+  code: "starter",
+  name: "Starter",
+  description: "For small repair shops getting started with RepairBuddy.",
+  is_active: true,
+  versions: [
+    {
+      id: 101,
+      billing_plan_id: 1,
+      version: 1,
+      status: "active",
+      prices: [
+        {
+          id: 1001,
+          billing_plan_version_id: 101,
+          currency: "usd",
+          interval: "month",
+          amount_cents: 2900,
+          trial_days: 14,
+          is_default: true,
+          default_for_currency_interval: "usd:month",
+        },
+        {
+          id: 1002,
+          billing_plan_version_id: 101,
+          currency: "usd",
+          interval: "year",
+          amount_cents: 29000,
+          trial_days: 14,
+          is_default: true,
+          default_for_currency_interval: "usd:year",
+        },
+      ],
+      entitlements: [],
+    },
+    {
+      id: 102,
+      billing_plan_id: 1,
+      version: 2,
+      status: "draft",
+      prices: [
+        {
+          id: 1003,
+          billing_plan_version_id: 102,
+          currency: "usd",
+          interval: "month",
+          amount_cents: 3500,
+          trial_days: 14,
+          is_default: true,
+          default_for_currency_interval: "usd:month",
+        },
+      ],
+      entitlements: [],
+    },
+  ],
+};
+
+function formatCents(args: { currency?: string | null; amountCents?: number | null }) {
+  const currency = (args.currency || "usd").toUpperCase();
+  const amountCents = typeof args.amountCents === "number" ? args.amountCents : 0;
+  const amount = amountCents / 100;
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
+function intervalLabel(interval?: string | null) {
+  const v = String(interval || "").toLowerCase();
+  if (!v) return "";
+  if (v === "month" || v === "monthly") return "/mo";
+  if (v === "year" || v === "yearly" || v === "annual") return "/yr";
+  return `/${v}`;
+}
+
+function pickDisplayVersion(plan: BillingPlan): BillingPlanVersion | null {
+  const versions = Array.isArray(plan.versions) ? plan.versions : [];
+  const active = versions.find((v) => v.status === "active") ?? null;
+  if (active) return active;
+  const latest = versions.slice().sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0] ?? null;
+  return latest;
+}
+
+function pickDisplayPrice(version: BillingPlanVersion | null): BillingPrice | null {
+  if (!version) return null;
+  const prices = Array.isArray(version.prices) ? version.prices : [];
+  const preferred = prices.find((p) => p.is_default) ?? null;
+  return preferred ?? prices[0] ?? null;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
+}
 
 export default function AdminBillingPlanDetailPage() {
   const params = useParams<{ planId: string }>();
@@ -29,6 +141,10 @@ export default function AdminBillingPlanDetailPage() {
   const [draftBusy, setDraftBusy] = useState(false);
   const [plan, setPlan] = useState<BillingPlan | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [mockMode, setMockMode] = useState(false);
+  const [mockReason, setMockReason] = useState<string | null>(null);
+  const [versionQuery, setVersionQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "retired" | "other">("all");
 
   const canWrite = auth.can("admin.billing.write");
 
@@ -74,7 +190,7 @@ export default function AdminBillingPlanDetailPage() {
     });
 
     return () => dashboardHeader.setHeader(null);
-  }, [dashboardHeader, loading, plan, planId]);
+  }, [canWrite, dashboardHeader, draftBusy, loading, plan, planId, router]);
 
   useEffect(() => {
     let alive = true;
@@ -89,6 +205,8 @@ export default function AdminBillingPlanDetailPage() {
       try {
         setLoading(true);
         setError(null);
+        setMockMode(false);
+        setMockReason(null);
 
         const res = await getBillingCatalog({ includeInactive: true });
         if (!alive) return;
@@ -101,8 +219,12 @@ export default function AdminBillingPlanDetailPage() {
         }
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load plan.");
-        setPlan(null);
+        setMockMode(true);
+        setMockReason(e instanceof Error ? e.message : "Failed to load plan.");
+        setPlan(planId === 1 ? MOCK_PLAN : null);
+        if (planId !== 1) {
+          setError(e instanceof Error ? e.message : "Failed to load plan.");
+        }
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -117,6 +239,54 @@ export default function AdminBillingPlanDetailPage() {
   }, [planId, reloadNonce]);
 
   const versions = useMemo(() => (Array.isArray(plan?.versions) ? plan?.versions : []) as BillingPlanVersion[], [plan]);
+  const displayVersion = useMemo(() => (plan ? pickDisplayVersion(plan) : null), [plan]);
+  const displayPrice = useMemo(() => pickDisplayPrice(displayVersion), [displayVersion]);
+  const currencies = useMemo(() => {
+    const allPrices = versions.flatMap((v) => (Array.isArray(v.prices) ? v.prices : []));
+    return Array.from(new Set(allPrices.map((x) => x.currency).filter(Boolean)))
+      .map((c) => String(c).toUpperCase())
+      .sort();
+  }, [versions]);
+
+  const versionCounts = useMemo(() => {
+    const base = { all: 0, active: 0, draft: 0, retired: 0, other: 0 };
+    for (const v of versions) {
+      base.all += 1;
+      const status = String(v.status || "").toLowerCase();
+      if (status === "active") base.active += 1;
+      else if (status === "draft") base.draft += 1;
+      else if (status === "retired") base.retired += 1;
+      else base.other += 1;
+    }
+    return base;
+  }, [versions]);
+
+  const filteredVersions = useMemo(() => {
+    const q = versionQuery.trim().toLowerCase();
+    const rows = versions
+      .slice()
+      .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+      .filter((v) => {
+        const status = String(v.status || "").toLowerCase();
+        if (statusFilter === "active" && status !== "active") return false;
+        if (statusFilter === "draft" && status !== "draft") return false;
+        if (statusFilter === "retired" && status !== "retired") return false;
+        if (statusFilter === "other" && (status === "active" || status === "draft" || status === "retired")) return false;
+        if (!q) return true;
+
+        const prices = Array.isArray(v.prices) ? v.prices : [];
+        const priceText = prices
+          .map((p) => `${p.currency} ${p.interval} ${p.amount_cents}`)
+          .join(" ")
+          .toLowerCase();
+
+        return (
+          `v${v.version} ${v.status} ${v.id}`.toLowerCase().includes(q) ||
+          priceText.includes(q)
+        );
+      });
+    return rows;
+  }, [statusFilter, versionQuery, versions]);
 
   return (
     <RequireAuth requiredPermission="admin.billing.read">
@@ -127,6 +297,12 @@ export default function AdminBillingPlanDetailPage() {
           </Alert>
         ) : null}
 
+        {mockMode ? (
+          <Alert variant="warning" title="Showing mock plan">
+            {mockReason ? mockReason : "Billing catalog API is not available."}
+          </Alert>
+        ) : null}
+
         {actionError ? (
           <Alert variant="danger" title="Action failed">
             {actionError}
@@ -134,84 +310,290 @@ export default function AdminBillingPlanDetailPage() {
         ) : null}
 
         {plan ? (
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <div className="min-w-0">
-                <CardTitle className="truncate">Plan details</CardTitle>
-                <div className="mt-1 text-sm text-zinc-600">{plan.description ?? "—"}</div>
+          <Card className="overflow-hidden">
+            <div className={"h-1.5 w-full " + (plan.is_active ? "bg-[var(--rb-blue)]" : "bg-[var(--rb-border)]")} />
+            <CardHeader className="space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Billing plan</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <div className="truncate text-xl font-semibold tracking-tight text-[var(--rb-text)]">{plan.name}</div>
+                    <Badge variant={plan.is_active ? "success" : "default"}>{plan.is_active ? "active" : "inactive"}</Badge>
+                  </div>
+                  <div className="mt-1 text-sm text-zinc-600">{plan.description ?? "—"}</div>
+                </div>
+
+                <div className="sm:text-right">
+                  <div className="text-xs text-zinc-500">Starting at</div>
+                  <div className="mt-1 flex items-baseline gap-2 sm:justify-end">
+                    <div className="text-2xl font-semibold tracking-tight text-[var(--rb-text)]">
+                      {displayPrice ? formatCents({ currency: displayPrice.currency, amountCents: displayPrice.amount_cents }) : "—"}
+                    </div>
+                    <div className="text-sm text-zinc-600">{displayPrice ? intervalLabel(displayPrice.interval) : ""}</div>
+                  </div>
+                  {displayPrice?.trial_days ? (
+                    <div className="mt-1 text-xs text-zinc-500">{displayPrice.trial_days} day trial</div>
+                  ) : null}
+                </div>
               </div>
-              <Badge variant={plan.is_active ? "success" : "default"}>{plan.is_active ? "active" : "inactive"}</Badge>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <div className="text-xs text-zinc-500">Code</div>
-                  <div className="mt-1 text-sm text-zinc-800">{plan.code}</div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">
+                  <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Overview</div>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <div className="text-xs text-zinc-500">Code</div>
+                      <div className="mt-1 text-sm font-medium text-zinc-800">{plan.code}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Plan ID</div>
+                      <div className="mt-1 text-sm font-medium text-zinc-800">{plan.id}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Last updated</div>
+                      <div className="mt-1 text-sm font-medium text-zinc-800">{formatDate(plan.updated_at)}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-zinc-500">Plan ID</div>
-                  <div className="mt-1 text-sm text-zinc-800">{plan.id}</div>
+
+                <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">
+                  <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Current version</div>
+                  <div className="mt-3 space-y-2">
+                    <div className="text-sm text-zinc-700">
+                      {displayVersion ? (
+                        <>
+                          <span className="font-medium text-zinc-900">v{displayVersion.version}</span>
+                          <span className="ml-2">
+                            <Badge
+                              variant={displayVersion.status === "active" ? "success" : displayVersion.status === "draft" ? "info" : "default"}
+                            >
+                              {displayVersion.status}
+                            </Badge>
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </div>
+                    <div className="text-xs text-zinc-500">Total versions: {versions.length}</div>
+                    {displayVersion ? (
+                      <div className="pt-1">
+                        <Link href={`/admin/billing/plans/${planId}/versions/${displayVersion.id}`}>
+                          <Button variant="outline" size="sm">
+                            View current version
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">
+                  <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Coverage</div>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <div className="text-xs text-zinc-500">Currencies</div>
+                      <div className="mt-1 text-sm font-medium text-zinc-800">{currencies.length > 0 ? currencies.join(", ") : "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500">Default currency</div>
+                      <div className="mt-1 text-sm font-medium text-zinc-800">{displayPrice?.currency ? String(displayPrice.currency).toUpperCase() : "—"}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ) : null}
 
-        <DataTable
-          title="Versions"
-          data={versions}
-          loading={loading}
-          emptyMessage="No versions found for this plan."
-          getRowId={(v) => v.id}
-          columns={[
-            {
-              id: "version",
-              header: "Version",
-              cell: (v) => <div className="text-sm font-medium text-zinc-800">v{v.version}</div>,
-              className: "whitespace-nowrap",
-            },
-            {
-              id: "status",
-              header: "Status",
-              cell: (v) => <Badge variant={v.status === "active" ? "success" : v.status === "draft" ? "info" : "default"}>{v.status}</Badge>,
-              className: "whitespace-nowrap",
-            },
-            {
-              id: "prices",
-              header: "Prices",
-              cell: (v) => {
-                const prices = Array.isArray(v.prices) ? v.prices : [];
-                const currencies = Array.from(new Set(prices.map((p) => p.currency).filter(Boolean)))
-                  .map((c) => String(c).toUpperCase())
-                  .sort();
-                return <div className="text-sm text-zinc-700">{currencies.length > 0 ? currencies.join(", ") : "—"}</div>;
-              },
-            },
-            {
-              id: "entitlements",
-              header: "Entitlements",
-              cell: (v) => {
-                const ent = Array.isArray(v.entitlements) ? v.entitlements : [];
-                return <div className="text-sm text-zinc-700">{ent.length}</div>;
-              },
-              className: "whitespace-nowrap",
-            },
-            {
-              id: "actions",
-              header: "",
-              cell: (v) => (
-                <div className="flex items-center justify-end">
-                  <Link href={`/admin/billing/plans/${planId}/versions/${v.id}`}>
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
-                  </Link>
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-[var(--rb-text)]">Version history</div>
+              <div className="mt-1 text-sm text-zinc-600">Track changes over time and inspect each version.</div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="w-full sm:w-[260px]">
+                <Input
+                  value={versionQuery}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVersionQuery(e.target.value)}
+                  placeholder="Search versions…"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant={statusFilter === "all" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("all")}
+                >
+                  All ({versionCounts.all})
+                </Button>
+                <Button
+                  variant={statusFilter === "active" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("active")}
+                >
+                  Active ({versionCounts.active})
+                </Button>
+                <Button
+                  variant={statusFilter === "draft" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("draft")}
+                >
+                  Draft ({versionCounts.draft})
+                </Button>
+                <Button
+                  variant={statusFilter === "retired" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("retired")}
+                >
+                  Retired ({versionCounts.retired})
+                </Button>
+                {(statusFilter !== "all" || versionQuery.trim().length > 0) ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setVersionQuery("");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {loading ? <div className="text-sm text-zinc-500">Loading…</div> : null}
+
+          {!loading && filteredVersions.length === 0 ? (
+            <div className="text-sm text-zinc-500">No versions found.</div>
+          ) : null}
+
+          {!loading && filteredVersions.length > 0 ? (
+            <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="text-sm text-zinc-600">
+                  Showing <span className="font-medium text-zinc-900">{filteredVersions.length}</span> of {versions.length}
                 </div>
-              ),
-              className: "whitespace-nowrap",
-            },
-          ]}
-        />
+              </div>
+              <div className="space-y-0">
+                {filteredVersions.map((v, idx) => {
+                  const prices = Array.isArray(v.prices) ? v.prices : [];
+                  const ent = Array.isArray(v.entitlements) ? v.entitlements : [];
+                  const defaultPrice = pickDisplayPrice(v);
+                  const isLast = idx === filteredVersions.length - 1;
+
+                  const status = String(v.status || "").toLowerCase();
+                  const nodeColor =
+                    status === "active"
+                      ? "bg-[var(--rb-blue)]"
+                      : status === "draft"
+                        ? "bg-[var(--rb-orange)]"
+                        : "bg-zinc-400";
+                  const ringColor =
+                    status === "active"
+                      ? "ring-[color:color-mix(in_srgb,var(--rb-blue),white_70%)]"
+                      : status === "draft"
+                        ? "ring-[color:color-mix(in_srgb,var(--rb-orange),white_70%)]"
+                        : "ring-[color:color-mix(in_srgb,var(--rb-border),white_70%)]";
+
+                  return (
+                    <div key={v.id} className={"relative flex gap-4 " + (isLast ? "" : "pb-6")}
+                    >
+                      <div className="relative flex w-5 flex-col items-center">
+                        <div className={"mt-1 h-3 w-3 rounded-full ring-4 " + nodeColor + " " + ringColor} />
+                        {!isLast ? <div className="mt-2 w-px flex-1 bg-[var(--rb-border)]" /> : null}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-4 py-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="text-base font-semibold text-[var(--rb-text)]">v{v.version}</div>
+                                <Badge variant={status === "active" ? "success" : status === "draft" ? "info" : "default"}>
+                                  {v.status}
+                                </Badge>
+                                <div className="text-xs text-zinc-500">ID {v.id}</div>
+                              </div>
+
+                              <div className="mt-1 text-xs text-zinc-500">
+                                {status === "active" ? (
+                                  <>Activated: {formatDate(v.activated_at ?? v.created_at)}</>
+                                ) : status === "retired" ? (
+                                  <>Retired: {formatDate(v.retired_at ?? v.created_at)}</>
+                                ) : (
+                                  <>Created: {formatDate(v.created_at)}</>
+                                )}
+                              </div>
+
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                {defaultPrice ? (
+                                  <div className="text-sm font-medium text-zinc-900">
+                                    {formatCents({ currency: defaultPrice.currency, amountCents: defaultPrice.amount_cents })}
+                                    <span className="ml-1 text-sm font-normal text-zinc-600">{intervalLabel(defaultPrice.interval)}</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-zinc-600">—</div>
+                                )}
+
+                                <div className="text-xs text-zinc-500">•</div>
+                                <div className="text-sm text-zinc-700">{prices.length} price(s)</div>
+                                <div className="text-xs text-zinc-500">•</div>
+                                <div className="text-sm text-zinc-700">{ent.length} entitlements</div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start">
+                              <Link href={`/admin/billing/plans/${planId}/versions/${v.id}`}>
+                                <Button variant="outline" size="sm">
+                                  View
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+
+                          {prices.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {prices.slice(0, 4).map((p) => (
+                                <span
+                                  key={p.id}
+                                  className={
+                                    "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium " +
+                                    (p.is_default
+                                      ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)] text-[var(--rb-blue)]"
+                                      : "border-[var(--rb-border)] bg-white text-[var(--rb-text)]")
+                                  }
+                                >
+                                  <span>{String(p.currency).toUpperCase()}</span>
+                                  <span>
+                                    {formatCents({ currency: p.currency, amountCents: p.amount_cents })}
+                                    {intervalLabel(p.interval)}
+                                  </span>
+                                  {p.is_default ? <span className="text-[10px] uppercase tracking-wide">default</span> : null}
+                                </span>
+                              ))}
+
+                              {prices.length > 4 ? (
+                                <span className="inline-flex items-center rounded-full border border-[var(--rb-border)] bg-white px-2.5 py-1 text-xs font-medium text-zinc-600">
+                                  +{prices.length - 4} more
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </RequireAuth>
   );

@@ -113,7 +113,16 @@ export default function AdminTenantInvoiceDetailPage() {
     return "default" as const;
   };
 
-  const taxDetails = (invoice?.tax_details_json && typeof invoice.tax_details_json === "object" ? (invoice.tax_details_json as any) : null) as any;
+  type TaxDetails = {
+    scenario?: unknown;
+    reason?: unknown;
+    rate_percent?: unknown;
+  };
+
+  const taxDetails: TaxDetails | null =
+    invoice?.tax_details_json && typeof invoice.tax_details_json === "object" && !Array.isArray(invoice.tax_details_json)
+      ? (invoice.tax_details_json as TaxDetails)
+      : null;
   const taxScenario = typeof taxDetails?.scenario === "string" ? taxDetails.scenario : null;
   const taxReason = typeof taxDetails?.reason === "string" ? taxDetails.reason : null;
   const taxRate = typeof taxDetails?.rate_percent === "number" || typeof taxDetails?.rate_percent === "string" ? String(taxDetails.rate_percent) : null;

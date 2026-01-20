@@ -80,17 +80,29 @@ export async function validateBillingPlanVersionDraft(args: {
   reason?: string;
 }): Promise<{ status: "ok" } | { message: string; errors?: string[] }> {
   try {
-    return await apiFetch<any>(`/api/admin/billing/versions/${args.versionId}/validate`, {
-      method: "POST",
-      body: {
-        reason: args.reason,
+    return await apiFetch<{ status: "ok" } | { message: string; errors?: string[] }>(
+      `/api/admin/billing/versions/${args.versionId}/validate`,
+      {
+        method: "POST",
+        body: {
+          reason: args.reason,
+        },
       },
-    });
+    );
   } catch (e) {
     if (e instanceof ApiError) {
-      const data = e.data;
+      const data: unknown = e.data;
       if (data && typeof data === "object") {
-        return data as any;
+        const maybe = data as { status?: unknown; message?: unknown; errors?: unknown };
+        if (maybe.status === "ok") {
+          return { status: "ok" };
+        }
+        if (typeof maybe.message === "string") {
+          return {
+            message: maybe.message,
+            errors: Array.isArray(maybe.errors) ? maybe.errors.map(String) : undefined,
+          };
+        }
       }
     }
     throw e;
