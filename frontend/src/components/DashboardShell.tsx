@@ -307,8 +307,21 @@ export function DashboardShell({
             { label: "Home", href: "/", icon: "home", show: true },
             { label: "Admin", href: "/admin", icon: "admin", show: auth.can("admin.access") },
             { label: "Tenants", href: "/admin/tenants", icon: "admin", show: auth.can("admin.tenants.read") },
-            { label: "Billing", href: "/admin/billing/plans", icon: "payments", show: auth.can("admin.billing.read") },
             { label: "Dashboard", href: tenantBaseHref ?? "/app", icon: "dashboard", show: Boolean(tenantBaseHref) && auth.can("dashboard.view") },
+          ],
+        },
+        {
+          title: "Billing",
+          items: [
+            { label: "Plans", href: "/admin/billing/plans", icon: "payments", show: auth.can("admin.billing.read") },
+            { label: "Plan Builder", href: "/admin/billing/builder", icon: "file", show: auth.can("admin.billing.read") },
+            { label: "Entitlements", href: "/admin/billing/entitlements", icon: "tags", show: auth.can("admin.billing.read") },
+            {
+              label: "Tenant Billing",
+              href: "/admin/billing/tenants",
+              icon: "users",
+              show: auth.can("admin.billing.read") && auth.can("admin.tenants.read"),
+            },
           ],
         },
         {
