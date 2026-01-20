@@ -88,6 +88,36 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::get('/tenants/{tenant}/diagnostics', [\App\Http\Controllers\Api\Admin\TenantDiagnosticsController::class, 'show'])
         ->whereNumber('tenant')
         ->middleware('permission:admin.diagnostics.read');
+
+    Route::get('/tenants/{tenant}/subscriptions', [\App\Http\Controllers\Api\Admin\BillingController::class, 'subscriptionsIndex'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.read');
+    Route::post('/tenants/{tenant}/subscriptions', [\App\Http\Controllers\Api\Admin\BillingController::class, 'subscriptionsAssign'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/tenants/{tenant}/subscriptions/{subscription}/cancel', [\App\Http\Controllers\Api\Admin\BillingController::class, 'subscriptionsCancel'])
+        ->whereNumber('tenant')
+        ->whereNumber('subscription')
+        ->middleware('permission:admin.billing.write');
+
+    Route::get('/tenants/{tenant}/invoices', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesIndex'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.read');
+    Route::post('/tenants/{tenant}/invoices', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesCreateFromSubscription'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/tenants/{tenant}/invoices/{invoice}/issue', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesIssue'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/tenants/{tenant}/invoices/{invoice}/paid', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesMarkPaid'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.write');
+    Route::get('/tenants/{tenant}/invoices/{invoice}/pdf', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesDownloadPdf'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.read');
 });
 
 Route::prefix('{tenant}')

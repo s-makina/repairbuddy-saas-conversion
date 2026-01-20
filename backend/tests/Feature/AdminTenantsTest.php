@@ -20,11 +20,12 @@ class AdminTenantsTest extends TestCase
             'status' => 'active',
         ]);
 
-        $admin = User::query()->create([
+        $admin = User::query()->forceCreate([
             'name' => 'Admin',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'is_admin' => true,
+            'email_verified_at' => now(),
         ]);
 
         $token = $admin->createToken('api')->plainTextToken;

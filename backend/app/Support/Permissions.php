@@ -14,6 +14,8 @@ class Permissions
             'admin.tenants.write',
             'admin.plans.read',
             'admin.plans.write',
+            'admin.billing.read',
+            'admin.billing.write',
             'admin.impersonation.start',
             'admin.impersonation.stop',
             'admin.diagnostics.read',
@@ -86,6 +88,8 @@ class Permissions
                     'admin.access',
                     'admin.plans.read',
                     'admin.plans.write',
+                    'admin.billing.read',
+                    'admin.billing.write',
                 ],
                 'read_only_auditor' => [
                     'admin.access',
