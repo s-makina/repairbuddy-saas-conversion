@@ -13,7 +13,8 @@
     "next": "16.1.2",
     "react": "19.2.3",
     "react-qr-code": "^2.0.12",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "sonner": "^1.7.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

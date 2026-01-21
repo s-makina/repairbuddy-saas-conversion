@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/notify";
 import type { Tenant } from "@/lib/types";
 import { completeSetup, getSetup, updateSetup } from "@/lib/setup";
 
@@ -38,6 +39,40 @@ type WizardState = {
 };
 
 const stepOrder: StepId[] = ["business", "address", "branding", "preferences", "finish"];
+
+const fallbackTimezones = [
+  "UTC",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Africa/Cairo",
+  "Asia/Dubai",
+  "Asia/Riyadh",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+];
+
+function stepLabel(step: StepId): string {
+  if (step === "business") return "Business";
+  if (step === "address") return "Billing";
+  if (step === "branding") return "Brand";
+  if (step === "preferences") return "Defaults";
+  return "Finish";
+}
+
+function stepDescription(step: StepId): string {
+  if (step === "business") return "Confirm your business details.";
+  if (step === "address") return "Add billing location and address.";
+  if (step === "branding") return "Upload a logo and choose a brand color.";
+  if (step === "preferences") return "Choose default locale settings.";
+  return "Review and complete setup.";
+}
 
 function clampStepId(step: unknown): StepId {
   if (typeof step === "string" && (stepOrder as string[]).includes(step)) {
@@ -75,7 +110,6 @@ export default function BusinessSetupPage() {
 
   const [setupState, setSetupState] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -86,6 +120,16 @@ export default function BusinessSetupPage() {
 
   const stepIndex = stepOrder.indexOf(step);
   const progress = Math.max(0, stepIndex) / (stepOrder.length - 1);
+
+  const timezoneOptions = useMemo(() => {
+    try {
+      const anyIntl = Intl as unknown as { supportedValuesOf?: (key: string) => string[] };
+      const values = typeof anyIntl.supportedValuesOf === "function" ? anyIntl.supportedValuesOf("timeZone") : null;
+      return Array.isArray(values) && values.length > 0 ? values : fallbackTimezones;
+    } catch {
+      return fallbackTimezones;
+    }
+  }, []);
 
   const billingAddressJson = useMemo(() => {
     const out: Record<string, string> = {};
@@ -117,13 +161,11 @@ export default function BusinessSetupPage() {
       }
       if (target === "preferences") {
         if (!form.timezone.trim()) return "Timezone is required.";
-        if (!form.language.trim()) return "Language is required.";
       }
       if (target === "finish") {
         if (!form.name.trim()) return "Business name is required.";
         if (!form.billing_country.trim() || form.billing_country.trim().length !== 2) return "Billing country is required.";
         if (!form.timezone.trim()) return "Timezone is required.";
-        if (!form.language.trim()) return "Language is required.";
       }
       return null;
     },
@@ -146,7 +188,7 @@ export default function BusinessSetupPage() {
           billing_address_json: billingAddressJson,
           currency: form.currency.trim() ? form.currency.trim().toUpperCase() : null,
           timezone: form.timezone.trim() || null,
-          language: form.language.trim() || null,
+          language: "en",
           brand_color: form.brand_color.trim() || null,
           setup_step: nextStep,
           setup_state: {
@@ -168,8 +210,7 @@ export default function BusinessSetupPage() {
         }));
 
         if (showStatus) {
-          setStatus("Saved.");
-          window.setTimeout(() => setStatus(null), 1500);
+          notify.success("Saved.");
         }
 
         dirtyRef.current = false;
@@ -227,7 +268,7 @@ export default function BusinessSetupPage() {
           address_postal_code: typeof addr.postal_code === "string" ? addr.postal_code : "",
           brand_color: t.brand_color ?? "#2563eb",
           timezone: t.timezone ?? "UTC",
-          language: t.language ?? "en",
+          language: "en",
         });
 
         const wizardStep =
@@ -287,7 +328,7 @@ export default function BusinessSetupPage() {
     if (!canGoNext) return;
     const nextStep = stepOrder[stepIndex + 1] ?? step;
 
-    const err = validateStep(nextStep);
+    const err = validateStep(step);
     if (err) {
       setError(err);
       return;
@@ -315,8 +356,7 @@ export default function BusinessSetupPage() {
       try {
         const payload = await updateSetup(business, { logo: file });
         setTenant(payload.tenant);
-        setStatus("Logo uploaded.");
-        window.setTimeout(() => setStatus(null), 1500);
+        notify.success("Logo uploaded.");
       } catch (e) {
         if (e instanceof ApiError) {
           setError(e.message);
@@ -348,7 +388,7 @@ export default function BusinessSetupPage() {
         name: form.name.trim(),
         billing_country: form.billing_country.trim().toUpperCase(),
         timezone: form.timezone.trim(),
-        language: form.language.trim(),
+        language: "en",
       });
 
       await auth.refresh();
@@ -370,13 +410,17 @@ export default function BusinessSetupPage() {
 
   if (typeof business !== "string" || business.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-[var(--rb-surface-muted)]">
-        <Card className="w-full max-w-lg shadow-none">
-          <CardHeader>
-            <CardTitle>Setup wizard</CardTitle>
-            <CardDescription>Business is missing.</CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="relative min-h-screen overflow-hidden bg-[var(--rb-surface-muted)]">
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_85%)] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-[42rem] rounded-full bg-[color:color-mix(in_srgb,var(--rb-orange),white_82%)] blur-3xl" />
+        <div className="relative flex min-h-screen items-center justify-center px-6">
+          <Card className="w-full max-w-lg shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base">Setup wizard</CardTitle>
+              <CardDescription>Business is missing.</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -385,13 +429,17 @@ export default function BusinessSetupPage() {
 
   return (
     <RequireAuth>
-      <div className="min-h-screen bg-[var(--rb-surface-muted)]">
-        <div className="mx-auto w-full max-w-3xl px-6 py-10 space-y-6">
+      <div className="relative min-h-screen overflow-hidden bg-[var(--rb-surface-muted)]">
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_85%)] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-[42rem] rounded-full bg-[color:color-mix(in_srgb,var(--rb-orange),white_82%)] blur-3xl" />
+
+        <div className="relative mx-auto w-full max-w-5xl px-6 py-10 space-y-6">
           <PageHeader
             title="Business setup"
             description={`Finish setting up ${tenantName} to start using the app.`}
             actions={
               <div className="flex items-center gap-2">
+                <div className="hidden sm:block text-xs text-zinc-500">{saving ? "Saving..." : "Autosave on"}</div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -407,51 +455,116 @@ export default function BusinessSetupPage() {
           />
 
           {error ? <Alert variant="danger" title="Setup error">{error}</Alert> : null}
-          {status ? <Alert variant="success" title="Status">{status}</Alert> : null}
 
-          <Card className="shadow-none">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <CardTitle>Step {stepIndex + 1} of {stepOrder.length}</CardTitle>
-                  <CardDescription>
-                    {step === "business" ? "Confirm your business details." : null}
-                    {step === "address" ? "Add billing location and address." : null}
-                    {step === "branding" ? "Upload a logo and choose a brand color." : null}
-                    {step === "preferences" ? "Choose default locale settings." : null}
-                    {step === "finish" ? "Review and complete setup." : null}
-                  </CardDescription>
-                </div>
-                <div className="text-xs text-zinc-500">{saving ? "Saving..." : "Autosave on"}</div>
-              </div>
-              <div className="mt-4 h-2 w-full rounded-full bg-[var(--rb-border)] overflow-hidden">
-                <div
-                  className="h-full bg-[var(--rb-blue)]"
-                  style={{ width: `${Math.round(progress * 100)}%` }}
-                />
-              </div>
-              <div className="mt-4 grid grid-cols-5 gap-2 text-xs">
-                {stepOrder.map((s, idx) => (
+          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+            <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Setup steps</CardTitle>
+                <CardDescription>Complete the steps to start using the app.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-2 w-full rounded-full bg-[var(--rb-border)] overflow-hidden">
                   <div
-                    key={s}
-                    className={
-                      "rounded-[var(--rb-radius-sm)] border px-2 py-1 text-center " +
-                      (idx <= stepIndex
-                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_70%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)] text-[var(--rb-blue)]"
-                        : "border-[var(--rb-border)] bg-white text-zinc-500")
-                    }
-                  >
-                    {s === "business" ? "Business" : null}
-                    {s === "address" ? "Address" : null}
-                    {s === "branding" ? "Brand" : null}
-                    {s === "preferences" ? "Defaults" : null}
-                    {s === "finish" ? "Finish" : null}
-                  </div>
-                ))}
-              </div>
-            </CardHeader>
+                    className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </div>
 
-            <CardContent className="space-y-6">
+                <nav aria-label="Setup steps" className="space-y-1">
+                  {stepOrder.map((s, idx) => {
+                    const isCurrent = idx === stepIndex;
+                    const isCompleted = idx < stepIndex;
+                    const isAvailable = idx <= stepIndex;
+
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        disabled={!isAvailable || saving || completing}
+                        onClick={() => {
+                          if (!isAvailable) return;
+                          setError(null);
+                          setStep(s);
+                          void persist(s, true);
+                        }}
+                        className={
+                          "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
+                          (isCurrent
+                            ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
+                            : isCompleted
+                              ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
+                              : "border-[var(--rb-border)] bg-white opacity-60")
+                        }
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={
+                              "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold " +
+                              (isCurrent
+                                ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
+                                : isCompleted
+                                  ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
+                                  : "border-[var(--rb-border)] bg-white text-zinc-600")
+                            }
+                          >
+                            {isCompleted ? (
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            ) : (
+                              idx + 1
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
+                            <div className="mt-0.5 text-xs text-zinc-600 line-clamp-2">{stepDescription(s)}</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-none flex min-h-[calc(100vh-220px)] flex-col">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-base">{stepLabel(step)}</CardTitle>
+                    <CardDescription>{stepDescription(step)}</CardDescription>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-zinc-500">Step {stepIndex + 1} of {stepOrder.length}</div>
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <div className="flex items-center gap-1" aria-label="Progress">
+                        {stepOrder.map((_, idx) => {
+                          const isDone = idx < stepIndex;
+                          const isNow = idx === stepIndex;
+                          return (
+                            <span
+                              key={idx}
+                              className={
+                                "h-1.5 w-5 rounded-full transition " +
+                                (isNow
+                                  ? "bg-[var(--rb-blue)]"
+                                  : isDone
+                                    ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
+                                    : "bg-[var(--rb-border)]")
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                      <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
+                        {Math.round(progress * 100)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="flex-1 space-y-6">
               {step === "business" ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -581,7 +694,7 @@ export default function BusinessSetupPage() {
                         type="color"
                         value={form.brand_color}
                         onChange={(e) => setField("brand_color", e.target.value)}
-                        className="h-10 w-14 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white"
+                        className="h-10 w-14 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white shadow-sm"
                         aria-label="Brand color"
                       />
                       <Input
@@ -617,7 +730,7 @@ export default function BusinessSetupPage() {
                               void onUploadLogo(file);
                             }
                           }}
-                          className="block w-full text-sm text-zinc-700 file:mr-3 file:rounded-[var(--rb-radius-sm)] file:border-0 file:bg-[var(--rb-surface-muted)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--rb-text)]"
+                          className="block w-full text-sm text-zinc-700 file:mr-3 file:rounded-[var(--rb-radius-sm)] file:border-0 file:bg-[var(--rb-surface-muted)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--rb-text)] hover:file:bg-[color:color-mix(in_srgb,var(--rb-surface-muted),black_4%)]"
                         />
                       </div>
                     </div>
@@ -637,7 +750,13 @@ export default function BusinessSetupPage() {
                         value={form.timezone}
                         onChange={(e) => setField("timezone", e.target.value)}
                         placeholder="UTC"
+                        list="rb-timezones"
                       />
+                      <datalist id="rb-timezones">
+                        {timezoneOptions.map((tz) => (
+                          <option key={tz} value={tz} />
+                        ))}
+                      </datalist>
                     </div>
                     <div className="mt-2 text-xs text-zinc-500">Example: UTC, Europe/Berlin, America/New_York</div>
                   </div>
@@ -645,14 +764,9 @@ export default function BusinessSetupPage() {
                   <div>
                     <label className="text-sm font-medium text-[var(--rb-text)]">Language</label>
                     <div className="mt-1">
-                      <Input
-                        value={form.language}
-                        onChange={(e) => setField("language", e.target.value)}
-                        placeholder="en"
-                        maxLength={16}
-                      />
+                      <Input value="English (en)" disabled />
                     </div>
-                    <div className="mt-2 text-xs text-zinc-500">Example: en, de, fr</div>
+                    <div className="mt-2 text-xs text-zinc-500">Currently supported language: English</div>
                   </div>
                 </div>
               ) : null}
@@ -700,21 +814,41 @@ export default function BusinessSetupPage() {
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-between pt-2">
-                <Button variant="outline" disabled={!canGoBack || saving || completing} onClick={() => void onBack()}>
-                  Back
-                </Button>
+              </CardContent>
 
-                <div className="flex items-center gap-2">
-                  {step !== "finish" ? (
-                    <Button variant="primary" disabled={!canGoNext || saving || completing} onClick={() => void onNext()}>
-                      Next
-                    </Button>
-                  ) : null}
+              <div className="sticky bottom-0 border-t border-[var(--rb-border)] bg-white/90 px-5 py-4 backdrop-blur">
+                <div className="flex items-center justify-between gap-4">
+                  <Button variant="ghost" disabled={!canGoBack || saving || completing} onClick={() => void onBack()}>
+                    <span className="inline-flex items-center gap-2">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                      Back
+                    </span>
+                  </Button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:block text-xs text-zinc-500">
+                      {stepLabel(step)}
+                      <span className="mx-2">•</span>
+                      {Math.round(progress * 100)}%
+                    </div>
+
+                    {step !== "finish" ? (
+                      <Button variant="primary" disabled={!canGoNext || saving || completing} onClick={() => void onNext()}>
+                        <span className="inline-flex items-center gap-2">
+                          Next
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M9 18l6-6-6-6" />
+                          </svg>
+                        </span>
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
     </RequireAuth>
