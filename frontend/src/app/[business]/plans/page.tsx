@@ -333,9 +333,17 @@ export default function PlansPage() {
                                     <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--rb-orange)]" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                       <path d="M20 6L9 17l-5-5" />
                                     </svg>
-                                    <div className="min-w-0">
-                                      <div className="truncate">{e.definition?.name}</div>
+                                    <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className="truncate">{e.definition?.name}</div>
                                       {e.definition?.description ? <div className="mt-0.5 text-xs text-zinc-600">{e.definition.description}</div> : null}
+                                      </div>
+
+                                      {String(e.definition?.value_type ?? "") === "integer" && typeof e.value_json === "number" ? (
+                                        <div className="shrink-0 rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-xs font-semibold text-[var(--rb-text)]">
+                                          {Math.trunc(e.value_json)}
+                                        </div>
+                                      ) : null}
                                     </div>
                                   </div>
                                 ))}
