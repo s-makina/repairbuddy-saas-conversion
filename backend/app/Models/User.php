@@ -9,11 +9,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmailContract
 {
     use HasApiTokens, HasFactory, Notifiable, MustVerifyEmailTrait;
+
+    protected $appends = [
+        'avatar_url',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +28,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     protected $fillable = [
         'name',
         'email',
+        'avatar_path',
         'password',
         'tenant_id',
         'role',
@@ -70,5 +76,14 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function roleModel(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (! is_string($this->avatar_path) || $this->avatar_path === '') {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->avatar_path);
     }
 }

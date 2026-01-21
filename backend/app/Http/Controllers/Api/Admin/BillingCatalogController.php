@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BillingInterval;
 use App\Models\BillingPlan;
 use App\Models\EntitlementDefinition;
 use Illuminate\Http\Request;
@@ -31,15 +32,18 @@ class BillingCatalogController extends Controller
                 'versions.prices' => function ($q) {
                     $q->orderBy('currency')->orderBy('interval')->orderByDesc('is_default');
                 },
+                'versions.prices.intervalModel',
                 'versions.entitlements.definition',
             ])
             ->get();
 
         $definitions = EntitlementDefinition::query()->orderBy('id')->get();
+        $intervals = BillingInterval::query()->orderByDesc('is_active')->orderBy('months')->orderBy('name')->get();
 
         return response()->json([
             'billing_plans' => $plans,
             'entitlement_definitions' => $definitions,
+            'billing_intervals' => $intervals,
         ]);
     }
 }

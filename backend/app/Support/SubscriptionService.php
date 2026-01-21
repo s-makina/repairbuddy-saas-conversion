@@ -118,6 +118,11 @@ class SubscriptionService
             return ['trial', $now, $now->copy()->addDays($trialDays)];
         }
 
+        $months = $price->intervalModel?->months;
+        if (is_numeric($months) && (int) $months > 0) {
+            return ['active', $now, $now->copy()->addMonths((int) $months)];
+        }
+
         $interval = strtolower((string) $price->interval);
 
         if ($interval === 'month') {

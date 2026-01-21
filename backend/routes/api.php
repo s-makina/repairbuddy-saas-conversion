@@ -29,6 +29,8 @@ Route::prefix('auth')->group(function () {
             Route::post('/otp/disable', [\App\Http\Controllers\Api\AuthController::class, 'otpDisable'])
                 ->middleware(['impersonation', 'impersonation.audit']);
             Route::patch('/me', [\App\Http\Controllers\Api\AuthController::class, 'updateMe'])->middleware('impersonation');
+            Route::post('/me/avatar', [\App\Http\Controllers\Api\AuthController::class, 'updateAvatar'])->middleware('impersonation');
+            Route::delete('/me/avatar', [\App\Http\Controllers\Api\AuthController::class, 'deleteAvatar'])->middleware('impersonation');
         });
     });
 });

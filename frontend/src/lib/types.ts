@@ -153,11 +153,23 @@ export interface BillingPlanVersion {
   entitlements?: PlanEntitlement[];
 }
 
+export interface BillingInterval {
+  id: number;
+  code: string;
+  name: string;
+  months: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface BillingPrice {
   id: number;
   billing_plan_version_id: number;
   currency: string;
   interval: string;
+  billing_interval_id?: number | null;
+  interval_model?: BillingInterval | null;
   amount_cents: number;
   trial_days?: number | null;
   is_default: boolean;

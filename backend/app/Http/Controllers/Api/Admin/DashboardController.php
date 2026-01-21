@@ -100,10 +100,11 @@ class DashboardController extends Controller
 
         $mrrRows = DB::table('tenant_subscriptions as ts')
             ->join('billing_prices as bp', 'bp.id', '=', 'ts.billing_price_id')
+            ->leftJoin('billing_intervals as bi', 'bi.id', '=', 'bp.billing_interval_id')
             ->whereIn('ts.status', ['trial', 'active', 'past_due'])
             ->select([
                 'ts.currency',
-                DB::raw("sum(case when bp.interval = 'month' then bp.amount_cents when bp.interval = 'year' then round(bp.amount_cents / 12) else 0 end) as mrr_cents"),
+                DB::raw("sum(case when bi.months is not null and bi.months > 0 then round(bp.amount_cents / bi.months) when bp.interval = 'month' then bp.amount_cents when bp.interval = 'year' then round(bp.amount_cents / 12) else 0 end) as mrr_cents"),
             ])
             ->groupBy('ts.currency')
             ->get();

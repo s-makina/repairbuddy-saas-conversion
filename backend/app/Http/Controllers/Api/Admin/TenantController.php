@@ -146,6 +146,7 @@ class TenantController extends Controller
                     $join->on('latest.id', '=', 'ts.id');
                 })
                 ->leftJoin('billing_prices as bp', 'bp.id', '=', 'ts.billing_price_id')
+                ->leftJoin('billing_intervals as bi', 'bi.id', '=', 'bp.billing_interval_id')
                 ->leftJoin('billing_plan_versions as bpv', 'bpv.id', '=', 'ts.billing_plan_version_id')
                 ->leftJoin('billing_plans as bpl', 'bpl.id', '=', 'bpv.billing_plan_id')
                 ->select([
@@ -156,6 +157,8 @@ class TenantController extends Controller
                     'ts.cancel_at_period_end as subscription_cancel_at_period_end',
                     'bp.amount_cents as price_amount_cents',
                     'bp.interval as price_interval',
+                    'bi.code as price_interval_code',
+                    'bi.months as price_interval_months',
                     'bpl.name as plan_name',
                 ])
                 ->get();
@@ -167,12 +170,15 @@ class TenantController extends Controller
                 }
 
                 $amountCents = isset($row->price_amount_cents) ? (int) $row->price_amount_cents : null;
-                $interval = isset($row->price_interval) ? strtolower((string) $row->price_interval) : null;
+                $interval = isset($row->price_interval_code) && $row->price_interval_code ? strtolower((string) $row->price_interval_code) : (isset($row->price_interval) ? strtolower((string) $row->price_interval) : null);
+                $months = isset($row->price_interval_months) ? (int) $row->price_interval_months : null;
                 $subStatus = isset($row->subscription_status) ? (string) $row->subscription_status : null;
 
                 $mrrCents = null;
                 if (in_array($subStatus, ['trial', 'active', 'past_due'], true) && $amountCents !== null && $interval) {
-                    if ($interval === 'month') {
+                    if ($months !== null && $months > 0) {
+                        $mrrCents = (int) round($amountCents / $months, 0);
+                    } elseif ($interval === 'month') {
                         $mrrCents = $amountCents;
                     } elseif ($interval === 'year') {
                         $mrrCents = (int) round($amountCents / 12, 0);

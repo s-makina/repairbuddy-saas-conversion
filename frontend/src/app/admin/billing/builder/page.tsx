@@ -22,7 +22,7 @@ import {
   validateBillingPlanVersionDraft,
 } from "@/lib/billing";
 import { useAuth } from "@/lib/auth";
-import type { BillingPlan, BillingPlanVersion, EntitlementDefinition, PlanEntitlement } from "@/lib/types";
+import type { BillingInterval, BillingPlan, BillingPlanVersion, EntitlementDefinition, PlanEntitlement } from "@/lib/types";
 
 type BuilderEntitlement = {
   entitlement_definition_id: number;
@@ -38,7 +38,8 @@ type AllowedCurrency = { code: string; name: string; symbol: string };
 type DraftPriceRow = {
   key: string;
   currency: string;
-  interval: "month" | "year";
+  interval: string;
+  billing_interval_id: number | null;
   amount_cents: number;
   trial_days: number | null;
   is_default: boolean;
@@ -77,6 +78,8 @@ export default function AdminBillingBuilderPage() {
 
   const [definitions, setDefinitions] = useState<EntitlementDefinition[]>([]);
 
+  const [billingIntervals, setBillingIntervals] = useState<BillingInterval[]>([]);
+
   const [allowedCurrencies, setAllowedCurrencies] = useState<AllowedCurrency[]>([]);
 
   const [pricesDraft, setPricesDraft] = useState<DraftPriceRow[]>([]);
@@ -99,7 +102,8 @@ export default function AdminBillingBuilderPage() {
   const [priceError, setPriceError] = useState<string | null>(null);
   const [priceEditId, setPriceEditId] = useState<string | null>(null);
   const [priceCurrency, setPriceCurrency] = useState("EUR");
-  const [priceInterval, setPriceInterval] = useState<"month" | "year">("month");
+  const [priceIntervalId, setPriceIntervalId] = useState<number | null>(null);
+  const [priceIntervalCode, setPriceIntervalCode] = useState<string>("month");
   const [priceAmount, setPriceAmount] = useState("0.00");
   const [priceTrialDays, setPriceTrialDays] = useState<string>("");
   const [priceIsDefault, setPriceIsDefault] = useState(false);
@@ -201,6 +205,11 @@ export default function AdminBillingBuilderPage() {
         const nextDefs = Array.isArray(res.entitlement_definitions) ? res.entitlement_definitions : [];
         setDefinitions(nextDefs);
 
+        const nextIntervals = Array.isArray((res as { billing_intervals?: BillingInterval[] }).billing_intervals)
+          ? ((res as { billing_intervals?: BillingInterval[] }).billing_intervals as BillingInterval[])
+          : [];
+        setBillingIntervals(nextIntervals);
+
         try {
           const settings = await apiFetch<AdminSettingsCurrenciesPayload>("/api/admin/settings");
           if (!alive) return;
@@ -224,6 +233,7 @@ export default function AdminBillingBuilderPage() {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load billing catalog.");
         setDefinitions([]);
+        setBillingIntervals([]);
         setAllowedCurrencies([]);
       } finally {
         if (!alive) return;
@@ -307,7 +317,8 @@ export default function AdminBillingBuilderPage() {
     const normalized = (Array.isArray(pricesDraft) ? pricesDraft : []).map((p) => ({
       ...p,
       currency: String(p.currency).trim().toUpperCase(),
-      interval: p.interval === "year" ? "year" : "month",
+      interval: String(p.interval || "").trim().toLowerCase() || "month",
+      billing_interval_id: typeof p.billing_interval_id === "number" && Number.isFinite(p.billing_interval_id) ? p.billing_interval_id : null,
       amount_cents: Number.isFinite(p.amount_cents) ? Math.max(0, Math.trunc(p.amount_cents)) : 0,
     }));
 
@@ -378,7 +389,8 @@ export default function AdminBillingBuilderPage() {
     setPriceError(null);
     setPriceEditId(null);
     setPriceCurrency(allowedCurrencies[0]?.code ?? "EUR");
-    setPriceInterval("month");
+    setPriceIntervalId(null);
+    setPriceIntervalCode("month");
     setPriceAmount("0.00");
     setPriceTrialDays("");
     setPriceIsDefault(false);
@@ -395,7 +407,8 @@ export default function AdminBillingBuilderPage() {
     return {
       ...p,
       currency: String(p.currency).trim().toUpperCase(),
-      interval: p.interval === "year" ? "year" : "month",
+      interval: String(p.interval || "").trim().toLowerCase() || "month",
+      billing_interval_id: typeof p.billing_interval_id === "number" && Number.isFinite(p.billing_interval_id) ? p.billing_interval_id : null,
       amount_cents: Number.isFinite(p.amount_cents) ? Math.max(0, Math.trunc(p.amount_cents)) : 0,
       trial_days: typeof p.trial_days === "number" && Number.isFinite(p.trial_days) ? Math.max(0, Math.trunc(p.trial_days)) : null,
       is_default: Boolean(p.is_default),
@@ -467,6 +480,7 @@ export default function AdminBillingBuilderPage() {
           versionId: currentVersion.id,
           currency: p.currency,
           interval: p.interval,
+          billingIntervalId: p.billing_interval_id,
           amountCents: p.amount_cents,
           trialDays: p.trial_days,
           isDefault: p.is_default,
@@ -535,6 +549,14 @@ export default function AdminBillingBuilderPage() {
         return;
       }
 
+      const selectedIntervalId = typeof priceIntervalId === "number" && Number.isFinite(priceIntervalId) ? priceIntervalId : null;
+      const selectedIntervalCode = String(priceIntervalCode || "").trim().toLowerCase();
+
+      if (!selectedIntervalId && !selectedIntervalCode) {
+        setPriceError("Interval is required.");
+        return;
+      }
+
       const amountCents = parseAmountCents(priceAmount);
       const trialDaysRaw = priceTrialDays.trim() === "" ? null : Number(priceTrialDays);
       const trialDays = typeof trialDaysRaw === "number" && Number.isFinite(trialDaysRaw) ? Math.max(0, Math.trunc(trialDaysRaw)) : null;
@@ -542,7 +564,8 @@ export default function AdminBillingBuilderPage() {
       const base: DraftPriceRow = {
         key: priceEditId ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
         currency,
-        interval: priceInterval,
+        interval: selectedIntervalCode || "month",
+        billing_interval_id: selectedIntervalId,
         amount_cents: amountCents,
         trial_days: trialDays,
         is_default: priceIsDefault,
@@ -583,7 +606,8 @@ export default function AdminBillingBuilderPage() {
     resetPriceForm();
     setPriceEditId(p.key);
     setPriceCurrency(String(p.currency).toUpperCase());
-    setPriceInterval(p.interval === "year" ? "year" : "month");
+    setPriceIntervalId(typeof p.billing_interval_id === "number" ? p.billing_interval_id : null);
+    setPriceIntervalCode(String(p.interval || "").toLowerCase() || "month");
     setPriceAmount(((p.amount_cents ?? 0) / 100).toFixed(2));
     setPriceTrialDays(typeof p.trial_days === "number" ? String(p.trial_days) : "");
     setPriceIsDefault(Boolean(p.is_default));
@@ -1235,15 +1259,40 @@ export default function AdminBillingBuilderPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Interval</label>
-              <select
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={priceInterval}
-                onChange={(e) => setPriceInterval(e.target.value === "year" ? "year" : "month")}
-                disabled={priceBusy || Boolean(priceEditId)}
-              >
-                <option value="month">month</option>
-                <option value="year">year</option>
-              </select>
+              {billingIntervals.length > 0 ? (
+                <select
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                  value={priceIntervalId ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const id = raw ? Number(raw) : null;
+                    const found = billingIntervals.find((x) => x.id === id) ?? null;
+                    setPriceIntervalId(found ? found.id : null);
+                    setPriceIntervalCode(found ? String(found.code).toLowerCase() : "");
+                  }}
+                  disabled={priceBusy || Boolean(priceEditId)}
+                >
+                  <option value="">Select interval</option>
+                  {billingIntervals
+                    .slice()
+                    .sort((a, b) => (a.months ?? 0) - (b.months ?? 0) || String(a.name).localeCompare(String(b.name)))
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.months} months)
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <select
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                  value={priceIntervalCode}
+                  onChange={(e) => setPriceIntervalCode(e.target.value === "year" ? "year" : "month")}
+                  disabled={priceBusy || Boolean(priceEditId)}
+                >
+                  <option value="month">month</option>
+                  <option value="year">year</option>
+                </select>
+              )}
               {priceEditId ? <div className="text-xs text-zinc-500">Currency and interval are immutable for an existing price.</div> : null}
             </div>
 

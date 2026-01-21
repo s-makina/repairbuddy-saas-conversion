@@ -3,6 +3,7 @@ import type {
   BillingPlan,
   BillingPlanVersion,
   BillingPrice,
+  BillingInterval,
   EntitlementDefinition,
   Invoice,
   Tenant,
@@ -13,6 +14,7 @@ import type {
 export type BillingCatalogPayload = {
   billing_plans: BillingPlan[];
   entitlement_definitions: EntitlementDefinition[];
+  billing_intervals?: BillingInterval[];
 };
 
 export async function getBillingCatalog(args?: {
@@ -126,7 +128,8 @@ export async function syncBillingPlanVersionEntitlements(args: {
 export async function createBillingPrice(args: {
   versionId: number;
   currency: string;
-  interval: "month" | "year" | string;
+  interval?: string;
+  billingIntervalId?: number | null;
   amountCents: number;
   trialDays?: number | null;
   isDefault?: boolean;
@@ -136,6 +139,7 @@ export async function createBillingPrice(args: {
     method: "POST",
     body: {
       currency: args.currency,
+      billing_interval_id: typeof args.billingIntervalId === "number" ? args.billingIntervalId : undefined,
       interval: args.interval,
       amount_cents: args.amountCents,
       trial_days: typeof args.trialDays === "number" ? args.trialDays : undefined,

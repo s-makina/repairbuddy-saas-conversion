@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BillingInterval;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
@@ -55,6 +56,7 @@ class BillingPlanVersionController extends Controller
                     $draft->prices()->create([
                         'currency' => $price->currency,
                         'interval' => $price->interval,
+                        'billing_interval_id' => $price->billing_interval_id,
                         'amount_cents' => (int) $price->amount_cents,
                         'trial_days' => $price->trial_days,
                         'is_default' => (bool) $price->is_default,
@@ -88,7 +90,7 @@ class BillingPlanVersionController extends Controller
 
         $errors = [];
 
-        $prices = $version->prices()->get();
+        $prices = $version->prices()->with('intervalModel')->get();
         if ($prices->count() === 0) {
             $errors[] = 'At least one price is required.';
         }
@@ -97,14 +99,16 @@ class BillingPlanVersionController extends Controller
 
         foreach ($prices as $p) {
             $currency = strtoupper((string) $p->currency);
-            $interval = strtolower((string) $p->interval);
+            $interval = strtolower((string) ($p->intervalModel?->code ?? $p->interval));
 
             if (strlen($currency) !== 3) {
                 $errors[] = "Invalid currency for price #{$p->id}.";
             }
 
-            if (! in_array($interval, ['month', 'year'], true)) {
-                $errors[] = "Invalid interval for price #{$p->id}.";
+            if (! $p->billing_interval_id) {
+                if (! in_array($interval, ['month', 'year'], true)) {
+                    $errors[] = "Invalid interval for price #{$p->id}.";
+                }
             }
 
             if (! is_numeric($p->amount_cents) || (int) $p->amount_cents < 0) {
@@ -126,7 +130,8 @@ class BillingPlanVersionController extends Controller
         // Require a default per currency+interval that exists.
         $pairs = [];
         foreach ($prices as $p) {
-            $pairs[strtoupper((string) $p->currency).'|'.strtolower((string) $p->interval)] = true;
+            $pairInterval = strtolower((string) ($p->intervalModel?->code ?? $p->interval));
+            $pairs[strtoupper((string) $p->currency).'|'.$pairInterval] = true;
         }
         foreach (array_keys($pairs) as $pair) {
             if (! isset($defaults[$pair])) {
@@ -205,7 +210,8 @@ class BillingPlanVersionController extends Controller
 
         $validated = $request->validate([
             'currency' => ['required', 'string', 'size:3'],
-            'interval' => ['required', 'string', 'in:month,year'],
+            'billing_interval_id' => ['nullable', 'integer', 'exists:billing_intervals,id'],
+            'interval' => ['nullable', 'string', 'in:month,year'],
             'amount_cents' => ['required', 'integer', 'min:0'],
             'trial_days' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['nullable', 'boolean'],
@@ -213,10 +219,20 @@ class BillingPlanVersionController extends Controller
         ]);
 
         $currency = strtoupper((string) $validated['currency']);
-        $interval = strtolower((string) $validated['interval']);
+        $intervalModel = null;
+        if (isset($validated['billing_interval_id']) && $validated['billing_interval_id']) {
+            $intervalModel = BillingInterval::query()->find((int) $validated['billing_interval_id']);
+        }
+
+        $interval = $intervalModel ? strtolower((string) $intervalModel->code) : strtolower((string) ($validated['interval'] ?? ''));
+        if ($interval === '') {
+            return response()->json(['message' => 'billing_interval_id or interval is required.'], 422);
+        }
         $isDefault = (bool) ($validated['is_default'] ?? false);
 
-        $price = DB::transaction(function () use ($version, $currency, $interval, $validated, $isDefault) {
+        $billingIntervalId = $intervalModel ? (int) $intervalModel->id : null;
+
+        $price = DB::transaction(function () use ($version, $currency, $interval, $billingIntervalId, $validated, $isDefault) {
             if ($isDefault) {
                 BillingPrice::query()
                     ->where('billing_plan_version_id', $version->id)
@@ -230,6 +246,7 @@ class BillingPlanVersionController extends Controller
                 'billing_plan_version_id' => $version->id,
                 'currency' => $currency,
                 'interval' => $interval,
+                'billing_interval_id' => $billingIntervalId,
                 'amount_cents' => (int) $validated['amount_cents'],
                 'trial_days' => isset($validated['trial_days']) ? (int) $validated['trial_days'] : null,
                 'is_default' => $isDefault,
@@ -243,7 +260,7 @@ class BillingPlanVersionController extends Controller
 
         return response()->json([
             'price' => $price,
-            'version' => $version->fresh()->load(['plan', 'prices', 'entitlements.definition']),
+            'version' => $version->fresh()->load(['plan', 'prices.intervalModel', 'entitlements.definition']),
         ], 201);
     }
 

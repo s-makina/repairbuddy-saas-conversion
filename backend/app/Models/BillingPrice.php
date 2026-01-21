@@ -14,6 +14,7 @@ class BillingPrice extends Model
         'billing_plan_version_id',
         'currency',
         'interval',
+        'billing_interval_id',
         'amount_cents',
         'trial_days',
         'is_default',
@@ -32,5 +33,10 @@ class BillingPrice extends Model
     public function planVersion(): BelongsTo
     {
         return $this->belongsTo(BillingPlanVersion::class, 'billing_plan_version_id');
+    }
+
+    public function intervalModel(): BelongsTo
+    {
+        return $this->belongsTo(BillingInterval::class, 'billing_interval_id');
     }
 }

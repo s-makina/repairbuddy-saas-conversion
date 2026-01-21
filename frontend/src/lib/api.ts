@@ -41,8 +41,12 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   let body: BodyInit | undefined;
   if (options.body !== undefined) {
-    headers.set("Content-Type", "application/json");
-    body = JSON.stringify(options.body);
+    if (options.body instanceof FormData) {
+      body = options.body;
+    } else {
+      headers.set("Content-Type", "application/json");
+      body = JSON.stringify(options.body);
+    }
   }
 
   const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : 15000;

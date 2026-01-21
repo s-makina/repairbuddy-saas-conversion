@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -529,6 +530,95 @@ class AuthController extends Controller
             'before' => $before,
             'after' => [
                 'name' => $user->name,
+            ],
+        ]);
+
+        return response()->json([
+            'user' => $user,
+        ]);
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $session = $request->attributes->get('impersonation_session');
+        if ($session) {
+            return response()->json([
+                'message' => 'Profile updates are not allowed during impersonation.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'avatar' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $before = [
+            'avatar_path' => $user->avatar_path,
+        ];
+
+        if (is_string($user->avatar_path) && $user->avatar_path !== '') {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $file = $validated['avatar'];
+        $path = $file->storePublicly('avatars/'.$user->id, ['disk' => 'public']);
+
+        $user->forceFill([
+            'avatar_path' => $path,
+        ])->save();
+
+        $this->logAuthEvent($request, 'profile.avatar_updated', $user, $user->email, $user->tenant, [
+            'before' => $before,
+            'after' => [
+                'avatar_path' => $user->avatar_path,
+            ],
+        ]);
+
+        return response()->json([
+            'user' => $user,
+        ]);
+    }
+
+    public function deleteAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $session = $request->attributes->get('impersonation_session');
+        if ($session) {
+            return response()->json([
+                'message' => 'Profile updates are not allowed during impersonation.',
+            ], 403);
+        }
+
+        $before = [
+            'avatar_path' => $user->avatar_path,
+        ];
+
+        if (is_string($user->avatar_path) && $user->avatar_path !== '') {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $user->forceFill([
+            'avatar_path' => null,
+        ])->save();
+
+        $this->logAuthEvent($request, 'profile.avatar_deleted', $user, $user->email, $user->tenant, [
+            'before' => $before,
+            'after' => [
+                'avatar_path' => $user->avatar_path,
             ],
         ]);
 

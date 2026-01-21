@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Alert } from "@/components/ui/Alert";
@@ -25,6 +25,12 @@ export default function AdminProfilePage() {
   const [saving, setSaving] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
   const [sendingVerify, setSendingVerify] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -57,6 +63,9 @@ export default function AdminProfilePage() {
 
     return "U";
   }, [user?.email, user?.name]);
+
+  const currentAvatarUrl = user?.avatar_url ?? null;
+  const avatarSrc = avatarPreviewUrl ?? currentAvatarUrl;
 
   const canSave = Boolean(name.trim()) && !saving && !isImpersonating;
   const hasChanges = name.trim() !== (initialName ?? "").trim();
@@ -99,6 +108,122 @@ export default function AdminProfilePage() {
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  function onPickAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+
+    setError(null);
+    setStatus(null);
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be 5MB or smaller.");
+      return;
+    }
+
+    setAvatarFile(file);
+    const url = URL.createObjectURL(file);
+    setAvatarPreviewUrl(url);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+    };
+  }, [avatarPreviewUrl]);
+
+  async function onUploadAvatar() {
+    setError(null);
+    setStatus(null);
+
+    if (!user) {
+      setError("Not signed in.");
+      return;
+    }
+
+    if (isImpersonating) {
+      setError("This action is disabled during impersonation.");
+      return;
+    }
+
+    if (!avatarFile) {
+      setError("Please choose a photo first.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", avatarFile);
+      await apiFetch<{ user: unknown }>("/api/auth/me/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      await auth.refresh();
+      setStatus("Profile photo updated.");
+
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to update profile photo.");
+      }
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function onRemoveAvatar() {
+    setError(null);
+    setStatus(null);
+
+    if (!user) {
+      setError("Not signed in.");
+      return;
+    }
+
+    if (isImpersonating) {
+      setError("This action is disabled during impersonation.");
+      return;
+    }
+
+    setRemovingAvatar(true);
+    try {
+      await apiFetch<{ user: unknown }>("/api/auth/me/avatar", {
+        method: "DELETE",
+      });
+
+      await auth.refresh();
+      setStatus("Profile photo removed.");
+
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to remove profile photo.");
+      }
+    } finally {
+      setRemovingAvatar(false);
     }
   }
 
@@ -196,7 +321,7 @@ export default function AdminProfilePage() {
               <Avatar
                 alt={user?.name || initialEmail || "User"}
                 fallback={avatarFallback}
-                src={null}
+                src={avatarSrc}
                 size={72}
                 className="ring-2 ring-white shadow-sm"
               />
@@ -210,6 +335,48 @@ export default function AdminProfilePage() {
                   </Badge>
                   <Badge>{roleLabel}</Badge>
                   {typeof user?.id === "number" ? <Badge>ID #{user.id}</Badge> : null}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={onPickAvatarFile}
+                    disabled={isImpersonating || uploadingAvatar || removingAvatar}
+                  />
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImpersonating || uploadingAvatar || removingAvatar}
+                  >
+                    {avatarFile ? "Change selected photo" : "Change photo"}
+                  </Button>
+
+                  {avatarFile ? (
+                    <Button
+                      size="sm"
+                      onClick={() => void onUploadAvatar()}
+                      disabled={isImpersonating || uploadingAvatar || removingAvatar}
+                    >
+                      {uploadingAvatar ? "Uploading..." : "Upload"}
+                    </Button>
+                  ) : null}
+
+                  {currentAvatarUrl ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void onRemoveAvatar()}
+                      disabled={isImpersonating || uploadingAvatar || removingAvatar}
+                      className="text-zinc-600"
+                    >
+                      {removingAvatar ? "Removing..." : "Remove"}
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
