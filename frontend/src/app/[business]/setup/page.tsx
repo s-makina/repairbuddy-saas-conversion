@@ -15,7 +15,7 @@ import { notify } from "@/lib/notify";
 import type { Tenant } from "@/lib/types";
 import { completeSetup, getSetup, updateSetup } from "@/lib/setup";
 
-type StepId = "business" | "address" | "branding" | "preferences" | "tax" | "team" | "finish";
+type StepId = "welcome" | "business" | "address" | "branding" | "preferences" | "tax" | "team" | "finish";
 
 type WizardState = {
   name: string;
@@ -59,7 +59,9 @@ type WizardState = {
   team_default_role: string;
 };
 
-const stepOrder: StepId[] = ["business", "address", "branding", "preferences", "tax", "team", "finish"];
+const stepOrder: StepId[] = ["welcome", "business", "address", "branding", "preferences", "tax", "team", "finish"];
+
+const skippableSteps: StepId[] = ["branding", "preferences", "tax", "team"];
 
 const fallbackTimezones = [
   "UTC",
@@ -80,6 +82,7 @@ const fallbackTimezones = [
 ];
 
 function stepLabel(step: StepId): string {
+  if (step === "welcome") return "Welcome";
   if (step === "business") return "Business";
   if (step === "address") return "Address";
   if (step === "branding") return "Brand";
@@ -90,6 +93,7 @@ function stepLabel(step: StepId): string {
 }
 
 function stepDescription(step: StepId): string {
+  if (step === "welcome") return "Set expectations and start setup.";
   if (step === "business") return "Confirm your business details.";
   if (step === "address") return "Add your address and locale details.";
   if (step === "branding") return "Upload a logo and configure customer-facing info.";
@@ -103,7 +107,7 @@ function clampStepId(step: unknown): StepId {
   if (typeof step === "string" && (stepOrder as string[]).includes(step)) {
     return step as StepId;
   }
-  return "business";
+  return "welcome";
 }
 
 export default function BusinessSetupPage() {
@@ -115,7 +119,7 @@ export default function BusinessSetupPage() {
   const [loading, setLoading] = useState(true);
   const [tenant, setTenant] = useState<Tenant | null>(null);
 
-  const [step, setStep] = useState<StepId>("business");
+  const [step, setStep] = useState<StepId>("welcome");
   const [form, setForm] = useState<WizardState>({
     name: "",
     display_name: "",
@@ -192,9 +196,13 @@ export default function BusinessSetupPage() {
 
   const canGoBack = stepIndex > 0;
   const canGoNext = stepIndex < stepOrder.length - 1;
+  const canSkip = skippableSteps.includes(step) && canGoNext;
 
   const validateStep = useCallback(
     (target: StepId): string | null => {
+      if (target === "welcome") {
+        return null;
+      }
       if (target === "business") {
         if (!form.name.trim()) return "Business name is required.";
         if (!form.primary_contact_name.trim()) return "Primary contact person name is required.";
@@ -451,6 +459,14 @@ export default function BusinessSetupPage() {
     await persist(nextStep, true);
   }, [canGoNext, persist, step, stepIndex, validateStep]);
 
+  const onSkip = useCallback(async () => {
+    if (!canSkip) return;
+    const nextStep = stepOrder[stepIndex + 1] ?? step;
+    setError(null);
+    setStep(nextStep);
+    await persist(nextStep, true);
+  }, [canSkip, persist, step, stepIndex]);
+
   const onBack = useCallback(async () => {
     if (!canGoBack) return;
     const prevStep = stepOrder[stepIndex - 1] ?? step;
@@ -686,6 +702,35 @@ export default function BusinessSetupPage() {
               </CardHeader>
 
               <CardContent className="flex-1 space-y-6">
+              {step === "welcome" ? (
+                <div className="space-y-4">
+                  <div className="text-sm text-zinc-600">
+                    This setup wizard takes about 3–5 minutes. You can skip non-critical steps and come back later.
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {stepOrder
+                      .filter((s) => s !== "welcome")
+                      .map((s) => (
+                        <div
+                          key={s}
+                          className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-zinc-700"
+                        >
+                          {stepLabel(s)}
+                        </div>
+                      ))}
+                  </div>
+                  <Button
+                    variant="primary"
+                    disabled={saving || completing}
+                    onClick={() => {
+                      void onNext();
+                    }}
+                  >
+                    Start setup
+                  </Button>
+                </div>
+              ) : null}
+
               {step === "business" ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -1148,10 +1193,16 @@ export default function BusinessSetupPage() {
                       {Math.round(progress * 100)}%
                     </div>
 
+                    {canSkip ? (
+                      <Button variant="outline" disabled={saving || completing} onClick={() => void onSkip()}>
+                        Skip for now
+                      </Button>
+                    ) : null}
+
                     {step !== "finish" ? (
                       <Button variant="primary" disabled={!canGoNext || saving || completing} onClick={() => void onNext()}>
                         <span className="inline-flex items-center gap-2">
-                          Next
+                          {step === "welcome" ? "Start" : "Next"}
                           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M9 18l6-6-6-6" />
                           </svg>

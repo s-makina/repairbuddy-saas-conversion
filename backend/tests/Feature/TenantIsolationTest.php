@@ -2,7 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\BillingPlan;
+use App\Models\BillingPlanVersion;
+use App\Models\BillingPrice;
 use App\Models\Tenant;
+use App\Models\TenantSubscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -27,6 +31,8 @@ class TenantIsolationTest extends TestCase
             'name' => 'Tenant A',
             'slug' => 'tenant-a',
             'status' => 'active',
+            'currency' => 'USD',
+            'setup_completed_at' => now(),
         ]);
 
         $tenantB = Tenant::query()->create([
@@ -46,6 +52,42 @@ class TenantIsolationTest extends TestCase
         ]);
 
         $tokenA = $userA->createToken('api')->plainTextToken;
+
+        $billingPlan = BillingPlan::query()->create([
+            'code' => 'starter',
+            'name' => 'Starter',
+            'is_active' => true,
+        ]);
+
+        $version = BillingPlanVersion::query()->create([
+            'billing_plan_id' => $billingPlan->id,
+            'version' => 1,
+            'status' => 'active',
+            'locked_at' => now(),
+        ]);
+
+        $price = BillingPrice::query()->create([
+            'billing_plan_version_id' => $version->id,
+            'currency' => 'USD',
+            'interval' => 'month',
+            'amount_cents' => 4900,
+            'trial_days' => null,
+            'is_default' => true,
+        ]);
+
+        \App\Support\TenantContext::set($tenantA);
+
+        TenantSubscription::query()->create([
+            'billing_plan_version_id' => $version->id,
+            'billing_price_id' => $price->id,
+            'currency' => 'USD',
+            'status' => 'active',
+            'started_at' => now(),
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+
+        \App\Support\TenantContext::set(null);
 
         $rolesForbidden = $this
             ->withHeaders([

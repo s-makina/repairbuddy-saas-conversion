@@ -14,7 +14,16 @@ class EnforceTenantMfa
     public function handle(Request $request, Closure $next): Response
     {
         $path = $request->path();
-        if (preg_match('#^[^/]+/app/(gate|security-status)$#', $path)) {
+
+        if (preg_match('#^(?:api/)?[^/]+/app/(gate|security-status)$#', $path)) {
+            return $next($request);
+        }
+
+        if (preg_match('#^(?:api/)?[^/]+/app/billing(?:/.*)?$#', $path)) {
+            return $next($request);
+        }
+
+        if (preg_match('#^(?:api/)?[^/]+/app/setup(?:/.*)?$#', $path)) {
             return $next($request);
         }
 

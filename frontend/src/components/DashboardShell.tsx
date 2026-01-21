@@ -269,6 +269,9 @@ export function DashboardShell({
 
   const tenantSlug = auth.tenant?.slug ?? null;
 
+  const showSetupBanner = Boolean(!auth.isAdmin && tenantSlug && auth.tenant && !auth.tenant.setup_completed_at);
+  const setupHref = tenantSlug ? `/${tenantSlug}/setup` : "/app";
+
   const userName = auth.user?.name ?? "";
   const userEmail = auth.user?.email ?? "";
   const userAvatarUrl = auth.user?.avatar_url ?? null;
@@ -769,6 +772,27 @@ export function DashboardShell({
                 </div>
               </Card>
             </div>
+
+            {showSetupBanner ? (
+              <Card className="mx-auto mt-6 w-full max-w-6xl px-5 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Finish setup</div>
+                    <div className="mt-1 text-sm text-zinc-600">
+                      Your workspace isn&apos;t fully configured yet. Some features may be limited until setup is complete.
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={setupHref}
+                      className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-[var(--rb-radius-sm)] bg-[var(--rb-blue)] px-4 text-sm font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                    >
+                      Resume setup
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
 
             <main className="mx-auto mt-6 w-full max-w-6xl px-4 pb-8">{children}</main>
           </div>

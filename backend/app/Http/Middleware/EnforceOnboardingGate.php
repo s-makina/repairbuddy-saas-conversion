@@ -16,6 +16,11 @@ class EnforceOnboardingGate
     {
         $path = $request->path();
 
+        $session = $request->attributes->get('impersonation_session');
+        if ($session) {
+            return $next($request);
+        }
+
         if (preg_match('#^(?:api/)?[^/]+/app/(gate|security-status)$#', $path)) {
             return $next($request);
         }

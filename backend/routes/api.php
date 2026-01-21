@@ -206,7 +206,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant'])
     ->group(function () {
-        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce'])->group(function () {
+        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce', 'onboarding.gate'])->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
 
             Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);

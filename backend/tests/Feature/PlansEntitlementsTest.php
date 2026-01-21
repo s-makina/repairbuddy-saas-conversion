@@ -25,6 +25,7 @@ class PlansEntitlementsTest extends TestCase
             'slug' => 'tenant-a',
             'status' => 'active',
             'currency' => 'USD',
+            'setup_completed_at' => now(),
             'entitlement_overrides' => [
                 'flags' => [
                     'feature_b' => true,

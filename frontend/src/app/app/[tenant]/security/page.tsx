@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import QRCode from "react-qr-code";
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -340,10 +341,19 @@ export default function SecurityPage() {
       {status ? <div className="text-sm text-green-700">{status}</div> : null}
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-      <Card className="shadow-none">
-        <CardContent className="pt-5">
-          <div className="text-sm font-semibold text-[var(--rb-text)]">One-time passwords (TOTP)</div>
-          <div className="mt-1 text-sm text-zinc-600">Status: {otpEnabled ? "Enabled" : "Disabled"}</div>
+      <Tabs defaultValue={canManage ? "policies" : "mfa"}>
+        <TabsList>
+          <TabsTrigger value="mfa">MFA / OTP</TabsTrigger>
+          {canManage ? <TabsTrigger value="policies">Policies</TabsTrigger> : null}
+          {canManage ? <TabsTrigger value="compliance">Compliance</TabsTrigger> : null}
+          {canManage ? <TabsTrigger value="audit">Audit Log</TabsTrigger> : null}
+        </TabsList>
+
+        <TabsContent value="mfa">
+          <Card className="shadow-none">
+            <CardContent className="pt-5">
+              <div className="text-sm font-semibold text-[var(--rb-text)]">Multi-factor authentication (OTP)</div>
+              <div className="mt-1 text-sm text-zinc-600">Status: {otpEnabled ? "Enabled" : "Disabled"}</div>
 
           {!otpEnabled ? (
             <div className="mt-4 space-y-4">
@@ -448,284 +458,296 @@ export default function SecurityPage() {
               </Button>
             </form>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {canManage ? (
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <div className="text-sm font-semibold text-[var(--rb-text)]">Tenant security policies</div>
-            <div className="mt-1 text-sm text-zinc-600">
-              Configure enforcement rules for all users in this business.
-            </div>
+        {canManage ? (
+          <TabsContent value="policies">
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <div className="text-sm font-semibold text-[var(--rb-text)]">Tenant security policies</div>
+                <div className="mt-1 text-sm text-zinc-600">
+                  Configure enforcement rules for all users in this business.
+                </div>
 
-            {settingsError ? <div className="mt-3 text-sm text-red-600">{settingsError}</div> : null}
+                {settingsError ? <div className="mt-3 text-sm text-red-600">{settingsError}</div> : null}
 
-            <form className="mt-4 grid gap-3" onSubmit={onSavePolicies}>
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="mfa_roles">
-                  MFA required roles
-                </label>
-                <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
-                  {rolesLoading ? <div className="text-sm text-zinc-600">Loading roles...</div> : null}
-                  {!rolesLoading && roles.length === 0 ? (
-                    <div className="text-sm text-zinc-600">No roles found.</div>
-                  ) : null}
+                <form className="mt-4 grid gap-3" onSubmit={onSavePolicies}>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium" htmlFor="mfa_roles">
+                      MFA required roles
+                    </label>
+                    <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
+                      {rolesLoading ? <div className="text-sm text-zinc-600">Loading roles...</div> : null}
+                      {!rolesLoading && roles.length === 0 ? <div className="text-sm text-zinc-600">No roles found.</div> : null}
 
-                  {!rolesLoading && roles.length > 0 ? (
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {roles.map((r) => {
-                        const checked = mfaRoleIds.includes(r.id);
+                      {!rolesLoading && roles.length > 0 ? (
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {roles.map((r) => {
+                            const checked = mfaRoleIds.includes(r.id);
+                            return (
+                              <label key={r.id} className="flex items-center gap-2 text-sm text-zinc-700">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={settingsLoading}
+                                  onChange={(e) => {
+                                    const next = e.target.checked
+                                      ? Array.from(new Set([...mfaRoleIds, r.id]))
+                                      : mfaRoleIds.filter((id) => id !== r.id);
+                                    setMfaRoleIds(next);
+                                  }}
+                                />
+                                <span className="min-w-0 truncate">{r.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                    {settings?.mfa_enforce_after ? (
+                      <div className="text-xs text-zinc-600">Enforce after: {settings.mfa_enforce_after}</div>
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="mfa_grace">
+                        MFA grace period (days)
+                      </label>
+                      <input
+                        id="mfa_grace"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                        value={String(mfaGraceDays)}
+                        onChange={(e) => setMfaGraceDays(Number(e.target.value))}
+                        type="number"
+                        min={0}
+                        max={365}
+                        disabled={settingsLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="idle_timeout">
+                        Session idle timeout (minutes)
+                      </label>
+                      <input
+                        id="idle_timeout"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                        value={String(idleMinutes)}
+                        onChange={(e) => setIdleMinutes(Number(e.target.value))}
+                        type="number"
+                        min={5}
+                        max={1440}
+                        disabled={settingsLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="max_life">
+                        Session max lifetime (days)
+                      </label>
+                      <input
+                        id="max_life"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                        value={String(maxLifetimeDays)}
+                        onChange={(e) => setMaxLifetimeDays(Number(e.target.value))}
+                        type="number"
+                        min={1}
+                        max={365}
+                        disabled={settingsLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="lockout_attempts">
+                        Lockout max attempts
+                      </label>
+                      <input
+                        id="lockout_attempts"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                        value={String(lockoutAttempts)}
+                        onChange={(e) => setLockoutAttempts(Number(e.target.value))}
+                        type="number"
+                        min={1}
+                        max={100}
+                        disabled={settingsLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="lockout_minutes">
+                        Lockout duration (minutes)
+                      </label>
+                      <input
+                        id="lockout_minutes"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                        value={String(lockoutMinutes)}
+                        onChange={(e) => setLockoutMinutes(Number(e.target.value))}
+                        type="number"
+                        min={1}
+                        max={1440}
+                        disabled={settingsLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="submit" disabled={settingsLoading}>
+                      {settingsLoading ? "Saving..." : "Save policies"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => void onForceLogout()}
+                      disabled={settingsLoading}
+                    >
+                      Force logout all users
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
+
+        {canManage ? (
+          <TabsContent value="compliance">
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <div className="text-sm font-semibold text-[var(--rb-text)]">MFA compliance</div>
+                <div className="mt-1 text-sm text-zinc-600">Users in required roles who have not confirmed OTP.</div>
+
+                {complianceError ? <div className="mt-3 text-sm text-red-600">{complianceError}</div> : null}
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                  <Badge variant="default">In scope: {complianceLoading ? "…" : compliance?.total_in_scope ?? 0}</Badge>
+                  <Badge variant="success">Compliant: {complianceLoading ? "…" : compliance?.compliant ?? 0}</Badge>
+                  <Badge variant="danger">Non-compliant: {complianceLoading ? "…" : compliance?.non_compliant ?? 0}</Badge>
+                </div>
+
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-zinc-500">
+                        <th className="py-2 pr-3">User</th>
+                        <th className="py-2 pr-3">Role</th>
+                        <th className="py-2 pr-3">OTP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(Array.isArray(compliance?.non_compliant_users) ? compliance?.non_compliant_users : []).map((u) => {
+                        const roleName =
+                          u.roleModel?.name ?? (u as unknown as { role_model?: { name?: string } }).role_model?.name ?? "(none)";
+                        const compliant = Boolean(u.otp_enabled && u.otp_confirmed_at);
                         return (
-                          <label key={r.id} className="flex items-center gap-2 text-sm text-zinc-700">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={settingsLoading}
-                              onChange={(e) => {
-                                const next = e.target.checked
-                                  ? Array.from(new Set([...mfaRoleIds, r.id]))
-                                  : mfaRoleIds.filter((id) => id !== r.id);
-                                setMfaRoleIds(next);
-                              }}
-                            />
-                            <span className="min-w-0 truncate">{r.name}</span>
-                          </label>
+                          <tr key={u.id} className="border-t border-[var(--rb-border)]">
+                            <td className="py-2 pr-3">
+                              <div className="font-semibold text-[var(--rb-text)]">{u.name}</div>
+                              <div className="text-xs text-zinc-600">{u.email}</div>
+                            </td>
+                            <td className="py-2 pr-3 text-zinc-700">{roleName}</td>
+                            <td className="py-2 pr-3">
+                              {compliant ? <Badge variant="success">Enabled</Badge> : <Badge variant="danger">Missing</Badge>}
+                            </td>
+                          </tr>
                         );
                       })}
+                      {!complianceLoading && (compliance?.non_compliant_users?.length ?? 0) === 0 ? (
+                        <tr>
+                          <td className="py-3 text-sm text-zinc-600" colSpan={3}>
+                            No non-compliant users.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
+
+        {canManage ? (
+          <TabsContent value="audit">
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <div className="text-sm font-semibold text-[var(--rb-text)]">Security audit log</div>
+                <div className="mt-1 text-sm text-zinc-600">Tenant-scoped authentication and admin actions.</div>
+
+                {auditError ? <div className="mt-3 text-sm text-red-600">{auditError}</div> : null}
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <input
+                    className="w-full max-w-[320px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                    value={auditType}
+                    onChange={(e) => {
+                      setAuditType(e.target.value);
+                      setAuditPage(1);
+                    }}
+                    placeholder="Filter by type (e.g. login_success)"
+                  />
+
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
+                      disabled={auditLoading || auditPage <= 1}
+                    >
+                      Prev
+                    </Button>
+                    <div className="text-sm text-zinc-700">
+                      Page {auditPage} / {auditTotalPages}
                     </div>
-                  ) : null}
-                </div>
-                {settings?.mfa_enforce_after ? (
-                  <div className="text-xs text-zinc-600">Enforce after: {settings.mfa_enforce_after}</div>
-                ) : null}
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="mfa_grace">
-                    MFA grace period (days)
-                  </label>
-                  <input
-                    id="mfa_grace"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={String(mfaGraceDays)}
-                    onChange={(e) => setMfaGraceDays(Number(e.target.value))}
-                    type="number"
-                    min={0}
-                    max={365}
-                    disabled={settingsLoading}
-                  />
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}
+                      disabled={auditLoading || auditPage >= auditTotalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="idle_timeout">
-                    Session idle timeout (minutes)
-                  </label>
-                  <input
-                    id="idle_timeout"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={String(idleMinutes)}
-                    onChange={(e) => setIdleMinutes(Number(e.target.value))}
-                    type="number"
-                    min={5}
-                    max={1440}
-                    disabled={settingsLoading}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="max_life">
-                    Session max lifetime (days)
-                  </label>
-                  <input
-                    id="max_life"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={String(maxLifetimeDays)}
-                    onChange={(e) => setMaxLifetimeDays(Number(e.target.value))}
-                    type="number"
-                    min={1}
-                    max={365}
-                    disabled={settingsLoading}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="lockout_attempts">
-                    Lockout max attempts
-                  </label>
-                  <input
-                    id="lockout_attempts"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={String(lockoutAttempts)}
-                    onChange={(e) => setLockoutAttempts(Number(e.target.value))}
-                    type="number"
-                    min={1}
-                    max={100}
-                    disabled={settingsLoading}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="lockout_minutes">
-                    Lockout duration (minutes)
-                  </label>
-                  <input
-                    id="lockout_minutes"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={String(lockoutMinutes)}
-                    onChange={(e) => setLockoutMinutes(Number(e.target.value))}
-                    type="number"
-                    min={1}
-                    max={1440}
-                    disabled={settingsLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" disabled={settingsLoading}>
-                  {settingsLoading ? "Saving..." : "Save policies"}
-                </Button>
-                <Button variant="outline" type="button" onClick={() => void onForceLogout()} disabled={settingsLoading}>
-                  Force logout all users
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {canManage ? (
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <div className="text-sm font-semibold text-[var(--rb-text)]">MFA compliance</div>
-            <div className="mt-1 text-sm text-zinc-600">Users in required roles who have not confirmed OTP.</div>
-
-            {complianceError ? <div className="mt-3 text-sm text-red-600">{complianceError}</div> : null}
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <Badge variant="default">In scope: {complianceLoading ? "…" : compliance?.total_in_scope ?? 0}</Badge>
-              <Badge variant="success">Compliant: {complianceLoading ? "…" : compliance?.compliant ?? 0}</Badge>
-              <Badge variant="danger">Non-compliant: {complianceLoading ? "…" : compliance?.non_compliant ?? 0}</Badge>
-            </div>
-
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-zinc-500">
-                    <th className="py-2 pr-3">User</th>
-                    <th className="py-2 pr-3">Role</th>
-                    <th className="py-2 pr-3">OTP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(Array.isArray(compliance?.non_compliant_users) ? compliance?.non_compliant_users : []).map((u) => {
-                    const roleName = u.roleModel?.name ?? (u as unknown as { role_model?: { name?: string } }).role_model?.name ?? "(none)";
-                    const compliant = Boolean(u.otp_enabled && u.otp_confirmed_at);
-                    return (
-                      <tr key={u.id} className="border-t border-[var(--rb-border)]">
-                        <td className="py-2 pr-3">
-                          <div className="font-semibold text-[var(--rb-text)]">{u.name}</div>
-                          <div className="text-xs text-zinc-600">{u.email}</div>
-                        </td>
-                        <td className="py-2 pr-3 text-zinc-700">{roleName}</td>
-                        <td className="py-2 pr-3">
-                          {compliant ? <Badge variant="success">Enabled</Badge> : <Badge variant="danger">Missing</Badge>}
-                        </td>
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-zinc-500">
+                        <th className="py-2 pr-3">When</th>
+                        <th className="py-2 pr-3">Type</th>
+                        <th className="py-2 pr-3">Source</th>
+                        <th className="py-2 pr-3">User</th>
+                        <th className="py-2 pr-3">IP</th>
                       </tr>
-                    );
-                  })}
-                  {!complianceLoading && (compliance?.non_compliant_users?.length ?? 0) === 0 ? (
-                    <tr>
-                      <td className="py-3 text-sm text-zinc-600" colSpan={3}>
-                        No non-compliant users.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {canManage ? (
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <div className="text-sm font-semibold text-[var(--rb-text)]">Security audit log</div>
-            <div className="mt-1 text-sm text-zinc-600">Tenant-scoped authentication and admin actions.</div>
-
-            {auditError ? <div className="mt-3 text-sm text-red-600">{auditError}</div> : null}
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <input
-                className="w-full max-w-[320px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={auditType}
-                onChange={(e) => {
-                  setAuditType(e.target.value);
-                  setAuditPage(1);
-                }}
-                placeholder="Filter by type (e.g. login_success)"
-              />
-
-              <div className="ml-auto flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
-                  disabled={auditLoading || auditPage <= 1}
-                >
-                  Prev
-                </Button>
-                <div className="text-sm text-zinc-700">
-                  Page {auditPage} / {auditTotalPages}
+                    </thead>
+                    <tbody>
+                      {auditEvents.map((e) => (
+                        <tr key={`${e.source}:${e.id}`} className="border-t border-[var(--rb-border)]">
+                          <td className="py-2 pr-3 text-xs text-zinc-600">{e.created_at ?? ""}</td>
+                          <td className="py-2 pr-3 font-semibold text-[var(--rb-text)]">{e.type}</td>
+                          <td className="py-2 pr-3 text-zinc-700">{e.source}</td>
+                          <td className="py-2 pr-3 text-zinc-700">{e.email ?? (e.user_id ? `#${e.user_id}` : "")}</td>
+                          <td className="py-2 pr-3 text-zinc-700">{e.ip ?? ""}</td>
+                        </tr>
+                      ))}
+                      {!auditLoading && auditEvents.length === 0 ? (
+                        <tr>
+                          <td className="py-3 text-sm text-zinc-600" colSpan={5}>
+                            No events.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
                 </div>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}
-                  disabled={auditLoading || auditPage >= auditTotalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-zinc-500">
-                    <th className="py-2 pr-3">When</th>
-                    <th className="py-2 pr-3">Type</th>
-                    <th className="py-2 pr-3">Source</th>
-                    <th className="py-2 pr-3">User</th>
-                    <th className="py-2 pr-3">IP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditEvents.map((e) => (
-                    <tr key={`${e.source}:${e.id}`} className="border-t border-[var(--rb-border)]">
-                      <td className="py-2 pr-3 text-xs text-zinc-600">{e.created_at ?? ""}</td>
-                      <td className="py-2 pr-3 font-semibold text-[var(--rb-text)]">{e.type}</td>
-                      <td className="py-2 pr-3 text-zinc-700">{e.source}</td>
-                      <td className="py-2 pr-3 text-zinc-700">{e.email ?? (e.user_id ? `#${e.user_id}` : "")}</td>
-                      <td className="py-2 pr-3 text-zinc-700">{e.ip ?? ""}</td>
-                    </tr>
-                  ))}
-                  {!auditLoading && auditEvents.length === 0 ? (
-                    <tr>
-                      <td className="py-3 text-sm text-zinc-600" colSpan={5}>
-                        No events.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
+      </Tabs>
     </div>
   );
 }
