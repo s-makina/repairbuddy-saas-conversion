@@ -136,7 +136,10 @@ export function DropdownMenuItem({
         destructive ? "text-red-700" : "text-zinc-700",
         disabled ? "opacity-50" : "hover:bg-[var(--rb-surface-muted)]",
       )}
-      onClick={onSelect}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
       disabled={disabled}
     >
       {children}

@@ -33,6 +33,7 @@ export interface Tenant {
   slug: string;
   status: TenantStatus;
   contact_email?: string | null;
+  contact_phone?: string | null;
   plan_id?: number | null;
   plan?: Plan | null;
   entitlement_overrides?: Record<string, unknown> | null;
@@ -40,6 +41,14 @@ export interface Tenant {
   billing_country?: string | null;
   billing_vat_number?: string | null;
   billing_address_json?: Record<string, unknown> | null;
+  timezone?: string | null;
+  language?: string | null;
+  brand_color?: string | null;
+  logo_path?: string | null;
+  logo_url?: string | null;
+  setup_completed_at?: string | null;
+  setup_step?: string | null;
+  setup_state?: Record<string, unknown> | null;
   activated_at?: string | null;
   suspended_at?: string | null;
   suspension_reason?: string | null;

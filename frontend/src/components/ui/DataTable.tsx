@@ -4,6 +4,7 @@ import React, { useId, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { apiDownload } from "@/lib/api";
 
 export type DataTableColumn<T> = {
@@ -70,6 +71,7 @@ export function DataTable<T>({
   server,
   exportConfig,
   columnVisibilityKey,
+  onRowClick,
   className,
 }: {
   title?: React.ReactNode;
@@ -88,6 +90,7 @@ export function DataTable<T>({
   server?: DataTableServerState;
   exportConfig?: DataTableExportConfig;
   columnVisibilityKey?: string;
+  onRowClick?: (row: T) => void;
   className?: string;
 }) {
   const [localQuery, setLocalQuery] = useState("");
@@ -160,6 +163,8 @@ export function DataTable<T>({
   const totalRows = isServer ? server.totalRows : filteredData.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const clampedPageIndex = Math.min(pageIndex, totalPages - 1);
+
+  const loadingRowCount = Math.max(1, Math.min(8, pageSize || 10));
 
   const pageRows = useMemo(() => {
     if (isServer) return filteredData;
@@ -446,14 +451,20 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td
-                  className="px-3 py-3 text-sm text-zinc-600"
-                  colSpan={Math.max(1, visibleColumns.length)}
-                >
-                  Loading...
-                </td>
-              </tr>
+              Array.from({ length: loadingRowCount }).map((_, rowIdx) => (
+                <tr key={`loading_${rowIdx}`} className="border-t border-[var(--rb-border)]">
+                  {visibleColumns.map((c, colIdx) => (
+                    <td key={c.id} className={cn("px-3 py-2 align-middle", c.className)}>
+                      <Skeleton
+                        className={cn(
+                          "h-3 rounded-[var(--rb-radius-sm)]",
+                          colIdx === 0 ? "w-3/4" : colIdx === visibleColumns.length - 1 ? "w-16" : "w-full",
+                        )}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : pageRows.length === 0 ? (
               <tr>
                 <td
@@ -465,7 +476,32 @@ export function DataTable<T>({
               </tr>
             ) : (
               pageRows.map((row) => (
-                <tr key={String(getRowId(row))} className="border-t border-[var(--rb-border)]">
+                <tr
+                  key={String(getRowId(row))}
+                  className={cn(
+                    "border-t border-[var(--rb-border)]",
+                    onRowClick ? "cursor-pointer hover:bg-[var(--rb-surface-muted)]" : null,
+                  )}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? "button" : undefined}
+                  onClick={
+                    onRowClick
+                      ? () => {
+                          onRowClick(row);
+                        }
+                      : undefined
+                  }
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onRowClick(row);
+                          }
+                        }
+                      : undefined
+                  }
+                >
                   {visibleColumns.map((c) => (
                     <td key={c.id} className={cn("px-3 py-2 align-middle", c.className)}>
                       {c.cell(row)}

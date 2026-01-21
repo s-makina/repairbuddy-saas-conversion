@@ -275,6 +275,9 @@ export default function AdminBillingBuilderPage() {
       nextValue[def.id] = row ? row.value_json : null;
 
       const type = String(def.value_type ?? "json");
+      if (type === "boolean" && row) {
+        nextValue[def.id] = true;
+      }
       if (type !== "boolean" && type !== "integer") {
         nextJsonText[def.id] = JSON.stringify(row ? row.value_json ?? null : null, null, 2);
         nextJsonError[def.id] = null;
@@ -292,7 +295,8 @@ export default function AdminBillingBuilderPage() {
     for (const def of allEntitlementDefinitions) {
       const enabled = Boolean(entitlementEnabled[def.id]);
       if (!enabled) continue;
-      enabledEnts.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
+      const type = String(def.value_type ?? "json");
+      enabledEnts.push({ entitlement_definition_id: def.id, value_json: type === "boolean" ? true : (entitlementValue[def.id] ?? null) });
     }
 
     return {
@@ -377,7 +381,12 @@ export default function AdminBillingBuilderPage() {
     }
   }, [createdPlan, entitlementEnabled, entitlementJsonText, entitlementValue, planActive, planCode, planDescription, planName, pricesDraft, step]);
 
-  function goNext() {
+  async function goNext() {
+    if (step === 2 && canWrite) {
+      const ok = await onSaveEntitlements();
+      if (!ok) return;
+    }
+
     setStep((s) => Math.min(s + 1, maxStepAllowed));
   }
 
@@ -511,15 +520,14 @@ export default function AdminBillingBuilderPage() {
         if (!enabled) continue;
 
         const type = String(def.value_type ?? "json");
+        if (type === "boolean") {
+          payload.push({ entitlement_definition_id: def.id, value_json: true });
+          continue;
+        }
         if (type !== "boolean" && type !== "integer") {
           const raw = entitlementJsonText[def.id] ?? "";
           const parsed = raw.trim() === "" ? {} : JSON.parse(raw);
           payload.push({ entitlement_definition_id: def.id, value_json: parsed });
-          continue;
-        }
-
-        if (type === "boolean") {
-          payload.push({ entitlement_definition_id: def.id, value_json: Boolean(entitlementValue[def.id]) });
           continue;
         }
 
@@ -631,9 +639,9 @@ export default function AdminBillingBuilderPage() {
     setPriceModalOpen(true);
   }
 
-  async function onSaveEntitlements() {
-    if (!canWrite) return;
-    if (entitlementsBusy) return;
+  async function onSaveEntitlements(): Promise<boolean> {
+    if (!canWrite) return true;
+    if (entitlementsBusy) return false;
 
     setEntitlementsBusy(true);
     setActionError(null);
@@ -642,7 +650,7 @@ export default function AdminBillingBuilderPage() {
     try {
       if (!createdVersion) {
         setEntitlementsStatus("Saved locally. These entitlements will be applied when you create the plan.");
-        return;
+        return true;
       }
 
       const payload: Array<{ entitlement_definition_id: number; value_json: unknown }> = [];
@@ -652,6 +660,10 @@ export default function AdminBillingBuilderPage() {
         if (!enabled) continue;
 
         const type = String(def.value_type ?? "json");
+        if (type === "boolean") {
+          payload.push({ entitlement_definition_id: def.id, value_json: true });
+          continue;
+        }
         if (type !== "boolean" && type !== "integer") {
           const raw = entitlementJsonText[def.id] ?? "";
           try {
@@ -660,13 +672,8 @@ export default function AdminBillingBuilderPage() {
             setEntitlementJsonError((prev) => ({ ...prev, [def.id]: null }));
           } catch {
             setEntitlementJsonError((prev) => ({ ...prev, [def.id]: "Invalid JSON." }));
-            return;
+            return false;
           }
-          continue;
-        }
-
-        if (type === "boolean") {
-          payload.push({ entitlement_definition_id: def.id, value_json: Boolean(entitlementValue[def.id]) });
           continue;
         }
 
@@ -679,8 +686,10 @@ export default function AdminBillingBuilderPage() {
       setCreatedVersion(res.version);
       setEntitlementsStatus("Entitlements saved.");
       setValidateResult(null);
+      return true;
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to save entitlements.");
+      return false;
     } finally {
       setEntitlementsBusy(false);
     }
@@ -950,42 +959,52 @@ export default function AdminBillingBuilderPage() {
                 const jsonError = entitlementJsonError[def.id] ?? null;
 
                 return (
-                  <div key={def.id} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
+                  <div
+                    key={def.id}
+                    className={`rounded-[var(--rb-radius-sm)] border p-3 ${
+                      enabled
+                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_55%)] bg-white"
+                        : "border-[var(--rb-border)] bg-[var(--rb-surface-muted)]"
+                    }`}
+                  >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-zinc-900">
-                          {def.name} <span className="text-xs font-normal text-zinc-500">({def.code})</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-semibold text-zinc-900">{def.name}</div>
+                          <Badge variant={enabled ? "success" : "default"}>{enabled ? "Enabled" : "Disabled"}</Badge>
+                          <Badge variant="info">{type}</Badge>
+                          {def.is_premium ? <Badge variant="warning">premium</Badge> : null}
                         </div>
-                        <div className="mt-1 text-xs text-zinc-500">Type: {type}</div>
-                        {def.description ? <div className="mt-1 text-xs text-zinc-500">{def.description}</div> : null}
-                        {def.is_premium ? <div className="mt-1"><Badge variant="warning">premium</Badge></div> : null}
+                        <div className="mt-1 text-xs text-zinc-500 font-mono">{def.code}</div>
+                        {def.description ? <div className="mt-2 text-sm text-zinc-600">{def.description}</div> : null}
                       </div>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={enabled}
-                          disabled={!canWrite}
-                          onChange={(e) => setEntitlementEnabled((prev) => ({ ...prev, [def.id]: e.target.checked }))}
-                        />
-                        Enabled
-                      </label>
+
+                      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            disabled={!canWrite}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setEntitlementEnabled((prev) => ({ ...prev, [def.id]: checked }));
+                              if (checked && type === "boolean") {
+                                setEntitlementValue((prev) => ({ ...prev, [def.id]: true }));
+                              }
+                            }}
+                          />
+                          Enable
+                        </label>
+                      </div>
                     </div>
 
                     {enabled ? (
-                      <div className="mt-3">
+                      <div className="mt-3 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
                         {type === "boolean" ? (
-                          <label className="flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(value)}
-                              disabled={!canWrite}
-                              onChange={(e) => setEntitlementValue((prev) => ({ ...prev, [def.id]: e.target.checked }))}
-                            />
-                            Value
-                          </label>
+                          <div className="text-sm text-zinc-700">Feature enabled.</div>
                         ) : type === "integer" ? (
                           <div className="space-y-1">
-                            <label className="text-sm font-medium">Value</label>
+                            <label className="text-sm font-medium">Limit</label>
                             <Input
                               type="number"
                               value={value === null || typeof value === "undefined" ? "" : String(value)}
@@ -1001,12 +1020,13 @@ export default function AdminBillingBuilderPage() {
                                 setEntitlementValue((prev) => ({ ...prev, [def.id]: Math.trunc(n) }));
                               }}
                             />
+                            <div className="text-xs text-zinc-500">Use a whole number (e.g. 10, 100, 1000).</div>
                           </div>
                         ) : (
                           <div className="space-y-1">
                             <label className="text-sm font-medium">Value (JSON)</label>
                             <textarea
-                              className="min-h-[110px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                              className="min-h-[110px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 font-mono text-sm"
                               value={entitlementJsonText[def.id] ?? ""}
                               disabled={!canWrite}
                               onChange={(e) => {
@@ -1222,12 +1242,20 @@ export default function AdminBillingBuilderPage() {
           <Button variant="outline" onClick={goBack} disabled={step === 0}>
             Back
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-4">
             <div className="text-sm text-zinc-500">
               Step {step + 1} of {steps.length}
             </div>
-            <Button variant="primary" onClick={goNext} disabled={step === steps.length - 1 || step >= maxStepAllowed}>
-              Next
+            <Button
+              variant="primary"
+              onClick={() => void (step === steps.length - 1 ? onCreatePlanAtEnd() : goNext())}
+              disabled={
+                step > maxStepAllowed ||
+                (step === 2 && entitlementsBusy) ||
+                (step === steps.length - 1 && (!canWrite || createBusy))
+              }
+            >
+              {step === steps.length - 1 ? (createBusy ? "Creating…" : "Create plan") : "Next"}
             </Button>
           </div>
         </div>

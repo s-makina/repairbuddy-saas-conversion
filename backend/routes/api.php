@@ -209,6 +209,10 @@ Route::prefix('{business}')
         Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member'])->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
 
+            Route::get('/setup', [\App\Http\Controllers\Api\App\SetupController::class, 'show']);
+            Route::patch('/setup', [\App\Http\Controllers\Api\App\SetupController::class, 'update']);
+            Route::post('/setup/complete', [\App\Http\Controllers\Api\App\SetupController::class, 'complete']);
+
             Route::get('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'show'])
                 ->middleware('permission:settings.manage');
             Route::patch('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'update'])

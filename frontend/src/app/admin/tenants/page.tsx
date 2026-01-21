@@ -9,11 +9,14 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { PageHeader } from "@/components/ui/PageHeader";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
 export default function AdminTenantsPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -306,6 +309,9 @@ export default function AdminTenantsPage() {
               loading={loading}
               emptyMessage="No businesses found."
               getRowId={(t) => t.id}
+              onRowClick={(t) => {
+                router.push(`/admin/businesses/${t.id}`);
+              }}
               search={{
                 placeholder: "Search name, slug, or email...",
               }}
@@ -407,34 +413,71 @@ export default function AdminTenantsPage() {
                     const canClose = t.status !== "closed";
 
                     return (
-                      <div className="flex items-center justify-end gap-2">
-                        <Link className="text-sm text-[var(--rb-blue)] hover:underline" href={`/admin/businesses/${t.id}`}>
-                          View
-                        </Link>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void onSuspend(t)}
-                          disabled={!!busy || !canSuspend}
+                      <div className="flex items-center justify-end">
+                        <DropdownMenu
+                          align="right"
+                          trigger={({ toggle }) => (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-label="Actions"
+                              title="Actions"
+                              className="px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggle();
+                              }}
+                            >
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                <circle cx="12" cy="5" r="1.5" />
+                                <circle cx="12" cy="12" r="1.5" />
+                                <circle cx="12" cy="19" r="1.5" />
+                              </svg>
+                            </Button>
+                          )}
                         >
-                          {busy === "suspend" ? "…" : "Suspend"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void onUnsuspend(t)}
-                          disabled={!!busy || !canUnsuspend}
-                        >
-                          {busy === "unsuspend" ? "…" : "Unsuspend"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void onClose(t)}
-                          disabled={!!busy || !canClose}
-                        >
-                          {busy === "close" ? "…" : "Close"}
-                        </Button>
+                          {({ close }) => (
+                            <>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  close();
+                                  router.push(`/admin/businesses/${t.id}`);
+                                }}
+                              >
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  close();
+                                  void onSuspend(t);
+                                }}
+                                disabled={!!busy || !canSuspend}
+                              >
+                                {busy === "suspend" ? "…" : "Suspend"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  close();
+                                  void onUnsuspend(t);
+                                }}
+                                disabled={!!busy || !canUnsuspend}
+                              >
+                                {busy === "unsuspend" ? "…" : "Unsuspend"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  close();
+                                  void onClose(t);
+                                }}
+                                disabled={!!busy || !canClose}
+                                destructive
+                              >
+                                {busy === "close" ? "…" : "Close"}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenu>
                       </div>
                     );
                   },
