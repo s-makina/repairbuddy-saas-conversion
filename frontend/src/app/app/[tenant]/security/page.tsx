@@ -15,6 +15,15 @@ type OtpSetupPayload = {
   otpauth_uri: string;
 };
 
+type Role = {
+  id: number;
+  name: string;
+};
+
+type RolesPayload = {
+  roles: Role[];
+};
+
 type SecuritySettingsPayload = {
   settings: {
     mfa_required_roles: number[];
@@ -83,7 +92,10 @@ export default function SecurityPage() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
 
-  const [mfaRolesRaw, setMfaRolesRaw] = useState<string>("");
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+
+  const [mfaRoleIds, setMfaRoleIds] = useState<number[]>([]);
   const [mfaGraceDays, setMfaGraceDays] = useState<number>(7);
   const [idleMinutes, setIdleMinutes] = useState<number>(60);
   const [maxLifetimeDays, setMaxLifetimeDays] = useState<number>(30);
@@ -134,7 +146,7 @@ export default function SecurityPage() {
     void apiFetch<SecuritySettingsPayload>(`/api/${tenant}/app/security-settings`)
       .then((res) => {
         setSettings(res.settings);
-        setMfaRolesRaw((Array.isArray(res.settings.mfa_required_roles) ? res.settings.mfa_required_roles : []).join(","));
+        setMfaRoleIds(Array.isArray(res.settings.mfa_required_roles) ? res.settings.mfa_required_roles : []);
         setMfaGraceDays(res.settings.mfa_grace_period_days ?? 7);
         setIdleMinutes(res.settings.session_idle_timeout_minutes ?? 60);
         setMaxLifetimeDays(res.settings.session_max_lifetime_days ?? 30);
@@ -145,6 +157,17 @@ export default function SecurityPage() {
         setSettingsError(err instanceof Error ? err.message : "Failed to load security settings.");
       })
       .finally(() => setSettingsLoading(false));
+  }, [canManage, tenant]);
+
+  useEffect(() => {
+    if (!canManage) return;
+    if (typeof tenant !== "string" || tenant.length === 0) return;
+
+    setRolesLoading(true);
+    void apiFetch<RolesPayload>(`/api/${tenant}/app/roles`)
+      .then((res) => setRoles(Array.isArray(res.roles) ? res.roles : []))
+      .catch(() => setRoles([]))
+      .finally(() => setRolesLoading(false));
   }, [canManage, tenant]);
 
   useEffect(() => {
@@ -189,12 +212,9 @@ export default function SecurityPage() {
     setSettingsError(null);
     setSettingsLoading(true);
 
-    const roleIds = mfaRolesRaw
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .map((x) => Number(x))
-      .filter((x) => Number.isFinite(x) && x > 0);
+    const roleIds = Array.isArray(mfaRoleIds)
+      ? mfaRoleIds.filter((x) => Number.isFinite(x) && x > 0)
+      : [];
 
     try {
       const res = await apiFetch<SecuritySettingsPayload>(`/api/${tenant}/app/security-settings`, {
@@ -444,16 +464,38 @@ export default function SecurityPage() {
             <form className="mt-4 grid gap-3" onSubmit={onSavePolicies}>
               <div className="space-y-1">
                 <label className="text-sm font-medium" htmlFor="mfa_roles">
-                  MFA required roles (role IDs, comma-separated)
+                  MFA required roles
                 </label>
-                <input
-                  id="mfa_roles"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={mfaRolesRaw}
-                  onChange={(e) => setMfaRolesRaw(e.target.value)}
-                  placeholder="e.g. 1,2,3"
-                  disabled={settingsLoading}
-                />
+                <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
+                  {rolesLoading ? <div className="text-sm text-zinc-600">Loading roles...</div> : null}
+                  {!rolesLoading && roles.length === 0 ? (
+                    <div className="text-sm text-zinc-600">No roles found.</div>
+                  ) : null}
+
+                  {!rolesLoading && roles.length > 0 ? (
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {roles.map((r) => {
+                        const checked = mfaRoleIds.includes(r.id);
+                        return (
+                          <label key={r.id} className="flex items-center gap-2 text-sm text-zinc-700">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={settingsLoading}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? Array.from(new Set([...mfaRoleIds, r.id]))
+                                  : mfaRoleIds.filter((id) => id !== r.id);
+                                setMfaRoleIds(next);
+                              }}
+                            />
+                            <span className="min-w-0 truncate">{r.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
                 {settings?.mfa_enforce_after ? (
                   <div className="text-xs text-zinc-600">Enforce after: {settings.mfa_enforce_after}</div>
                 ) : null}
@@ -542,7 +584,7 @@ export default function SecurityPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" disabled={settingsLoading || settingsLoading}>
+                <Button type="submit" disabled={settingsLoading}>
                   {settingsLoading ? "Saving..." : "Save policies"}
                 </Button>
                 <Button variant="outline" type="button" onClick={() => void onForceLogout()} disabled={settingsLoading}>

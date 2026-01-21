@@ -211,6 +211,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
             Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);
 
+            Route::get('/billing/plans', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'plans']);
+            Route::post('/billing/subscribe', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'subscribe']);
+            Route::get('/billing/checkout', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'checkout']);
+            Route::post('/billing/checkout/confirm', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'confirmCheckout']);
+
             Route::get('/security-status', [\App\Http\Controllers\Api\App\SecurityStatusController::class, 'show']);
 
             Route::get('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'show'])

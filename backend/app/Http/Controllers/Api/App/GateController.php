@@ -47,6 +47,10 @@ class GateController extends Controller
             return 'trialing';
         }
 
+        if ($raw === 'pending') {
+            return 'pending_checkout';
+        }
+
         if (in_array($raw, ['active', 'past_due'], true)) {
             return $raw;
         }
