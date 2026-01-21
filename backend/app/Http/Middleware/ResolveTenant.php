@@ -35,7 +35,7 @@ class ResolveTenant
 
         $tenant = Tenant::query()
             ->where('slug', $tenantSlug)
-            ->whereIn('status', ['trial', 'active', 'past_due'])
+            ->whereIn('status', ['trial', 'active', 'past_due', 'suspended'])
             ->first();
 
         if (! $tenant) {

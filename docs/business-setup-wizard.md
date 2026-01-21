@@ -16,6 +16,93 @@ This wizard should:
 - On successful tenant signup (or first login), if the tenant is not fully set up, redirect to the wizard.
 - If setup is complete, send the user to the normal dashboard.
 
+## Onboarding & Billing Flow (Execution Plan)
+
+### Goal
+Align onboarding with common SaaS best practices while supporting plan-dependent trials.
+
+### High-level user journey
+1. **Signup** (creates `user` + `tenant`)
+2. **Plan selection** (inside authenticated app)
+3. **Checkout** (or trial activation depending on selected plan)
+4. **Business setup wizard** (`/[business]/setup`)
+5. **Full app access** (`/app/[tenant]`)
+
+### Required gating states (tenant-scoped)
+These are the minimum states to route users correctly.
+
+- **Billing / subscription state** (one of)
+  - `subscription_status = none` (no plan selected)
+  - `subscription_status = pending_checkout` (plan selected, payment not completed)
+  - `subscription_status = trialing` (trial active; depends on plan)
+  - `subscription_status = active` (paid and active)
+  - `subscription_status = past_due` (grace-limited access)
+  - `subscription_status = suspended` (no access)
+
+- **Setup state**
+  - `setup_completed_at` (nullable)
+  - `setup_step`
+  - `setup_state`
+
+### Redirect / route gating rules (authoritative order)
+Apply this logic after login and on protected routes (server + client where appropriate).
+
+1. **Suspended tenant**
+   - If tenant is suspended, route to a dedicated suspension screen.
+   - Do not allow setup or checkout screens unless explicitly intended.
+
+2. **No plan selected**
+   - If `subscription_status = none`, route to plan selection.
+
+3. **Plan selected but payment required and not completed**
+   - If `subscription_status = pending_checkout`, route to checkout.
+
+4. **Subscription/trial OK but setup incomplete**
+   - If `subscription_status in (trialing, active, past_due)` and `setup_completed_at is null`, route to `/[business]/setup`.
+
+5. **Subscription/trial OK and setup complete**
+   - Route to the normal app dashboard `/app/[tenant]`.
+
+### Trial behavior
+- Trial eligibility is **plan-dependent**.
+- When a user selects a plan:
+  - If plan has trial: set `subscription_status = trialing` (with end date) and skip payment.
+  - If plan requires payment: set `subscription_status = pending_checkout` and start checkout.
+
+### Billing details timing
+- For best UX, collect **minimal billing basics** as part of checkout (or just before it):
+  - Billing country
+  - Currency
+  - VAT number (optional)
+- Full business setup (logo, branding, operational defaults) happens after subscription/trial is confirmed.
+
+### Implementation checklist
+
+#### Backend
+- Add/confirm fields needed to represent `subscription_status` and trial end date.
+- Implement endpoints:
+  - Plan list (public or authenticated)
+  - Start checkout / create subscription intent
+  - Confirm webhook/return handler to mark subscription active
+- Ensure tenancy middleware and route rules respect `subscription_status`:
+  - `suspended` should return a clear error code/message.
+
+#### Frontend
+- Add an authenticated onboarding route, e.g. `/app/[tenant]/onboarding`:
+  - Step: plan selection
+  - Step: checkout
+- Add routing guards so logged-in users land in the correct step (based on tenant + subscription + setup state).
+- Keep `/[business]/setup` as the setup wizard, but only reachable once subscription/trial is OK.
+
+#### UX
+- Users should always be able to resume:
+  - If checkout is pending, show “Resume checkout”
+  - If setup is incomplete, resume at `setup_step`
+
+### Notes / decisions
+- Tenant is created at signup.
+- Language is locked to English for now.
+
 ### Proposed state flags (tenant-scoped)
 - `setup_completed_at` (nullable)
 - `setup_step` (string/enum, last saved step)

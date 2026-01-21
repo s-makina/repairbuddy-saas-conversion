@@ -3,6 +3,7 @@
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Preloader } from "@/components/Preloader";
+import { computeGateRedirect, getGate } from "@/lib/gate";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
@@ -30,12 +31,17 @@ export default function AppIndexPage() {
       return;
     }
 
-    if (!auth.tenant?.setup_completed_at) {
-      router.replace(`/${slug}/setup`);
-      return;
-    }
-
-    router.replace(`/app/${slug}`);
+    void getGate(slug)
+      .then(({ gate }) => {
+        router.replace(computeGateRedirect(slug, gate));
+      })
+      .catch(() => {
+        if (!auth.tenant?.setup_completed_at) {
+          router.replace(`/${slug}/setup`);
+          return;
+        }
+        router.replace(`/app/${slug}`);
+      });
   }, [auth.isAdmin, auth.isAuthenticated, auth.loading, auth.tenant?.setup_completed_at, auth.tenant?.slug, router]);
 
   if (!auth.loading && auth.isAuthenticated && !auth.isAdmin && missingTenant) {

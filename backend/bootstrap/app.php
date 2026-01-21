@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'tenant' => \App\Http\Middleware\ResolveTenant::class,
             'tenant.member' => \App\Http\Middleware\EnsureTenantMember::class,
+            'mfa.enforce' => \App\Http\Middleware\EnforceTenantMfa::class,
+            'tenant.session' => \App\Http\Middleware\EnforceTenantSessionPolicy::class,
             'verified' => \App\Http\Middleware\EnsureEmailVerifiedJson::class,
             'impersonation' => \App\Http\Middleware\ApplyImpersonation::class,
             'impersonation.audit' => \App\Http\Middleware\AuditImpersonatedWrites::class,

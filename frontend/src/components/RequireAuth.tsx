@@ -4,6 +4,8 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Preloader } from "@/components/Preloader";
+import { computeGateRedirect, getGate } from "@/lib/gate";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export function RequireAuth({
   children,
@@ -21,7 +23,6 @@ export function RequireAuth({
   const tenantSlug = auth.tenant?.slug ?? null;
   const setupPath = tenantSlug ? `/${tenantSlug}/setup` : null;
   const isOnSetupPath = setupPath ? (pathname === setupPath || pathname.startsWith(`${setupPath}/`)) : false;
-  const isSetupIncomplete = Boolean(tenantSlug) && !auth.isAdmin && !auth.tenant?.setup_completed_at;
 
   useEffect(() => {
     if (auth.loading) return;
@@ -46,10 +47,47 @@ export function RequireAuth({
       return;
     }
 
-    if (isSetupIncomplete && !isOnSetupPath) {
-      router.replace(setupPath ?? "/app");
+    if (!auth.isAdmin && tenantSlug) {
+      void apiFetch<{ mfa: { enforced: boolean; compliant: boolean } }>(`/api/${tenantSlug}/app/security-status`)
+        .then(({ mfa }) => {
+          const isOnSecurity = pathname === `/app/${tenantSlug}/security` || pathname.startsWith(`/app/${tenantSlug}/security/`);
+          if (mfa.enforced && !mfa.compliant && !isOnSecurity) {
+            router.replace(`/app/${tenantSlug}/security`);
+            return;
+          }
+
+          return getGate(tenantSlug).then(({ gate }) => {
+            const expected = computeGateRedirect(tenantSlug, gate);
+
+            const isOnPlans = pathname === `/${tenantSlug}/plans` || pathname.startsWith(`/${tenantSlug}/plans/`);
+            const isOnCheckout = pathname === `/${tenantSlug}/checkout` || pathname.startsWith(`/${tenantSlug}/checkout/`);
+            const isOnSuspended = pathname === `/${tenantSlug}/suspended` || pathname.startsWith(`/${tenantSlug}/suspended/`);
+            const isOnApp = pathname === `/app/${tenantSlug}` || pathname.startsWith(`/app/${tenantSlug}/`);
+
+            const isOnExpected =
+              (expected === `/${tenantSlug}/plans` && isOnPlans) ||
+              (expected === `/${tenantSlug}/checkout` && isOnCheckout) ||
+              (expected === `/${tenantSlug}/suspended` && isOnSuspended) ||
+              (expected === `/${tenantSlug}/setup` && isOnSetupPath) ||
+              (expected === `/app/${tenantSlug}` && isOnApp);
+
+            if (!isOnExpected) {
+              router.replace(expected);
+            }
+          });
+        })
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 403) {
+            return;
+          }
+
+          // If gate lookup fails, fall back to setup gating.
+          if (!auth.tenant?.setup_completed_at && !isOnSetupPath) {
+            router.replace(setupPath ?? "/app");
+          }
+        });
     }
-  }, [adminOnly, auth, isOnSetupPath, isSetupIncomplete, pathname, requiredPermission, router, setupPath]);
+  }, [adminOnly, auth, isOnSetupPath, pathname, requiredPermission, router, setupPath, tenantSlug]);
 
   if (auth.loading) {
     return <Preloader />;
@@ -68,10 +106,6 @@ export function RequireAuth({
   }
 
   if (requiredPermission && !auth.can(requiredPermission)) {
-    return null;
-  }
-
-  if (isSetupIncomplete && !isOnSetupPath) {
     return null;
   }
 

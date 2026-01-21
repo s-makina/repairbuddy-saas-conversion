@@ -15,12 +15,16 @@ import { notify } from "@/lib/notify";
 import type { Tenant } from "@/lib/types";
 import { completeSetup, getSetup, updateSetup } from "@/lib/setup";
 
-type StepId = "business" | "address" | "branding" | "preferences" | "finish";
+type StepId = "business" | "address" | "branding" | "preferences" | "tax" | "team" | "finish";
 
 type WizardState = {
   name: string;
+  display_name: string;
+  primary_contact_name: string;
   contact_email: string;
   contact_phone: string;
+
+  registration_number: string;
 
   billing_country: string;
   billing_vat_number: string;
@@ -34,11 +38,28 @@ type WizardState = {
 
   brand_color: string;
 
+  support_email: string;
+  support_phone: string;
+  website: string;
+  document_footer: string;
+
   timezone: string;
   language: string;
+
+  working_hours: string;
+  default_labor_rate: string;
+  warranty_terms: string;
+  notify_status_change: boolean;
+  notify_invoice_created: boolean;
+
+  tax_registered: boolean;
+  invoice_prefix: string;
+
+  team_invites: string;
+  team_default_role: string;
 };
 
-const stepOrder: StepId[] = ["business", "address", "branding", "preferences", "finish"];
+const stepOrder: StepId[] = ["business", "address", "branding", "preferences", "tax", "team", "finish"];
 
 const fallbackTimezones = [
   "UTC",
@@ -60,17 +81,21 @@ const fallbackTimezones = [
 
 function stepLabel(step: StepId): string {
   if (step === "business") return "Business";
-  if (step === "address") return "Billing";
+  if (step === "address") return "Address";
   if (step === "branding") return "Brand";
-  if (step === "preferences") return "Defaults";
+  if (step === "preferences") return "Operations";
+  if (step === "tax") return "Tax";
+  if (step === "team") return "Team";
   return "Finish";
 }
 
 function stepDescription(step: StepId): string {
   if (step === "business") return "Confirm your business details.";
-  if (step === "address") return "Add billing location and address.";
-  if (step === "branding") return "Upload a logo and choose a brand color.";
-  if (step === "preferences") return "Choose default locale settings.";
+  if (step === "address") return "Add your address and locale details.";
+  if (step === "branding") return "Upload a logo and configure customer-facing info.";
+  if (step === "preferences") return "Set default operations and notification preferences.";
+  if (step === "tax") return "Configure VAT and invoice numbering (optional).";
+  if (step === "team") return "Invite your team (optional).";
   return "Review and complete setup.";
 }
 
@@ -93,8 +118,11 @@ export default function BusinessSetupPage() {
   const [step, setStep] = useState<StepId>("business");
   const [form, setForm] = useState<WizardState>({
     name: "",
+    display_name: "",
+    primary_contact_name: "",
     contact_email: "",
     contact_phone: "",
+    registration_number: "",
     billing_country: "",
     billing_vat_number: "",
     currency: "USD",
@@ -104,8 +132,23 @@ export default function BusinessSetupPage() {
     address_state: "",
     address_postal_code: "",
     brand_color: "#2563eb",
+    support_email: "",
+    support_phone: "",
+    website: "",
+    document_footer: "",
     timezone: "UTC",
     language: "en",
+    working_hours: "Mon–Fri 09:00–17:00",
+    default_labor_rate: "",
+    warranty_terms: "",
+    notify_status_change: true,
+    notify_invoice_created: false,
+
+    tax_registered: false,
+    invoice_prefix: "RB",
+
+    team_invites: "",
+    team_default_role: "member",
   });
 
   const [setupState, setSetupState] = useState<Record<string, unknown> | null>(null);
@@ -154,18 +197,41 @@ export default function BusinessSetupPage() {
     (target: StepId): string | null => {
       if (target === "business") {
         if (!form.name.trim()) return "Business name is required.";
+        if (!form.primary_contact_name.trim()) return "Primary contact person name is required.";
+        if (!form.contact_email.trim()) return "Primary contact email is required.";
+        if (!form.contact_phone.trim()) return "Primary contact phone is required.";
       }
       if (target === "address") {
         if (!form.billing_country.trim()) return "Billing country is required.";
         if (form.billing_country.trim().length !== 2) return "Billing country must be a 2-letter code (e.g. US).";
+        if (!form.currency.trim()) return "Currency is required.";
+        if (form.currency.trim().length !== 3) return "Currency must be a 3-letter code (e.g. USD).";
+        if (!form.address_line1.trim()) return "Address line 1 is required.";
+        if (!form.address_city.trim()) return "City is required.";
+        if (!form.address_postal_code.trim()) return "Postal code is required.";
       }
       if (target === "preferences") {
         if (!form.timezone.trim()) return "Timezone is required.";
       }
+      if (target === "tax") {
+        if (form.tax_registered && !form.billing_vat_number.trim()) {
+          return "VAT number is required when tax/VAT registered is enabled.";
+        }
+      }
       if (target === "finish") {
         if (!form.name.trim()) return "Business name is required.";
+        if (!form.primary_contact_name.trim()) return "Primary contact person name is required.";
+        if (!form.contact_email.trim()) return "Primary contact email is required.";
+        if (!form.contact_phone.trim()) return "Primary contact phone is required.";
         if (!form.billing_country.trim() || form.billing_country.trim().length !== 2) return "Billing country is required.";
+        if (!form.currency.trim() || form.currency.trim().length !== 3) return "Currency is required.";
+        if (!form.address_line1.trim()) return "Address line 1 is required.";
+        if (!form.address_city.trim()) return "City is required.";
+        if (!form.address_postal_code.trim()) return "Postal code is required.";
         if (!form.timezone.trim()) return "Timezone is required.";
+        if (form.tax_registered && !form.billing_vat_number.trim()) {
+          return "VAT number is required when tax/VAT registered is enabled.";
+        }
       }
       return null;
     },
@@ -175,6 +241,40 @@ export default function BusinessSetupPage() {
   const persist = useCallback(
     async (nextStep: StepId, showStatus: boolean) => {
       if (typeof business !== "string" || business.length === 0) return;
+
+      const nextSetupState: Record<string, unknown> = {
+        ...(setupState ?? {}),
+        wizard: {
+          step: nextStep,
+          saved_at: new Date().toISOString(),
+        },
+        identity: {
+          display_name: form.display_name.trim() || null,
+          primary_contact_name: form.primary_contact_name.trim() || null,
+          registration_number: form.registration_number.trim() || null,
+        },
+        branding: {
+          support_email: form.support_email.trim() || null,
+          support_phone: form.support_phone.trim() || null,
+          website: form.website.trim() || null,
+          document_footer: form.document_footer.trim() || null,
+        },
+        operations: {
+          working_hours: form.working_hours.trim() || null,
+          default_labor_rate: form.default_labor_rate.trim() || null,
+          warranty_terms: form.warranty_terms.trim() || null,
+          notify_status_change: Boolean(form.notify_status_change),
+          notify_invoice_created: Boolean(form.notify_invoice_created),
+        },
+        tax: {
+          tax_registered: Boolean(form.tax_registered),
+          invoice_prefix: form.invoice_prefix.trim() || null,
+        },
+        team: {
+          invites: form.team_invites.trim() || null,
+          default_role: form.team_default_role.trim() || null,
+        },
+      };
 
       setSaving(true);
       setError(null);
@@ -191,23 +291,11 @@ export default function BusinessSetupPage() {
           language: "en",
           brand_color: form.brand_color.trim() || null,
           setup_step: nextStep,
-          setup_state: {
-            ...(setupState ?? {}),
-            wizard: {
-              step: nextStep,
-              saved_at: new Date().toISOString(),
-            },
-          },
+          setup_state: nextSetupState,
         });
 
         setTenant(payload.tenant);
-        setSetupState((prev) => ({
-          ...(prev ?? {}),
-          wizard: {
-            step: nextStep,
-            saved_at: new Date().toISOString(),
-          },
-        }));
+        setSetupState(nextSetupState);
 
         if (showStatus) {
           notify.success("Saved.");
@@ -253,11 +341,20 @@ export default function BusinessSetupPage() {
 
         const t = payload.tenant;
         const addr = (t.billing_address_json ?? {}) as Record<string, unknown>;
+        const state = (payload.setup.state ?? {}) as Record<string, unknown>;
+        const identity = (state.identity ?? {}) as Record<string, unknown>;
+        const branding = (state.branding ?? {}) as Record<string, unknown>;
+        const operations = (state.operations ?? {}) as Record<string, unknown>;
+        const tax = (state.tax ?? {}) as Record<string, unknown>;
+        const team = (state.team ?? {}) as Record<string, unknown>;
 
         setForm({
           name: t.name ?? "",
+          display_name: typeof identity.display_name === "string" ? identity.display_name : "",
+          primary_contact_name: typeof identity.primary_contact_name === "string" ? identity.primary_contact_name : "",
           contact_email: t.contact_email ?? "",
           contact_phone: t.contact_phone ?? "",
+          registration_number: typeof identity.registration_number === "string" ? identity.registration_number : "",
           billing_country: (t.billing_country ?? "").toUpperCase(),
           billing_vat_number: t.billing_vat_number ?? "",
           currency: (t.currency ?? "USD").toUpperCase(),
@@ -267,8 +364,23 @@ export default function BusinessSetupPage() {
           address_state: typeof addr.state === "string" ? addr.state : "",
           address_postal_code: typeof addr.postal_code === "string" ? addr.postal_code : "",
           brand_color: t.brand_color ?? "#2563eb",
+          support_email: typeof branding.support_email === "string" ? branding.support_email : "",
+          support_phone: typeof branding.support_phone === "string" ? branding.support_phone : "",
+          website: typeof branding.website === "string" ? branding.website : "",
+          document_footer: typeof branding.document_footer === "string" ? branding.document_footer : "",
           timezone: t.timezone ?? "UTC",
           language: "en",
+          working_hours: typeof operations.working_hours === "string" ? operations.working_hours : "Mon–Fri 09:00–17:00",
+          default_labor_rate: typeof operations.default_labor_rate === "string" ? operations.default_labor_rate : "",
+          warranty_terms: typeof operations.warranty_terms === "string" ? operations.warranty_terms : "",
+          notify_status_change: typeof operations.notify_status_change === "boolean" ? operations.notify_status_change : true,
+          notify_invoice_created: typeof operations.notify_invoice_created === "boolean" ? operations.notify_invoice_created : false,
+
+          tax_registered: typeof tax.tax_registered === "boolean" ? tax.tax_registered : false,
+          invoice_prefix: typeof tax.invoice_prefix === "string" ? tax.invoice_prefix : "RB",
+
+          team_invites: typeof team.invites === "string" ? team.invites : "",
+          team_default_role: typeof team.default_role === "string" ? team.default_role : "member",
         });
 
         const wizardStep =
@@ -384,9 +496,18 @@ export default function BusinessSetupPage() {
 
     try {
       await persist("finish", false);
+
+      if (!billingAddressJson) {
+        throw new Error("Billing address is required.");
+      }
+
       await completeSetup(business, {
         name: form.name.trim(),
+        contact_email: form.contact_email.trim(),
+        contact_phone: form.contact_phone.trim(),
         billing_country: form.billing_country.trim().toUpperCase(),
+        billing_address_json: billingAddressJson,
+        currency: form.currency.trim().toUpperCase(),
         timezone: form.timezone.trim(),
         language: "en",
       });
@@ -402,7 +523,7 @@ export default function BusinessSetupPage() {
     } finally {
       setCompleting(false);
     }
-  }, [auth, business, form.billing_country, form.language, form.name, form.timezone, persist, router, validateStep]);
+  }, [auth, billingAddressJson, business, form.billing_country, form.contact_email, form.contact_phone, form.currency, form.language, form.name, form.timezone, persist, router, validateStep]);
 
   if (auth.loading || loading) {
     return <Preloader label="Loading setup" />;
@@ -579,6 +700,29 @@ export default function BusinessSetupPage() {
                     </div>
                   </div>
 
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Display name (optional)</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.display_name}
+                        onChange={(e) => setField("display_name", e.target.value)}
+                        placeholder="Defaults to business name"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Primary contact person name</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.primary_contact_name}
+                        onChange={(e) => setField("primary_contact_name", e.target.value)}
+                        placeholder="e.g. Alex Johnson"
+                        autoComplete="name"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="text-sm font-medium text-[var(--rb-text)]">Contact email</label>
                     <div className="mt-1">
@@ -602,6 +746,92 @@ export default function BusinessSetupPage() {
                         autoComplete="tel"
                       />
                     </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Business registration number (optional)</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.registration_number}
+                        onChange={(e) => setField("registration_number", e.target.value)}
+                        placeholder="e.g. CRN-123456"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "tax" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                      <input
+                        type="checkbox"
+                        checked={form.tax_registered}
+                        onChange={(e) => setField("tax_registered", e.target.checked)}
+                      />
+                      Tax/VAT registered?
+                    </label>
+                    <div className="mt-2 text-xs text-zinc-500">
+                      If enabled, VAT number becomes required to complete setup.
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-sm font-medium text-[var(--rb-text)]">VAT number</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.billing_vat_number}
+                        onChange={(e) => setField("billing_vat_number", e.target.value)}
+                        placeholder="EU123456789"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Invoice prefix (optional)</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.invoice_prefix}
+                        onChange={(e) => setField("invoice_prefix", e.target.value)}
+                        placeholder="RB"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Invoice format preview</label>
+                    <div className="mt-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-zinc-700">
+                      {(form.invoice_prefix.trim() || "RB") + "-" + business + "-YYYY-000001"}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "team" ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Invite team members (optional)</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.team_invites}
+                        onChange={(e) => setField("team_invites", e.target.value)}
+                        placeholder="Emails separated by commas"
+                      />
+                    </div>
+                    <div className="mt-2 text-xs text-zinc-500">Invites are stored for later processing (email sending not implemented yet).</div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[var(--rb-text)]">Default role for invites (optional)</label>
+                    <div className="mt-1">
+                      <Input
+                        value={form.team_default_role}
+                        onChange={(e) => setField("team_default_role", e.target.value)}
+                        placeholder="member"
+                      />
+                    </div>
+                    <div className="mt-2 text-xs text-zinc-500">Example values: owner, member, technician, front_desk.</div>
                   </div>
                 </div>
               ) : null}
@@ -644,7 +874,7 @@ export default function BusinessSetupPage() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Billing address (optional)</div>
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Address</div>
                     <div className="mt-1 grid gap-3 sm:grid-cols-2">
                       <div className="sm:col-span-2">
                         <Input
@@ -738,6 +968,38 @@ export default function BusinessSetupPage() {
                       {uploadingLogo ? "Uploading..." : "PNG/JPG/WEBP up to 5MB"}
                     </div>
                   </div>
+
+                  <div className="sm:col-span-2">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Customer-facing contact (optional)</div>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <Input
+                        value={form.support_email}
+                        onChange={(e) => setField("support_email", e.target.value)}
+                        placeholder="Public support email"
+                        autoComplete="email"
+                      />
+                      <Input
+                        value={form.support_phone}
+                        onChange={(e) => setField("support_phone", e.target.value)}
+                        placeholder="Public support phone"
+                        autoComplete="tel"
+                      />
+                      <div className="sm:col-span-2">
+                        <Input
+                          value={form.website}
+                          onChange={(e) => setField("website", e.target.value)}
+                          placeholder="Website (optional)"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input
+                          value={form.document_footer}
+                          onChange={(e) => setField("document_footer", e.target.value)}
+                          placeholder="Document footer text (optional)"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
@@ -768,6 +1030,45 @@ export default function BusinessSetupPage() {
                     </div>
                     <div className="mt-2 text-xs text-zinc-500">Currently supported language: English</div>
                   </div>
+
+                  <div className="sm:col-span-2">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Operations defaults (optional)</div>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <Input
+                          value={form.working_hours}
+                          onChange={(e) => setField("working_hours", e.target.value)}
+                          placeholder="Working hours (e.g. Mon–Fri 09:00–17:00)"
+                        />
+                      </div>
+                      <Input
+                        value={form.default_labor_rate}
+                        onChange={(e) => setField("default_labor_rate", e.target.value)}
+                        placeholder="Default labor rate (optional)"
+                      />
+                      <Input
+                        value={form.warranty_terms}
+                        onChange={(e) => setField("warranty_terms", e.target.value)}
+                        placeholder="Default warranty terms (optional)"
+                      />
+                      <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                        <input
+                          type="checkbox"
+                          checked={form.notify_status_change}
+                          onChange={(e) => setField("notify_status_change", e.target.checked)}
+                        />
+                        Email on status change
+                      </label>
+                      <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                        <input
+                          type="checkbox"
+                          checked={form.notify_invoice_created}
+                          onChange={(e) => setField("notify_invoice_created", e.target.checked)}
+                        />
+                        Email on invoice created
+                      </label>
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
@@ -782,6 +1083,7 @@ export default function BusinessSetupPage() {
                       <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Business</div>
                       <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">{form.name.trim() || "—"}</div>
                       <div className="mt-1 text-xs text-zinc-500">Contact: {form.contact_email.trim() || "—"}</div>
+                      <div className="mt-1 text-xs text-zinc-500">Primary contact: {form.primary_contact_name.trim() || "—"}</div>
                     </div>
                     <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
                       <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Defaults</div>
@@ -796,9 +1098,21 @@ export default function BusinessSetupPage() {
                       <div className="mt-1 text-xs text-zinc-500">VAT: {form.billing_vat_number.trim() || "—"}</div>
                     </div>
                     <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tax & invoicing</div>
+                      <div className="mt-1 text-sm text-[var(--rb-text)]">
+                        Registered: {form.tax_registered ? "Yes" : "No"}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">Prefix: {form.invoice_prefix.trim() || "—"}</div>
+                    </div>
+                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
                       <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Branding</div>
                       <div className="mt-1 text-sm text-[var(--rb-text)]">Color: {form.brand_color}</div>
                       <div className="mt-1 text-xs text-zinc-500">Logo: {tenant?.logo_url ? "Uploaded" : "—"}</div>
+                    </div>
+                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Team</div>
+                      <div className="mt-1 text-xs text-zinc-500">Invites: {form.team_invites.trim() ? "Drafted" : "—"}</div>
+                      <div className="mt-1 text-xs text-zinc-500">Role: {form.team_default_role.trim() || "—"}</div>
                     </div>
                   </div>
 

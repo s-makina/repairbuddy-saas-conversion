@@ -150,10 +150,31 @@ class SetupController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'contact_email' => ['required', 'email', 'max:255'],
+            'contact_phone' => ['required', 'string', 'max:64'],
             'billing_country' => ['required', 'string', 'size:2'],
+            'billing_address_json' => ['required', 'array'],
+            'billing_address_json.line1' => ['required', 'string', 'max:255'],
+            'billing_address_json.city' => ['required', 'string', 'max:255'],
+            'billing_address_json.postal_code' => ['required', 'string', 'max:64'],
+            'currency' => ['required', 'string', 'size:3'],
             'timezone' => ['required', 'string', 'max:64'],
             'language' => ['required', 'string', 'max:16'],
         ]);
+
+        $primaryContactName = data_get($tenant->setup_state ?? [], 'identity.primary_contact_name');
+        if (! is_string($primaryContactName) || trim($primaryContactName) === '') {
+            return response()->json([
+                'message' => 'Primary contact person name is required.',
+            ], 422);
+        }
+
+        $taxRegistered = data_get($tenant->setup_state ?? [], 'tax.tax_registered');
+        if ($taxRegistered === true && (! $tenant->billing_vat_number || trim((string) $tenant->billing_vat_number) === '')) {
+            return response()->json([
+                'message' => 'VAT number is required when tax/VAT registered is enabled.',
+            ], 422);
+        }
 
         $before = [
             'setup_completed_at' => $tenant->setup_completed_at,
@@ -162,7 +183,11 @@ class SetupController extends Controller
 
         $tenant->forceFill([
             'name' => $validated['name'],
+            'contact_email' => $validated['contact_email'],
+            'contact_phone' => $validated['contact_phone'],
             'billing_country' => strtoupper((string) $validated['billing_country']),
+            'billing_address_json' => $validated['billing_address_json'],
+            'currency' => strtoupper((string) $validated['currency']),
             'timezone' => $validated['timezone'],
             'language' => $validated['language'],
             'setup_completed_at' => now(),

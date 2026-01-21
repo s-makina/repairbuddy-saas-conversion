@@ -74,7 +74,11 @@ export async function updateSetup(business: string, input: SetupUpdateInput): Pr
 
 export async function completeSetup(business: string, input: {
   name: string;
+  contact_email: string;
+  contact_phone: string;
   billing_country: string;
+  billing_address_json: Record<string, unknown>;
+  currency: string;
   timezone: string;
   language: string;
 }): Promise<{ tenant: Tenant }> {

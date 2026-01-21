@@ -202,12 +202,30 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->middleware('permission:admin.billing.read');
 });
 
-Route::prefix('{business}')
+ Route::prefix('{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant'])
     ->group(function () {
-        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member'])->group(function () {
+        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce'])->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
+
+            Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);
+
+            Route::get('/security-status', [\App\Http\Controllers\Api\App\SecurityStatusController::class, 'show']);
+
+            Route::get('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'show'])
+                ->middleware('permission:security.manage');
+            Route::put('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'update'])
+                ->middleware(['throttle:auth', 'permission:security.manage']);
+
+            Route::post('/security/force-logout', [\App\Http\Controllers\Api\App\TenantSecurityActionsController::class, 'forceLogout'])
+                ->middleware(['throttle:auth', 'permission:security.manage']);
+
+            Route::get('/security/compliance', [\App\Http\Controllers\Api\App\TenantSecurityComplianceController::class, 'show'])
+                ->middleware('permission:security.manage');
+
+            Route::get('/audit-events', [\App\Http\Controllers\Api\App\TenantAuditEventsController::class, 'index'])
+                ->middleware('permission:security.manage');
 
             Route::get('/setup', [\App\Http\Controllers\Api\App\SetupController::class, 'show']);
             Route::patch('/setup', [\App\Http\Controllers\Api\App\SetupController::class, 'update']);

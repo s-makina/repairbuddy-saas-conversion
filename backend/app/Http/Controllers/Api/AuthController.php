@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\AuthEvent;
+use App\Models\TenantSecuritySetting;
 use App\Models\User;
 use App\Support\Permissions;
 use App\Support\Totp;
@@ -32,6 +33,72 @@ class AuthController extends Controller
             'user_agent' => (string) $request->userAgent(),
             'metadata' => $metadata,
         ]);
+    }
+
+    protected function lockoutKey(string $email, string $ip): string
+    {
+        return 'auth_lockout:'.strtolower(trim($email)).':'.$ip;
+    }
+
+    protected function lockoutAttemptsKey(string $email, string $ip): string
+    {
+        return 'auth_attempts:'.strtolower(trim($email)).':'.$ip;
+    }
+
+    protected function lockoutPolicyForUser(?User $user): array
+    {
+        if (! $user) {
+            return [10, 15];
+        }
+
+        $settings = TenantSecuritySetting::query()->where('tenant_id', (int) $user->tenant_id)->first();
+
+        $maxAttempts = (int) ($settings?->lockout_max_attempts ?? 10);
+        $durationMinutes = (int) ($settings?->lockout_duration_minutes ?? 15);
+
+        if ($maxAttempts < 1) {
+            $maxAttempts = 1;
+        }
+        if ($durationMinutes < 1) {
+            $durationMinutes = 1;
+        }
+
+        return [$maxAttempts, $durationMinutes];
+    }
+
+    protected function isLockedOut(Request $request, string $email, ?User $user = null): bool
+    {
+        $key = $this->lockoutKey($email, (string) $request->ip());
+
+        return Cache::has($key);
+    }
+
+    protected function registerFailedAttempt(Request $request, string $email, ?User $user = null): void
+    {
+        [$maxAttempts, $durationMinutes] = $this->lockoutPolicyForUser($user);
+
+        $attemptsKey = $this->lockoutAttemptsKey($email, (string) $request->ip());
+        $lockoutKey = $this->lockoutKey($email, (string) $request->ip());
+
+        $attempts = (int) Cache::get($attemptsKey, 0);
+        $attempts++;
+
+        Cache::put($attemptsKey, $attempts, now()->addMinutes($durationMinutes));
+
+        if ($attempts >= $maxAttempts) {
+            Cache::put($lockoutKey, true, now()->addMinutes($durationMinutes));
+
+            $this->logAuthEvent($request, 'lockout_triggered', $user, $email, $user?->tenant, [
+                'max_attempts' => $maxAttempts,
+                'duration_minutes' => $durationMinutes,
+            ]);
+        }
+    }
+
+    protected function clearFailedAttempts(Request $request, string $email): void
+    {
+        Cache::forget($this->lockoutAttemptsKey($email, (string) $request->ip()));
+        Cache::forget($this->lockoutKey($email, (string) $request->ip()));
     }
 
     public function register(Request $request)
@@ -192,15 +259,28 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()->where('email', $validated['email'])->first();
+        $email = (string) $validated['email'];
+        $user = User::query()->where('email', $email)->first();
+
+        if ($this->isLockedOut($request, $email, $user)) {
+            $this->logAuthEvent($request, 'login_locked_out', $user, $email, $user?->tenant);
+
+            return response()->json([
+                'message' => 'Too many login attempts. Please try again later.',
+            ], 423);
+        }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             $this->logAuthEvent($request, 'login_failed', null, $validated['email'], null);
+
+            $this->registerFailedAttempt($request, $email, $user);
 
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 422);
         }
+
+        $this->clearFailedAttempts($request, $email);
 
         if (! $user->hasVerifiedEmail()) {
             $this->logAuthEvent($request, 'login_unverified', $user, $user->email, $user->tenant);
@@ -255,6 +335,16 @@ class AuthController extends Controller
 
         $user = User::query()->find($userId);
 
+        $email = (string) ($user?->email ?? '');
+
+        if ($email !== '' && $this->isLockedOut($request, $email, $user)) {
+            $this->logAuthEvent($request, 'login_otp_locked_out', $user, $email, $user?->tenant);
+
+            return response()->json([
+                'message' => 'Too many login attempts. Please try again later.',
+            ], 423);
+        }
+
         if (! $user || ! $user->hasVerifiedEmail() || ! $user->otp_enabled || ! $user->otp_secret) {
             $this->logAuthEvent($request, 'login_otp_invalid', $user, $user?->email, $user?->tenant);
 
@@ -266,10 +356,14 @@ class AuthController extends Controller
         if (! Totp::verify($user->otp_secret, $validated['code'])) {
             $this->logAuthEvent($request, 'login_otp_failed', $user, $user->email, $user->tenant);
 
+            $this->registerFailedAttempt($request, (string) $user->email, $user);
+
             return response()->json([
                 'message' => 'Invalid OTP code.',
             ], 422);
         }
+
+        $this->clearFailedAttempts($request, (string) $user->email);
 
         Cache::forget('otp_login:'.$validated['otp_login_token']);
 
