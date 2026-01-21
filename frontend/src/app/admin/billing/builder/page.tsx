@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { apiFetch } from "@/lib/api";
 import {
   activateBillingPlanVersion,
   createBillingPlan,
@@ -27,6 +28,12 @@ type BuilderEntitlement = {
   entitlement_definition_id: number;
   value_json: unknown;
 };
+
+type AdminSettingsCurrenciesPayload = {
+  currencies: { code: string; symbol: string | null; name: string; is_active: boolean }[];
+};
+
+type AllowedCurrency = { code: string; name: string; symbol: string };
 
 function formatCents(cents: number, currency: string) {
   const c = Number.isFinite(cents) ? cents : 0;
@@ -46,6 +53,8 @@ export default function AdminBillingBuilderPage() {
   const [reloadNonce, setReloadNonce] = useState(0);
 
   const [definitions, setDefinitions] = useState<EntitlementDefinition[]>([]);
+
+  const [allowedCurrencies, setAllowedCurrencies] = useState<AllowedCurrency[]>([]);
 
   type DraftPriceRow = {
     key: string;
@@ -131,10 +140,31 @@ export default function AdminBillingBuilderPage() {
 
         const nextDefs = Array.isArray(res.entitlement_definitions) ? res.entitlement_definitions : [];
         setDefinitions(nextDefs);
+
+        try {
+          const settings = await apiFetch<AdminSettingsCurrenciesPayload>("/api/admin/settings");
+          if (!alive) return;
+
+          const nextAllowed = (Array.isArray(settings.currencies) ? settings.currencies : [])
+            .filter((c) => Boolean(c?.is_active))
+            .map((c) => ({
+              code: String(c.code ?? "").trim().toUpperCase(),
+              name: String(c.name ?? "").trim(),
+              symbol: String(c.symbol ?? "").trim(),
+            }))
+            .filter((c) => c.code.length === 3)
+            .sort((a, b) => a.code.localeCompare(b.code));
+
+          setAllowedCurrencies(nextAllowed);
+        } catch (e) {
+          if (!alive) return;
+          setAllowedCurrencies([]);
+        }
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load billing catalog.");
         setDefinitions([]);
+        setAllowedCurrencies([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -147,6 +177,10 @@ export default function AdminBillingBuilderPage() {
       alive = false;
     };
   }, [reloadNonce]);
+
+  const allowedCurrencyCodes = useMemo(() => {
+    return new Set(allowedCurrencies.map((c) => c.code));
+  }, [allowedCurrencies]);
 
   const entitlements: PlanEntitlement[] = useMemo(() => [], []);
   const entitlementsByDefId = useMemo(() => {
@@ -254,7 +288,7 @@ export default function AdminBillingBuilderPage() {
   function resetPriceForm() {
     setPriceError(null);
     setPriceEditId(null);
-    setPriceCurrency("EUR");
+    setPriceCurrency(allowedCurrencies[0]?.code ?? "EUR");
     setPriceInterval("month");
     setPriceAmount("0.00");
     setPriceTrialDays("");
@@ -390,7 +424,12 @@ export default function AdminBillingBuilderPage() {
     try {
       const currency = priceCurrency.trim().toUpperCase();
       if (currency.length !== 3) {
-        setPriceError("Currency must be 3 letters (e.g. EUR).");
+        setPriceError("Currency is required.");
+        return;
+      }
+
+      if (allowedCurrencyCodes.size > 0 && !allowedCurrencyCodes.has(currency)) {
+        setPriceError("Currency must be one of the allowed currencies.");
         return;
       }
 
@@ -879,9 +918,142 @@ export default function AdminBillingBuilderPage() {
                 <Alert variant="info" title="Not validated">Click Validate to run server-side checks.</Alert>
               )}
 
-              <pre className="max-h-[420px] overflow-auto rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3 text-xs text-zinc-700">
-                {JSON.stringify(summary, null, 2)}
-              </pre>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <Card className="lg:col-span-1">
+                  <CardHeader>
+                    <CardTitle>Plan</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Name</div>
+                      <div className="text-sm font-semibold text-zinc-900">{planName.trim() || "—"}</div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Code</div>
+                      <div className="text-sm text-zinc-700">
+                        {planCode.trim() ? <span className="font-mono">{planCode.trim()}</span> : <span className="text-zinc-500">auto-generated</span>}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Status</div>
+                      <div>
+                        {planActive ? <Badge variant="success">active</Badge> : <Badge variant="default">inactive</Badge>}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Description</div>
+                      <div className="text-sm text-zinc-700 whitespace-pre-wrap">{planDescription.trim() || "—"}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Prices</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DataTable
+                      title="Price points"
+                      data={(Array.isArray(pricesDraft) ? pricesDraft : [])
+                        .slice()
+                        .map((p) => normalizeDraftPriceRow(p))
+                        .sort((a, b) => `${a.currency}|${a.interval}`.localeCompare(`${b.currency}|${b.interval}`))}
+                      loading={false}
+                      emptyMessage="No prices configured."
+                      getRowId={(p) => p.key}
+                      columns={[
+                        {
+                          id: "currency",
+                          header: "Currency",
+                          cell: (p) => {
+                            const code = String(p.currency).toUpperCase();
+                            const meta = allowedCurrencies.find((c) => c.code === code) ?? null;
+                            return (
+                              <div className="space-y-0.5">
+                                <div className="text-sm font-medium text-zinc-900">{code}</div>
+                                {meta?.name ? <div className="text-xs text-zinc-500">{meta.name}</div> : null}
+                              </div>
+                            );
+                          },
+                          className: "whitespace-nowrap",
+                        },
+                        {
+                          id: "interval",
+                          header: "Interval",
+                          cell: (p) => <div className="text-sm text-zinc-700">{String(p.interval).toLowerCase()}</div>,
+                          className: "whitespace-nowrap",
+                        },
+                        {
+                          id: "amount",
+                          header: "Amount",
+                          cell: (p) => <div className="text-sm text-zinc-800">{formatCents(p.amount_cents ?? 0, p.currency)}</div>,
+                          className: "whitespace-nowrap",
+                        },
+                        {
+                          id: "trial",
+                          header: "Trial",
+                          cell: (p) => <div className="text-sm text-zinc-700">{typeof p.trial_days === "number" ? `${p.trial_days} days` : "—"}</div>,
+                          className: "whitespace-nowrap",
+                        },
+                        {
+                          id: "default",
+                          header: "Default",
+                          cell: (p) => (p.is_default ? <Badge variant="success">default</Badge> : <Badge variant="default">—</Badge>),
+                          className: "whitespace-nowrap",
+                        },
+                      ]}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Entitlements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {allEntitlementDefinitions.filter((d) => Boolean(entitlementEnabled[d.id])).length === 0 ? (
+                    <div className="text-sm text-zinc-600">No entitlements enabled.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {allEntitlementDefinitions
+                        .filter((d) => Boolean(entitlementEnabled[d.id]))
+                        .map((def) => {
+                          const type = String(def.value_type ?? "json");
+                          const value = entitlementValue[def.id];
+
+                          let valueText = "—";
+                          if (type === "boolean") {
+                            valueText = Boolean(value) ? "Enabled" : "Disabled";
+                          } else if (type === "integer") {
+                            valueText = typeof value === "number" ? String(value) : value === null ? "—" : String(value);
+                          } else {
+                            const raw = (entitlementJsonText[def.id] ?? "").trim();
+                            valueText = raw ? "Custom" : "—";
+                          }
+
+                          return (
+                            <div key={def.id} className="flex flex-col gap-2 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-zinc-900">
+                                  {def.name} <span className="text-xs font-normal text-zinc-500">({def.code})</span>
+                                </div>
+                                <div className="mt-0.5 text-xs text-zinc-500">Type: {type}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {def.is_premium ? <Badge variant="warning">premium</Badge> : null}
+                                <Badge variant="info">{valueText}</Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         ) : null}
@@ -926,7 +1098,20 @@ export default function AdminBillingBuilderPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Currency</label>
-              <Input value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)} disabled={priceBusy || Boolean(priceEditId)} />
+              <select
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={priceCurrency}
+                onChange={(e) => setPriceCurrency(e.target.value)}
+                disabled={priceBusy || Boolean(priceEditId) || allowedCurrencies.length === 0}
+              >
+                {allowedCurrencies.length === 0 ? <option value={priceCurrency}>{priceCurrency}</option> : null}
+                {allowedCurrencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code}{c.name ? ` — ${c.name}` : ""}
+                  </option>
+                ))}
+              </select>
+              {allowedCurrencies.length === 0 ? <div className="text-xs text-zinc-500">No allowed currencies found. Add currencies under Admin / Billing / Currencies.</div> : null}
             </div>
 
             <div className="space-y-1">

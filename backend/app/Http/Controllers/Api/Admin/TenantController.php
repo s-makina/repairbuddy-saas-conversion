@@ -124,8 +124,149 @@ class TenantController extends Controller
 
         $paginator = $query->paginate($perPage);
 
+        $tenantItems = $paginator->items();
+        $tenantIds = [];
+        foreach ($tenantItems as $t) {
+            $id = is_array($t) ? (int) ($t['id'] ?? 0) : (int) ($t->id ?? 0);
+            if ($id > 0) {
+                $tenantIds[] = $id;
+            }
+        }
+
+        $snapshots = [];
+
+        if (count($tenantIds) > 0) {
+            $latestSubscriptionIds = DB::table('tenant_subscriptions')
+                ->whereIn('tenant_id', $tenantIds)
+                ->select(['tenant_id', DB::raw('max(id) as id')])
+                ->groupBy('tenant_id');
+
+            $subs = DB::table('tenant_subscriptions as ts')
+                ->joinSub($latestSubscriptionIds, 'latest', function ($join) {
+                    $join->on('latest.id', '=', 'ts.id');
+                })
+                ->leftJoin('billing_prices as bp', 'bp.id', '=', 'ts.billing_price_id')
+                ->leftJoin('billing_plan_versions as bpv', 'bpv.id', '=', 'ts.billing_plan_version_id')
+                ->leftJoin('billing_plans as bpl', 'bpl.id', '=', 'bpv.billing_plan_id')
+                ->select([
+                    'ts.tenant_id',
+                    'ts.status as subscription_status',
+                    'ts.currency as subscription_currency',
+                    'ts.current_period_end as subscription_current_period_end',
+                    'ts.cancel_at_period_end as subscription_cancel_at_period_end',
+                    'bp.amount_cents as price_amount_cents',
+                    'bp.interval as price_interval',
+                    'bpl.name as plan_name',
+                ])
+                ->get();
+
+            foreach ($subs as $row) {
+                $tenantId = (int) ($row->tenant_id ?? 0);
+                if ($tenantId <= 0) {
+                    continue;
+                }
+
+                $amountCents = isset($row->price_amount_cents) ? (int) $row->price_amount_cents : null;
+                $interval = isset($row->price_interval) ? strtolower((string) $row->price_interval) : null;
+                $subStatus = isset($row->subscription_status) ? (string) $row->subscription_status : null;
+
+                $mrrCents = null;
+                if (in_array($subStatus, ['trial', 'active', 'past_due'], true) && $amountCents !== null && $interval) {
+                    if ($interval === 'month') {
+                        $mrrCents = $amountCents;
+                    } elseif ($interval === 'year') {
+                        $mrrCents = (int) round($amountCents / 12, 0);
+                    } else {
+                        $mrrCents = 0;
+                    }
+                }
+
+                $snapshots[$tenantId] = array_merge($snapshots[$tenantId] ?? [], [
+                    'subscription_status' => $subStatus,
+                    'subscription_currency' => isset($row->subscription_currency) ? (string) $row->subscription_currency : null,
+                    'subscription_current_period_end' => $row->subscription_current_period_end ?? null,
+                    'subscription_cancel_at_period_end' => (bool) ($row->subscription_cancel_at_period_end ?? false),
+                    'plan_name' => isset($row->plan_name) ? (string) $row->plan_name : null,
+                    'price_amount_cents' => $amountCents,
+                    'price_interval' => $interval,
+                    'mrr_cents' => $mrrCents,
+                ]);
+            }
+
+            $outstandingRows = DB::table('invoices')
+                ->whereIn('tenant_id', $tenantIds)
+                ->where('status', 'issued')
+                ->select([
+                    'tenant_id',
+                    DB::raw('count(*) as c'),
+                    DB::raw('sum(total_cents) as total_cents'),
+                ])
+                ->groupBy('tenant_id')
+                ->get();
+
+            foreach ($outstandingRows as $row) {
+                $tenantId = (int) ($row->tenant_id ?? 0);
+                if ($tenantId <= 0) {
+                    continue;
+                }
+
+                $snapshots[$tenantId] = array_merge($snapshots[$tenantId] ?? [], [
+                    'outstanding_invoices_count' => (int) ($row->c ?? 0),
+                    'outstanding_balance_cents' => (int) ($row->total_cents ?? 0),
+                ]);
+            }
+
+            $latestInvoiceIds = DB::table('invoices')
+                ->whereIn('tenant_id', $tenantIds)
+                ->select(['tenant_id', DB::raw('max(id) as id')])
+                ->groupBy('tenant_id');
+
+            $latestInvoices = DB::table('invoices as inv')
+                ->joinSub($latestInvoiceIds, 'latest_inv', function ($join) {
+                    $join->on('latest_inv.id', '=', 'inv.id');
+                })
+                ->select([
+                    'inv.tenant_id',
+                    'inv.id',
+                    'inv.invoice_number',
+                    'inv.status',
+                    'inv.currency',
+                    'inv.total_cents',
+                    'inv.issued_at',
+                    'inv.paid_at',
+                ])
+                ->get();
+
+            foreach ($latestInvoices as $row) {
+                $tenantId = (int) ($row->tenant_id ?? 0);
+                if ($tenantId <= 0) {
+                    continue;
+                }
+
+                $snapshots[$tenantId] = array_merge($snapshots[$tenantId] ?? [], [
+                    'last_invoice' => [
+                        'id' => (int) ($row->id ?? 0),
+                        'invoice_number' => isset($row->invoice_number) ? (string) $row->invoice_number : null,
+                        'status' => isset($row->status) ? (string) $row->status : null,
+                        'currency' => isset($row->currency) ? (string) $row->currency : null,
+                        'total_cents' => isset($row->total_cents) ? (int) $row->total_cents : null,
+                        'issued_at' => $row->issued_at ?? null,
+                        'paid_at' => $row->paid_at ?? null,
+                    ],
+                ]);
+            }
+        }
+
+        $tenantsOut = [];
+        foreach ($tenantItems as $t) {
+            $tenantId = is_array($t) ? (int) ($t['id'] ?? 0) : (int) ($t->id ?? 0);
+            $base = is_array($t) ? $t : $t->toArray();
+            $base['billing_snapshot'] = $tenantId > 0 ? ($snapshots[$tenantId] ?? null) : null;
+            $tenantsOut[] = $base;
+        }
+
         return response()->json([
-            'tenants' => $paginator->items(),
+            'tenants' => $tenantsOut,
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),

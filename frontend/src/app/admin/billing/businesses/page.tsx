@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/money";
 import type { Tenant } from "@/lib/types";
 
 export default function AdminBillingTenantsHubPage() {
@@ -193,6 +195,85 @@ export default function AdminBillingTenantsHubPage() {
                     sortId: "id",
                     cell: (t) => <div className="text-sm text-zinc-700">{t.currency ?? "—"}</div>,
                     className: "whitespace-nowrap",
+                  },
+                  {
+                    id: "subscription",
+                    header: "Subscription",
+                    sortId: "id",
+                    cell: (t) => {
+                      const snap = t.billing_snapshot ?? null;
+                      const planName = snap?.plan_name ?? null;
+                      const status = snap?.subscription_status ?? null;
+                      const interval = snap?.price_interval ? String(snap.price_interval).toLowerCase() : null;
+                      const priceAmountCents = typeof snap?.price_amount_cents === "number" ? snap?.price_amount_cents : null;
+                      const currency = snap?.subscription_currency ?? t.currency ?? null;
+
+                      const priceLabel =
+                        typeof priceAmountCents === "number"
+                          ? `${formatMoney({ amountCents: priceAmountCents, currency })}${interval ? `/${interval === "month" ? "mo" : interval === "year" ? "yr" : interval}` : ""}`
+                          : "—";
+
+                      return (
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-zinc-800">{planName ?? "—"}</div>
+                          <div className="truncate text-xs text-zinc-500">
+                            {status ? `${status} • ${priceLabel}` : priceLabel}
+                          </div>
+                        </div>
+                      );
+                    },
+                    className: "min-w-[240px]",
+                  },
+                  {
+                    id: "mrr",
+                    header: "MRR",
+                    sortId: "id",
+                    cell: (t) => {
+                      const snap = t.billing_snapshot ?? null;
+                      const currency = snap?.subscription_currency ?? t.currency ?? null;
+                      return <div className="text-sm text-zinc-700">{formatMoney({ amountCents: snap?.mrr_cents ?? null, currency })}</div>;
+                    },
+                    className: "whitespace-nowrap",
+                  },
+                  {
+                    id: "outstanding",
+                    header: "Outstanding",
+                    sortId: "id",
+                    cell: (t) => {
+                      const snap = t.billing_snapshot ?? null;
+                      const currency = t.currency ?? snap?.subscription_currency ?? null;
+                      const count = typeof snap?.outstanding_invoices_count === "number" ? snap.outstanding_invoices_count : 0;
+                      const balance = typeof snap?.outstanding_balance_cents === "number" ? snap.outstanding_balance_cents : null;
+                      return (
+                        <div className="min-w-0">
+                          <div className="text-sm text-zinc-800">{formatMoney({ amountCents: balance, currency })}</div>
+                          <div className="text-xs text-zinc-500">{count > 0 ? `${count} invoice${count === 1 ? "" : "s"}` : "—"}</div>
+                        </div>
+                      );
+                    },
+                    className: "min-w-[160px]",
+                  },
+                  {
+                    id: "last_invoice",
+                    header: "Last invoice",
+                    sortId: "id",
+                    cell: (t) => {
+                      const inv = t.billing_snapshot?.last_invoice ?? null;
+                      if (!inv) {
+                        return <div className="text-sm text-zinc-700">—</div>;
+                      }
+
+                      return (
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-zinc-800">{inv.invoice_number ?? `#${inv.id}`}</div>
+                          <div className="truncate text-xs text-zinc-500">
+                            {(inv.status ?? "—") + " • " + formatMoney({ amountCents: inv.total_cents ?? null, currency: inv.currency ?? t.currency ?? null })}
+                          </div>
+                          <div className="truncate text-xs text-zinc-500">{formatDateTime(inv.issued_at ?? null)}</div>
+                        </div>
+                      );
+                    },
+                    className: "min-w-[220px]",
                   },
                   {
                     id: "actions",

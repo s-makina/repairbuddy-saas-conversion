@@ -46,8 +46,31 @@ export interface Tenant {
   closed_at?: string | null;
   closed_reason?: string | null;
   data_retention_days?: number | null;
+  billing_snapshot?: TenantBillingSnapshot | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface TenantBillingSnapshot {
+  subscription_status?: string | null;
+  subscription_currency?: string | null;
+  subscription_current_period_end?: string | null;
+  subscription_cancel_at_period_end?: boolean;
+  plan_name?: string | null;
+  price_amount_cents?: number | null;
+  price_interval?: string | null;
+  mrr_cents?: number | null;
+  outstanding_invoices_count?: number | null;
+  outstanding_balance_cents?: number | null;
+  last_invoice?: {
+    id: number;
+    invoice_number?: string | null;
+    status?: string | null;
+    currency?: string | null;
+    total_cents?: number | null;
+    issued_at?: string | null;
+    paid_at?: string | null;
+  } | null;
 }
 
 export interface User {
