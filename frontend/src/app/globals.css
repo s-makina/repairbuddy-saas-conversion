@@ -26,8 +26,8 @@
   --color-rb-surface-muted: var(--rb-surface-muted);
   --color-rb-border: var(--rb-border);
   --color-rb-text: var(--rb-text);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,3 +42,38 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+ @keyframes rb-shimmer {
+   0% {
+     transform: translateX(-100%);
+   }
+   100% {
+     transform: translateX(100%);
+   }
+ }
+
+ .rb-skeleton {
+   position: relative;
+   overflow: hidden;
+   background-color: color-mix(in srgb, var(--rb-border), white 60%);
+ }
+
+ .rb-skeleton::before {
+   content: "";
+   position: absolute;
+   inset: 0;
+   transform: translateX(-100%);
+   background-image: linear-gradient(
+     90deg,
+     transparent,
+     color-mix(in srgb, white, transparent 35%),
+     transparent
+   );
+   animation: rb-shimmer 1.25s ease-in-out infinite;
+ }
+
+ @media (prefers-reduced-motion: reduce) {
+   .rb-skeleton::before {
+     animation: none;
+   }
+ }

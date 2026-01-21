@@ -16,8 +16,8 @@ import { formatMoney } from "@/lib/money";
 import type { Invoice, InvoiceLine, Tenant } from "@/lib/types";
 
 export default function AdminTenantInvoiceDetailPage() {
-  const params = useParams() as { tenant?: string; business?: string; invoiceId?: string };
-  const tenantId = Number(params.business ?? params.tenant);
+  const params = useParams() as { business?: string; invoiceId?: string };
+  const tenantId = Number(params.business);
   const invoiceId = Number(params.invoiceId);
 
   const dashboardHeader = useDashboardHeader();

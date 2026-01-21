@@ -17,12 +17,8 @@ class ResolveTenant
         $tenantSlug = null;
 
         if ($resolution === 'path') {
-            $param = config('tenancy.route_param', 'tenant');
+            $param = config('tenancy.route_param', 'business');
             $tenantSlug = $request->route($param);
-
-            if (! is_string($tenantSlug) || $tenantSlug === '') {
-                $tenantSlug = $request->route('business');
-            }
         }
 
         if ($resolution === 'header') {
@@ -33,7 +29,7 @@ class ResolveTenant
             TenantContext::set(null);
 
             return response()->json([
-                'message' => 'Tenant is missing.',
+                'message' => 'Business is missing.',
             ], 400);
         }
 
@@ -46,7 +42,7 @@ class ResolveTenant
             TenantContext::set(null);
 
             return response()->json([
-                'message' => 'Tenant is invalid.',
+                'message' => 'Business is invalid.',
             ], 404);
         }
 

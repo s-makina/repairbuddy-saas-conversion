@@ -62,12 +62,12 @@ type ImpersonationStartPayload = {
 };
 
 export default function AdminTenantDetailPage() {
-  const params = useParams() as { tenant?: string; business?: string };
+  const params = useParams() as { business?: string };
   const router = useRouter();
   const auth = useAuth();
   const dashboardHeader = useDashboardHeader();
 
-  const tenantId = Number(params.business ?? params.tenant);
+  const tenantId = Number(params.business);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +135,7 @@ export default function AdminTenantDetailPage() {
       setLoading(true);
       setError(null);
 
-      const res = await apiFetch<TenantDetailPayload>(`/api/admin/tenants/${tenantId}`);
+      const res = await apiFetch<TenantDetailPayload>(`/api/admin/businesses/${tenantId}`);
       setTenant(res.tenant);
       setOwner(res.owner);
       setSelectedPlanId(typeof res.tenant.plan_id === "number" ? String(res.tenant.plan_id) : "");
@@ -170,7 +170,7 @@ export default function AdminTenantDetailPage() {
     setEntitlementsError(null);
     setEntitlementsLoading(true);
     try {
-      const res = await apiFetch<AdminTenantEntitlementsPayload>(`/api/admin/tenants/${tenantId}/entitlements`);
+      const res = await apiFetch<AdminTenantEntitlementsPayload>(`/api/admin/businesses/${tenantId}/entitlements`);
       setEntitlements(res);
       setEntitlementOverridesDraft(JSON.stringify(res.entitlement_overrides ?? {}, null, 2));
       setEntitlementOverridesDraftError(null);
@@ -189,7 +189,7 @@ export default function AdminTenantDetailPage() {
     setAuditError(null);
     setAuditLoading(true);
     try {
-      const res = await apiFetch<AdminTenantAuditPayload>(`/api/admin/tenants/${tenantId}/audit?limit=100`);
+      const res = await apiFetch<AdminTenantAuditPayload>(`/api/admin/businesses/${tenantId}/audit?limit=100`);
       setAuditRows(Array.isArray(res.audit) ? res.audit : []);
     } catch (e) {
       setAuditError(e instanceof Error ? e.message : "Failed to load audit log.");
@@ -206,7 +206,7 @@ export default function AdminTenantDetailPage() {
     setDiagnosticsError(null);
     setDiagnosticsLoading(true);
     try {
-      const res = await apiFetch<AdminTenantDiagnosticsPayload>(`/api/admin/tenants/${tenantId}/diagnostics`);
+      const res = await apiFetch<AdminTenantDiagnosticsPayload>(`/api/admin/businesses/${tenantId}/diagnostics`);
       setDiagnostics(res);
     } catch (e) {
       setDiagnosticsError(e instanceof Error ? e.message : "Failed to load diagnostics.");
@@ -294,7 +294,7 @@ export default function AdminTenantDetailPage() {
 
   async function onUnsuspend() {
     await runAction("unsuspend", async () => {
-      await apiFetch(`/api/admin/tenants/${tenantId}/unsuspend`, {
+      await apiFetch(`/api/admin/businesses/${tenantId}/unsuspend`, {
         method: "PATCH",
         body: { reason: reason.trim() || undefined },
       });
@@ -308,7 +308,7 @@ export default function AdminTenantDetailPage() {
   async function onConfirmSuspend() {
     setConfirmSuspendOpen(false);
     await runAction("suspend", async () => {
-      await apiFetch(`/api/admin/tenants/${tenantId}/suspend`, {
+      await apiFetch(`/api/admin/businesses/${tenantId}/suspend`, {
         method: "PATCH",
         body: { reason: reason.trim() || undefined },
       });
@@ -319,7 +319,7 @@ export default function AdminTenantDetailPage() {
     setConfirmCloseOpen(false);
     await runAction("close", async () => {
       const parsedRetention = closeRetentionDays.trim().length > 0 ? Number(closeRetentionDays.trim()) : null;
-      await apiFetch(`/api/admin/tenants/${tenantId}/close`, {
+      await apiFetch(`/api/admin/businesses/${tenantId}/close`, {
         method: "PATCH",
         body: {
           reason: reason.trim() || undefined,
@@ -335,7 +335,7 @@ export default function AdminTenantDetailPage() {
 
     const planId = selectedPlanId.trim().length > 0 ? Number(selectedPlanId) : null;
     await runAction("set-plan", async () => {
-      await apiFetch(`/api/admin/tenants/${tenantId}/plan`, {
+      await apiFetch(`/api/admin/businesses/${tenantId}/plan`, {
         method: "PUT",
         body: {
           plan_id: planId && Number.isFinite(planId) ? planId : null,
@@ -365,7 +365,7 @@ export default function AdminTenantDetailPage() {
     }
 
     await runAction("set-entitlements", async () => {
-      await apiFetch(`/api/admin/tenants/${tenantId}/entitlements`, {
+      await apiFetch(`/api/admin/businesses/${tenantId}/entitlements`, {
         method: "PUT",
         body: {
           entitlement_overrides: parsed,
@@ -378,7 +378,7 @@ export default function AdminTenantDetailPage() {
 
   async function onResetOwnerPassword() {
     await runAction("reset-owner-password", async () => {
-      const res = await apiFetch<{ owner_user_id: number; password: string }>(`/api/admin/tenants/${tenantId}/owner/reset-password`, {
+      const res = await apiFetch<{ owner_user_id: number; password: string }>(`/api/admin/businesses/${tenantId}/owner/reset-password`, {
         method: "POST",
         body: {
           reason: reason.trim() || undefined,

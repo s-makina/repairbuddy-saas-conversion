@@ -26,8 +26,8 @@ import { formatMoney } from "@/lib/money";
 import type { Invoice, Tenant, TenantSubscription } from "@/lib/types";
 
 export default function AdminTenantInvoicesPage() {
-  const params = useParams() as { tenant?: string; business?: string };
-  const tenantId = Number(params.business ?? params.tenant);
+  const params = useParams() as { business?: string };
+  const tenantId = Number(params.business);
   const dashboardHeader = useDashboardHeader();
 
   const [loading, setLoading] = useState(true);
@@ -312,7 +312,7 @@ export default function AdminTenantInvoicesPage() {
 
                 return (
                   <div className="flex items-center justify-end gap-2">
-                    <Link href={`/admin/tenants/${tenantId}/billing/invoices/${inv.id}`}>
+                    <Link href={`/admin/businesses/${tenantId}/billing/invoices/${inv.id}`}>
                       <Button variant="outline" size="sm">
                         View
                       </Button>

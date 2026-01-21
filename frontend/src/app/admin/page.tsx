@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
 import React, { useEffect, useMemo, useState } from "react";
 
 type AdminDashboardKpis = {
@@ -112,6 +113,26 @@ export default function AdminDashboardPage() {
     );
   }
 
+  function StatCardLoading({ label, glowClassName }: { label: string; glowClassName: string }) {
+    return (
+      <Card className="relative overflow-hidden">
+        <div className={"pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-2xl opacity-70 " + glowClassName} />
+        <CardContent className="pt-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-medium tracking-wide text-zinc-500">{label}</div>
+              <div className="mt-1">
+                <Skeleton className="h-8 w-28 rounded-[var(--rb-radius-sm)]" />
+              </div>
+            </div>
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <div className="mt-3 h-px w-full bg-[var(--rb-border)]" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   const currencies = useMemo(() => {
     const set = new Set<string>();
     for (const k of Object.keys(kpis?.mrr_by_currency ?? {})) set.add(k);
@@ -205,34 +226,45 @@ export default function AdminDashboardPage() {
         ) : null}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Tenants"
-            value={loading ? "—" : String(kpis?.tenants?.total ?? 0)}
-            badge="tenants"
-            badgeVariant="default"
-            glowClassName="bg-[color:color-mix(in_srgb,var(--rb-text),white_88%)]"
-          />
-          <StatCard
-            label="Active subscriptions"
-            value={loading ? "—" : String(kpis?.subscriptions?.active_total ?? 0)}
-            badge="subs"
-            badgeVariant="info"
-            glowClassName="bg-[color:color-mix(in_srgb,var(--rb-blue),white_80%)]"
-          />
-          <StatCard
-            label="MRR"
-            value={loading ? "—" : primaryCurrency ? formatMoney({ amountCents: mrrPrimary, currency: primaryCurrency }) : "—"}
-            badge={primaryCurrency ?? "—"}
-            badgeVariant="success"
-            glowClassName="bg-[color:color-mix(in_srgb,#16a34a,white_75%)]"
-          />
-          <StatCard
-            label="Users"
-            value={loading ? "—" : String(kpis?.users?.total ?? 0)}
-            badge={loading ? "—" : `${kpis?.users?.admins ?? 0} admins`}
-            badgeVariant="default"
-            glowClassName="bg-[color:color-mix(in_srgb,var(--rb-border),white_55%)]"
-          />
+          {loading ? (
+            <>
+              <StatCardLoading label="Tenants" glowClassName="bg-[color:color-mix(in_srgb,var(--rb-text),white_88%)]" />
+              <StatCardLoading label="Active subscriptions" glowClassName="bg-[color:color-mix(in_srgb,var(--rb-blue),white_80%)]" />
+              <StatCardLoading label="MRR" glowClassName="bg-[color:color-mix(in_srgb,#16a34a,white_75%)]" />
+              <StatCardLoading label="Users" glowClassName="bg-[color:color-mix(in_srgb,var(--rb-border),white_55%)]" />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label="Tenants"
+                value={String(kpis?.tenants?.total ?? 0)}
+                badge="tenants"
+                badgeVariant="default"
+                glowClassName="bg-[color:color-mix(in_srgb,var(--rb-text),white_88%)]"
+              />
+              <StatCard
+                label="Active subscriptions"
+                value={String(kpis?.subscriptions?.active_total ?? 0)}
+                badge="subs"
+                badgeVariant="info"
+                glowClassName="bg-[color:color-mix(in_srgb,var(--rb-blue),white_80%)]"
+              />
+              <StatCard
+                label="MRR"
+                value={primaryCurrency ? formatMoney({ amountCents: mrrPrimary, currency: primaryCurrency }) : "—"}
+                badge={primaryCurrency ?? "—"}
+                badgeVariant="success"
+                glowClassName="bg-[color:color-mix(in_srgb,#16a34a,white_75%)]"
+              />
+              <StatCard
+                label="Users"
+                value={String(kpis?.users?.total ?? 0)}
+                badge={`${kpis?.users?.admins ?? 0} admins`}
+                badgeVariant="default"
+                glowClassName="bg-[color:color-mix(in_srgb,var(--rb-border),white_55%)]"
+              />
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -240,12 +272,23 @@ export default function AdminDashboardPage() {
             <CardContent className="pt-5">
               <div className="text-sm font-semibold text-[var(--rb-text)]">Tenant status</div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {tenantStatuses.length === 0 ? <div className="text-sm text-zinc-600">—</div> : null}
-                {tenantStatuses.map((s) => (
-                  <Badge key={s.status} variant="default">
-                    {s.status}: {loading ? "—" : String(s.count)}
-                  </Badge>
-                ))}
+                {loading ? (
+                  <>
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-28 rounded-full" />
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                  </>
+                ) : (
+                  <>
+                    {tenantStatuses.length === 0 ? <div className="text-sm text-zinc-600">—</div> : null}
+                    {tenantStatuses.map((s) => (
+                      <Badge key={s.status} variant="default">
+                        {s.status}: {String(s.count)}
+                      </Badge>
+                    ))}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -257,13 +300,13 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-zinc-600">Paid (last 30d)</div>
                   <div className="text-sm font-semibold text-[var(--rb-text)]">
-                    {loading ? "—" : formatMultiCurrency(kpis?.revenue?.paid_last_30d_by_currency)}
+                    {loading ? <Skeleton className="h-4 w-44 rounded-[var(--rb-radius-sm)]" /> : formatMultiCurrency(kpis?.revenue?.paid_last_30d_by_currency)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-zinc-600">Paid (YTD)</div>
                   <div className="text-sm font-semibold text-[var(--rb-text)]">
-                    {loading ? "—" : formatMultiCurrency(kpis?.revenue?.paid_ytd_by_currency)}
+                    {loading ? <Skeleton className="h-4 w-44 rounded-[var(--rb-radius-sm)]" /> : formatMultiCurrency(kpis?.revenue?.paid_ytd_by_currency)}
                   </div>
                 </div>
               </div>
@@ -277,23 +320,37 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-zinc-600">MRR (all currencies)</div>
                   <div className="text-sm font-semibold text-[var(--rb-text)]">
-                    {loading ? "—" : formatMultiCurrency(kpis?.mrr_by_currency)}
+                    {loading ? <Skeleton className="h-4 w-44 rounded-[var(--rb-radius-sm)]" /> : formatMultiCurrency(kpis?.mrr_by_currency)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-zinc-600">Primary currency</div>
-                  <div className="text-sm font-semibold text-[var(--rb-text)]">{primaryCurrency ?? "—"}</div>
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">
+                    {loading ? <Skeleton className="h-4 w-16 rounded-[var(--rb-radius-sm)]" /> : (primaryCurrency ?? "—")}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-zinc-600">Paid (30d, primary)</div>
                   <div className="text-sm font-semibold text-[var(--rb-text)]">
-                    {loading ? "—" : primaryCurrency ? formatMoney({ amountCents: paid30Primary, currency: primaryCurrency }) : "—"}
+                    {loading ? (
+                      <Skeleton className="h-4 w-28 rounded-[var(--rb-radius-sm)]" />
+                    ) : primaryCurrency ? (
+                      formatMoney({ amountCents: paid30Primary, currency: primaryCurrency })
+                    ) : (
+                      "—"
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-zinc-600">Paid (YTD, primary)</div>
                   <div className="text-sm font-semibold text-[var(--rb-text)]">
-                    {loading ? "—" : primaryCurrency ? formatMoney({ amountCents: paidYtdPrimary, currency: primaryCurrency }) : "—"}
+                    {loading ? (
+                      <Skeleton className="h-4 w-28 rounded-[var(--rb-radius-sm)]" />
+                    ) : primaryCurrency ? (
+                      formatMoney({ amountCents: paidYtdPrimary, currency: primaryCurrency })
+                    ) : (
+                      "—"
+                    )}
                   </div>
                 </div>
               </div>
@@ -321,7 +378,7 @@ export default function AdminDashboardPage() {
 
             <div className="mt-4">
               {salesLoading ? (
-                <div className="h-40 w-full rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[color:color-mix(in_srgb,var(--rb-border),white_70%)]" />
+                <Skeleton className="h-40 w-full rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)]" />
               ) : chartValues.length === 0 ? (
                 <div className="h-40 w-full rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white p-4 text-sm text-zinc-600">
                   —

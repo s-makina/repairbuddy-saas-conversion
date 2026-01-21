@@ -260,7 +260,7 @@ export type TenantSubscriptionsPayload = {
 };
 
 export async function getTenantSubscriptions(tenantId: number): Promise<TenantSubscriptionsPayload> {
-  return apiFetch<TenantSubscriptionsPayload>(`/api/admin/tenants/${tenantId}/subscriptions`);
+  return apiFetch<TenantSubscriptionsPayload>(`/api/admin/businesses/${tenantId}/subscriptions`);
 }
 
 export async function assignTenantSubscription(args: {
@@ -269,7 +269,7 @@ export async function assignTenantSubscription(args: {
   billingPriceId: number;
   reason?: string;
 }): Promise<{ subscription: TenantSubscription }> {
-  return apiFetch<{ subscription: TenantSubscription }>(`/api/admin/tenants/${args.tenantId}/subscriptions`, {
+  return apiFetch<{ subscription: TenantSubscription }>(`/api/admin/businesses/${args.tenantId}/subscriptions`, {
     method: "POST",
     body: {
       billing_plan_version_id: args.billingPlanVersionId,
@@ -286,7 +286,7 @@ export async function cancelTenantSubscription(args: {
   reason?: string;
 }): Promise<{ subscription: TenantSubscription }> {
   return apiFetch<{ subscription: TenantSubscription }>(
-    `/api/admin/tenants/${args.tenantId}/subscriptions/${args.subscriptionId}/cancel`,
+    `/api/admin/businesses/${args.tenantId}/subscriptions/${args.subscriptionId}/cancel`,
     {
       method: "POST",
       body: {
@@ -311,14 +311,14 @@ export async function getTenantInvoices(args: {
   if (args.status && args.status.trim().length > 0) qs.set("status", args.status.trim());
   if (typeof args.limit === "number" && Number.isFinite(args.limit)) qs.set("limit", String(args.limit));
 
-  return apiFetch<TenantInvoicesPayload>(`/api/admin/tenants/${args.tenantId}/invoices${qs.toString() ? `?${qs.toString()}` : ""}`);
+  return apiFetch<TenantInvoicesPayload>(`/api/admin/businesses/${args.tenantId}/invoices${qs.toString() ? `?${qs.toString()}` : ""}`);
 }
 
 export async function getTenantInvoice(args: {
   tenantId: number;
   invoiceId: number;
 }): Promise<{ tenant: Tenant; invoice: Invoice }> {
-  return apiFetch<{ tenant: Tenant; invoice: Invoice }>(`/api/admin/tenants/${args.tenantId}/invoices/${args.invoiceId}`);
+  return apiFetch<{ tenant: Tenant; invoice: Invoice }>(`/api/admin/businesses/${args.tenantId}/invoices/${args.invoiceId}`);
 }
 
 export async function createInvoiceFromSubscription(args: {
@@ -326,7 +326,7 @@ export async function createInvoiceFromSubscription(args: {
   tenantSubscriptionId: number;
   reason?: string;
 }): Promise<{ invoice: Invoice }> {
-  return apiFetch<{ invoice: Invoice }>(`/api/admin/tenants/${args.tenantId}/invoices`, {
+  return apiFetch<{ invoice: Invoice }>(`/api/admin/businesses/${args.tenantId}/invoices`, {
     method: "POST",
     body: {
       tenant_subscription_id: args.tenantSubscriptionId,
@@ -340,7 +340,7 @@ export async function issueInvoice(args: {
   invoiceId: number;
   reason?: string;
 }): Promise<{ invoice: Invoice }> {
-  return apiFetch<{ invoice: Invoice }>(`/api/admin/tenants/${args.tenantId}/invoices/${args.invoiceId}/issue`, {
+  return apiFetch<{ invoice: Invoice }>(`/api/admin/businesses/${args.tenantId}/invoices/${args.invoiceId}/issue`, {
     method: "POST",
     body: {
       reason: args.reason,
@@ -356,7 +356,7 @@ export async function markInvoicePaid(args: {
   paidNote?: string;
   reason?: string;
 }): Promise<{ invoice: Invoice }> {
-  return apiFetch<{ invoice: Invoice }>(`/api/admin/tenants/${args.tenantId}/invoices/${args.invoiceId}/paid`, {
+  return apiFetch<{ invoice: Invoice }>(`/api/admin/businesses/${args.tenantId}/invoices/${args.invoiceId}/paid`, {
     method: "POST",
     body: {
       paid_at: args.paidAt,
@@ -374,7 +374,7 @@ export async function downloadInvoicePdf(args: {
 }): Promise<void> {
   const filename = args.invoiceNumber ? `invoice_${args.invoiceNumber}.pdf` : "invoice.pdf";
 
-  await apiDownload(`/api/admin/tenants/${args.tenantId}/invoices/${args.invoiceId}/pdf`, {
+  await apiDownload(`/api/admin/businesses/${args.tenantId}/invoices/${args.invoiceId}/pdf`, {
     filename,
   });
 }

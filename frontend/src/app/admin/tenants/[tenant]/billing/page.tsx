@@ -18,8 +18,8 @@ import { formatMoney } from "@/lib/money";
 import type { BillingPlan, BillingPlanVersion, BillingPrice, Tenant, TenantSubscription } from "@/lib/types";
 
 export default function AdminTenantBillingOverviewPage() {
-  const params = useParams() as { tenant?: string; business?: string };
-  const tenantId = Number(params.business ?? params.tenant);
+  const params = useParams() as { business?: string };
+  const tenantId = Number(params.business);
   const dashboardHeader = useDashboardHeader();
 
   const [loading, setLoading] = useState(true);
@@ -254,7 +254,7 @@ export default function AdminTenantBillingOverviewPage() {
                 <div className="mt-1 text-sm text-zinc-600">Current subscription and assignment actions</div>
               </div>
               <div className="flex items-center gap-2">
-                <Link href={`/admin/tenants/${tenantId}/billing/invoices`}>
+                <Link href={`/admin/businesses/${tenantId}/billing/invoices`}>
                   <Button variant="outline" size="sm">
                     Invoices
                   </Button>
