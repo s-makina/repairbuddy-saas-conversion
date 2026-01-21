@@ -77,7 +77,7 @@ export default function AdminTenantsPage() {
         const res = await apiFetch<{
           tenants: Tenant[];
           meta?: { current_page: number; per_page: number; total: number; last_page: number };
-        }>(`/api/admin/tenants?${qs.toString()}`);
+        }>(`/api/admin/businesses?${qs.toString()}`);
 
         if (!alive) return;
         setTenants(Array.isArray(res.tenants) ? res.tenants : []);
@@ -112,7 +112,7 @@ export default function AdminTenantsPage() {
         if (q.trim().length > 0) qs.set("q", q.trim());
         if (statusFilter && statusFilter !== "all") qs.set("status", statusFilter);
 
-        const res = await apiFetch<{ total: number; by_status: Record<string, number> }>(`/api/admin/tenants/stats?${qs.toString()}`);
+        const res = await apiFetch<{ total: number; by_status: Record<string, number> }>(`/api/admin/businesses/stats?${qs.toString()}`);
         if (!alive) return;
         setStats(res);
       } catch (e) {
@@ -181,7 +181,7 @@ export default function AdminTenantsPage() {
   async function onSuspend(t: Tenant) {
     const reason = window.prompt("Reason for suspension (optional):") ?? "";
     await runRowAction(t.id, "suspend", async () => {
-      await apiFetch(`/api/admin/tenants/${t.id}/suspend`, {
+      await apiFetch(`/api/admin/businesses/${t.id}/suspend`, {
         method: "PATCH",
         body: { reason: reason.trim() || undefined },
       });
@@ -191,7 +191,7 @@ export default function AdminTenantsPage() {
   async function onUnsuspend(t: Tenant) {
     const reason = window.prompt("Reason for unsuspension (optional):") ?? "";
     await runRowAction(t.id, "unsuspend", async () => {
-      await apiFetch(`/api/admin/tenants/${t.id}/unsuspend`, {
+      await apiFetch(`/api/admin/businesses/${t.id}/unsuspend`, {
         method: "PATCH",
         body: { reason: reason.trim() || undefined },
       });
@@ -207,7 +207,7 @@ export default function AdminTenantsPage() {
     const parsedRetention = retentionDays.trim().length > 0 ? Number(retentionDays.trim()) : null;
 
     await runRowAction(t.id, "close", async () => {
-      await apiFetch(`/api/admin/tenants/${t.id}/close`, {
+      await apiFetch(`/api/admin/businesses/${t.id}/close`, {
         method: "PATCH",
         body: {
           reason: reason.trim() || undefined,
@@ -330,7 +330,7 @@ export default function AdminTenantsPage() {
                 },
               }}
               exportConfig={{
-                url: "/api/admin/tenants/export",
+                url: "/api/admin/businesses/export",
                 formats: ["csv", "xlsx", "pdf"],
                 filename: ({ format }) => `tenants_export.${format}`,
               }}
