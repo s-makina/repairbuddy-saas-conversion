@@ -28,6 +28,66 @@ export async function getBillingCatalog(args?: {
   return apiFetch<BillingCatalogPayload>(`/api/admin/billing/catalog${qs.toString() ? `?${qs.toString()}` : ""}`);
 }
 
+export async function listBillingIntervals(args?: { includeInactive?: boolean }): Promise<{ billing_intervals: BillingInterval[] }> {
+  const qs = new URLSearchParams();
+  if (typeof args?.includeInactive === "boolean") {
+    qs.set("include_inactive", args.includeInactive ? "1" : "0");
+  }
+
+  return apiFetch<{ billing_intervals: BillingInterval[] }>(`/api/admin/billing/intervals${qs.toString() ? `?${qs.toString()}` : ""}`);
+}
+
+export async function createBillingInterval(args: {
+  code?: string;
+  name: string;
+  months: number;
+  isActive?: boolean;
+}): Promise<{ interval: BillingInterval }> {
+  return apiFetch<{ interval: BillingInterval }>("/api/admin/billing/intervals", {
+    method: "POST",
+    body: {
+      code: args.code?.trim() || undefined,
+      name: args.name,
+      months: args.months,
+      is_active: typeof args.isActive === "boolean" ? args.isActive : undefined,
+    },
+  });
+}
+
+export async function updateBillingInterval(args: {
+  intervalId: number;
+  code: string;
+  name: string;
+  months: number;
+  isActive?: boolean;
+  reason?: string;
+}): Promise<{ interval: BillingInterval }> {
+  return apiFetch<{ interval: BillingInterval }>(`/api/admin/billing/intervals/${args.intervalId}`, {
+    method: "PUT",
+    body: {
+      code: args.code,
+      name: args.name,
+      months: args.months,
+      is_active: typeof args.isActive === "boolean" ? args.isActive : undefined,
+      reason: args.reason,
+    },
+  });
+}
+
+export async function setBillingIntervalActive(args: {
+  intervalId: number;
+  isActive: boolean;
+  reason?: string;
+}): Promise<{ interval: BillingInterval }> {
+  return apiFetch<{ interval: BillingInterval }>(`/api/admin/billing/intervals/${args.intervalId}/active`, {
+    method: "PATCH",
+    body: {
+      is_active: args.isActive,
+      reason: args.reason,
+    },
+  });
+}
+
 export async function createBillingPlan(args: {
   name: string;
   code?: string;

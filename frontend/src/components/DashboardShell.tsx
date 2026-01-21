@@ -320,6 +320,7 @@ export function DashboardShell({
           items: [
             { label: "Plans", href: "/admin/billing/plans", icon: "payments", show: auth.can("admin.billing.read") },
             { label: "Plan Builder", href: "/admin/billing/builder", icon: "file", show: auth.can("admin.billing.read") },
+            { label: "Intervals", href: "/admin/billing/intervals", icon: "calendar", show: auth.can("admin.billing.read") },
             { label: "Entitlements", href: "/admin/billing/entitlements", icon: "tags", show: auth.can("admin.billing.read") },
             { label: "Currencies", href: "/admin/billing/currencies", icon: "payments", show: auth.can("admin.billing.read") },
             {

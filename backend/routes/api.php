@@ -62,6 +62,20 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::get('/billing/catalog', [\App\Http\Controllers\Api\Admin\BillingCatalogController::class, 'catalog'])
         ->middleware('permission:admin.billing.read');
 
+    Route::get('/billing/intervals', [\App\Http\Controllers\Api\Admin\BillingIntervalController::class, 'index'])
+        ->middleware('permission:admin.billing.read');
+
+    Route::post('/billing/intervals', [\App\Http\Controllers\Api\Admin\BillingIntervalController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.billing.write']);
+
+    Route::put('/billing/intervals/{interval}', [\App\Http\Controllers\Api\Admin\BillingIntervalController::class, 'update'])
+        ->whereNumber('interval')
+        ->middleware('permission:admin.billing.write');
+
+    Route::patch('/billing/intervals/{interval}/active', [\App\Http\Controllers\Api\Admin\BillingIntervalController::class, 'setActive'])
+        ->whereNumber('interval')
+        ->middleware('permission:admin.billing.write');
+
     Route::post('/billing/plans', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.billing.write']);
 

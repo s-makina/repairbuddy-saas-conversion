@@ -155,10 +155,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
-    const payload = await apiFetch<LoginPayload>("/api/auth/login", {
-      method: "POST",
-      body: { email, password },
-    });
+    let payload: LoginPayload;
+
+    try {
+      payload = await apiFetch<LoginPayload>("/api/auth/login", {
+        method: "POST",
+        body: { email, password },
+      });
+    } catch (err) {
+      if (err instanceof Error && "status" in err && "data" in err) {
+        const maybeApiError = err as { status: unknown; data: unknown };
+
+        if (maybeApiError.status === 403 && maybeApiError.data && typeof maybeApiError.data === "object") {
+          const data = maybeApiError.data as Record<string, unknown>;
+          if (data.verification_required === true) {
+            return { status: "verification_required" };
+          }
+        }
+      }
+
+      throw err;
+    }
 
     if ("token" in payload && typeof payload.token === "string") {
       setToken(payload.token);

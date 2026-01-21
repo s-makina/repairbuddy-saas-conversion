@@ -393,7 +393,23 @@ export default function AdminBillingBuilderPage() {
     setPriceIntervalCode("month");
     setPriceAmount("0.00");
     setPriceTrialDays("");
-    setPriceIsDefault(false);
+    setPriceIsDefault(true);
+  }
+
+  function pairKey(currency: string, interval: string) {
+    return `${String(currency).trim().toUpperCase()}|${String(interval || "").trim().toLowerCase() || "month"}`;
+  }
+
+  function shouldSuggestDefault(args: { currency: string; interval: string; ignoreKey?: string | null }) {
+    const key = pairKey(args.currency, args.interval);
+    const rows = (Array.isArray(pricesDraft) ? pricesDraft : [])
+      .map(normalizeDraftPriceRow)
+      .filter((p) => (args.ignoreKey ? p.key !== args.ignoreKey : true))
+      .filter((p) => pairKey(p.currency, p.interval) === key);
+
+    if (rows.length === 0) return true;
+    const hasDefault = rows.some((p) => Boolean(p.is_default));
+    return !hasDefault;
   }
 
   function parseAmountCents(input: string): number {
@@ -561,6 +577,7 @@ export default function AdminBillingBuilderPage() {
       const trialDaysRaw = priceTrialDays.trim() === "" ? null : Number(priceTrialDays);
       const trialDays = typeof trialDaysRaw === "number" && Number.isFinite(trialDaysRaw) ? Math.max(0, Math.trunc(trialDaysRaw)) : null;
 
+      const suggestedDefault = shouldSuggestDefault({ currency, interval: selectedIntervalCode || "month", ignoreKey: priceEditId });
       const base: DraftPriceRow = {
         key: priceEditId ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
         currency,
@@ -568,7 +585,7 @@ export default function AdminBillingBuilderPage() {
         billing_interval_id: selectedIntervalId,
         amount_cents: amountCents,
         trial_days: trialDays,
-        is_default: priceIsDefault,
+        is_default: Boolean(priceIsDefault || suggestedDefault),
       };
 
       setPricesDraft((prev) => {
