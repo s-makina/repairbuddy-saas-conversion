@@ -18,6 +18,11 @@ export function RequireAuth({
   const router = useRouter();
   const pathname = usePathname();
 
+  const tenantSlug = auth.tenant?.slug ?? null;
+  const setupPath = tenantSlug ? `/${tenantSlug}/setup` : null;
+  const isOnSetupPath = setupPath ? (pathname === setupPath || pathname.startsWith(`${setupPath}/`)) : false;
+  const isSetupIncomplete = Boolean(tenantSlug) && !auth.isAdmin && !auth.tenant?.setup_completed_at;
+
   useEffect(() => {
     if (auth.loading) return;
 
@@ -38,8 +43,13 @@ export function RequireAuth({
 
     if (requiredPermission && !auth.can(requiredPermission)) {
       router.replace("/app");
+      return;
     }
-  }, [adminOnly, auth, requiredPermission, pathname, router]);
+
+    if (isSetupIncomplete && !isOnSetupPath) {
+      router.replace(setupPath ?? "/app");
+    }
+  }, [adminOnly, auth, isOnSetupPath, isSetupIncomplete, pathname, requiredPermission, router, setupPath]);
 
   if (auth.loading) {
     return <Preloader />;
@@ -58,6 +68,10 @@ export function RequireAuth({
   }
 
   if (requiredPermission && !auth.can(requiredPermission)) {
+    return null;
+  }
+
+  if (isSetupIncomplete && !isOnSetupPath) {
     return null;
   }
 

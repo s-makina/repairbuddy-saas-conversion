@@ -30,8 +30,13 @@ export default function AppIndexPage() {
       return;
     }
 
+    if (!auth.tenant?.setup_completed_at) {
+      router.replace(`/${slug}/setup`);
+      return;
+    }
+
     router.replace(`/app/${slug}`);
-  }, [auth.isAdmin, auth.isAuthenticated, auth.loading, auth.tenant?.slug, router]);
+  }, [auth.isAdmin, auth.isAuthenticated, auth.loading, auth.tenant?.setup_completed_at, auth.tenant?.slug, router]);
 
   if (!auth.loading && auth.isAuthenticated && !auth.isAdmin && missingTenant) {
     return (
