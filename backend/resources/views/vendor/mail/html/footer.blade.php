@@ -1,5 +1,5 @@
 @php
-    $appName = (string) config('app.name', 'RepairBuddy');
+    $appName = (string) config('app.name', '99smartx');
     $supportEmail = (string) config('mail.from.address');
 @endphp
 

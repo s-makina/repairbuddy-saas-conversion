@@ -33,8 +33,8 @@ export default function AdminBillingTenantsHubPage() {
   useEffect(() => {
     dashboardHeader.setHeader({
       breadcrumb: "Admin / Billing",
-      title: "Tenant billing",
-      subtitle: "Manage subscriptions and invoices per tenant",
+      title: "Business billing",
+      subtitle: "Manage subscriptions and invoices per business",
       actions: (
         <div className="flex items-center gap-2">
           <Link href="/admin/billing/plans">
@@ -73,7 +73,7 @@ export default function AdminBillingTenantsHubPage() {
         const res = await apiFetch<{
           tenants: Tenant[];
           meta?: { current_page: number; per_page: number; total: number; last_page: number };
-        }>(`/api/admin/tenants?${qs.toString()}`);
+        }>(`/api/admin/businesses?${qs.toString()}`);
 
         if (!alive) return;
 
@@ -82,7 +82,7 @@ export default function AdminBillingTenantsHubPage() {
         setPageSize(typeof res.meta?.per_page === "number" ? res.meta.per_page : pageSize);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load tenants.");
+        setError(e instanceof Error ? e.message : "Failed to load businesses.");
         setTenants([]);
         setTotalRows(0);
       } finally {
@@ -114,7 +114,7 @@ export default function AdminBillingTenantsHubPage() {
       <RequireAuth requiredPermission="admin.tenants.read">
         <div className="space-y-6">
           {error ? (
-            <Alert variant="danger" title="Could not load tenants">
+            <Alert variant="danger" title="Could not load businesses">
               {error}
             </Alert>
           ) : null}
@@ -122,10 +122,10 @@ export default function AdminBillingTenantsHubPage() {
           <Card>
             <CardContent className="pt-5">
               <DataTable
-                title="Tenants"
+                title="Businesses"
                 data={rows}
                 loading={loading}
-                emptyMessage="No tenants found."
+                emptyMessage="No businesses found."
                 getRowId={(t) => t.id}
                 server={{
                   query,
@@ -163,7 +163,7 @@ export default function AdminBillingTenantsHubPage() {
                 columns={[
                   {
                     id: "tenant",
-                    header: "Tenant",
+                    header: "Business",
                     sortId: "name",
                     cell: (t) => (
                       <div className="min-w-0">
@@ -199,12 +199,12 @@ export default function AdminBillingTenantsHubPage() {
                     header: "",
                     cell: (t) => (
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/admin/tenants/${t.id}/billing`}>
+                        <Link href={`/admin/businesses/${t.id}/billing`}>
                           <Button variant="outline" size="sm">
                             Billing
                           </Button>
                         </Link>
-                        <Link href={`/admin/tenants/${t.id}/billing/invoices`}>
+                        <Link href={`/admin/businesses/${t.id}/billing/invoices`}>
                           <Button variant="outline" size="sm">
                             Invoices
                           </Button>

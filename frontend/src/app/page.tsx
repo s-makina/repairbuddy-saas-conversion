@@ -153,7 +153,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="font-semibold tracking-tight text-[var(--rb-text)]">
-              RepairBuddy
+              99smartx
             </Link>
             <Badge variant="info" className="hidden sm:inline-flex">
               Repair shop ops, modernized
@@ -200,7 +200,7 @@ export default function Home() {
                 A sharper system for tickets, devices, and customer trust.
               </h1>
               <p className="mt-4 max-w-xl text-pretty text-base text-zinc-700">
-                RepairBuddy brings intake, repair status, approvals, and updates into one clean workflow.
+                99smartx brings intake, repair status, approvals, and updates into one clean workflow.
                 Your team moves faster. Your customers feel informed.
               </p>
 
@@ -538,7 +538,7 @@ export default function Home() {
 
           <footer className="mt-12 border-t border-[var(--rb-border)] pt-8 text-xs text-zinc-600">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>© {new Date().getFullYear()} RepairBuddy</div>
+              <div>© {new Date().getFullYear()} 99smartx</div>
               <div className="flex items-center gap-4">
                 <Link href="/login" className="hover:text-[var(--rb-text)]">
                   Login

@@ -22,9 +22,12 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('impersonation');
 
         Route::middleware('verified')->group(function () {
-            Route::post('/otp/setup', [\App\Http\Controllers\Api\AuthController::class, 'otpSetup']);
-            Route::post('/otp/confirm', [\App\Http\Controllers\Api\AuthController::class, 'otpConfirm']);
-            Route::post('/otp/disable', [\App\Http\Controllers\Api\AuthController::class, 'otpDisable']);
+            Route::post('/otp/setup', [\App\Http\Controllers\Api\AuthController::class, 'otpSetup'])
+                ->middleware(['impersonation', 'impersonation.audit']);
+            Route::post('/otp/confirm', [\App\Http\Controllers\Api\AuthController::class, 'otpConfirm'])
+                ->middleware(['impersonation', 'impersonation.audit']);
+            Route::post('/otp/disable', [\App\Http\Controllers\Api\AuthController::class, 'otpDisable'])
+                ->middleware(['impersonation', 'impersonation.audit']);
             Route::patch('/me', [\App\Http\Controllers\Api\AuthController::class, 'updateMe'])->middleware('impersonation');
         });
     });
@@ -32,6 +35,15 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group(function () {
     Route::get('/dashboard/kpis', [\App\Http\Controllers\Api\Admin\DashboardController::class, 'kpis'])
+        ->middleware('permission:admin.access');
+
+    Route::get('/dashboard/sales-last-12-months', [\App\Http\Controllers\Api\Admin\DashboardController::class, 'salesLast12Months'])
+        ->middleware('permission:admin.access');
+
+    Route::get('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'show'])
+        ->middleware('permission:admin.access');
+
+    Route::patch('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'update'])
         ->middleware('permission:admin.access');
 
     Route::get('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index'])
@@ -172,6 +184,82 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->whereNumber('tenant')
         ->whereNumber('invoice')
         ->middleware('permission:admin.billing.read');
+
+    Route::get('/businesses', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index'])
+        ->middleware('permission:admin.tenants.read');
+    Route::get('/businesses/stats', [\App\Http\Controllers\Api\Admin\TenantController::class, 'stats'])
+        ->middleware('permission:admin.tenants.read');
+    Route::get('/businesses/export', [\App\Http\Controllers\Api\Admin\TenantController::class, 'export'])
+        ->middleware('permission:admin.tenants.read');
+    Route::get('/businesses/{tenant}', [\App\Http\Controllers\Api\Admin\TenantController::class, 'show'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.read');
+    Route::get('/businesses/{tenant}/entitlements', [\App\Http\Controllers\Api\Admin\TenantController::class, 'entitlements'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.read');
+    Route::get('/businesses/{tenant}/audit', [\App\Http\Controllers\Api\Admin\TenantController::class, 'audit'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.read');
+    Route::post('/businesses', [\App\Http\Controllers\Api\Admin\TenantController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.tenants.write']);
+
+    Route::patch('/businesses/{tenant}/suspend', [\App\Http\Controllers\Api\Admin\TenantController::class, 'suspend'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::patch('/businesses/{tenant}/unsuspend', [\App\Http\Controllers\Api\Admin\TenantController::class, 'unsuspend'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::patch('/businesses/{tenant}/close', [\App\Http\Controllers\Api\Admin\TenantController::class, 'close'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::post('/businesses/{tenant}/owner/reset-password', [\App\Http\Controllers\Api\Admin\TenantController::class, 'resetOwnerPassword'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+
+    Route::put('/businesses/{tenant}/plan', [\App\Http\Controllers\Api\Admin\TenantController::class, 'setPlan'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+    Route::put('/businesses/{tenant}/entitlements', [\App\Http\Controllers\Api\Admin\TenantController::class, 'setEntitlementOverrides'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
+
+    Route::get('/businesses/{tenant}/diagnostics', [\App\Http\Controllers\Api\Admin\TenantDiagnosticsController::class, 'show'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.diagnostics.read');
+
+    Route::get('/businesses/{tenant}/subscriptions', [\App\Http\Controllers\Api\Admin\BillingController::class, 'subscriptionsIndex'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.read');
+    Route::post('/businesses/{tenant}/subscriptions', [\App\Http\Controllers\Api\Admin\BillingController::class, 'subscriptionsAssign'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/businesses/{tenant}/subscriptions/{subscription}/cancel', [\App\Http\Controllers\Api\Admin\BillingController::class, 'subscriptionsCancel'])
+        ->whereNumber('tenant')
+        ->whereNumber('subscription')
+        ->middleware('permission:admin.billing.write');
+
+    Route::get('/businesses/{tenant}/invoices', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesIndex'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.read');
+    Route::get('/businesses/{tenant}/invoices/{invoice}', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesShow'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.read');
+    Route::post('/businesses/{tenant}/invoices', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesCreateFromSubscription'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/businesses/{tenant}/invoices/{invoice}/issue', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesIssue'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.write');
+    Route::post('/businesses/{tenant}/invoices/{invoice}/paid', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesMarkPaid'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.write');
+    Route::get('/businesses/{tenant}/invoices/{invoice}/pdf', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesDownloadPdf'])
+        ->whereNumber('tenant')
+        ->whereNumber('invoice')
+        ->middleware('permission:admin.billing.read');
 });
 
 Route::prefix('{tenant}')
@@ -180,6 +268,57 @@ Route::prefix('{tenant}')
     ->group(function () {
         Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member'])->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
+
+            Route::get('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'show'])
+                ->middleware('permission:settings.manage');
+            Route::patch('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'update'])
+                ->middleware('permission:settings.manage');
+
+            Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);
+
+            Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
+            Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
+
+            Route::get('/permissions', [\App\Http\Controllers\Api\App\PermissionController::class, 'index'])
+                ->middleware('permission:roles.manage');
+
+            Route::get('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'index'])
+                ->middleware('permission:roles.manage');
+            Route::post('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'store'])
+                ->middleware('permission:roles.manage');
+            Route::put('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'update'])
+                ->middleware('permission:roles.manage');
+            Route::delete('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'destroy'])
+                ->middleware('permission:roles.manage');
+
+            Route::get('/users', [\App\Http\Controllers\Api\App\UserController::class, 'index'])
+                ->middleware('permission:users.manage');
+            Route::get('/users/export', [\App\Http\Controllers\Api\App\UserController::class, 'export'])
+                ->middleware('permission:users.manage');
+            Route::post('/users', [\App\Http\Controllers\Api\App\UserController::class, 'store'])
+                ->middleware('permission:users.manage');
+            Route::put('/users/{user}', [\App\Http\Controllers\Api\App\UserController::class, 'update'])
+                ->middleware('permission:users.manage');
+            Route::patch('/users/{user}/role', [\App\Http\Controllers\Api\App\UserController::class, 'updateRole'])
+                ->middleware('permission:users.manage');
+            Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\App\UserController::class, 'updateStatus'])
+                ->middleware('permission:users.manage');
+            Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
+                ->middleware('permission:users.manage');
+        });
+    });
+
+Route::prefix('{business}')
+    ->where(['business' => '[A-Za-z0-9\-]+' ])
+    ->middleware(['tenant'])
+    ->group(function () {
+        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member'])->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
+
+            Route::get('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'show'])
+                ->middleware('permission:settings.manage');
+            Route::patch('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'update'])
+                ->middleware('permission:settings.manage');
 
             Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);
 

@@ -55,12 +55,12 @@ export function AuthLayout({
         <aside className="hidden w-[360px] flex-col justify-between lg:flex">
           <div className="flex h-full flex-col rounded-[var(--rb-radius-xl)] bg-[var(--rb-blue)] p-8 shadow-[var(--rb-shadow)]">
             <Link href="/" className="inline-flex items-center gap-3">
-              <Image alt="RepairBuddy" src="/brand/repair-buddy-logo.png" width={170} height={44} priority />
+              <Image alt="99smartx" src="/brand/repair-buddy-logo.png" width={170} height={44} priority />
             </Link>
 
             <div className="mt-10 flex-1">
               <div className="text-sm font-semibold uppercase tracking-wider text-white/90">
-                Welcome to RepairBuddy
+                Welcome to 99smartx
               </div>
               <div className="mt-3 text-3xl font-semibold leading-tight text-white">
                 Run your repair shop with clarity, speed, and confidence.
@@ -87,7 +87,7 @@ export function AuthLayout({
             </div>
 
             <div className="border-t border-white/15 pt-4 text-xs text-white/70">
-              © {new Date().getFullYear()} RepairBuddy
+              © {new Date().getFullYear()} 99smartx
             </div>
           </div>
         </aside>
@@ -96,7 +96,7 @@ export function AuthLayout({
           <div className="w-full max-w-md">
             <div className="mb-6 flex items-center justify-center lg:hidden">
               <Link href="/" className="inline-flex items-center gap-3">
-                <Image alt="RepairBuddy" src="/brand/repair-buddy-logo.png" width={160} height={42} priority />
+                <Image alt="99smartx" src="/brand/repair-buddy-logo.png" width={160} height={42} priority />
               </Link>
             </div>
 

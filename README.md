@@ -1,6 +1,6 @@
-# RepairBuddy SaaS Conversion Research (Work In Progress)
+# 99smartx SaaS Conversion Research (Work In Progress)
 
-This repository contains research and analysis for converting the **RepairBuddy** WordPress plugin (WordPress.org slug: `computer-repair-shop`) into a **standalone multi-tenant SaaS**.
+This repository contains research and analysis for converting the **RepairBuddy** WordPress plugin (WordPress.org slug: `computer-repair-shop`) into **99smartx**, a **standalone multi-tenant SaaS**.
 
 - **Plugin source (local):** `docs/computer-repair-shop-plugin`
 - **Objective:** achieve **100% conversion of the entire plugin** feature set, then later split into SaaS modules.
@@ -591,7 +591,7 @@ Replace current mock UI with a provider-agnostic, DB-backed view:
 
 # Configurable subscription packages (architecture plan)
 
-Goal: implement configurable subscription packages (plans, entitlements, pricing) for RepairBuddy SaaS, while keeping billing **provider-agnostic** so a provider (Stripe/Paddle/etc.) can be integrated later without rewriting business logic.
+Goal: implement configurable subscription packages (plans, entitlements, pricing) for 99smartx SaaS, while keeping billing **provider-agnostic** so a provider (Stripe/Paddle/etc.) can be integrated later without rewriting business logic.
 
 ## Scope
 

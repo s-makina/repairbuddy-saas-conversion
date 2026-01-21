@@ -306,9 +306,9 @@ export function DashboardShell({
           items: [
             { label: "Home", href: "/", icon: "home", show: true },
             { label: "Dashboard", href: "/admin", icon: "dashboard", show: auth.can("admin.access") },
-            { label: "Tenants", href: "/admin/tenants", icon: "admin", show: auth.can("admin.tenants.read") },
+            { label: "Businesses", href: "/admin/businesses", icon: "admin", show: auth.can("admin.tenants.read") },
             {
-              label: auth.can("admin.access") ? "Tenant Dashboard" : "Dashboard",
+              label: auth.can("admin.access") ? "Business Dashboard" : "Dashboard",
               href: tenantBaseHref ?? "/app",
               icon: "dashboard",
               show: Boolean(tenantBaseHref) && auth.can("dashboard.view"),
@@ -321,9 +321,10 @@ export function DashboardShell({
             { label: "Plans", href: "/admin/billing/plans", icon: "payments", show: auth.can("admin.billing.read") },
             { label: "Plan Builder", href: "/admin/billing/builder", icon: "file", show: auth.can("admin.billing.read") },
             { label: "Entitlements", href: "/admin/billing/entitlements", icon: "tags", show: auth.can("admin.billing.read") },
+            { label: "Currencies", href: "/admin/billing/currencies", icon: "payments", show: auth.can("admin.billing.read") },
             {
-              label: "Tenant Billing",
-              href: "/admin/billing/tenants",
+              label: "Business Billing",
+              href: "/admin/billing/businesses",
               icon: "users",
               show: auth.can("admin.billing.read") && auth.can("admin.tenants.read"),
             },
@@ -568,7 +569,7 @@ export function DashboardShell({
           <div className="border-b border-white/10 bg-white px-4 py-5 text-[var(--rb-text)]">
             <div className="flex items-center gap-3">
               <Image
-                alt="RepairBuddy"
+                alt="99smartx"
                 src="/brand/repair-buddy-logo.png"
                 width={140}
                 height={36}

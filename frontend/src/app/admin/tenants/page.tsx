@@ -199,7 +199,7 @@ export default function AdminTenantsPage() {
   }
 
   async function onClose(t: Tenant) {
-    const confirmed = window.confirm(`Close tenant “${t.name}”? This is a destructive action.`);
+    const confirmed = window.confirm(`Close business “${t.name}”? This is a destructive action.`);
     if (!confirmed) return;
 
     const reason = window.prompt("Reason for closing (optional):") ?? "";
@@ -221,8 +221,8 @@ export default function AdminTenantsPage() {
     <RequireAuth requiredPermission="admin.tenants.read">
       <div className="space-y-6">
         <PageHeader
-          title="Tenants"
-          description="Manage tenants (admin)."
+          title="Businesses"
+          description="Manage businesses (admin)."
           actions={
             <Button
               variant="outline"
@@ -236,7 +236,7 @@ export default function AdminTenantsPage() {
         />
 
         {error ? (
-          <Alert variant="danger" title="Could not load tenants">
+          <Alert variant="danger" title="Could not load businesses">
             {error}
           </Alert>
         ) : null}
@@ -255,7 +255,7 @@ export default function AdminTenantsPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <StatCard
-            label="Total tenants"
+            label="Total businesses"
             value={statsLoading ? "—" : String(stats?.total ?? 0)}
             badge="all"
             badgeVariant="default"
@@ -301,10 +301,10 @@ export default function AdminTenantsPage() {
         <Card>
           <CardContent className="pt-5">
             <DataTable
-              title="Tenants"
+              title="Businesses"
               data={tenants}
               loading={loading}
-              emptyMessage="No tenants found."
+              emptyMessage="No businesses found."
               getRowId={(t) => t.id}
               search={{
                 placeholder: "Search name, slug, or email...",
@@ -408,7 +408,7 @@ export default function AdminTenantsPage() {
 
                     return (
                       <div className="flex items-center justify-end gap-2">
-                        <Link className="text-sm text-[var(--rb-blue)] hover:underline" href={`/admin/tenants/${t.id}`}>
+                        <Link className="text-sm text-[var(--rb-blue)] hover:underline" href={`/admin/businesses/${t.id}`}>
                           View
                         </Link>
                         <Button

@@ -16,8 +16,8 @@ import { formatMoney } from "@/lib/money";
 import type { Invoice, InvoiceLine, Tenant } from "@/lib/types";
 
 export default function AdminTenantInvoiceDetailPage() {
-  const params = useParams<{ tenant: string; invoiceId: string }>();
-  const tenantId = Number(params.tenant);
+  const params = useParams() as { tenant?: string; business?: string; invoiceId?: string };
+  const tenantId = Number(params.business ?? params.tenant);
   const invoiceId = Number(params.invoiceId);
 
   const dashboardHeader = useDashboardHeader();
@@ -31,12 +31,12 @@ export default function AdminTenantInvoiceDetailPage() {
 
   useEffect(() => {
     dashboardHeader.setHeader({
-      breadcrumb: "Admin / Tenants",
+      breadcrumb: "Admin / Businesses",
       title: invoice ? invoice.invoice_number : `Invoice ${invoiceId}`,
       subtitle: tenant ? `${tenant.name} • ${tenant.slug}` : undefined,
       actions: (
         <div className="flex items-center gap-2">
-          <Link href={`/admin/tenants/${tenantId}/billing/invoices`}>
+          <Link href={`/admin/businesses/${tenantId}/billing/invoices`}>
             <Button variant="outline" size="sm">
               Back
             </Button>
@@ -72,7 +72,7 @@ export default function AdminTenantInvoiceDetailPage() {
 
     async function load() {
       if (!Number.isFinite(tenantId) || tenantId <= 0 || !Number.isFinite(invoiceId) || invoiceId <= 0) {
-        setError("Invalid tenant/invoice id.");
+        setError("Invalid business/invoice id.");
         setLoading(false);
         return;
       }

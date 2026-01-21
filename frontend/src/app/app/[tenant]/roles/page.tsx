@@ -18,8 +18,8 @@ type PermissionsPayload = {
 };
 
 export default function TenantRolesPage() {
-  const params = useParams<{ tenant: string }>();
-  const tenant = params.tenant;
+  const params = useParams() as { tenant?: string; business?: string };
+  const tenant = params.business ?? params.tenant;
 
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<Role[]>([]);

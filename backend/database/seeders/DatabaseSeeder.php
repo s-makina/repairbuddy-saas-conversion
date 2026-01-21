@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $superAdminEmail = (string) env('SUPERADMIN_EMAIL', 'superadmin@repairbuddy.com');
+        $superAdminEmail = (string) env('SUPERADMIN_EMAIL', 'superadmin@99smartx.com');
         $superAdminPassword = (string) env('SUPERADMIN_PASSWORD', 'Password123!@#Aa');
         $superAdminRole = (string) env('SUPERADMIN_ROLE', 'platform_admin');
 
@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
         ], [
             'name' => 'Demo Tenant',
             'status' => 'active',
-            'contact_email' => 'demo-owner@repairbuddy.com',
+            'contact_email' => 'demo-owner@99smartx.com',
         ]);
 
         if (Schema::hasColumn('tenants', 'currency')) {
@@ -54,7 +54,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::query()->updateOrCreate([
-            'email' => 'sarah@repairbuddy.com',
+            'email' => 'sarah@99smartx.com',
         ], [
             'name' => 'Demo Owner',
             'password' => Hash::make('Password123!@#Aa'),
@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
             ->value('id');
 
         if ($ownerRoleId) {
-            User::query()->where('email', 'sarah@repairbuddy.com')->update([
+            User::query()->where('email', 'sarah@99smartx.com')->update([
                 'role_id' => $ownerRoleId,
                 'role' => null,
             ]);

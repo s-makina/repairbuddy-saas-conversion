@@ -16,8 +16,8 @@ type DashboardPayload = {
 };
 
 export default function TenantDashboardPage() {
-  const params = useParams<{ tenant: string }>();
-  const tenant = params.tenant;
+  const params = useParams() as { tenant?: string; business?: string };
+  const tenant = params.business ?? params.tenant;
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardPayload | null>(null);

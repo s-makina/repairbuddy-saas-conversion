@@ -58,8 +58,8 @@ type RolesPayload = {
 
 export default function TenantUsersPage() {
   const auth = useAuth();
-  const params = useParams<{ tenant: string }>();
-  const tenant = params.tenant;
+  const params = useParams() as { tenant?: string; business?: string };
+  const tenant = params.business ?? params.tenant;
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);

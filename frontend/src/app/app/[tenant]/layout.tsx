@@ -7,7 +7,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 export default function TenantAppLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireAuth>
-      <DashboardShell title="Tenant dashboard">{children}</DashboardShell>
+      <DashboardShell title="Business dashboard">{children}</DashboardShell>
     </RequireAuth>
   );
 }

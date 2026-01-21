@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RepairBuddy",
-  description: "RepairBuddy SaaS",
+  title: "99smartx",
+  description: "99smartx SaaS",
 };
 
 export default function RootLayout({

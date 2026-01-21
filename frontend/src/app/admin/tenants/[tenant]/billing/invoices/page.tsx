@@ -26,8 +26,8 @@ import { formatMoney } from "@/lib/money";
 import type { Invoice, Tenant, TenantSubscription } from "@/lib/types";
 
 export default function AdminTenantInvoicesPage() {
-  const params = useParams<{ tenant: string }>();
-  const tenantId = Number(params.tenant);
+  const params = useParams() as { tenant?: string; business?: string };
+  const tenantId = Number(params.business ?? params.tenant);
   const dashboardHeader = useDashboardHeader();
 
   const [loading, setLoading] = useState(true);
@@ -58,12 +58,12 @@ export default function AdminTenantInvoicesPage() {
 
   useEffect(() => {
     dashboardHeader.setHeader({
-      breadcrumb: "Admin / Tenants",
-      title: tenant ? `${tenant.name} — Invoices` : `Tenant ${tenantId} — Invoices`,
-      subtitle: tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : undefined,
+      breadcrumb: "Admin / Businesses",
+      title: tenant ? `${tenant.name} — Invoices` : `Business ${tenantId} — Invoices`,
+      subtitle: tenant ? `Business ID ${tenant.id} • ${tenant.slug}` : undefined,
       actions: (
         <div className="flex items-center gap-2">
-          <Link href={`/admin/tenants/${tenantId}/billing`}>
+          <Link href={`/admin/businesses/${tenantId}/billing`}>
             <Button variant="outline" size="sm">
               Back
             </Button>
@@ -88,7 +88,7 @@ export default function AdminTenantInvoicesPage() {
 
     async function load() {
       if (!Number.isFinite(tenantId) || tenantId <= 0) {
-        setError("Invalid tenant id.");
+        setError("Invalid business id.");
         setLoading(false);
         return;
       }

@@ -19,6 +19,10 @@ class ResolveTenant
         if ($resolution === 'path') {
             $param = config('tenancy.route_param', 'tenant');
             $tenantSlug = $request->route($param);
+
+            if (! is_string($tenantSlug) || $tenantSlug === '') {
+                $tenantSlug = $request->route('business');
+            }
         }
 
         if ($resolution === 'header') {

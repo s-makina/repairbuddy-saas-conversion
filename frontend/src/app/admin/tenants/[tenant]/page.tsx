@@ -62,12 +62,12 @@ type ImpersonationStartPayload = {
 };
 
 export default function AdminTenantDetailPage() {
-  const params = useParams<{ tenant: string }>();
+  const params = useParams() as { tenant?: string; business?: string };
   const router = useRouter();
   const auth = useAuth();
   const dashboardHeader = useDashboardHeader();
 
-  const tenantId = Number(params.tenant);
+  const tenantId = Number(params.business ?? params.tenant);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export default function AdminTenantDetailPage() {
 
   const load = useCallback(async () => {
     if (!Number.isFinite(tenantId) || tenantId <= 0) {
-      setError("Invalid tenant id.");
+      setError("Invalid business id.");
       setLoading(false);
       return;
     }
@@ -140,7 +140,7 @@ export default function AdminTenantDetailPage() {
       setOwner(res.owner);
       setSelectedPlanId(typeof res.tenant.plan_id === "number" ? String(res.tenant.plan_id) : "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load tenant.");
+      setError(e instanceof Error ? e.message : "Failed to load business.");
     } finally {
       setLoading(false);
     }
@@ -222,12 +222,12 @@ export default function AdminTenantDetailPage() {
 
   useEffect(() => {
     dashboardHeader.setHeader({
-      breadcrumb: "Admin / Tenants",
-      title: tenant ? tenant.name : `Tenant ${tenantId}`,
-      subtitle: tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : `Tenant ID ${tenantId}`,
+      breadcrumb: "Admin / Businesses",
+      title: tenant ? tenant.name : `Business ${tenantId}`,
+      subtitle: tenant ? `Business ID ${tenant.id} • ${tenant.slug}` : `Business ID ${tenantId}`,
       actions: (
         <>
-          <Link href={`/admin/tenants/${tenantId}/billing`}>
+          <Link href={`/admin/businesses/${tenantId}/billing`}>
             <Button variant="outline" size="sm">
               Billing
             </Button>
@@ -405,9 +405,9 @@ export default function AdminTenantDetailPage() {
   return (
     <RequireAuth requiredPermission="admin.tenants.read">
       <div className="space-y-6">
-        {loading ? <div className="text-sm text-zinc-500">Loading tenant…</div> : null}
+        {loading ? <div className="text-sm text-zinc-500">Loading business…</div> : null}
         {error ? (
-          <Alert variant="danger" title="Could not load tenant">
+          <Alert variant="danger" title="Could not load business">
             {error}
           </Alert>
         ) : null}

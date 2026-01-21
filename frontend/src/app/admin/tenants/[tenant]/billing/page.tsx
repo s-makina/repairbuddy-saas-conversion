@@ -18,8 +18,8 @@ import { formatMoney } from "@/lib/money";
 import type { BillingPlan, BillingPlanVersion, BillingPrice, Tenant, TenantSubscription } from "@/lib/types";
 
 export default function AdminTenantBillingOverviewPage() {
-  const params = useParams<{ tenant: string }>();
-  const tenantId = Number(params.tenant);
+  const params = useParams() as { tenant?: string; business?: string };
+  const tenantId = Number(params.business ?? params.tenant);
   const dashboardHeader = useDashboardHeader();
 
   const [loading, setLoading] = useState(true);
@@ -49,12 +49,12 @@ export default function AdminTenantBillingOverviewPage() {
 
   useEffect(() => {
     dashboardHeader.setHeader({
-      breadcrumb: "Admin / Tenants",
-      title: tenant ? `${tenant.name} — Billing` : `Tenant ${tenantId} — Billing`,
-      subtitle: tenant ? `Tenant ID ${tenant.id} • ${tenant.slug}` : undefined,
+      breadcrumb: "Admin / Businesses",
+      title: tenant ? `${tenant.name} — Billing` : `Business ${tenantId} — Billing`,
+      subtitle: tenant ? `Business ID ${tenant.id} • ${tenant.slug}` : undefined,
       actions: (
         <div className="flex items-center gap-2">
-          <Link href={`/admin/tenants/${tenantId}`}>
+          <Link href={`/admin/businesses/${tenantId}`}>
             <Button variant="outline" size="sm">
               Back
             </Button>
@@ -74,7 +74,7 @@ export default function AdminTenantBillingOverviewPage() {
 
     async function loadTenantSubs() {
       if (!Number.isFinite(tenantId) || tenantId <= 0) {
-        setError("Invalid tenant id.");
+        setError("Invalid business id.");
         setLoading(false);
         return;
       }

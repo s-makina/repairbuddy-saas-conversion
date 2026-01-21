@@ -22,10 +22,19 @@ type AdminDashboardKpis = {
   mrr_by_currency: Record<string, number>;
 };
 
+type AdminSalesLast12Months = {
+  generated_at: string;
+  months: { key: string; label: string }[];
+  totals_by_currency: Record<string, number[]>;
+};
+
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [kpis, setKpis] = useState<AdminDashboardKpis | null>(null);
+  const [salesLoading, setSalesLoading] = useState(true);
+  const [salesError, setSalesError] = useState<string | null>(null);
+  const [sales, setSales] = useState<AdminSalesLast12Months | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => {
@@ -48,7 +57,25 @@ export default function AdminDashboardPage() {
       }
     }
 
+    async function loadSales() {
+      try {
+        setSalesError(null);
+        setSalesLoading(true);
+        const res = await apiFetch<AdminSalesLast12Months>("/api/admin/dashboard/sales-last-12-months");
+        if (!alive) return;
+        setSales(res);
+      } catch (e) {
+        if (!alive) return;
+        setSalesError(e instanceof Error ? e.message : "Failed to load sales history.");
+        setSales(null);
+      } finally {
+        if (!alive) return;
+        setSalesLoading(false);
+      }
+    }
+
     void load();
+    void loadSales();
 
     return () => {
       alive = false;
@@ -112,6 +139,51 @@ export default function AdminDashboardPage() {
   const tenantStatuses = ["active", "trial", "past_due", "suspended", "closed"]
     .filter((s) => typeof byStatus?.[s] === "number")
     .map((s) => ({ status: s, count: byStatus[s] }));
+
+  const chartCurrency = useMemo(() => {
+    const keys = Object.keys(sales?.totals_by_currency ?? {}).filter(Boolean).sort();
+    return primaryCurrency ?? keys[0] ?? null;
+  }, [primaryCurrency, sales]);
+
+  const chartMonths = sales?.months ?? [];
+  const chartValues = chartCurrency ? (sales?.totals_by_currency?.[chartCurrency] ?? []) : [];
+
+  function SalesLineChart({ values }: { values: number[] }) {
+    const width = 600;
+    const height = 160;
+    const padX = 8;
+    const padY = 10;
+
+    const max = values.reduce((m, v) => Math.max(m, v), 0);
+    const safeMax = max > 0 ? max : 1;
+    const n = Math.max(values.length, 1);
+    const innerW = width - padX * 2;
+    const innerH = height - padY * 2;
+
+    const points = values
+      .map((v, i) => {
+        const x = padX + (n === 1 ? innerW / 2 : (innerW * i) / (n - 1));
+        const y = padY + innerH * (1 - v / safeMax);
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(" ");
+
+    const area = `${padX},${height - padY} ${points} ${width - padX},${height - padY}`;
+
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-40 w-full" role="img" aria-label="Sales chart">
+        <defs>
+          <linearGradient id="rb-sales-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--rb-blue)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--rb-blue)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width={width} height={height} fill="transparent" />
+        <polyline points={area} fill="url(#rb-sales-fill)" stroke="none" />
+        <polyline points={points} fill="none" stroke="var(--rb-blue)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    );
+  }
 
   return (
     <RequireAuth requiredPermission="admin.access">
@@ -228,6 +300,52 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-[var(--rb-text)]">Sales (last 12 months)</div>
+                <div className="mt-1 text-sm text-zinc-600">Paid invoices grouped by month.</div>
+              </div>
+              <div className="text-sm font-semibold text-[var(--rb-text)]">{chartCurrency ?? "—"}</div>
+            </div>
+
+            {salesError ? (
+              <div className="mt-4">
+                <Alert variant="danger" title="Could not load sales history">
+                  {salesError}
+                </Alert>
+              </div>
+            ) : null}
+
+            <div className="mt-4">
+              {salesLoading ? (
+                <div className="h-40 w-full rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[color:color-mix(in_srgb,var(--rb-border),white_70%)]" />
+              ) : chartValues.length === 0 ? (
+                <div className="h-40 w-full rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white p-4 text-sm text-zinc-600">
+                  —
+                </div>
+              ) : (
+                <div>
+                  <SalesLineChart values={chartValues} />
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600">
+                    <div>
+                      {chartMonths[0]?.label ?? ""}
+                      {chartMonths.length > 1 ? " → " + (chartMonths[chartMonths.length - 1]?.label ?? "") : ""}
+                    </div>
+                    <div>
+                      Total: {chartCurrency ? formatMoney({ amountCents: chartValues.reduce((a, b) => a + b, 0), currency: chartCurrency }) : "—"}
+                    </div>
+                    <div>
+                      Last month: {chartCurrency ? formatMoney({ amountCents: chartValues[chartValues.length - 1] ?? 0, currency: chartCurrency }) : "—"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </RequireAuth>
   );

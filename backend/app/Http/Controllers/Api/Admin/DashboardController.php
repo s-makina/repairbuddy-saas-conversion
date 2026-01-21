@@ -137,4 +137,62 @@ class DashboardController extends Controller
             'mrr_by_currency' => $mrrByCurrency,
         ]);
     }
+
+    public function salesLast12Months(Request $request)
+    {
+        $now = now();
+        $start = $now->copy()->startOfMonth()->subMonths(11);
+
+        $monthKeys = [];
+        $months = [];
+        for ($i = 0; $i < 12; $i++) {
+            $m = $start->copy()->addMonths($i);
+            $key = $m->format('Y-m');
+            $monthKeys[] = $key;
+            $months[] = [
+                'key' => $key,
+                'label' => $m->format('M Y'),
+            ];
+        }
+
+        $rows = Invoice::query()
+            ->withoutGlobalScope(TenantScope::class)
+            ->where('status', 'paid')
+            ->where('paid_at', '>=', $start)
+            ->selectRaw("DATE_FORMAT(paid_at, '%Y-%m') as ym, currency, sum(total_cents) as total_cents")
+            ->groupByRaw("DATE_FORMAT(paid_at, '%Y-%m'), currency")
+            ->get();
+
+        $rawTotals = [];
+        foreach ($rows as $row) {
+            $currency = strtoupper((string) ($row->currency ?? ''));
+            $ym = (string) ($row->ym ?? '');
+            if ($currency === '' || $ym === '') {
+                continue;
+            }
+
+            if (! array_key_exists($currency, $rawTotals)) {
+                $rawTotals[$currency] = [];
+            }
+
+            $rawTotals[$currency][$ym] = (int) ($row->total_cents ?? 0);
+        }
+
+        $totalsByCurrency = [];
+        foreach ($rawTotals as $currency => $byMonth) {
+            $values = [];
+            foreach ($monthKeys as $k) {
+                $values[] = (int) ($byMonth[$k] ?? 0);
+            }
+            $totalsByCurrency[$currency] = $values;
+        }
+
+        ksort($totalsByCurrency);
+
+        return response()->json([
+            'generated_at' => $now->toISOString(),
+            'months' => $months,
+            'totals_by_currency' => $totalsByCurrency,
+        ]);
+    }
 }

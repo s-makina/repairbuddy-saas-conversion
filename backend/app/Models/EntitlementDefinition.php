@@ -16,4 +16,11 @@ class EntitlementDefinition extends Model
         'description',
         'is_premium',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_premium' => 'boolean',
+        ];
+    }
 }

@@ -19,7 +19,7 @@ const MOCK_PLAN: BillingPlan = {
   id: 1,
   code: "starter",
   name: "Starter",
-  description: "For small repair shops getting started with RepairBuddy.",
+  description: "For small repair shops getting started with 99smartx.",
   is_active: true,
   versions: [
     {

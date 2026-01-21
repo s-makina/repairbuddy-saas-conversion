@@ -12,17 +12,20 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { getBillingCatalog } from "@/lib/billing";
-import type { EntitlementDefinition } from "@/lib/types";
-
-type BuilderPrice = {
-  id: number;
-  currency: string;
-  interval: "month" | "year";
-  amountCents: number;
-  trialDays: number | null;
-  isDefault: boolean;
-};
+import {
+  activateBillingPlanVersion,
+  createBillingPlan,
+  createBillingPrice,
+  createDraftBillingPlanVersionFromActive,
+  deleteBillingPrice,
+  getBillingCatalog,
+  syncBillingPlanVersionEntitlements,
+  updateBillingPlan,
+  updateBillingPrice,
+  validateBillingPlanVersionDraft,
+} from "@/lib/billing";
+import { useAuth } from "@/lib/auth";
+import type { BillingPlan, BillingPlanVersion, BillingPrice, EntitlementDefinition, PlanEntitlement } from "@/lib/types";
 
 type BuilderEntitlement = {
   entitlement_definition_id: number;
@@ -37,53 +40,77 @@ function formatCents(cents: number, currency: string) {
 
 export default function AdminBillingBuilderPage() {
   const dashboardHeader = useDashboardHeader();
+  const auth = useAuth();
 
   const [step, setStep] = useState<number>(0);
 
-  const [planName, setPlanName] = useState("Starter");
-  const [planCode, setPlanCode] = useState("starter");
-  const [planDescription, setPlanDescription] = useState("A simple starter plan.");
-  const [planActive, setPlanActive] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
-  const [versionNumber, setVersionNumber] = useState<number>(1);
-  const [versionStatus, setVersionStatus] = useState<"draft" | "active" | "retired">("draft");
-
-  const [prices, setPrices] = useState<BuilderPrice[]>([
-    { id: 1, currency: "EUR", interval: "month", amountCents: 2900, trialDays: 14, isDefault: true },
-  ]);
-
-  const [defsLoading, setDefsLoading] = useState(true);
-  const [defsError, setDefsError] = useState<string | null>(null);
+  const [plans, setPlans] = useState<BillingPlan[]>([]);
   const [definitions, setDefinitions] = useState<EntitlementDefinition[]>([]);
 
-  const premiumDefinitions = useMemo(() => {
-    return (Array.isArray(definitions) ? definitions : []).filter((d) => Boolean(d.is_premium));
-  }, [definitions]);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
 
-  const [enabledEntitlements, setEnabledEntitlements] = useState<Record<number, boolean>>({});
-  const [entitlementValue, setEntitlementValue] = useState<Record<number, unknown>>({});
+  const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId) ?? null, [plans, selectedPlanId]);
+
+  const selectedVersion = useMemo(() => {
+    const versions = Array.isArray(selectedPlan?.versions) ? selectedPlan?.versions : [];
+    return versions.find((v) => v.id === selectedVersionId) ?? null;
+  }, [selectedPlan, selectedVersionId]);
+
+  const [version, setVersion] = useState<BillingPlanVersion | null>(null);
+
+  const canWrite = auth.can("admin.billing.write");
+
+  const isReadOnly = useMemo(() => {
+    if (!version) return true;
+    if (version.status !== "draft") return true;
+    if (version.locked_at) return true;
+    if (version.activated_at || version.retired_at) return true;
+    return false;
+  }, [version]);
+
+  const [planEditBusy, setPlanEditBusy] = useState(false);
+  const [planEditError, setPlanEditError] = useState<string | null>(null);
+  const [planName, setPlanName] = useState("");
+  const [planCode, setPlanCode] = useState("");
+  const [planDescription, setPlanDescription] = useState("");
+  const [planActive, setPlanActive] = useState(true);
 
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const [priceBusy, setPriceBusy] = useState(false);
+  const [priceError, setPriceError] = useState<string | null>(null);
   const [priceEditId, setPriceEditId] = useState<number | null>(null);
   const [priceCurrency, setPriceCurrency] = useState("EUR");
   const [priceInterval, setPriceInterval] = useState<"month" | "year">("month");
-  const [priceAmount, setPriceAmount] = useState("29.00");
-  const [priceTrialDays, setPriceTrialDays] = useState<string>("14");
-  const [priceIsDefault, setPriceIsDefault] = useState(true);
-  const [priceError, setPriceError] = useState<string | null>(null);
+  const [priceAmount, setPriceAmount] = useState("0.00");
+  const [priceTrialDays, setPriceTrialDays] = useState<string>("");
+  const [priceIsDefault, setPriceIsDefault] = useState(false);
+
+  const [entitlementsBusy, setEntitlementsBusy] = useState(false);
+  const [entitlementEnabled, setEntitlementEnabled] = useState<Record<number, boolean>>({});
+  const [entitlementValue, setEntitlementValue] = useState<Record<number, unknown>>({});
+  const [entitlementJsonText, setEntitlementJsonText] = useState<Record<number, string>>({});
+  const [entitlementJsonError, setEntitlementJsonError] = useState<Record<number, string | null>>({});
+
+  const [validateBusy, setValidateBusy] = useState(false);
+  const [validateResult, setValidateResult] = useState<{ ok: boolean; errors: string[] } | null>(null);
 
   const [activateOpen, setActivateOpen] = useState(false);
+  const [activateBusy, setActivateBusy] = useState(false);
   const [activateConfirm, setActivateConfirm] = useState("");
-  const [activated, setActivated] = useState(false);
 
   const steps = ["Plan", "Version", "Prices", "Entitlements", "Review"];
 
   useEffect(() => {
     dashboardHeader.setHeader({
       breadcrumb: "Admin / Billing",
-      title: "Plan builder (mock)",
-      subtitle: "Draft a plan/version configuration before wiring backend",
+      title: "Plan builder",
+      subtitle: "Create and manage plans and versions",
       actions: (
         <div className="flex items-center gap-2">
           <Link href="/admin/billing/plans">
@@ -91,136 +118,187 @@ export default function AdminBillingBuilderPage() {
               Back to plans
             </Button>
           </Link>
-          <Button variant="outline" size="sm" onClick={() => setStep(0)}>
-            Restart
+          <Button variant="outline" size="sm" onClick={() => setReloadNonce((v) => v + 1)} disabled={loading}>
+            Refresh
           </Button>
         </div>
       ),
     });
 
     return () => dashboardHeader.setHeader(null);
-  }, [dashboardHeader]);
+  }, [dashboardHeader, loading]);
 
   useEffect(() => {
     let alive = true;
 
-    async function loadDefs() {
+    async function load() {
       try {
-        setDefsLoading(true);
-        setDefsError(null);
-
+        setLoading(true);
+        setError(null);
+        setActionError(null);
         const res = await getBillingCatalog({ includeInactive: true });
         if (!alive) return;
-        setDefinitions(Array.isArray(res.entitlement_definitions) ? res.entitlement_definitions : []);
+
+        const nextPlans = Array.isArray(res.billing_plans) ? res.billing_plans : [];
+        const nextDefs = Array.isArray(res.entitlement_definitions) ? res.entitlement_definitions : [];
+
+        setPlans(nextPlans);
+        setDefinitions(nextDefs);
+
+        setSelectedPlanId((prev) => {
+          if (prev && nextPlans.some((p) => p.id === prev)) return prev;
+          return nextPlans[0]?.id ?? null;
+        });
       } catch (e) {
         if (!alive) return;
-        setDefsError(e instanceof Error ? e.message : "Failed to load entitlement definitions.");
+        setError(e instanceof Error ? e.message : "Failed to load billing catalog.");
+        setPlans([]);
         setDefinitions([]);
       } finally {
         if (!alive) return;
-        setDefsLoading(false);
+        setLoading(false);
       }
     }
 
-    void loadDefs();
+    void load();
 
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadNonce]);
 
   useEffect(() => {
-    if (!Array.isArray(premiumDefinitions)) return;
+    if (!selectedPlan) return;
 
-    setEnabledEntitlements((prev) => {
-      const next = { ...prev };
-      for (const d of premiumDefinitions) {
-        if (typeof next[d.id] === "undefined") next[d.id] = false;
-      }
-      return next;
-    });
+    setPlanEditError(null);
+    setPlanName(selectedPlan.name ?? "");
+    setPlanCode(selectedPlan.code ?? "");
+    setPlanDescription(selectedPlan.description ?? "");
+    setPlanActive(Boolean(selectedPlan.is_active));
+  }, [selectedPlan]);
 
-    setEntitlementValue((prev) => {
-      const next = { ...prev };
-      for (const d of premiumDefinitions) {
-        if (typeof next[d.id] === "undefined") {
-          if (d.value_type === "boolean") next[d.id] = false;
-          else if (d.value_type === "integer") next[d.id] = 0;
-          else next[d.id] = null;
-        }
-      }
-      return next;
-    });
-  }, [premiumDefinitions]);
-
-  const validationErrors = useMemo(() => {
-    const errs: string[] = [];
-
-    if (!planName.trim()) errs.push("Plan name is required.");
-    if (!planCode.trim()) errs.push("Plan code is required.");
-
-    if (prices.length === 0) errs.push("At least one price is required.");
-
-    const defaults: Record<string, number> = {};
-    for (const p of prices) {
-      const key = `${String(p.currency).toUpperCase()}|${p.interval}`;
-      if (p.isDefault) defaults[key] = (defaults[key] ?? 0) + 1;
+  useEffect(() => {
+    if (!selectedPlan) {
+      setSelectedVersionId(null);
+      setVersion(null);
+      return;
     }
 
-    for (const [key, count] of Object.entries(defaults)) {
-      if (count > 1) errs.push(`Multiple default prices configured for ${key}.`);
+    const versions = (Array.isArray(selectedPlan.versions) ? selectedPlan.versions : []) as BillingPlanVersion[];
+    const editableDrafts = versions
+      .filter((v) => String(v.status).toLowerCase() === "draft" && !v.locked_at && !v.activated_at && !v.retired_at)
+      .slice()
+      .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+
+    setSelectedVersionId((prev) => {
+      if (prev && versions.some((v) => v.id === prev)) return prev;
+      return editableDrafts[0]?.id ?? null;
+    });
+  }, [selectedPlan]);
+
+  useEffect(() => {
+    setVersion(selectedVersion);
+    setValidateResult(null);
+  }, [selectedVersion]);
+
+  const prices = useMemo(() => (Array.isArray(version?.prices) ? (version?.prices as BillingPrice[]) : []), [version]);
+  const entitlements = useMemo(
+    () => (Array.isArray(version?.entitlements) ? (version?.entitlements as PlanEntitlement[]) : []),
+    [version],
+  );
+
+  const entitlementsByDefId = useMemo(() => {
+    const map: Record<number, PlanEntitlement> = {};
+    for (const e of entitlements) {
+      map[e.entitlement_definition_id] = e;
+    }
+    return map;
+  }, [entitlements]);
+
+  const allEntitlementDefinitions = useMemo(() => {
+    return (Array.isArray(definitions) ? definitions : []).slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+  }, [definitions]);
+
+  useEffect(() => {
+    if (!version) return;
+
+    const nextEnabled: Record<number, boolean> = {};
+    const nextValue: Record<number, unknown> = {};
+    const nextJsonText: Record<number, string> = {};
+    const nextJsonError: Record<number, string | null> = {};
+
+    for (const def of allEntitlementDefinitions) {
+      const row = entitlementsByDefId[def.id] ?? null;
+      nextEnabled[def.id] = Boolean(row);
+      nextValue[def.id] = row ? row.value_json : null;
+
+      const type = String(def.value_type ?? "json");
+      if (type !== "boolean" && type !== "integer") {
+        nextJsonText[def.id] = JSON.stringify(row ? row.value_json ?? null : null, null, 2);
+        nextJsonError[def.id] = null;
+      }
     }
 
-    return errs;
-  }, [planCode, planName, prices]);
+    setEntitlementEnabled(nextEnabled);
+    setEntitlementValue(nextValue);
+    setEntitlementJsonText(nextJsonText);
+    setEntitlementJsonError(nextJsonError);
+  }, [allEntitlementDefinitions, entitlementsByDefId, version]);
 
   const summary = useMemo(() => {
-    const entitlements: BuilderEntitlement[] = [];
-    for (const def of premiumDefinitions) {
-      if (!enabledEntitlements[def.id]) continue;
-      entitlements.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
+    const enabledEnts: BuilderEntitlement[] = [];
+    for (const def of allEntitlementDefinitions) {
+      const enabled = Boolean(entitlementEnabled[def.id]);
+      if (!enabled) continue;
+      enabledEnts.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
     }
 
     return {
-      plan: {
-        name: planName.trim(),
-        code: planCode.trim(),
-        description: planDescription.trim() || null,
-        is_active: planActive,
-      },
-      version: {
-        version: versionNumber,
-        status: versionStatus,
-      },
+      plan: selectedPlan
+        ? {
+            id: selectedPlan.id,
+            name: selectedPlan.name,
+            code: selectedPlan.code,
+            description: selectedPlan.description ?? null,
+            is_active: Boolean(selectedPlan.is_active),
+          }
+        : null,
+      version: version
+        ? {
+            id: version.id,
+            billing_plan_id: version.billing_plan_id,
+            version: version.version,
+            status: version.status,
+          }
+        : null,
       prices: prices.map((p) => ({
+        id: p.id,
         currency: String(p.currency).toUpperCase(),
-        interval: p.interval,
-        amount_cents: p.amountCents,
-        trial_days: p.trialDays,
-        is_default: p.isDefault,
+        interval: String(p.interval).toLowerCase(),
+        amount_cents: p.amount_cents,
+        trial_days: p.trial_days,
+        is_default: Boolean(p.is_default),
       })),
-      entitlements,
+      entitlements: enabledEnts,
     };
-  }, [enabledEntitlements, entitlementValue, planActive, planCode, planDescription, planName, premiumDefinitions, prices, versionNumber, versionStatus]);
+  }, [allEntitlementDefinitions, entitlementEnabled, entitlementValue, prices, selectedPlan, version]);
 
   function goNext() {
-    setActivated(false);
     setStep((s) => Math.min(s + 1, steps.length - 1));
   }
 
   function goBack() {
-    setActivated(false);
     setStep((s) => Math.max(s - 1, 0));
   }
 
   function resetPriceForm() {
+    setPriceError(null);
     setPriceEditId(null);
     setPriceCurrency("EUR");
     setPriceInterval("month");
-    setPriceAmount("29.00");
-    setPriceTrialDays("14");
-    setPriceIsDefault(true);
-    setPriceError(null);
+    setPriceAmount("0.00");
+    setPriceTrialDays("");
+    setPriceIsDefault(false);
   }
 
   function parseAmountCents(input: string): number {
@@ -230,10 +308,70 @@ export default function AdminBillingBuilderPage() {
     return Math.round(n * 100);
   }
 
+  async function onSavePlan() {
+    if (!canWrite) return;
+    if (planEditBusy) return;
+
+    const nextName = planName.trim();
+    if (!nextName) {
+      setPlanEditError("Name is required.");
+      return;
+    }
+
+    setPlanEditBusy(true);
+    setPlanEditError(null);
+    setActionError(null);
+
+    try {
+      if (selectedPlan) {
+        await updateBillingPlan({
+          planId: selectedPlan.id,
+          name: nextName,
+          code: planCode.trim(),
+          description: planDescription.trim() || undefined,
+          isActive: planActive,
+        });
+        setReloadNonce((v) => v + 1);
+      } else {
+        const res = await createBillingPlan({
+          name: nextName,
+          code: planCode.trim() || undefined,
+          description: planDescription.trim() || undefined,
+          isActive: planActive,
+        });
+        setSelectedPlanId(res.plan.id);
+        setReloadNonce((v) => v + 1);
+      }
+    } catch (e) {
+      setPlanEditError(e instanceof Error ? e.message : "Failed to save plan.");
+    } finally {
+      setPlanEditBusy(false);
+    }
+  }
+
+  async function onCreateDraftVersion() {
+    if (!selectedPlan) return;
+    if (!canWrite) return;
+    setActionError(null);
+    try {
+      const res = await createDraftBillingPlanVersionFromActive({ planId: selectedPlan.id });
+      setSelectedVersionId(res.version.id);
+      setVersion(res.version);
+      setStep((s) => Math.max(s, 1));
+      setReloadNonce((v) => v + 1);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to create draft version.");
+    }
+  }
+
   async function onSavePrice() {
+    if (!version) return;
+    if (!canWrite || isReadOnly) return;
     if (priceBusy) return;
+
     setPriceBusy(true);
     setPriceError(null);
+    setActionError(null);
 
     try {
       const currency = priceCurrency.trim().toUpperCase();
@@ -243,60 +381,161 @@ export default function AdminBillingBuilderPage() {
       }
 
       const amountCents = parseAmountCents(priceAmount);
-      const trialDays = priceTrialDays.trim() === "" ? null : Number(priceTrialDays);
-      const trialDaysValue = typeof trialDays === "number" && Number.isFinite(trialDays) ? Math.max(0, Math.trunc(trialDays)) : null;
+      const trialDaysRaw = priceTrialDays.trim() === "" ? null : Number(priceTrialDays);
+      const trialDays = typeof trialDaysRaw === "number" && Number.isFinite(trialDaysRaw) ? Math.max(0, Math.trunc(trialDaysRaw)) : null;
 
-      setPrices((prev) => {
-        const next = prev.slice();
-
-        const nextItem: BuilderPrice = {
-          id: priceEditId ?? Date.now(),
+      if (priceEditId) {
+        const res = await updateBillingPrice({
+          priceId: priceEditId,
+          amountCents,
+          trialDays,
+          isDefault: priceIsDefault,
+        });
+        setVersion(res.version);
+      } else {
+        const res = await createBillingPrice({
+          versionId: version.id,
           currency,
           interval: priceInterval,
           amountCents,
-          trialDays: trialDaysValue,
+          trialDays,
           isDefault: priceIsDefault,
-        };
-
-        if (nextItem.isDefault) {
-          for (const p of next) {
-            if (String(p.currency).toUpperCase() === currency && p.interval === priceInterval) {
-              p.isDefault = false;
-            }
-          }
-        }
-
-        const idx = next.findIndex((p) => p.id === nextItem.id);
-        if (idx >= 0) next[idx] = nextItem;
-        else next.push(nextItem);
-
-        return next;
-      });
+        });
+        setVersion(res.version);
+      }
 
       setPriceModalOpen(false);
+      setReloadNonce((v) => v + 1);
+    } catch (e) {
+      setPriceError(e instanceof Error ? e.message : "Failed to save price.");
     } finally {
       setPriceBusy(false);
     }
   }
 
-  function onEditPrice(p: BuilderPrice) {
+  async function onDeletePrice(p: BillingPrice) {
+    if (!version) return;
+    if (!canWrite || isReadOnly) return;
+    if (priceBusy) return;
+    setPriceBusy(true);
+    setActionError(null);
+    try {
+      const res = await deleteBillingPrice({ priceId: p.id });
+      setVersion(res.version);
+      setReloadNonce((v) => v + 1);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to delete price.");
+    } finally {
+      setPriceBusy(false);
+    }
+  }
+
+  function onEditPrice(p: BillingPrice) {
+    resetPriceForm();
     setPriceEditId(p.id);
     setPriceCurrency(String(p.currency).toUpperCase());
-    setPriceInterval(p.interval);
-    setPriceAmount((p.amountCents / 100).toFixed(2));
-    setPriceTrialDays(typeof p.trialDays === "number" ? String(p.trialDays) : "");
-    setPriceIsDefault(Boolean(p.isDefault));
-    setPriceError(null);
+    setPriceInterval(String(p.interval).toLowerCase() === "year" ? "year" : "month");
+    setPriceAmount(((p.amount_cents ?? 0) / 100).toFixed(2));
+    setPriceTrialDays(typeof p.trial_days === "number" ? String(p.trial_days) : "");
+    setPriceIsDefault(Boolean(p.is_default));
     setPriceModalOpen(true);
   }
 
-  function onDeletePrice(p: BuilderPrice) {
-    setPrices((prev) => prev.filter((x) => x.id !== p.id));
+  async function onSaveEntitlements() {
+    if (!version) return;
+    if (!canWrite || isReadOnly) return;
+    if (entitlementsBusy) return;
+
+    setEntitlementsBusy(true);
+    setActionError(null);
+
+    try {
+      const payload: Array<{ entitlement_definition_id: number; value_json: unknown }> = [];
+
+      for (const def of allEntitlementDefinitions) {
+        const enabled = Boolean(entitlementEnabled[def.id]);
+        if (!enabled) continue;
+
+        const type = String(def.value_type ?? "json");
+        if (type !== "boolean" && type !== "integer") {
+          const raw = entitlementJsonText[def.id] ?? "";
+          try {
+            const parsed = raw.trim() === "" ? null : JSON.parse(raw);
+            payload.push({ entitlement_definition_id: def.id, value_json: parsed });
+            setEntitlementJsonError((prev) => ({ ...prev, [def.id]: null }));
+          } catch {
+            setEntitlementJsonError((prev) => ({ ...prev, [def.id]: "Invalid JSON." }));
+            return;
+          }
+          continue;
+        }
+
+        payload.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
+      }
+
+      const res = await syncBillingPlanVersionEntitlements({ versionId: version.id, entitlements: payload });
+      setVersion(res.version);
+      setValidateResult(null);
+      setReloadNonce((v) => v + 1);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to save entitlements.");
+    } finally {
+      setEntitlementsBusy(false);
+    }
+  }
+
+  async function onValidate() {
+    if (!version) return;
+    setValidateBusy(true);
+    setValidateResult(null);
+    setActionError(null);
+    try {
+      const res = await validateBillingPlanVersionDraft({ versionId: version.id });
+      const ok = "status" in res && res.status === "ok";
+      const errors = "errors" in res && Array.isArray(res.errors) ? res.errors.map(String) : [];
+      setValidateResult({ ok, errors });
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to validate.");
+    } finally {
+      setValidateBusy(false);
+    }
+  }
+
+  async function onActivate() {
+    if (!version) return;
+    if (!canWrite || isReadOnly) return;
+    if (activateBusy) return;
+    setActivateBusy(true);
+    setActionError(null);
+    try {
+      const res = await activateBillingPlanVersion({ versionId: version.id, confirm: activateConfirm.trim() });
+      setVersion(res.version);
+      setActivateOpen(false);
+      setActivateConfirm("");
+      setReloadNonce((v) => v + 1);
+      setValidateResult(null);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to activate.");
+    } finally {
+      setActivateBusy(false);
+    }
   }
 
   return (
     <RequireAuth requiredPermission="admin.billing.read">
       <div className="space-y-6">
+        {error ? (
+          <Alert variant="danger" title="Could not load billing catalog">
+            {error}
+          </Alert>
+        ) : null}
+
+        {actionError ? (
+          <Alert variant="danger" title="Action failed">
+            {actionError}
+          </Alert>
+        ) : null}
+
         <Card>
           <CardHeader>
             <CardTitle>Builder steps</CardTitle>
@@ -353,23 +592,63 @@ export default function AdminBillingBuilderPage() {
           </CardContent>
         </Card>
 
-        {activated ? (
-          <Alert variant="success" title="Activated (mock)">This is a mock activation. Next we will wire it to backend endpoints.</Alert>
-        ) : null}
-
         {step === 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>Plan details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-sm font-medium">Plan</label>
+                  <select
+                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                    value={selectedPlanId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const id = v.trim() === "" ? null : Number(v);
+                      setSelectedPlanId(Number.isFinite(id ?? NaN) && (id ?? 0) > 0 ? (id as number) : null);
+                      setSelectedVersionId(null);
+                      setVersion(null);
+                      setValidateResult(null);
+                      setStep(0);
+                    }}
+                    disabled={loading || planEditBusy}
+                  >
+                    <option value="">New plan…</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">&nbsp;</label>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    disabled={!canWrite || loading || planEditBusy}
+                    onClick={() => void onSavePlan()}
+                  >
+                    {planEditBusy ? "Saving…" : selectedPlan ? "Save plan" : "Create plan"}
+                  </Button>
+                </div>
+              </div>
+
+              {planEditError ? (
+                <Alert variant="danger" title="Cannot save plan">
+                  {planEditError}
+                </Alert>
+              ) : null}
+
               <div className="space-y-1">
                 <label className="text-sm font-medium">Name</label>
-                <Input value={planName} onChange={(e) => setPlanName(e.target.value)} />
+                <Input value={planName} onChange={(e) => setPlanName(e.target.value)} disabled={planEditBusy} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Code</label>
-                <Input value={planCode} onChange={(e) => setPlanCode(e.target.value)} />
+                <Input value={planCode} onChange={(e) => setPlanCode(e.target.value)} disabled={planEditBusy} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Description</label>
@@ -377,12 +656,19 @@ export default function AdminBillingBuilderPage() {
                   className="min-h-[90px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
                   value={planDescription}
                   onChange={(e) => setPlanDescription(e.target.value)}
+                  disabled={planEditBusy}
                 />
               </div>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={planActive} onChange={(e) => setPlanActive(e.target.checked)} />
+                <input type="checkbox" checked={planActive} onChange={(e) => setPlanActive(e.target.checked)} disabled={planEditBusy} />
                 Active
               </label>
+
+              {selectedPlan ? (
+                <div className="text-xs text-zinc-500">
+                  Tip: if you need to manage existing versions, use <Link className="underline" href={`/admin/billing/plans/${selectedPlan.id}`}>Plan details</Link>.
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}
@@ -393,30 +679,56 @@ export default function AdminBillingBuilderPage() {
               <CardTitle>Version</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Version number</label>
-                  <Input
-                    type="number"
-                    value={String(versionNumber)}
-                    onChange={(e) => setVersionNumber(Number(e.target.value) || 1)}
-                    min={1}
-                  />
+              {!selectedPlan ? <Alert variant="warning" title="No plan selected">Select or create a plan first.</Alert> : null}
+
+              {selectedPlan ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Draft version</label>
+                    <select
+                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                      value={selectedVersionId ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const id = v.trim() === "" ? null : Number(v);
+                        setSelectedVersionId(Number.isFinite(id ?? NaN) && (id ?? 0) > 0 ? (id as number) : null);
+                        setValidateResult(null);
+                      }}
+                      disabled={loading}
+                    >
+                      <option value="">No draft selected</option>
+                      {(Array.isArray(selectedPlan.versions) ? selectedPlan.versions : [])
+                        .filter((v) => String(v.status).toLowerCase() === "draft")
+                        .slice()
+                        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+                        .map((v) => (
+                          <option key={v.id} value={v.id}>
+                            v{v.version} (id {v.id})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {!version ? <Alert variant="warning" title="No draft version">Create a draft version to continue.</Alert> : null}
+
+                  {version && isReadOnly ? (
+                    <Alert variant="warning" title="Read-only">This version is immutable. Create a new draft to make changes.</Alert>
+                  ) : null}
+
+                  <div className="flex items-center gap-2">
+                    {canWrite ? (
+                      <Button variant="secondary" size="sm" onClick={() => void onCreateDraftVersion()} disabled={loading || !selectedPlan}>
+                        Create draft from active
+                      </Button>
+                    ) : null}
+                    {selectedPlan && version ? (
+                      <Link href={`/admin/billing/plans/${selectedPlan.id}/versions/${version.id}`}>
+                        <Button variant="outline" size="sm">Open advanced editor</Button>
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Status</label>
-                  <select
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={versionStatus}
-                    onChange={(e) => setVersionStatus(e.target.value === "active" ? "active" : e.target.value === "retired" ? "retired" : "draft")}
-                  >
-                    <option value="draft">draft</option>
-                    <option value="active">active</option>
-                    <option value="retired">retired</option>
-                  </select>
-                  <div className="text-xs text-zinc-500">In the real flow only draft is editable; activation is an explicit action.</div>
-                </div>
-              </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}
@@ -428,23 +740,27 @@ export default function AdminBillingBuilderPage() {
                 <CardTitle>Prices</CardTitle>
                 <div className="mt-1 text-sm text-zinc-600">Configure price points per currency + interval, including defaults.</div>
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  resetPriceForm();
-                  setPriceModalOpen(true);
-                }}
-              >
-                Add price
-              </Button>
+              {canWrite && version && !isReadOnly ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    resetPriceForm();
+                    setPriceModalOpen(true);
+                  }}
+                  disabled={loading || priceBusy}
+                >
+                  Add price
+                </Button>
+              ) : null}
             </CardHeader>
             <CardContent>
+              {!version ? <Alert variant="warning" title="No draft version">Go back and create/select a draft version first.</Alert> : null}
               <DataTable
                 title="Price points"
                 data={prices}
-                loading={false}
-                emptyMessage="No prices yet."
+                loading={loading}
+                emptyMessage="No prices configured."
                 getRowId={(p) => p.id}
                 columns={[
                   {
@@ -452,7 +768,7 @@ export default function AdminBillingBuilderPage() {
                     header: "Currency / interval",
                     cell: (p) => (
                       <div className="text-sm text-zinc-800">
-                        {String(p.currency).toUpperCase()} / {p.interval}
+                        {String(p.currency).toUpperCase()} / {String(p.interval).toLowerCase()}
                       </div>
                     ),
                     className: "whitespace-nowrap",
@@ -460,34 +776,35 @@ export default function AdminBillingBuilderPage() {
                   {
                     id: "amount",
                     header: "Amount",
-                    cell: (p) => <div className="text-sm text-zinc-700">{formatCents(p.amountCents, p.currency)}</div>,
+                    cell: (p) => <div className="text-sm text-zinc-700">{formatCents(p.amount_cents ?? 0, p.currency)}</div>,
                     className: "whitespace-nowrap",
                   },
                   {
                     id: "trial",
                     header: "Trial",
-                    cell: (p) => <div className="text-sm text-zinc-700">{typeof p.trialDays === "number" ? `${p.trialDays} days` : "—"}</div>,
+                    cell: (p) => <div className="text-sm text-zinc-700">{typeof p.trial_days === "number" ? `${p.trial_days} days` : "—"}</div>,
                     className: "whitespace-nowrap",
                   },
                   {
                     id: "default",
                     header: "Default",
-                    cell: (p) => (p.isDefault ? <Badge variant="success">default</Badge> : <Badge variant="default">—</Badge>),
+                    cell: (p) => (p.is_default ? <Badge variant="success">default</Badge> : <Badge variant="default">—</Badge>),
                     className: "whitespace-nowrap",
                   },
                   {
                     id: "actions",
                     header: "",
-                    cell: (p) => (
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onEditPrice(p)}>
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => onDeletePrice(p)}>
-                          Delete
-                        </Button>
-                      </div>
-                    ),
+                    cell: (p) =>
+                      canWrite && version && !isReadOnly ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => onEditPrice(p)} disabled={priceBusy}>
+                            Edit
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => void onDeletePrice(p)} disabled={priceBusy}>
+                            Delete
+                          </Button>
+                        </div>
+                      ) : null,
                     className: "whitespace-nowrap",
                   },
                 ]}
@@ -502,23 +819,26 @@ export default function AdminBillingBuilderPage() {
               <CardTitle>Entitlements</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {defsError ? (
-                <Alert variant="danger" title="Could not load entitlement definitions">
-                  {defsError}
-                </Alert>
-              ) : null}
+              {!version ? <Alert variant="warning" title="No draft version">Go back and create/select a draft version first.</Alert> : null}
 
-              {defsLoading ? <div className="text-sm text-zinc-600">Loading features…</div> : null}
+              {version && isReadOnly ? <Alert variant="warning" title="Read-only">This version is immutable.</Alert> : null}
 
-              {!defsLoading && premiumDefinitions.length === 0 ? (
-                <Alert variant="warning" title="No premium features">
-                  Mark features as premium in Admin / Billing / Entitlements to make them available in the builder.
-                </Alert>
-              ) : null}
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm text-zinc-600">Toggle features/limits and configure values per type.</div>
+                {canWrite && version && !isReadOnly ? (
+                  <Button variant="secondary" size="sm" onClick={() => void onSaveEntitlements()} disabled={entitlementsBusy}>
+                    {entitlementsBusy ? "Saving…" : "Save entitlements"}
+                  </Button>
+                ) : null}
+              </div>
 
-              {premiumDefinitions.map((def) => {
-                const enabled = Boolean(enabledEntitlements[def.id]);
+              {allEntitlementDefinitions.length === 0 ? <Alert variant="warning" title="No entitlements">Create entitlement definitions first.</Alert> : null}
+
+              {allEntitlementDefinitions.map((def) => {
+                const enabled = Boolean(entitlementEnabled[def.id]);
                 const value = entitlementValue[def.id];
+                const type = String(def.value_type ?? "json");
+                const jsonError = entitlementJsonError[def.id] ?? null;
 
                 return (
                   <div key={def.id} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
@@ -527,14 +847,16 @@ export default function AdminBillingBuilderPage() {
                         <div className="text-sm font-semibold text-zinc-900">
                           {def.name} <span className="text-xs font-normal text-zinc-500">({def.code})</span>
                         </div>
-                        <div className="mt-1 text-xs text-zinc-500">Type: {def.value_type}</div>
+                        <div className="mt-1 text-xs text-zinc-500">Type: {type}</div>
                         {def.description ? <div className="mt-1 text-xs text-zinc-500">{def.description}</div> : null}
+                        {def.is_premium ? <div className="mt-1"><Badge variant="warning">premium</Badge></div> : null}
                       </div>
                       <label className="flex items-center gap-2 text-sm">
                         <input
                           type="checkbox"
                           checked={enabled}
-                          onChange={(e) => setEnabledEntitlements((prev) => ({ ...prev, [def.id]: e.target.checked }))}
+                          disabled={!canWrite || !version || isReadOnly}
+                          onChange={(e) => setEntitlementEnabled((prev) => ({ ...prev, [def.id]: e.target.checked }))}
                         />
                         Enabled
                       </label>
@@ -542,21 +864,23 @@ export default function AdminBillingBuilderPage() {
 
                     {enabled ? (
                       <div className="mt-3">
-                        {def.value_type === "boolean" ? (
+                        {type === "boolean" ? (
                           <label className="flex items-center gap-2 text-sm">
                             <input
                               type="checkbox"
                               checked={Boolean(value)}
+                              disabled={!canWrite || !version || isReadOnly}
                               onChange={(e) => setEntitlementValue((prev) => ({ ...prev, [def.id]: e.target.checked }))}
                             />
                             Value
                           </label>
-                        ) : def.value_type === "integer" ? (
+                        ) : type === "integer" ? (
                           <div className="space-y-1">
                             <label className="text-sm font-medium">Value</label>
                             <Input
                               type="number"
                               value={value === null || typeof value === "undefined" ? "" : String(value)}
+                              disabled={!canWrite || !version || isReadOnly}
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 if (raw.trim() === "") {
@@ -574,16 +898,14 @@ export default function AdminBillingBuilderPage() {
                             <label className="text-sm font-medium">Value (JSON)</label>
                             <textarea
                               className="min-h-[110px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                              value={JSON.stringify(value ?? null, null, 2)}
+                              value={entitlementJsonText[def.id] ?? ""}
+                              disabled={!canWrite || !version || isReadOnly}
                               onChange={(e) => {
-                                try {
-                                  const parsed = JSON.parse(e.target.value);
-                                  setEntitlementValue((prev) => ({ ...prev, [def.id]: parsed }));
-                                } catch {
-                                  setEntitlementValue((prev) => ({ ...prev, [def.id]: prev[def.id] }));
-                                }
+                                setEntitlementJsonText((prev) => ({ ...prev, [def.id]: e.target.value }));
+                                setEntitlementJsonError((prev) => ({ ...prev, [def.id]: null }));
                               }}
                             />
+                            {jsonError ? <div className="text-xs text-red-600">{jsonError}</div> : null}
                           </div>
                         )}
                       </div>
@@ -600,23 +922,38 @@ export default function AdminBillingBuilderPage() {
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div className="min-w-0">
                 <CardTitle>Review</CardTitle>
-                <div className="mt-1 text-sm text-zinc-600">This is the configuration payload we will later persist via backend APIs.</div>
+                <div className="mt-1 text-sm text-zinc-600">Validate the draft version and activate it when ready.</div>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setActivateOpen(true)}>
-                Activate (mock)
-              </Button>
+              <div className="flex items-center gap-2">
+                {canWrite && version && !isReadOnly ? (
+                  <Button variant="outline" size="sm" onClick={() => void onValidate()} disabled={validateBusy}>
+                    {validateBusy ? "Validating…" : "Validate"}
+                  </Button>
+                ) : null}
+                {canWrite && version && !isReadOnly ? (
+                  <Button variant="secondary" size="sm" onClick={() => setActivateOpen(true)} disabled={activateBusy}>
+                    Activate
+                  </Button>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {validationErrors.length > 0 ? (
-                <Alert variant="warning" title="Validation warnings">
-                  <div className="space-y-1">
-                    {validationErrors.map((e, idx) => (
-                      <div key={idx}>{e}</div>
-                    ))}
-                  </div>
-                </Alert>
+              {!version ? <Alert variant="warning" title="No draft version">Go back and create/select a draft version first.</Alert> : null}
+
+              {validateResult ? (
+                validateResult.ok ? (
+                  <Alert variant="success" title="Validation passed">This draft version is ready to activate.</Alert>
+                ) : (
+                  <Alert variant="warning" title="Validation failed">
+                    <div className="space-y-1">
+                      {validateResult.errors.map((e, idx) => (
+                        <div key={idx}>{e}</div>
+                      ))}
+                    </div>
+                  </Alert>
+                )
               ) : (
-                <Alert variant="success" title="Looks good">No validation warnings.</Alert>
+                <Alert variant="info" title="Not validated">Click Validate to run server-side checks.</Alert>
               )}
 
               <pre className="max-h-[420px] overflow-auto rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3 text-xs text-zinc-700">
@@ -664,9 +1001,11 @@ export default function AdminBillingBuilderPage() {
               </Alert>
             ) : null}
 
+            {!version ? <Alert variant="warning" title="No draft version">Create/select a draft version first.</Alert> : null}
+
             <div className="space-y-1">
               <label className="text-sm font-medium">Currency</label>
-              <Input value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)} disabled={priceBusy} />
+              <Input value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)} disabled={priceBusy || !version || Boolean(priceEditId)} />
             </div>
 
             <div className="space-y-1">
@@ -675,25 +1014,26 @@ export default function AdminBillingBuilderPage() {
                 className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
                 value={priceInterval}
                 onChange={(e) => setPriceInterval(e.target.value === "year" ? "year" : "month")}
-                disabled={priceBusy}
+                disabled={priceBusy || !version || Boolean(priceEditId)}
               >
                 <option value="month">month</option>
                 <option value="year">year</option>
               </select>
+              {priceEditId ? <div className="text-xs text-zinc-500">Currency and interval are immutable for an existing price.</div> : null}
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Amount</label>
-              <Input value={priceAmount} onChange={(e) => setPriceAmount(e.target.value)} disabled={priceBusy} />
+              <Input value={priceAmount} onChange={(e) => setPriceAmount(e.target.value)} disabled={priceBusy || !version} />
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Trial days (optional)</label>
-              <Input value={priceTrialDays} onChange={(e) => setPriceTrialDays(e.target.value)} disabled={priceBusy} />
+              <Input value={priceTrialDays} onChange={(e) => setPriceTrialDays(e.target.value)} disabled={priceBusy || !version} />
             </div>
 
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={priceIsDefault} onChange={(e) => setPriceIsDefault(e.target.checked)} disabled={priceBusy} />
+              <input type="checkbox" checked={priceIsDefault} onChange={(e) => setPriceIsDefault(e.target.checked)} disabled={priceBusy || !version} />
               Default for this currency + interval
             </label>
           </div>
@@ -701,10 +1041,10 @@ export default function AdminBillingBuilderPage() {
 
         <ConfirmDialog
           open={activateOpen}
-          title="Activate (mock)"
+          title="Activate"
           message={
             <div className="space-y-3">
-              <div>This will simulate activation. Next we will call the backend activation endpoint.</div>
+              <div>This will activate the selected draft version and automatically retire the current active version (if any).</div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Type ACTIVATE to confirm</label>
                 <Input value={activateConfirm} onChange={(e) => setActivateConfirm(e.target.value)} />
@@ -713,14 +1053,10 @@ export default function AdminBillingBuilderPage() {
           }
           confirmText="Activate"
           confirmVariant="secondary"
-          busy={false}
+          busy={activateBusy}
           onCancel={() => setActivateOpen(false)}
           onConfirm={() => {
-            if (activateConfirm.trim() === "ACTIVATE") {
-              setActivated(true);
-              setActivateOpen(false);
-              setActivateConfirm("");
-            }
+            void onActivate();
           }}
         />
       </div>
