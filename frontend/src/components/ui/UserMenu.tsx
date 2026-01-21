@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -11,6 +12,7 @@ export function UserMenu({
   avatarUrl,
   profileHref,
   settingsHref,
+  securityHref,
   onLogout,
   className,
 }: {
@@ -19,11 +21,15 @@ export function UserMenu({
   avatarUrl?: string | null;
   profileHref: string;
   settingsHref: string;
-  onLogout: () => void;
+  securityHref?: string | null;
+  onLogout: () => void | Promise<void>;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const initials = useMemo(() => {
     const val = userName
@@ -63,11 +69,31 @@ export function UserMenu({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    setOpen(false);
+  }, [pathname]);
+
+  const canShowSecurity = Boolean(securityHref);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setOpen(false);
+    setLoggingOut(true);
+    try {
+      await onLogout();
+    } finally {
+      router.replace("/login");
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        disabled={loggingOut}
         className={cn(
           "group inline-flex items-center gap-2 rounded-full border px-3 py-1.5",
           "bg-[var(--rb-surface-muted)] text-zinc-600 border-[var(--rb-border)]",
@@ -76,6 +102,7 @@ export function UserMenu({
         )}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Account menu"
       >
         <Avatar
           src={avatarUrl}
@@ -100,6 +127,16 @@ export function UserMenu({
           </div>
 
           <div className="py-1">
+            {canShowSecurity ? (
+              <Link
+                role="menuitem"
+                className="block px-3 py-2 text-sm text-zinc-700 hover:bg-[var(--rb-surface-muted)]"
+                href={securityHref as string}
+                onClick={() => setOpen(false)}
+              >
+                Security
+              </Link>
+            ) : null}
             <Link
               role="menuitem"
               className="block px-3 py-2 text-sm text-zinc-700 hover:bg-[var(--rb-surface-muted)]"
@@ -116,16 +153,20 @@ export function UserMenu({
             >
               Settings
             </Link>
+            <div className="my-1 h-px bg-[var(--rb-border)]" />
             <button
               role="menuitem"
               type="button"
-              className="block w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-[var(--rb-surface-muted)]"
+              disabled={loggingOut}
+              className={cn(
+                "block w-full px-3 py-2 text-left text-sm",
+                loggingOut ? "text-zinc-400" : "text-zinc-700 hover:bg-[var(--rb-surface-muted)]",
+              )}
               onClick={() => {
-                setOpen(false);
-                onLogout();
+                void handleLogout();
               }}
             >
-              Logout
+              {loggingOut ? "Logging out…" : "Logout"}
             </button>
           </div>
         </div>

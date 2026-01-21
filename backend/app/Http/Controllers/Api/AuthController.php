@@ -298,6 +298,245 @@ class AuthController extends Controller
         ]);
     }
 
+    public function resendVerificationEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $email = (string) $validated['email'];
+        $user = User::query()->where('email', $email)->first();
+
+        if ($user && ! $user->hasVerifiedEmail()) {
+            $user->sendEmailVerificationNotification();
+            $this->logAuthEvent($request, 'verification_email_resent', $user, $email, $user->tenant);
+        } else {
+            $this->logAuthEvent($request, 'verification_email_resend_ignored', $user, $email, $user?->tenant);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+        ]);
+    }
+
+    public function sendResetLinkEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $email = (string) $validated['email'];
+
+        $status = Password::sendResetLink([
+            'email' => $email,
+        ]);
+
+        $user = User::query()->where('email', $email)->first();
+        $this->logAuthEvent($request, 'password_reset_link_requested', $user, $email, $user?->tenant, [
+            'result' => $status,
+        ]);
+
+        return response()->json([
+            'message' => __($status),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => [
+                'required',
+                'string',
+                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
+                'confirmed',
+            ],
+        ]);
+
+        $email = (string) $validated['email'];
+
+        $status = Password::reset(
+            [
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'password_confirmation' => $request->input('password_confirmation'),
+                'token' => $validated['token'],
+            ],
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                ])->save();
+
+                $user->tokens()->delete();
+            }
+        );
+
+        $user = User::query()->where('email', $email)->first();
+        $this->logAuthEvent($request, 'password_reset_attempt', $user, $email, $user?->tenant, [
+            'result' => $status,
+        ]);
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => __($status),
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => __($status),
+        ]);
+    }
+
+    public function otpSetup(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $secret = Totp::generateSecret();
+        $issuer = (string) config('app.name');
+        $uri = Totp::provisioningUri($issuer, (string) $user->email, $secret);
+
+        $user->forceFill([
+            'otp_enabled' => true,
+            'otp_secret' => $secret,
+            'otp_confirmed_at' => null,
+        ])->save();
+
+        $this->logAuthEvent($request, 'otp_setup_started', $user, $user->email, $user->tenant);
+
+        return response()->json([
+            'secret' => $secret,
+            'otpauth_uri' => $uri,
+        ]);
+    }
+
+    public function otpConfirm(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+        ]);
+
+        if (! is_string($user->otp_secret) || $user->otp_secret === '') {
+            return response()->json([
+                'message' => 'OTP setup not started.',
+            ], 422);
+        }
+
+        if (! Totp::verify($user->otp_secret, (string) $validated['code'])) {
+            $this->logAuthEvent($request, 'otp_confirm_failed', $user, $user->email, $user->tenant);
+
+            return response()->json([
+                'message' => 'Invalid OTP code.',
+            ], 422);
+        }
+
+        $user->forceFill([
+            'otp_enabled' => true,
+            'otp_confirmed_at' => now(),
+        ])->save();
+
+        $this->logAuthEvent($request, 'otp_confirmed', $user, $user->email, $user->tenant);
+
+        return response()->json([
+            'status' => 'ok',
+        ]);
+    }
+
+    public function otpDisable(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'password' => ['required', 'string'],
+            'code' => ['required', 'string'],
+        ]);
+
+        if (! Hash::check((string) $validated['password'], (string) $user->password)) {
+            return response()->json([
+                'message' => 'Invalid password.',
+            ], 422);
+        }
+
+        if (! is_string($user->otp_secret) || $user->otp_secret === '' || ! Totp::verify($user->otp_secret, (string) $validated['code'])) {
+            return response()->json([
+                'message' => 'Invalid OTP code.',
+            ], 422);
+        }
+
+        $user->forceFill([
+            'otp_enabled' => false,
+            'otp_secret' => null,
+            'otp_confirmed_at' => null,
+        ])->save();
+
+        $this->logAuthEvent($request, 'otp_disabled', $user, $user->email, $user->tenant);
+
+        return response()->json([
+            'status' => 'ok',
+        ]);
+    }
+
+    public function updateMe(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $session = $request->attributes->get('impersonation_session');
+        if ($session) {
+            return response()->json([
+                'message' => 'Profile updates are not allowed during impersonation.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $before = [
+            'name' => $user->name,
+        ];
+
+        $user->forceFill([
+            'name' => $validated['name'],
+        ])->save();
+
+        $this->logAuthEvent($request, 'profile.updated', $user, $user->email, $user->tenant, [
+            'before' => $before,
+            'after' => [
+                'name' => $user->name,
+            ],
+        ]);
+
+        return response()->json([
+            'user' => $user,
+        ]);
+    }
+
     public function me(Request $request)
     {
         $user = $request->user();

@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
+import { Preloader } from "@/components/Preloader";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
@@ -56,9 +57,5 @@ export default function AppIndexPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center text-sm text-zinc-500">
-      Loading...
-    </div>
-  );
+  return <Preloader />;
 }

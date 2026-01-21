@@ -305,9 +305,14 @@ export function DashboardShell({
         {
           items: [
             { label: "Home", href: "/", icon: "home", show: true },
-            { label: "Admin", href: "/admin", icon: "admin", show: auth.can("admin.access") },
+            { label: "Dashboard", href: "/admin", icon: "dashboard", show: auth.can("admin.access") },
             { label: "Tenants", href: "/admin/tenants", icon: "admin", show: auth.can("admin.tenants.read") },
-            { label: "Dashboard", href: tenantBaseHref ?? "/app", icon: "dashboard", show: Boolean(tenantBaseHref) && auth.can("dashboard.view") },
+            {
+              label: auth.can("admin.access") ? "Tenant Dashboard" : "Dashboard",
+              href: tenantBaseHref ?? "/app",
+              icon: "dashboard",
+              show: Boolean(tenantBaseHref) && auth.can("dashboard.view"),
+            },
           ],
         },
         {
@@ -393,13 +398,13 @@ export function DashboardShell({
             },
             {
               label: "Profile",
-              href: auth.isAdmin ? "/admin/profile" : tenantSlug ? `/app/${tenantSlug}/profile` : "/profile",
+              href: auth.isAdmin ? "/admin/profile" : tenantSlug ? `/app/${tenantSlug}/profile` : "/app",
               icon: "profile",
               show: auth.isAuthenticated && auth.can("profile.manage"),
             },
             {
               label: "Settings",
-              href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/settings",
+              href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/app",
               icon: "settings",
               show: auth.isAuthenticated && auth.can("settings.manage"),
             },
@@ -496,7 +501,7 @@ export function DashboardShell({
   }, [openSections, sidebarStateKey]);
 
   const pageLabel = (() => {
-    if (pathname === "/admin") return "Tenants";
+    if (pathname === "/admin") return "Dashboard";
 
     if (pathname.startsWith("/app/")) {
       const parts = pathname.split("/").filter(Boolean);
@@ -536,13 +541,19 @@ export function DashboardShell({
   const profileHref = (() => {
     if (auth.isAdmin) return "/admin/profile";
     if (tenantSlug) return `/app/${tenantSlug}/profile`;
-    return "/profile";
+    return "/app";
   })();
 
   const settingsHref = (() => {
     if (auth.isAdmin) return "/admin/settings";
     if (tenantSlug) return `/app/${tenantSlug}/settings`;
-    return "/settings";
+    return "/app";
+  })();
+
+  const securityHref = (() => {
+    if (!tenantSlug) return null;
+    if (!auth.can("security.manage")) return null;
+    return `/app/${tenantSlug}/security`;
   })();
 
   const headerCtx = React.useMemo<DashboardHeaderContextValue>(() => {
@@ -749,7 +760,8 @@ export function DashboardShell({
                       avatarUrl={userAvatarUrl}
                       profileHref={profileHref}
                       settingsHref={settingsHref}
-                      onLogout={() => void auth.logout()}
+                      securityHref={securityHref}
+                      onLogout={auth.logout}
                     />
                   </div>
                 </div>

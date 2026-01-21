@@ -25,11 +25,15 @@ Route::prefix('auth')->group(function () {
             Route::post('/otp/setup', [\App\Http\Controllers\Api\AuthController::class, 'otpSetup']);
             Route::post('/otp/confirm', [\App\Http\Controllers\Api\AuthController::class, 'otpConfirm']);
             Route::post('/otp/disable', [\App\Http\Controllers\Api\AuthController::class, 'otpDisable']);
+            Route::patch('/me', [\App\Http\Controllers\Api\AuthController::class, 'updateMe'])->middleware('impersonation');
         });
     });
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group(function () {
+    Route::get('/dashboard/kpis', [\App\Http\Controllers\Api\Admin\DashboardController::class, 'kpis'])
+        ->middleware('permission:admin.access');
+
     Route::get('/tenants', [\App\Http\Controllers\Api\Admin\TenantController::class, 'index'])
         ->middleware('permission:admin.tenants.read');
     Route::get('/tenants/stats', [\App\Http\Controllers\Api\Admin\TenantController::class, 'stats'])

@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { Preloader } from "@/components/Preloader";
 
 export function RequireAuth({
   children,
@@ -41,11 +42,7 @@ export function RequireAuth({
   }, [adminOnly, auth, requiredPermission, pathname, router]);
 
   if (auth.loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-zinc-500">
-        Loading...
-      </div>
-    );
+    return <Preloader />;
   }
 
   if (!auth.isAuthenticated) {

@@ -6,6 +6,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Preloader } from "@/components/Preloader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useMemo, useState } from "react";
@@ -120,7 +121,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center text-sm text-zinc-500">Loading...</div>
+        <Preloader />
       }
     >
       <VerifyEmailPageInner />
