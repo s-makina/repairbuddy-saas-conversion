@@ -14,113 +14,6 @@ import { createBillingPlan, getBillingCatalog } from "@/lib/billing";
 import { useAuth } from "@/lib/auth";
 import type { BillingPlan, BillingPlanVersion, BillingPrice } from "@/lib/types";
 
-const MOCK_PLANS: BillingPlan[] = [
-  {
-    id: 1,
-    code: "starter",
-    name: "Starter",
-    description: "For small repair shops getting started with 99smartx.",
-    is_active: true,
-    versions: [
-      {
-        id: 101,
-        billing_plan_id: 1,
-        version: 1,
-        status: "active",
-        prices: [
-          {
-            id: 1001,
-            billing_plan_version_id: 101,
-            currency: "usd",
-            interval: "month",
-            amount_cents: 2900,
-            trial_days: 14,
-            is_default: true,
-            default_for_currency_interval: "usd:month",
-          },
-          {
-            id: 1002,
-            billing_plan_version_id: 101,
-            currency: "usd",
-            interval: "year",
-            amount_cents: 29000,
-            trial_days: 14,
-            is_default: true,
-            default_for_currency_interval: "usd:year",
-          },
-        ],
-        entitlements: [],
-      },
-    ],
-  },
-  {
-    id: 2,
-    code: "pro",
-    name: "Pro",
-    description: "For growing teams that need automation, reporting and more seats.",
-    is_active: true,
-    versions: [
-      {
-        id: 201,
-        billing_plan_id: 2,
-        version: 3,
-        status: "active",
-        prices: [
-          {
-            id: 2001,
-            billing_plan_version_id: 201,
-            currency: "usd",
-            interval: "month",
-            amount_cents: 6900,
-            trial_days: 14,
-            is_default: true,
-            default_for_currency_interval: "usd:month",
-          },
-          {
-            id: 2002,
-            billing_plan_version_id: 201,
-            currency: "eur",
-            interval: "month",
-            amount_cents: 6500,
-            trial_days: 14,
-            is_default: true,
-            default_for_currency_interval: "eur:month",
-          },
-        ],
-        entitlements: [],
-      },
-    ],
-  },
-  {
-    id: 3,
-    code: "enterprise",
-    name: "Enterprise",
-    description: "Custom plan for multi-location operations with dedicated support.",
-    is_active: false,
-    versions: [
-      {
-        id: 301,
-        billing_plan_id: 3,
-        version: 1,
-        status: "draft",
-        prices: [
-          {
-            id: 3001,
-            billing_plan_version_id: 301,
-            currency: "usd",
-            interval: "month",
-            amount_cents: 19900,
-            trial_days: null,
-            is_default: true,
-            default_for_currency_interval: "usd:month",
-          },
-        ],
-        entitlements: [],
-      },
-    ],
-  },
-];
-
 function formatCents(args: { currency?: string | null; amountCents?: number | null }) {
   const currency = (args.currency || "usd").toUpperCase();
   const amountCents = typeof args.amountCents === "number" ? args.amountCents : 0;
@@ -168,18 +61,14 @@ function CheckIcon({ className }: { className?: string }) {
   );
 }
 
-function planFeatureList(plan: BillingPlan): string[] {
-  const code = String(plan.code || "").toLowerCase();
-  if (code === "starter") {
-    return ["Job tracking", "Customer updates", "Basic reporting", "Email support"];
-  }
-  if (code === "pro") {
-    return ["Everything in Starter", "Team roles & permissions", "Automations", "Advanced reporting"];
-  }
-  if (code === "enterprise") {
-    return ["Everything in Pro", "Multi-location", "Dedicated support", "Custom integrations"];
-  }
-  return ["Job tracking", "Customer portal", "Invoicing", "Support"];
+function planEntitlementList(plan: BillingPlan): string[] {
+  const version = pickDisplayVersion(plan);
+  const entitlements = Array.isArray(version?.entitlements) ? version?.entitlements : [];
+  const names = entitlements
+    .map((e) => (e && typeof e === "object" && "definition" in e ? (e as { definition?: { name?: unknown } }).definition?.name : undefined))
+    .filter(Boolean)
+    .map((n) => String(n));
+  return Array.from(new Set(names));
 }
 
 export default function AdminBillingPlansPage() {
@@ -190,8 +79,6 @@ export default function AdminBillingPlansPage() {
   const [error, setError] = useState<string | null>(null);
   const [plans, setPlans] = useState<BillingPlan[]>([]);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const [mockMode, setMockMode] = useState(false);
-  const [mockReason, setMockReason] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -219,24 +106,12 @@ export default function AdminBillingPlansPage() {
       subtitle: "View billing catalog (plans, versions, prices)",
       actions: (
         <div className="flex items-center gap-2">
-          {mockMode ? <Badge variant="info">mock data</Badge> : null}
-          <Link href="/admin/billing/builder">
-            <Button variant="outline" size="sm" disabled={loading}>
-              Builder (mock)
-            </Button>
-          </Link>
           {canWrite ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                resetCreateForm();
-                setCreateOpen(true);
-              }}
-              disabled={loading}
-            >
+            <Link href="/admin/billing/builder">
+            <Button variant="outline" size="sm" disabled={loading}>
               New plan
             </Button>
+          </Link>
           ) : null}
           <Button
             variant="outline"
@@ -251,7 +126,7 @@ export default function AdminBillingPlansPage() {
     });
 
     return () => dashboardHeader.setHeader(null);
-  }, [canWrite, dashboardHeader, loading, mockMode]);
+  }, [canWrite, dashboardHeader, loading]);
 
   async function onCreate() {
     const nextName = name.trim();
@@ -287,8 +162,6 @@ export default function AdminBillingPlansPage() {
       try {
         setLoading(true);
         setError(null);
-        setMockMode(false);
-        setMockReason(null);
 
         const res = await getBillingCatalog({ includeInactive: true });
         if (!alive) return;
@@ -296,9 +169,8 @@ export default function AdminBillingPlansPage() {
         setPlans(Array.isArray(res.billing_plans) ? res.billing_plans : []);
       } catch (e) {
         if (!alive) return;
-        setMockMode(true);
-        setMockReason(e instanceof Error ? e.message : "Failed to load billing catalog.");
-        setPlans(MOCK_PLANS);
+        setError(e instanceof Error ? e.message : "Failed to load billing catalog.");
+        setPlans([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -324,12 +196,6 @@ export default function AdminBillingPlansPage() {
         {error ? (
           <Alert variant="danger" title="Could not load billing plans">
             {error}
-          </Alert>
-        ) : null}
-
-        {mockMode ? (
-          <Alert variant="warning" title="Showing mock billing plans">
-            {mockReason ? mockReason : "Billing catalog API is not available."}
           </Alert>
         ) : null}
 
@@ -360,7 +226,7 @@ export default function AdminBillingPlansPage() {
                 .map((c) => String(c).toUpperCase())
                 .sort();
               const isFeatured = String(p.code || "").toLowerCase() === "pro";
-              const features = planFeatureList(p);
+              const features = planEntitlementList(p);
 
               return (
                 <Card
@@ -412,12 +278,16 @@ export default function AdminBillingPlansPage() {
                         <div className="text-xs text-zinc-500">{price.trial_days} day trial included</div>
                       ) : null}
                       <ul className="space-y-1">
-                        {features.map((f) => (
-                          <li key={f} className="flex items-start gap-2 text-sm text-zinc-700">
-                            <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--rb-blue)]" />
-                            <span className="min-w-0">{f}</span>
-                          </li>
-                        ))}
+                        {features.length > 0 ? (
+                          features.map((f) => (
+                            <li key={f} className="flex items-start gap-2 text-sm text-zinc-700">
+                              <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--rb-blue)]" />
+                              <span className="min-w-0">{f}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-sm text-zinc-500">No entitlements configured.</li>
+                        )}
                       </ul>
                     </div>
 

@@ -11,67 +11,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { createDraftBillingPlanVersionFromActive, getBillingCatalog } from "@/lib/billing";
+import { Modal } from "@/components/ui/Modal";
+import { createDraftBillingPlanVersionFromActive, getBillingCatalog, updateBillingPlan } from "@/lib/billing";
 import { useAuth } from "@/lib/auth";
 import type { BillingPlan, BillingPlanVersion, BillingPrice } from "@/lib/types";
-
-const MOCK_PLAN: BillingPlan = {
-  id: 1,
-  code: "starter",
-  name: "Starter",
-  description: "For small repair shops getting started with 99smartx.",
-  is_active: true,
-  versions: [
-    {
-      id: 101,
-      billing_plan_id: 1,
-      version: 1,
-      status: "active",
-      prices: [
-        {
-          id: 1001,
-          billing_plan_version_id: 101,
-          currency: "usd",
-          interval: "month",
-          amount_cents: 2900,
-          trial_days: 14,
-          is_default: true,
-          default_for_currency_interval: "usd:month",
-        },
-        {
-          id: 1002,
-          billing_plan_version_id: 101,
-          currency: "usd",
-          interval: "year",
-          amount_cents: 29000,
-          trial_days: 14,
-          is_default: true,
-          default_for_currency_interval: "usd:year",
-        },
-      ],
-      entitlements: [],
-    },
-    {
-      id: 102,
-      billing_plan_id: 1,
-      version: 2,
-      status: "draft",
-      prices: [
-        {
-          id: 1003,
-          billing_plan_version_id: 102,
-          currency: "usd",
-          interval: "month",
-          amount_cents: 3500,
-          trial_days: 14,
-          is_default: true,
-          default_for_currency_interval: "usd:month",
-        },
-      ],
-      entitlements: [],
-    },
-  ],
-};
 
 function formatCents(args: { currency?: string | null; amountCents?: number | null }) {
   const currency = (args.currency || "usd").toUpperCase();
@@ -141,10 +84,16 @@ export default function AdminBillingPlanDetailPage() {
   const [draftBusy, setDraftBusy] = useState(false);
   const [plan, setPlan] = useState<BillingPlan | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const [mockMode, setMockMode] = useState(false);
-  const [mockReason, setMockReason] = useState<string | null>(null);
   const [versionQuery, setVersionQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "retired" | "other">("all");
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editIsActive, setEditIsActive] = useState(true);
 
   const canWrite = auth.can("admin.billing.write");
 
@@ -160,6 +109,24 @@ export default function AdminBillingPlanDetailPage() {
               Back
             </Button>
           </Link>
+          {canWrite ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || editBusy || !plan}
+              onClick={() => {
+                if (!plan) return;
+                setEditError(null);
+                setEditName(plan.name ?? "");
+                setEditCode(plan.code ?? "");
+                setEditDescription(plan.description ?? "");
+                setEditIsActive(Boolean(plan.is_active));
+                setEditOpen(true);
+              }}
+            >
+              Edit plan
+            </Button>
+          ) : null}
           {canWrite ? (
             <Button
               variant="secondary"
@@ -192,6 +159,42 @@ export default function AdminBillingPlanDetailPage() {
     return () => dashboardHeader.setHeader(null);
   }, [canWrite, dashboardHeader, draftBusy, loading, plan, planId, router]);
 
+  async function onSavePlan() {
+    if (!plan) return;
+
+    const nextName = editName.trim();
+    const nextCode = editCode.trim();
+
+    if (!nextName) {
+      setEditError("Name is required.");
+      return;
+    }
+    if (!nextCode) {
+      setEditError("Code is required.");
+      return;
+    }
+
+    setEditBusy(true);
+    setEditError(null);
+
+    try {
+      await updateBillingPlan({
+        planId: plan.id,
+        name: nextName,
+        code: nextCode,
+        description: editDescription,
+        isActive: editIsActive,
+      });
+
+      setEditOpen(false);
+      setReloadNonce((v) => v + 1);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : "Failed to update plan.");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
   useEffect(() => {
     let alive = true;
 
@@ -205,8 +208,6 @@ export default function AdminBillingPlanDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        setMockMode(false);
-        setMockReason(null);
 
         const res = await getBillingCatalog({ includeInactive: true });
         if (!alive) return;
@@ -219,12 +220,8 @@ export default function AdminBillingPlanDetailPage() {
         }
       } catch (e) {
         if (!alive) return;
-        setMockMode(true);
-        setMockReason(e instanceof Error ? e.message : "Failed to load plan.");
-        setPlan(planId === 1 ? MOCK_PLAN : null);
-        if (planId !== 1) {
-          setError(e instanceof Error ? e.message : "Failed to load plan.");
-        }
+        setPlan(null);
+        setError(e instanceof Error ? e.message : "Failed to load plan.");
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -294,12 +291,6 @@ export default function AdminBillingPlanDetailPage() {
         {error ? (
           <Alert variant="danger" title="Could not load plan">
             {error}
-          </Alert>
-        ) : null}
-
-        {mockMode ? (
-          <Alert variant="warning" title="Showing mock plan">
-            {mockReason ? mockReason : "Billing catalog API is not available."}
           </Alert>
         ) : null}
 
@@ -406,6 +397,63 @@ export default function AdminBillingPlanDetailPage() {
             </CardContent>
           </Card>
         ) : null}
+
+        <Modal
+          open={editOpen}
+          onClose={() => {
+            if (!editBusy) setEditOpen(false);
+          }}
+          title="Edit billing plan"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!editBusy) setEditOpen(false);
+                }}
+                disabled={editBusy}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={() => void onSavePlan()} disabled={editBusy}>
+                {editBusy ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {editError ? (
+              <Alert variant="danger" title="Cannot save">
+                {editError}
+              </Alert>
+            ) : null}
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Name</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} disabled={editBusy} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Code</label>
+              <Input value={editCode} onChange={(e) => setEditCode(e.target.value)} disabled={editBusy} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Description</label>
+              <textarea
+                className="min-h-[90px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                disabled={editBusy}
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={editIsActive} onChange={(e) => setEditIsActive(e.target.checked)} disabled={editBusy} />
+              Active
+            </label>
+          </div>
+        </Modal>
 
         <div className="space-y-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">

@@ -35,6 +35,29 @@ type AdminSettingsCurrenciesPayload = {
 
 type AllowedCurrency = { code: string; name: string; symbol: string };
 
+type DraftPriceRow = {
+  key: string;
+  currency: string;
+  interval: "month" | "year";
+  amount_cents: number;
+  trial_days: number | null;
+  is_default: boolean;
+};
+
+type BuilderDraftStorage = {
+  v: 1;
+  step: number;
+  plan: { name: string; code: string; description: string; active: boolean };
+  prices: DraftPriceRow[];
+  entitlements: {
+    enabled: Record<number, boolean>;
+    value: Record<number, unknown>;
+    jsonText: Record<number, string>;
+  };
+};
+
+const BUILDER_DRAFT_KEY = "admin.billing.builder.draft.v1";
+
 function formatCents(cents: number, currency: string) {
   const c = Number.isFinite(cents) ? cents : 0;
   const cur = (currency || "").toUpperCase() || "XXX";
@@ -55,15 +78,6 @@ export default function AdminBillingBuilderPage() {
   const [definitions, setDefinitions] = useState<EntitlementDefinition[]>([]);
 
   const [allowedCurrencies, setAllowedCurrencies] = useState<AllowedCurrency[]>([]);
-
-  type DraftPriceRow = {
-    key: string;
-    currency: string;
-    interval: "month" | "year";
-    amount_cents: number;
-    trial_days: number | null;
-    is_default: boolean;
-  };
 
   const [pricesDraft, setPricesDraft] = useState<DraftPriceRow[]>([]);
 
@@ -91,6 +105,7 @@ export default function AdminBillingBuilderPage() {
   const [priceIsDefault, setPriceIsDefault] = useState(false);
 
   const [entitlementsBusy, setEntitlementsBusy] = useState(false);
+  const [entitlementsStatus, setEntitlementsStatus] = useState<string | null>(null);
   const [entitlementEnabled, setEntitlementEnabled] = useState<Record<number, boolean>>({});
   const [entitlementValue, setEntitlementValue] = useState<Record<number, unknown>>({});
   const [entitlementJsonText, setEntitlementJsonText] = useState<Record<number, string>>({});
@@ -126,6 +141,51 @@ export default function AdminBillingBuilderPage() {
 
     return () => dashboardHeader.setHeader(null);
   }, [dashboardHeader, loading]);
+
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(BUILDER_DRAFT_KEY) : null;
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return;
+
+      const d = parsed as Partial<BuilderDraftStorage>;
+      if (d.v !== 1) return;
+
+      const plan = d.plan && typeof d.plan === "object" ? (d.plan as BuilderDraftStorage["plan"]) : null;
+      if (plan) {
+        setPlanName(typeof plan.name === "string" ? plan.name : "");
+        setPlanCode(typeof plan.code === "string" ? plan.code : "");
+        setPlanDescription(typeof plan.description === "string" ? plan.description : "");
+        setPlanActive(typeof plan.active === "boolean" ? plan.active : true);
+      }
+
+      if (Array.isArray(d.prices)) {
+        setPricesDraft(
+          d.prices
+            .filter((p) => p && typeof p === "object")
+            .map((p) => normalizeDraftPriceRow(p as DraftPriceRow)),
+        );
+      }
+
+      const ent = d.entitlements && typeof d.entitlements === "object" ? (d.entitlements as BuilderDraftStorage["entitlements"]) : null;
+      if (ent) {
+        setEntitlementEnabled(ent.enabled && typeof ent.enabled === "object" ? ent.enabled : {});
+        setEntitlementValue(ent.value && typeof ent.value === "object" ? ent.value : {});
+        setEntitlementJsonText(ent.jsonText && typeof ent.jsonText === "object" ? ent.jsonText : {});
+      }
+
+      if (typeof d.step === "number" && Number.isFinite(d.step)) {
+        setStep(Math.max(0, Math.min(steps.length - 1, Math.trunc(d.step))));
+      }
+    } catch {
+      try {
+        window.localStorage.removeItem(BUILDER_DRAFT_KEY);
+      } catch {
+        void 0;
+      }
+    }
+  }, [steps.length]);
 
   useEffect(() => {
     let alive = true;
@@ -277,6 +337,35 @@ export default function AdminBillingBuilderPage() {
     return steps.length - 1;
   }, [planName, pricesValidation.ok, steps.length]);
 
+  useEffect(() => {
+    setStep((s) => Math.min(s, maxStepAllowed));
+  }, [maxStepAllowed]);
+
+  useEffect(() => {
+    if (createdPlan) return;
+    try {
+      const payload: BuilderDraftStorage = {
+        v: 1,
+        step,
+        plan: {
+          name: planName,
+          code: planCode,
+          description: planDescription,
+          active: Boolean(planActive),
+        },
+        prices: Array.isArray(pricesDraft) ? pricesDraft : [],
+        entitlements: {
+          enabled: entitlementEnabled,
+          value: entitlementValue,
+          jsonText: entitlementJsonText,
+        },
+      };
+      window.localStorage.setItem(BUILDER_DRAFT_KEY, JSON.stringify(payload));
+    } catch {
+      void 0;
+    }
+  }, [createdPlan, entitlementEnabled, entitlementJsonText, entitlementValue, planActive, planCode, planDescription, planName, pricesDraft, step]);
+
   function goNext() {
     setStep((s) => Math.min(s + 1, maxStepAllowed));
   }
@@ -394,18 +483,31 @@ export default function AdminBillingBuilderPage() {
         const type = String(def.value_type ?? "json");
         if (type !== "boolean" && type !== "integer") {
           const raw = entitlementJsonText[def.id] ?? "";
-          const parsed = raw.trim() === "" ? null : JSON.parse(raw);
+          const parsed = raw.trim() === "" ? {} : JSON.parse(raw);
           payload.push({ entitlement_definition_id: def.id, value_json: parsed });
           continue;
         }
 
-        payload.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
+        if (type === "boolean") {
+          payload.push({ entitlement_definition_id: def.id, value_json: Boolean(entitlementValue[def.id]) });
+          continue;
+        }
+
+        const n = entitlementValue[def.id];
+        const intValue = typeof n === "number" && Number.isFinite(n) ? Math.trunc(n) : 0;
+        payload.push({ entitlement_definition_id: def.id, value_json: intValue });
       }
 
       const entRes = await syncBillingPlanVersionEntitlements({ versionId: currentVersion.id, entitlements: payload });
       setCreatedVersion(entRes.version);
       setValidateResult(null);
       setReloadNonce((v) => v + 1);
+
+      try {
+        window.localStorage.removeItem(BUILDER_DRAFT_KEY);
+      } catch {
+        void 0;
+      }
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : "Failed to create plan.");
     } finally {
@@ -494,8 +596,14 @@ export default function AdminBillingBuilderPage() {
 
     setEntitlementsBusy(true);
     setActionError(null);
+    setEntitlementsStatus(null);
 
     try {
+      if (!createdVersion) {
+        setEntitlementsStatus("Saved locally. These entitlements will be applied when you create the plan.");
+        return;
+      }
+
       const payload: Array<{ entitlement_definition_id: number; value_json: unknown }> = [];
 
       for (const def of allEntitlementDefinitions) {
@@ -506,7 +614,7 @@ export default function AdminBillingBuilderPage() {
         if (type !== "boolean" && type !== "integer") {
           const raw = entitlementJsonText[def.id] ?? "";
           try {
-            const parsed = raw.trim() === "" ? null : JSON.parse(raw);
+            const parsed = raw.trim() === "" ? {} : JSON.parse(raw);
             payload.push({ entitlement_definition_id: def.id, value_json: parsed });
             setEntitlementJsonError((prev) => ({ ...prev, [def.id]: null }));
           } catch {
@@ -516,10 +624,19 @@ export default function AdminBillingBuilderPage() {
           continue;
         }
 
-        payload.push({ entitlement_definition_id: def.id, value_json: entitlementValue[def.id] ?? null });
+        if (type === "boolean") {
+          payload.push({ entitlement_definition_id: def.id, value_json: Boolean(entitlementValue[def.id]) });
+          continue;
+        }
+
+        const n = entitlementValue[def.id];
+        const intValue = typeof n === "number" && Number.isFinite(n) ? Math.trunc(n) : 0;
+        payload.push({ entitlement_definition_id: def.id, value_json: intValue });
       }
 
-      void payload;
+      const res = await syncBillingPlanVersionEntitlements({ versionId: createdVersion.id, entitlements: payload });
+      setCreatedVersion(res.version);
+      setEntitlementsStatus("Entitlements saved.");
       setValidateResult(null);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to save entitlements.");
@@ -780,6 +897,8 @@ export default function AdminBillingBuilderPage() {
                   </Button>
                 ) : null}
               </div>
+
+              {entitlementsStatus ? <Alert variant="success" title="Entitlements">{entitlementsStatus}</Alert> : null}
 
               {allEntitlementDefinitions.length === 0 ? <Alert variant="warning" title="No entitlements">Create entitlement definitions first.</Alert> : null}
 
