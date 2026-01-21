@@ -78,13 +78,7 @@ class BillingOnboardingController extends Controller
 
         $validated = $request->validate([
             'billing_price_id' => ['required', 'integer', 'exists:billing_prices,id'],
-            'billing_country' => ['required', 'string', 'size:2'],
-            'currency' => ['required', 'string', 'size:3'],
-            'billing_vat_number' => ['nullable', 'string', 'max:255'],
         ]);
-
-        $billingCountry = strtoupper((string) $validated['billing_country']);
-        $currency = strtoupper((string) $validated['currency']);
 
         $price = BillingPrice::query()->with(['planVersion.plan', 'intervalModel'])->findOrFail((int) $validated['billing_price_id']);
 
@@ -101,19 +95,6 @@ class BillingOnboardingController extends Controller
                 'message' => 'Selected plan is not available.',
             ], 422);
         }
-
-        $priceCurrency = strtoupper((string) $price->currency);
-        if ($priceCurrency !== $currency) {
-            return response()->json([
-                'message' => 'Currency does not match the selected price.',
-            ], 422);
-        }
-
-        $tenant->forceFill([
-            'billing_country' => $billingCountry,
-            'currency' => $currency,
-            'billing_vat_number' => ($validated['billing_vat_number'] ?? null) ?: null,
-        ])->save();
 
         $actor = $request->user();
         $actorUserId = $actor ? (int) $actor->id : null;
@@ -139,6 +120,10 @@ class BillingOnboardingController extends Controller
             $trialDays = is_numeric($price->trial_days) ? (int) $price->trial_days : 0;
 
             if ($trialDays > 0) {
+                $tenant->forceFill([
+                    'currency' => strtoupper((string) $price->currency),
+                ])->save();
+
                 return (new SubscriptionService())->createOrChangeSubscription(
                     tenant: $tenant,
                     planVersion: $version,
@@ -195,6 +180,15 @@ class BillingOnboardingController extends Controller
             ], 400);
         }
 
+        $validated = $request->validate([
+            'billing_country' => ['required', 'string', 'size:2'],
+            'currency' => ['required', 'string', 'size:3'],
+            'billing_vat_number' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $billingCountry = strtoupper((string) $validated['billing_country']);
+        $currency = strtoupper((string) $validated['currency']);
+
         $actor = $request->user();
         $actorUserId = $actor ? (int) $actor->id : null;
 
@@ -216,6 +210,19 @@ class BillingOnboardingController extends Controller
                 'message' => 'Subscription price is missing.',
             ], 422);
         }
+
+        $priceCurrency = strtoupper((string) $price->currency);
+        if ($priceCurrency !== $currency) {
+            return response()->json([
+                'message' => 'Currency does not match the selected price.',
+            ], 422);
+        }
+
+        $tenant->forceFill([
+            'billing_country' => $billingCountry,
+            'currency' => $currency,
+            'billing_vat_number' => ($validated['billing_vat_number'] ?? null) ?: null,
+        ])->save();
 
         $now = now();
         $periodEnd = null;

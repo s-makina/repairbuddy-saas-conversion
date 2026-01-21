@@ -64,12 +64,15 @@ export function RequireAuth({
             const isOnSuspended = pathname === `/${tenantSlug}/suspended` || pathname.startsWith(`/${tenantSlug}/suspended/`);
             const isOnApp = pathname === `/app/${tenantSlug}` || pathname.startsWith(`/app/${tenantSlug}/`);
 
+            const canAccessPlansDuringCheckout = expected === `/${tenantSlug}/checkout` && isOnPlans;
+
             const isOnExpected =
               (expected === `/${tenantSlug}/plans` && isOnPlans) ||
               (expected === `/${tenantSlug}/checkout` && isOnCheckout) ||
               (expected === `/${tenantSlug}/suspended` && isOnSuspended) ||
               (expected === `/${tenantSlug}/setup` && isOnSetupPath) ||
-              (expected === `/app/${tenantSlug}` && isOnApp);
+              (expected === `/app/${tenantSlug}` && isOnApp) ||
+              canAccessPlansDuringCheckout;
 
             if (!isOnExpected) {
               router.replace(expected);

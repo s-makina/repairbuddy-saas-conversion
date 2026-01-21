@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Preloader } from "@/components/Preloader";
 import { ApiError } from "@/lib/api";
-import { computeGateRedirect } from "@/lib/gate";
 import { getTenantBillingPlans, subscribeToPlan } from "@/lib/billingOnboarding";
+import { computeGateRedirect } from "@/lib/gate";
 import type { BillingPlan, BillingPlanVersion, BillingPrice } from "@/lib/types";
 
 export default function PlansPage() {
@@ -24,10 +24,8 @@ export default function PlansPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [billingCountry, setBillingCountry] = useState("US");
   const [currency, setCurrency] = useState("USD");
   const [interval, setInterval] = useState<string>("month");
-  const [vatNumber, setVatNumber] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -60,7 +58,6 @@ export default function PlansPage() {
   }, [business]);
 
   const normalizeCurrency = (value: string) => value.trim().toUpperCase();
-  const normalizeCountry = (value: string) => value.trim().toUpperCase();
 
   const activePlanVersions = useMemo(() => {
     const rows: Array<{ plan: BillingPlan; version: BillingPlanVersion }> = [];
@@ -117,14 +114,6 @@ export default function PlansPage() {
     }
   }, [availableCurrencies, availableIntervals, loading]);
 
-  const validateBillingBasics = (): string | null => {
-    const c = normalizeCountry(billingCountry);
-    const cur = normalizeCurrency(currency);
-    if (!c || c.length !== 2) return "Billing country must be a 2-letter code (e.g. US).";
-    if (!cur || cur.length !== 3) return "Currency must be a 3-letter code (e.g. USD).";
-    return null;
-  };
-
   const formatMoney = (amountCents: number, cur: string) => {
     const value = (typeof amountCents === "number" ? amountCents : 0) / 100;
     try {
@@ -173,26 +162,18 @@ export default function PlansPage() {
     return price.amount_cents === median;
   };
 
-  const onSelectPrice = async (priceId: number) => {
+  const onSelectPrice = async (priceId: number, opts?: { startTrial?: boolean }) => {
     if (!business) return;
-    const err = validateBillingBasics();
-    if (err) {
-      setError(err);
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
 
     try {
-      const res = await subscribeToPlan(business, {
-        billing_price_id: priceId,
-        billing_country: normalizeCountry(billingCountry),
-        currency: normalizeCurrency(currency),
-        billing_vat_number: vatNumber.trim() || null,
-      });
-
-      router.replace(computeGateRedirect(business, res.gate));
+      const res = await subscribeToPlan(business, { billing_price_id: priceId });
+      if (opts?.startTrial) {
+        router.replace(computeGateRedirect(business, res.gate));
+      } else {
+        router.replace(`/${business}/checkout`);
+      }
     } catch (e) {
       if (e instanceof ApiError) {
         setError(e.message);
@@ -209,27 +190,43 @@ export default function PlansPage() {
       {loading ? (
         <Preloader label="Loading plans" />
       ) : (
-        <div className="min-h-screen bg-[linear-gradient(180deg,color-mix(in_srgb,var(--rb-blue),white_94%),white)] px-6 py-10">
-          <div className="mx-auto w-full max-w-6xl">
-            <div className="flex items-center justify-between gap-4">
+        <div className="min-h-screen text-[var(--rb-text)] [background:radial-gradient(1200px_circle_at_20%_0%,color-mix(in_srgb,var(--rb-blue),white_88%)_0%,transparent_55%),radial-gradient(900px_circle_at_80%_15%,color-mix(in_srgb,var(--rb-orange),white_86%)_0%,transparent_60%),var(--rb-surface)]">
+          <header className="sticky top-0 z-20 border-b border-[var(--rb-border)] bg-white/70 backdrop-blur">
+            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 overflow-hidden rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white shadow-[var(--rb-shadow)]">
-                  <Image src="/brand/repair-buddy-logo.png" alt="Repair Buddy" width={40} height={40} priority />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-[var(--rb-text)]">Repair Buddy</div>
-                  <div className="text-xs text-zinc-600">Choose the plan that fits your shop</div>
-                </div>
+                <Link href="/" className="font-semibold tracking-tight text-[var(--rb-text)]">
+                  99smartx
+                </Link>
+                <Badge variant="info" className="hidden sm:inline-flex">
+                  Plans
+                </Badge>
               </div>
 
-              <Button variant="outline" disabled={!business || submitting} onClick={() => router.replace(`/app/${business}`)}>
-                Back
-              </Button>
-            </div>
+              <nav className="hidden items-center gap-6 text-sm text-zinc-600 md:flex">
+                <Link href="/#features" className="hover:text-[var(--rb-text)]">
+                  Features
+                </Link>
+                <Link href="/#pricing" className="hover:text-[var(--rb-text)]">
+                  Pricing
+                </Link>
+                <Link href="/#faq" className="hover:text-[var(--rb-text)]">
+                  FAQ
+                </Link>
+              </nav>
 
-            <div className="mt-8 grid gap-6 lg:grid-cols-[1fr,360px]">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" disabled={!business || submitting} onClick={() => router.replace(`/app/${business}`)}>
+                  Back
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          <main>
+            <section className="mx-auto w-full max-w-6xl px-4 py-10">
+              <div className="grid gap-6">
               <div>
-                <div className="rounded-[var(--rb-radius-xl)] border border-[var(--rb-border)] bg-white p-6 shadow-[var(--rb-shadow)]">
+                <div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <div className="text-xl font-semibold tracking-tight text-[var(--rb-text)]">Pricing</div>
@@ -289,13 +286,11 @@ export default function PlansPage() {
 
                     {activePlanVersions.map(({ plan, version }) => {
                       const selected = selectPriceForPlan(version);
-                      const trialDays = typeof selected?.trial_days === "number" ? selected.trial_days : null;
+                      const trialDays = typeof selected?.trial_days === "number" ? selected.trial_days : 0;
                       const recommended = isRecommended(selected);
 
                       const entitlements = Array.isArray(version.entitlements) ? version.entitlements : [];
-                      const topEntitlements = entitlements
-                        .filter((e) => e.definition?.name)
-                        .slice(0, 6);
+                      const visibleEntitlements = entitlements.filter((e) => e.definition?.name);
 
                       const canSelect = Boolean(selected) && !submitting;
                       const priceLabel = selected ? formatMoney(selected.amount_cents, normalizeCurrency(selected.currency)) : "Not available";
@@ -304,7 +299,7 @@ export default function PlansPage() {
                         <div
                           key={plan.id}
                           className={
-                            "relative overflow-hidden rounded-[var(--rb-radius-xl)] border bg-white p-5 shadow-[var(--rb-shadow)] " +
+                            "relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-[var(--rb-radius-xl)] border bg-white p-5 shadow-[var(--rb-shadow)] " +
                             (recommended
                               ? "border-[color:color-mix(in_srgb,var(--rb-orange),white_45%)] ring-2 ring-[color:color-mix(in_srgb,var(--rb-orange),white_70%)]"
                               : "border-[var(--rb-border)]")
@@ -326,17 +321,14 @@ export default function PlansPage() {
                                 {selected ? `per ${intervalLabel(version, selected.interval).toLowerCase()}` : `Unavailable for ${currency} / ${interval}`}
                               </div>
                             </div>
-
-                            <div className="text-right">
-                              <div className="text-xs text-zinc-600">{trialDays && trialDays > 0 ? `${trialDays} day trial` : "No trial"}</div>
-                            </div>
                           </div>
 
-                          {topEntitlements.length > 0 ? (
-                            <div className="mt-4">
+                          {visibleEntitlements.length > 0 ? (
+                            <div className="mt-4 flex min-h-0 flex-1 flex-col">
                               <div className="text-xs font-medium text-zinc-600">What’s included</div>
-                              <div className="mt-2 grid gap-2">
-                                {topEntitlements.map((e) => (
+                              <div className="mt-2 min-h-0 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                                <div className="grid gap-2">
+                                {visibleEntitlements.map((e) => (
                                   <div key={e.id} className="flex items-start gap-2 text-sm text-[var(--rb-text)]">
                                     <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--rb-orange)]" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                       <path d="M20 6L9 17l-5-5" />
@@ -347,23 +339,24 @@ export default function PlansPage() {
                                     </div>
                                   </div>
                                 ))}
+                                </div>
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-4 text-sm text-zinc-600">Everything you need to get started.</div>
+                            <div className="mt-4 flex-1 text-sm text-zinc-600">Everything you need to get started.</div>
                           )}
 
-                          <div className="mt-5">
+                          <div className="mt-5 pt-2">
                             <Button
                               variant={recommended ? "secondary" : "primary"}
                               className="w-full"
                               disabled={!canSelect}
                               onClick={() => {
                                 if (!selected) return;
-                                void onSelectPrice(selected.id);
+                                void onSelectPrice(selected.id, { startTrial: trialDays > 0 });
                               }}
                             >
-                              {selected ? (trialDays && trialDays > 0 ? "Start trial" : "Continue") : "Unavailable"}
+                              {selected ? (trialDays > 0 ? "Start trial" : "Continue") : "Unavailable"}
                             </Button>
                           </div>
                         </div>
@@ -372,57 +365,22 @@ export default function PlansPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="rounded-[var(--rb-radius-xl)] border border-[var(--rb-border)] bg-white p-6 shadow-[var(--rb-shadow)]">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Billing details</div>
-                <div className="mt-1 text-sm text-zinc-600">Used to calculate taxes and invoices.</div>
-
-                <div className="mt-5 grid gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Billing country</label>
-                    <div className="mt-1">
-                      <Select value={billingCountry} onChange={(e) => setBillingCountry(e.target.value.toUpperCase())} disabled={submitting}>
-                        <option value="US">US</option>
-                        <option value="CA">CA</option>
-                        <option value="GB">GB</option>
-                        <option value="IE">IE</option>
-                        <option value="DE">DE</option>
-                        <option value="FR">FR</option>
-                        <option value="ES">ES</option>
-                        <option value="NL">NL</option>
-                        <option value="ZA">ZA</option>
-                      </Select>
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-600">Don’t see yours? Type it below.</div>
-                    <div className="mt-2">
-                      <Input
-                        value={billingCountry}
-                        onChange={(e) => setBillingCountry(e.target.value.toUpperCase())}
-                        maxLength={2}
-                        placeholder="US"
-                        disabled={submitting}
-                      />
-                    </div>
-                  </div>
-
-                  <details className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">
-                    <summary className="cursor-pointer select-none text-sm font-medium text-[var(--rb-text)]">
-                      VAT number (optional)
-                    </summary>
-                    <div className="mt-3">
-                      <Input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} placeholder="EU123456789" disabled={submitting} />
-                      <div className="mt-2 text-xs text-zinc-600">If you have a VAT number, enter it to apply the correct tax rules.</div>
-                    </div>
-                  </details>
-
-                  <div className="rounded-[var(--rb-radius-lg)] border border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_93%)] p-4">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Tip</div>
-                    <div className="mt-1 text-sm text-zinc-700">Pick your plan first. You’ll confirm the final checkout next.</div>
+            </div>
+              <footer className="mt-12 border-t border-[var(--rb-border)] pt-8 text-xs text-zinc-600">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>© {new Date().getFullYear()} 99smartx</div>
+                  <div className="flex items-center gap-4">
+                    <Link href="/login" className="hover:text-[var(--rb-text)]">
+                      Login
+                    </Link>
+                    <Link href="/register" className="hover:text-[var(--rb-text)]">
+                      Register
+                    </Link>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
+              </footer>
+            </section>
+          </main>
         </div>
       )}
     </RequireAuth>
