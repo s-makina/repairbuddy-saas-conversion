@@ -2,10 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Preloader } from "@/components/Preloader";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -547,17 +549,13 @@ export default function BusinessSetupPage() {
 
   if (typeof business !== "string" || business.length === 0) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-[var(--rb-surface-muted)]">
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_85%)] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-[42rem] rounded-full bg-[color:color-mix(in_srgb,var(--rb-orange),white_82%)] blur-3xl" />
-        <div className="relative flex min-h-screen items-center justify-center px-6">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--rb-surface)] px-6">
           <Card className="w-full max-w-lg shadow-none">
             <CardHeader>
               <CardTitle className="text-base">Setup wizard</CardTitle>
               <CardDescription>Business is missing.</CardDescription>
             </CardHeader>
           </Card>
-        </div>
       </div>
     );
   }
@@ -566,170 +564,249 @@ export default function BusinessSetupPage() {
 
   return (
     <RequireAuth>
-      <div className="relative min-h-screen overflow-hidden bg-[var(--rb-surface-muted)]">
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_85%)] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-[42rem] rounded-full bg-[color:color-mix(in_srgb,var(--rb-orange),white_82%)] blur-3xl" />
+      <div className="min-h-screen text-[var(--rb-text)] [background:radial-gradient(1200px_circle_at_20%_0%,color-mix(in_srgb,var(--rb-blue),white_88%)_0%,transparent_55%),radial-gradient(900px_circle_at_80%_15%,color-mix(in_srgb,var(--rb-orange),white_86%)_0%,transparent_60%),var(--rb-surface)]">
+        <header className="sticky top-0 z-20 border-b border-[var(--rb-border)] bg-white/70 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Link href="/" className="font-semibold tracking-tight text-[var(--rb-text)]">
+                99smartx
+              </Link>
+              <Badge variant="info" className="hidden sm:inline-flex">
+                Setup
+              </Badge>
+            </div>
 
-        <div className="relative mx-auto w-full max-w-5xl px-6 py-10 space-y-6">
-          <PageHeader
-            title="Business setup"
-            description={`Finish setting up ${tenantName} to start using the app.`}
-            actions={
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:block text-xs text-zinc-500">{saving ? "Saving..." : "Autosave on"}</div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={saving}
-                  onClick={() => {
-                    void persist(step, true);
-                  }}
-                >
-                  Save
-                </Button>
-              </div>
-            }
-          />
+            <nav className="hidden items-center gap-6 text-sm text-zinc-600 md:flex">
+              <Link href="/#features" className="hover:text-[var(--rb-text)]">
+                Features
+              </Link>
+              <Link href="/#pricing" className="hover:text-[var(--rb-text)]">
+                Pricing
+              </Link>
+              <Link href="/#faq" className="hover:text-[var(--rb-text)]">
+                FAQ
+              </Link>
+            </nav>
 
-          {error ? <Alert variant="danger" title="Setup error">{error}</Alert> : null}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => router.replace(`/${business}/plans`)}>
+                Back
+              </Button>
+            </div>
+          </div>
+        </header>
 
-          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-            <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Setup steps</CardTitle>
-                <CardDescription>Complete the steps to start using the app.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-2 w-full rounded-full bg-[var(--rb-border)] overflow-hidden">
-                  <div
-                    className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
-                    style={{ width: `${Math.round(progress * 100)}%` }}
-                  />
-                </div>
-
-                <nav aria-label="Setup steps" className="space-y-1">
-                  {stepOrder.map((s, idx) => {
-                    const isCurrent = idx === stepIndex;
-                    const isCompleted = idx < stepIndex;
-                    const isAvailable = idx <= stepIndex;
-
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        disabled={!isAvailable || saving || completing}
+        <main>
+          <section className="mx-auto w-full max-w-6xl px-4 py-10">
+            <div className="mx-auto w-full max-w-5xl space-y-6">
+                <PageHeader
+                  title="Business setup"
+                  description={`Finish setting up ${tenantName} to start using the app.`}
+                  actions={
+                    <div className="flex items-center gap-2">
+                      <div className="hidden sm:block text-xs text-zinc-500">{saving ? "Saving..." : "Autosave on"}</div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={saving}
                         onClick={() => {
-                          if (!isAvailable) return;
-                          setError(null);
-                          setStep(s);
-                          void persist(s, true);
+                          void persist(step, true);
                         }}
-                        className={
-                          "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
-                          (isCurrent
-                            ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
-                            : isCompleted
-                              ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
-                              : "border-[var(--rb-border)] bg-white opacity-60")
-                        }
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={
-                              "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold " +
-                              (isCurrent
-                                ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
-                                : isCompleted
-                                  ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
-                                  : "border-[var(--rb-border)] bg-white text-zinc-600")
-                            }
-                          >
-                            {isCompleted ? (
-                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            ) : (
-                              idx + 1
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
-                            <div className="mt-0.5 text-xs text-zinc-600 line-clamp-2">{stepDescription(s)}</div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </CardContent>
-            </Card>
+                        Save
+                      </Button>
+                    </div>
+                  }
+                />
 
-            <Card className="shadow-none flex min-h-[calc(100vh-220px)] flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-base">{stepLabel(step)}</CardTitle>
-                    <CardDescription>{stepDescription(step)}</CardDescription>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-zinc-500">Step {stepIndex + 1} of {stepOrder.length}</div>
-                    <div className="mt-2 flex items-center justify-end gap-2">
-                      <div className="flex items-center gap-1" aria-label="Progress">
-                        {stepOrder.map((_, idx) => {
-                          const isDone = idx < stepIndex;
-                          const isNow = idx === stepIndex;
+                {error ? <Alert variant="danger" title="Setup error">{error}</Alert> : null}
+
+                <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+                  <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Setup steps</CardTitle>
+                      <CardDescription>Complete the steps to start using the app.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="h-2 w-full rounded-full bg-[var(--rb-border)] overflow-hidden">
+                        <div
+                          className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
+                          style={{ width: `${Math.round(progress * 100)}%` }}
+                        />
+                      </div>
+
+                      <nav aria-label="Setup steps" className="space-y-1">
+                        {stepOrder.map((s, idx) => {
+                          const isCurrent = idx === stepIndex;
+                          const isCompleted = idx < stepIndex;
+                          const isAvailable = idx <= stepIndex;
+
                           return (
-                            <span
-                              key={idx}
+                            <button
+                              key={s}
+                              type="button"
+                              disabled={!isAvailable || saving || completing}
+                              onClick={() => {
+                                if (!isAvailable) return;
+                                setError(null);
+                                setStep(s);
+                                void persist(s, true);
+                              }}
                               className={
-                                "h-1.5 w-5 rounded-full transition " +
-                                (isNow
-                                  ? "bg-[var(--rb-blue)]"
-                                  : isDone
-                                    ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
-                                    : "bg-[var(--rb-border)]")
+                                "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
+                                (isCurrent
+                                  ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
+                                  : isCompleted
+                                    ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
+                                    : "border-[var(--rb-border)] bg-white opacity-60")
                               }
-                            />
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={
+                                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
+                                    (isCurrent
+                                      ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
+                                      : isCompleted
+                                        ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
+                                        : "border-[var(--rb-border)] bg-white text-zinc-600")
+                                  }
+                                >
+                                  {isCompleted ? (
+                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                  ) : (
+                                    idx + 1
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
+                                  <div className="mt-0.5 text-xs text-zinc-600 line-clamp-2">{stepDescription(s)}</div>
+                                </div>
+                              </div>
+                            </button>
                           );
                         })}
+                      </nav>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="shadow-none flex min-h-[calc(100vh-220px)] flex-col">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <CardTitle className="text-base">{stepLabel(step)}</CardTitle>
+                          <CardDescription>{stepDescription(step)}</CardDescription>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-zinc-500">Step {stepIndex + 1} of {stepOrder.length}</div>
+                          <div className="mt-2 flex items-center justify-end gap-2">
+                            <div className="flex items-center gap-1" aria-label="Progress">
+                              {stepOrder.map((_, idx) => {
+                                const isDone = idx < stepIndex;
+                                const isNow = idx === stepIndex;
+                                return (
+                                  <span
+                                    key={idx}
+                                    className={
+                                      "h-1.5 w-5 rounded-full transition " +
+                                      (isNow
+                                        ? "bg-[var(--rb-blue)]"
+                                        : isDone
+                                          ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
+                                          : "bg-[var(--rb-border)]")
+                                    }
+                                  />
+                                );
+                              })}
+                            </div>
+                            <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
+                              {Math.round(progress * 100)}%
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
-                        {Math.round(progress * 100)}%
+                    </CardHeader>
+
+                    <CardContent className="flex-1 space-y-6">
+                {step === "welcome" ? (
+                  <div className="space-y-6">
+                    <div className="relative overflow-hidden rounded-[var(--rb-radius-lg)] border border-[color:color-mix(in_srgb,var(--rb-blue),white_80%)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--rb-blue),white_90%),white_70%)] p-6">
+                      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] blur-2xl" aria-hidden="true" />
+                      <div className="relative flex items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--rb-blue),white_70%)] bg-white/70 text-[var(--rb-blue)]">
+                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z" />
+                            <path d="M5 14l.9 2.8L9 18l-3.1 1.2L5 22l-.9-2.8L1 18l3.1-1.2L5 14z" />
+                          </svg>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xl font-semibold text-[var(--rb-text)]">Welcome — let’s get your business ready</div>
+                          <div className="mt-1 text-sm text-zinc-700">
+                            This wizard saves as you go and takes about 3–5 minutes. You can skip optional steps and come back later.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="relative mt-5 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
+                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Time</div>
+                          <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">3–5 minutes</div>
+                        </div>
+                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
+                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Saving</div>
+                          <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">Auto-saved</div>
+                        </div>
+                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
+                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Flexibility</div>
+                          <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">Optional steps</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
 
-              <CardContent className="flex-1 space-y-6">
-              {step === "welcome" ? (
-                <div className="space-y-4">
-                  <div className="text-sm text-zinc-600">
-                    This setup wizard takes about 3–5 minutes. You can skip non-critical steps and come back later.
+                    <div>
+                      <div className="text-sm font-medium text-[var(--rb-text)]">What you’ll configure</div>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {stepOrder
+                          .filter((s) => s !== "welcome")
+                          .map((s) => {
+                            const isOptional = skippableSteps.includes(s);
+                            return (
+                              <div
+                                key={s}
+                                className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
+                                  {isOptional ? (
+                                    <span className="rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                                      Optional
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="mt-1 text-xs text-zinc-600">{stepDescription(s)}</div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        disabled={saving || completing}
+                        onClick={() => {
+                          void onNext();
+                        }}
+                      >
+                        Start setup
+                      </Button>
+                      <div className="text-xs text-zinc-500">You can adjust everything later from Settings.</div>
+                    </div>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {stepOrder
-                      .filter((s) => s !== "welcome")
-                      .map((s) => (
-                        <div
-                          key={s}
-                          className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-zinc-700"
-                        >
-                          {stepLabel(s)}
-                        </div>
-                      ))}
-                  </div>
-                  <Button
-                    variant="primary"
-                    disabled={saving || completing}
-                    onClick={() => {
-                      void onNext();
-                    }}
-                  >
-                    Start setup
-                  </Button>
-                </div>
-              ) : null}
+                ) : null}
 
               {step === "business" ? (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1214,7 +1291,24 @@ export default function BusinessSetupPage() {
               </div>
             </Card>
           </div>
-        </div>
+
+          <footer className="mt-12 border-t border-[var(--rb-border)] pt-8 text-xs text-zinc-600">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>© {new Date().getFullYear()} 99smartx</div>
+              <div className="flex items-center gap-4">
+                <Link href="/login" className="hover:text-[var(--rb-text)]">
+                  Login
+                </Link>
+                <Link href="/register" className="hover:text-[var(--rb-text)]">
+                  Register
+                </Link>
+              </div>
+            </div>
+          </footer>
+
+            </div>
+          </section>
+        </main>
       </div>
     </RequireAuth>
   );

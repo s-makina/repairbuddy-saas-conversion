@@ -1,9 +1,10 @@
 "use client";
 
 import { apiFetch, ApiError } from "@/lib/api";
-import { AuthLayout } from "@/components/auth/AuthLayout";
+import { PublicPageShell } from "@/components/PublicPageShell";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Preloader } from "@/components/Preloader";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -49,170 +50,194 @@ function EyeOffIcon({ className }: { className?: string }) {
 }
 
 function ResetPasswordPageInner() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-    const token = useMemo(() => searchParams.get("token"), [searchParams]);
-    const email = useMemo(() => searchParams.get("email"), [searchParams]);
-    void useMemo(() => searchParams.get("tenant"), [searchParams]);
+  const token = useMemo(() => searchParams.get("token"), [searchParams]);
+  const email = useMemo(() => searchParams.get("email"), [searchParams]);
+  void useMemo(() => searchParams.get("tenant"), [searchParams]);
 
-    const [password, setPassword] = useState("");
-    const [passwordConfirmation, setPasswordConfirmation] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [status, setStatus] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-    async function onSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(null);
-        setStatus(null);
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setStatus(null);
 
-        if (password !== passwordConfirmation) {
-            setError("Passwords do not match.");
-            return;
-        }
-
-        if (!token || !email) {
-            setError("Invalid reset link. Please request a new one.");
-            return;
-        }
-
-        setSubmitting(true);
-
-        try {
-            await apiFetch<{ message: string }>("/api/auth/password/reset", {
-                method: "POST",
-                body: {
-                    token,
-                    email,
-                    password,
-                    password_confirmation: passwordConfirmation,
-                },
-            });
-
-            setStatus("Your password has been reset successfully.");
-            setTimeout(() => {
-                router.push("/login");
-            }, 3000);
-        } catch (err) {
-            if (err instanceof ApiError) {
-                setError(err.message);
-            } else {
-                setError("Failed to reset password.");
-            }
-        } finally {
-            setSubmitting(false);
-        }
+    if (password !== passwordConfirmation) {
+      setError("Passwords do not match.");
+      return;
     }
 
     if (!token || !email) {
-        return (
-          <AuthLayout
-            title="Invalid reset link"
-            description="This password reset link is invalid or has expired."
-            footer={
-              <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/login">
-                Return to sign in
-              </Link>
-            }
-          >
-            <Alert variant="danger" title="Unable to reset password">
-              Please request a new reset link from the sign-in page.
-            </Alert>
-          </AuthLayout>
-        );
+      setError("Invalid reset link. Please request a new one.");
+      return;
     }
 
+    setSubmitting(true);
+
+    try {
+      await apiFetch<{ message: string }>("/api/auth/password/reset", {
+        method: "POST",
+        body: {
+          token,
+          email,
+          password,
+          password_confirmation: passwordConfirmation,
+        },
+      });
+
+      setStatus("Your password has been reset successfully.");
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to reset password.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!token || !email) {
     return (
-      <AuthLayout
-        title="Set a new password"
-        description="Choose a strong password you don’t use elsewhere."
-        footer={
-          !status ? (
-            <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/login">
-              Back to sign in
-            </Link>
-          ) : null
-        }
-      >
-        <div className="space-y-4">
-          {error ? <Alert variant="danger" title="Reset failed">{error}</Alert> : null}
-          {status ? (
-            <Alert variant="success" title="Password updated">
-              {status}
-            </Alert>
-          ) : null}
+      <PublicPageShell badge="Reset password" centerContent>
+        <section className="mx-auto w-full max-w-6xl px-4 py-10">
+          <div className="flex justify-center">
+            <div className="w-full max-w-md">
+              <Card className="bg-white/70">
+                <CardHeader>
+                  <CardTitle className="text-base">Invalid reset link</CardTitle>
+                  <CardDescription>This password reset link is invalid or has expired.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Alert variant="danger" title="Unable to reset password">
+                    Please request a new reset link from the sign-in page.
+                  </Alert>
+                </CardContent>
+              </Card>
 
-          <form className="space-y-4" onSubmit={onSubmit}>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="password">
-                New password
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type={showPassword ? "text" : "password"}
-                  required
-                  disabled={submitting || !!status}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                </button>
+              <div className="mt-5 text-center text-sm text-zinc-600">
+                <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/login">
+                  Return to sign in
+                </Link>
               </div>
             </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="password_confirmation">
-                Confirm new password
-              </label>
-              <div className="relative">
-                <Input
-                  id="password_confirmation"
-                  value={passwordConfirmation}
-                  onChange={(e) => setPasswordConfirmation(e.target.value)}
-                  type={showPasswordConfirmation ? "text" : "password"}
-                  required
-                  disabled={submitting || !!status}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
-                  onClick={() => setShowPasswordConfirmation((v) => !v)}
-                  aria-label={showPasswordConfirmation ? "Hide password" : "Show password"}
-                >
-                  {showPasswordConfirmation ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <Button className="w-full" type="submit" disabled={submitting || !!status}>
-              {submitting ? "Updating..." : "Update password"}
-            </Button>
-          </form>
-        </div>
-      </AuthLayout>
+          </div>
+        </section>
+      </PublicPageShell>
     );
+  }
+
+  return (
+    <PublicPageShell badge="Reset password" centerContent>
+      <section className="mx-auto w-full max-w-6xl px-4 py-10">
+        <div className="flex justify-center">
+          <div className="w-full max-w-md">
+            <Card className="bg-white/70">
+              <CardHeader>
+                <CardTitle className="text-base">Set a new password</CardTitle>
+                <CardDescription>Choose a strong password you don’t use elsewhere.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {error ? <Alert variant="danger" title="Reset failed">{error}</Alert> : null}
+                  {status ? (
+                    <Alert variant="success" title="Password updated">
+                      {status}
+                    </Alert>
+                  ) : null}
+
+                  <form className="space-y-4" onSubmit={onSubmit}>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="password">
+                        New password
+                      </label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          type={showPassword ? "text" : "password"}
+                          required
+                          disabled={submitting || !!status}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="password_confirmation">
+                        Confirm new password
+                      </label>
+                      <div className="relative">
+                        <Input
+                          id="password_confirmation"
+                          value={passwordConfirmation}
+                          onChange={(e) => setPasswordConfirmation(e.target.value)}
+                          type={showPasswordConfirmation ? "text" : "password"}
+                          required
+                          disabled={submitting || !!status}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
+                          onClick={() => setShowPasswordConfirmation((v) => !v)}
+                          aria-label={showPasswordConfirmation ? "Hide password" : "Show password"}
+                        >
+                          {showPasswordConfirmation ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button className="w-full" type="submit" disabled={submitting || !!status}>
+                      {submitting ? "Updating..." : "Update password"}
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-5 text-center text-sm text-zinc-600">
+              {!status ? (
+                <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/login">
+                  Back to sign in
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+    </PublicPageShell>
+  );
 }
 
 export default function ResetPasswordPage() {
-    return (
-        <Suspense
-            fallback={
-                <Preloader />
-            }
-        >
-            <ResetPasswordPageInner />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <Preloader />
+      }
+    >
+      <ResetPasswordPageInner />
+    </Suspense>
+  );
 }

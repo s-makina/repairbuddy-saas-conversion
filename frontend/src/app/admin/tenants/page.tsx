@@ -8,9 +8,12 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
+import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ResultDialog, type ResultDialogStatus } from "@/components/ui/ResultDialog";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -23,6 +26,21 @@ export default function AdminTenantsPage() {
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [rowActionBusy, setRowActionBusy] = useState<Record<number, string | null>>({});
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTenant, setConfirmTenant] = useState<Tenant | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"suspend" | "unsuspend" | null>(null);
+  const [confirmReason, setConfirmReason] = useState<string>("");
+
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [confirmCloseTenant, setConfirmCloseTenant] = useState<Tenant | null>(null);
+  const [confirmCloseReason, setConfirmCloseReason] = useState<string>("");
+  const [confirmCloseRetentionDays, setConfirmCloseRetentionDays] = useState<string>("");
+
+  const [resultOpen, setResultOpen] = useState(false);
+  const [resultStatus, setResultStatus] = useState<ResultDialogStatus>("info");
+  const [resultTitle, setResultTitle] = useState<string>("");
+  const [resultMessage, setResultMessage] = useState<React.ReactNode | null>(null);
 
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -165,59 +183,124 @@ export default function AdminTenantsPage() {
     );
   }
 
-  async function runRowAction(tenantId: number, name: string, fn: () => Promise<void>) {
-    if (!Number.isFinite(tenantId) || tenantId <= 0) return;
-    if (rowActionBusy[tenantId]) return;
+  async function runRowAction(
+    tenantId: number,
+    name: string,
+    fn: () => Promise<void>,
+  ): Promise<{ ok: true } | { ok: false; error: string } | null> {
+    if (!Number.isFinite(tenantId) || tenantId <= 0) return null;
+    if (rowActionBusy[tenantId]) return null;
 
     setActionError(null);
     setRowActionBusy((m) => ({ ...m, [tenantId]: name }));
     try {
       await fn();
       setReloadNonce((n) => n + 1);
+      return { ok: true };
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Action failed.");
+      const msg = e instanceof Error ? e.message : "Action failed.";
+      setActionError(msg);
+      return { ok: false, error: msg };
     } finally {
       setRowActionBusy((m) => ({ ...m, [tenantId]: null }));
     }
   }
 
   async function onSuspend(t: Tenant) {
-    const reason = window.prompt("Reason for suspension (optional):") ?? "";
-    await runRowAction(t.id, "suspend", async () => {
-      await apiFetch(`/api/admin/businesses/${t.id}/suspend`, {
-        method: "PATCH",
-        body: { reason: reason.trim() || undefined },
-      });
-    });
+    setConfirmTenant(t);
+    setConfirmAction("suspend");
+    setConfirmReason("");
+    setConfirmOpen(true);
   }
 
   async function onUnsuspend(t: Tenant) {
-    const reason = window.prompt("Reason for unsuspension (optional):") ?? "";
-    await runRowAction(t.id, "unsuspend", async () => {
-      await apiFetch(`/api/admin/businesses/${t.id}/unsuspend`, {
-        method: "PATCH",
-        body: { reason: reason.trim() || undefined },
-      });
-    });
+    setConfirmTenant(t);
+    setConfirmAction("unsuspend");
+    setConfirmReason("");
+    setConfirmOpen(true);
   }
 
   async function onClose(t: Tenant) {
-    const confirmed = window.confirm(`Close business “${t.name}”? This is a destructive action.`);
-    if (!confirmed) return;
+    setConfirmCloseTenant(t);
+    setConfirmCloseReason("");
+    setConfirmCloseRetentionDays("");
+    setConfirmCloseOpen(true);
+  }
 
-    const reason = window.prompt("Reason for closing (optional):") ?? "";
-    const retentionDays = window.prompt("Data retention days override (optional, numeric):") ?? "";
-    const parsedRetention = retentionDays.trim().length > 0 ? Number(retentionDays.trim()) : null;
+  const confirmBusy = !!confirmTenant && !!confirmAction && rowActionBusy[confirmTenant.id] === confirmAction;
+  const confirmCloseBusy = !!confirmCloseTenant && rowActionBusy[confirmCloseTenant.id] === "close";
 
-    await runRowAction(t.id, "close", async () => {
+  async function onConfirmSuspendOrUnsuspend() {
+    if (!confirmTenant || !confirmAction) return;
+
+    const t = confirmTenant;
+    const action = confirmAction;
+    const reason = confirmReason.trim();
+
+    const endpoint = action === "suspend" ? "suspend" : "unsuspend";
+    const res = await runRowAction(t.id, action, async () => {
+      await apiFetch(`/api/admin/businesses/${t.id}/${endpoint}`, {
+        method: "PATCH",
+        body: { reason: reason || undefined },
+      });
+    });
+
+    setConfirmOpen(false);
+    setConfirmTenant(null);
+    setConfirmAction(null);
+    setConfirmReason("");
+
+    if (!res) return;
+
+    if (res?.ok) {
+      setResultStatus("success");
+      setResultTitle(action === "suspend" ? "Business suspended" : "Business unsuspended");
+      setResultMessage(<div>“{t.name}” was updated successfully.</div>);
+      setResultOpen(true);
+    } else if (res && !res.ok) {
+      setResultStatus("error");
+      setResultTitle("Action failed");
+      setResultMessage(res.error);
+      setResultOpen(true);
+    }
+  }
+
+  async function onConfirmClose() {
+    if (!confirmCloseTenant) return;
+
+    const t = confirmCloseTenant;
+    const reason = confirmCloseReason.trim();
+    const retentionDays = confirmCloseRetentionDays.trim();
+    const parsedRetention = retentionDays.length > 0 ? Number(retentionDays) : null;
+
+    const res = await runRowAction(t.id, "close", async () => {
       await apiFetch(`/api/admin/businesses/${t.id}/close`, {
         method: "PATCH",
         body: {
-          reason: reason.trim() || undefined,
+          reason: reason || undefined,
           data_retention_days: parsedRetention && Number.isFinite(parsedRetention) ? parsedRetention : undefined,
         },
       });
     });
+
+    setConfirmCloseOpen(false);
+    setConfirmCloseTenant(null);
+    setConfirmCloseReason("");
+    setConfirmCloseRetentionDays("");
+
+    if (!res) return;
+
+    if (res.ok) {
+      setResultStatus("success");
+      setResultTitle("Business closed");
+      setResultMessage(<div>“{t.name}” was closed successfully.</div>);
+      setResultOpen(true);
+    } else {
+      setResultStatus("error");
+      setResultTitle("Action failed");
+      setResultMessage(res.error);
+      setResultOpen(true);
+    }
   }
 
   return (
@@ -488,6 +571,89 @@ export default function AdminTenantsPage() {
             />
           </CardContent>
         </Card>
+
+        <ConfirmDialog
+          open={confirmOpen}
+          title={confirmAction === "suspend" ? "Suspend business" : "Unsuspend business"}
+          message={
+            <div className="space-y-3">
+              <div>
+                {confirmAction === "suspend"
+                  ? "This will suspend the business and prevent normal access."
+                  : "This will restore access for the business."}
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-zinc-600">Reason (optional)</div>
+                <Input
+                  value={confirmReason}
+                  onChange={(e) => setConfirmReason(e.target.value)}
+                  placeholder="e.g. Non-payment, abuse, user request"
+                />
+              </div>
+            </div>
+          }
+          confirmText={confirmAction === "suspend" ? "Suspend" : "Unsuspend"}
+          confirmVariant="secondary"
+          busy={confirmBusy}
+          onCancel={() => {
+            setConfirmOpen(false);
+            setConfirmTenant(null);
+            setConfirmAction(null);
+            setConfirmReason("");
+          }}
+          onConfirm={() => void onConfirmSuspendOrUnsuspend()}
+        />
+
+        <ConfirmDialog
+          open={confirmCloseOpen}
+          title="Close business"
+          message={
+            <div className="space-y-3">
+              <div>This is a destructive action. The business will be closed.</div>
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-zinc-600">Reason (optional)</div>
+                <Input
+                  value={confirmCloseReason}
+                  onChange={(e) => setConfirmCloseReason(e.target.value)}
+                  placeholder="e.g. customer request, duplicate tenant"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-zinc-600">Data retention days override (optional)</div>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={confirmCloseRetentionDays}
+                  onChange={(e) => setConfirmCloseRetentionDays(e.target.value)}
+                  placeholder="e.g. 30"
+                />
+              </div>
+            </div>
+          }
+          confirmText="Close"
+          confirmVariant="secondary"
+          busy={confirmCloseBusy}
+          onCancel={() => {
+            setConfirmCloseOpen(false);
+            setConfirmCloseTenant(null);
+            setConfirmCloseReason("");
+            setConfirmCloseRetentionDays("");
+          }}
+          onConfirm={() => void onConfirmClose()}
+        />
+
+        <ResultDialog
+          open={resultOpen}
+          status={resultStatus}
+          title={resultTitle}
+          message={resultMessage}
+          onClose={() => {
+            setResultOpen(false);
+            setResultMessage(null);
+            setResultTitle("");
+            setResultStatus("info");
+          }}
+        />
       </div>
     </RequireAuth>
   );

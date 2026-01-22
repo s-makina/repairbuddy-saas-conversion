@@ -9,6 +9,10 @@ Route::get('/health', function () {
     ]);
 });
 
+Route::prefix('public')->group(function () {
+    Route::get('/billing/plans', [\App\Http\Controllers\Api\Public\BillingPlansController::class, 'index']);
+});
+
 Route::prefix('auth')->group(function () {
     Route::post('/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:auth');
     Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:auth');

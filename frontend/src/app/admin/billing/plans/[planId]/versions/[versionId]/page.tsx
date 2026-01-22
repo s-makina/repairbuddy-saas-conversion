@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { apiFetch } from "@/lib/api";
 import {
   activateBillingPlanVersion,
   createBillingPrice,
@@ -25,7 +26,13 @@ import {
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/datetime";
 import { formatMoney } from "@/lib/money";
-import type { BillingPlan, BillingPlanVersion, BillingPrice, EntitlementDefinition, PlanEntitlement } from "@/lib/types";
+import type { BillingInterval, BillingPlan, BillingPlanVersion, BillingPrice, EntitlementDefinition, PlanEntitlement } from "@/lib/types";
+
+type AdminSettingsCurrenciesPayload = {
+  currencies: { code: string; symbol: string | null; name: string; is_active: boolean }[];
+};
+
+type AllowedCurrency = { code: string; name: string; symbol: string };
 
 export default function AdminBillingPlanVersionDetailPage() {
   const params = useParams<{ planId: string; versionId: string }>();
@@ -41,6 +48,8 @@ export default function AdminBillingPlanVersionDetailPage() {
   const [plan, setPlan] = useState<BillingPlan | null>(null);
   const [version, setVersion] = useState<BillingPlanVersion | null>(null);
   const [definitions, setDefinitions] = useState<EntitlementDefinition[]>([]);
+  const [billingIntervals, setBillingIntervals] = useState<BillingInterval[]>([]);
+  const [allowedCurrencies, setAllowedCurrencies] = useState<AllowedCurrency[]>([]);
   const [reloadNonce, setReloadNonce] = useState(0);
 
   const canWrite = auth.can("admin.billing.write");
@@ -116,6 +125,31 @@ export default function AdminBillingPlanVersionDetailPage() {
         setPlan(foundPlan);
         setVersion(foundVersion);
         setDefinitions(Array.isArray(res.entitlement_definitions) ? res.entitlement_definitions : []);
+        setBillingIntervals(
+          Array.isArray((res as { billing_intervals?: BillingInterval[] }).billing_intervals)
+            ? ((res as { billing_intervals?: BillingInterval[] }).billing_intervals as BillingInterval[])
+            : [],
+        );
+
+        try {
+          const settings = await apiFetch<AdminSettingsCurrenciesPayload>("/api/admin/settings");
+          if (!alive) return;
+
+          const nextAllowed = (Array.isArray(settings.currencies) ? settings.currencies : [])
+            .filter((c) => Boolean(c?.is_active))
+            .map((c) => ({
+              code: String(c.code ?? "").trim().toUpperCase(),
+              name: String(c.name ?? "").trim(),
+              symbol: String(c.symbol ?? "").trim(),
+            }))
+            .filter((c) => c.code.length === 3)
+            .sort((a, b) => a.code.localeCompare(b.code));
+
+          setAllowedCurrencies(nextAllowed);
+        } catch {
+          if (!alive) return;
+          setAllowedCurrencies([]);
+        }
 
         if (!foundPlan) setError("Plan not found.");
         else if (!foundVersion) setError("Version not found.");
@@ -124,6 +158,8 @@ export default function AdminBillingPlanVersionDetailPage() {
         setError(e instanceof Error ? e.message : "Failed to load version.");
         setPlan(null);
         setVersion(null);
+        setBillingIntervals([]);
+        setAllowedCurrencies([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -137,20 +173,40 @@ export default function AdminBillingPlanVersionDetailPage() {
     };
   }, [planId, reloadNonce, versionId]);
 
+  const allowedCurrencyCodes = useMemo(() => {
+    return new Set(allowedCurrencies.map((c) => c.code));
+  }, [allowedCurrencies]);
+
   function resetPriceForm() {
     setPriceError(null);
-    setPriceCurrency("EUR");
-    setPriceInterval("month");
+    setPriceCurrency(allowedCurrencies[0]?.code ?? "EUR");
+    setPriceIntervalId(null);
+    setPriceIntervalCode("month");
     setPriceAmount("0.00");
     setPriceTrialDays("");
-    setPriceIsDefault(false);
+    setPriceIsDefault(true);
   }
 
-  function toAmountCents(input: string): number {
+  function parseAmountCents(input: string): number {
     const normalized = input.trim().replace(",", ".");
     const n = Number.parseFloat(normalized);
-    if (!Number.isFinite(n)) return 0;
-    return Math.max(0, Math.round(n * 100));
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return Math.round(n * 100);
+  }
+
+  function pairKey(currency: string, interval: string) {
+    return `${String(currency).trim().toUpperCase()}|${String(interval || "").trim().toLowerCase() || "month"}`;
+  }
+
+  function shouldSuggestDefault(args: { currency: string; interval: string }) {
+    const key = pairKey(args.currency, args.interval);
+    const rows = (Array.isArray(version?.prices) ? version?.prices : [])
+      .filter((p) => pairKey(p.currency, p.interval) === key)
+      .slice();
+
+    if (rows.length === 0) return true;
+    const hasDefault = rows.some((p) => Boolean(p.is_default));
+    return !hasDefault;
   }
 
   async function onValidate() {
@@ -202,14 +258,37 @@ export default function AdminBillingPlanVersionDetailPage() {
     setPriceError(null);
 
     try {
+      const currency = priceCurrency.trim().toUpperCase();
+      if (currency.length !== 3) {
+        setPriceError("Currency is required.");
+        return;
+      }
+
+      if (allowedCurrencyCodes.size > 0 && !allowedCurrencyCodes.has(currency)) {
+        setPriceError("Currency must be one of the allowed currencies.");
+        return;
+      }
+
+      const selectedIntervalId = typeof priceIntervalId === "number" && Number.isFinite(priceIntervalId) ? priceIntervalId : null;
+      const selectedIntervalCode = String(priceIntervalCode || "").trim().toLowerCase();
+
+      if (!selectedIntervalId && !selectedIntervalCode) {
+        setPriceError("Interval is required.");
+        return;
+      }
+
       const trialDays = priceTrialDays.trim() === "" ? null : Number(priceTrialDays);
+      const normalizedTrialDays = typeof trialDays === "number" && Number.isFinite(trialDays) ? Math.max(0, Math.trunc(trialDays)) : null;
+      const suggestedDefault = shouldSuggestDefault({ currency, interval: selectedIntervalCode || "month" });
+
       const res = await createBillingPrice({
         versionId: version.id,
-        currency: priceCurrency.trim().toUpperCase(),
-        interval: priceInterval,
-        amountCents: toAmountCents(priceAmount),
-        trialDays: typeof trialDays === "number" && Number.isFinite(trialDays) ? trialDays : null,
-        isDefault: priceIsDefault,
+        currency,
+        interval: selectedIntervalCode || "month",
+        billingIntervalId: selectedIntervalId,
+        amountCents: parseAmountCents(priceAmount),
+        trialDays: normalizedTrialDays,
+        isDefault: Boolean(priceIsDefault || suggestedDefault),
       });
       setVersion(res.version);
       setPriceCreateOpen(false);
@@ -339,7 +418,8 @@ export default function AdminBillingPlanVersionDetailPage() {
   const [priceError, setPriceError] = useState<string | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<BillingPrice | null>(null);
   const [priceCurrency, setPriceCurrency] = useState("EUR");
-  const [priceInterval, setPriceInterval] = useState<"month" | "year">("month");
+  const [priceIntervalId, setPriceIntervalId] = useState<number | null>(null);
+  const [priceIntervalCode, setPriceIntervalCode] = useState<string>("month");
   const [priceAmount, setPriceAmount] = useState("0.00");
   const [priceTrialDays, setPriceTrialDays] = useState<string>("");
   const [priceIsDefault, setPriceIsDefault] = useState(false);
@@ -793,20 +873,60 @@ export default function AdminBillingPlanVersionDetailPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Currency</label>
-              <Input value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)} disabled={priceBusy} />
+              <select
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={priceCurrency}
+                onChange={(e) => setPriceCurrency(e.target.value)}
+                disabled={priceBusy || allowedCurrencies.length === 0}
+              >
+                {allowedCurrencies.length === 0 ? <option value={priceCurrency}>{priceCurrency}</option> : null}
+                {allowedCurrencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code}{c.name ? ` — ${c.name}` : ""}
+                  </option>
+                ))}
+              </select>
+              {allowedCurrencies.length === 0 ? (
+                <div className="text-xs text-zinc-500">No allowed currencies found. Add currencies under Admin / Billing / Currencies.</div>
+              ) : null}
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Interval</label>
-              <select
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={priceInterval}
-                onChange={(e) => setPriceInterval(e.target.value === "year" ? "year" : "month")}
-                disabled={priceBusy}
-              >
-                <option value="month">month</option>
-                <option value="year">year</option>
-              </select>
+              {billingIntervals.length > 0 ? (
+                <select
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                  value={priceIntervalId ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const id = raw ? Number(raw) : null;
+                    const found = billingIntervals.find((x) => x.id === id) ?? null;
+                    setPriceIntervalId(found ? found.id : null);
+                    setPriceIntervalCode(found ? String(found.code).toLowerCase() : "");
+                  }}
+                  disabled={priceBusy}
+                >
+                  <option value="">Select interval</option>
+                  {billingIntervals
+                    .slice()
+                    .sort((a, b) => (a.months ?? 0) - (b.months ?? 0) || String(a.name).localeCompare(String(b.name)))
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.months} months)
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <select
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                  value={priceIntervalCode}
+                  onChange={(e) => setPriceIntervalCode(e.target.value === "year" ? "year" : "month")}
+                  disabled={priceBusy}
+                >
+                  <option value="month">month</option>
+                  <option value="year">year</option>
+                </select>
+              )}
             </div>
 
             <div className="space-y-1">

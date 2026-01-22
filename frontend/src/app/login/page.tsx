@@ -2,9 +2,10 @@
 
 import { useAuth } from "@/lib/auth";
 import { apiFetch, ApiError } from "@/lib/api";
-import { AuthLayout } from "@/components/auth/AuthLayout";
+import { PublicPageShell } from "@/components/PublicPageShell";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Preloader } from "@/components/Preloader";
 import Link from "next/link";
@@ -131,184 +132,206 @@ function LoginPageInner() {
 
   if (forgotPassword) {
     return (
-      <AuthLayout
-        title="Reset your password"
-        description={
-          resetSent
-            ? "Check your inbox for the reset link."
-            : "Enter your email address and we’ll send you a secure reset link."
-        }
-        footer={
-          <button
-            type="button"
-            className="font-medium text-[var(--rb-text)] underline underline-offset-4"
-            onClick={() => {
-              setForgotPassword(false);
-              setResetSent(false);
-              setError(null);
-              setStatus(null);
-            }}
-          >
-            Back to sign in
-          </button>
-        }
-      >
-        <div className="space-y-4">
-          {error ? <Alert variant="danger" title="Something went wrong">{error}</Alert> : null}
-          {status ? <Alert variant="success" title="Check your email">{status}</Alert> : null}
+      <PublicPageShell badge="Reset password" centerContent>
+        <section className="mx-auto w-full max-w-6xl px-4 py-10">
+          <div className="flex justify-center">
+            <div className="w-full max-w-md">
+              <Card className="bg-white/70">
+                <CardHeader>
+                  <CardTitle className="text-base">Reset your password</CardTitle>
+                  <CardDescription>
+                    {resetSent
+                      ? "Check your inbox for the reset link."
+                      : "Enter your email address and we’ll send you a secure reset link."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {error ? <Alert variant="danger" title="Something went wrong">{error}</Alert> : null}
+                    {status ? <Alert variant="success" title="Check your email">{status}</Alert> : null}
 
-          {!resetSent ? (
-            <form className="space-y-4" onSubmit={onForgotPassword}>
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="reset_email">
-                  Email
-                </label>
-                <Input
-                  id="reset_email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  disabled={submitting}
-                />
-              </div>
+                    {!resetSent ? (
+                      <form className="space-y-4" onSubmit={onForgotPassword}>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor="reset_email">
+                            Email
+                          </label>
+                          <Input
+                            id="reset_email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            type="email"
+                            required
+                            autoComplete="email"
+                            placeholder="you@company.com"
+                            disabled={submitting}
+                          />
+                        </div>
 
-              <Button className="w-full" type="submit" disabled={submitting}>
-                {submitting ? "Sending..." : "Send reset link"}
-              </Button>
-            </form>
-          ) : null}
-        </div>
-      </AuthLayout>
-    );
-  }
+                        <Button className="w-full" type="submit" disabled={submitting}>
+                          {submitting ? "Sending..." : "Send reset link"}
+                        </Button>
+                      </form>
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
 
-  return (
-    <AuthLayout
-      title={otpLoginToken ? "Enter verification code" : "Sign in"}
-      description={
-        otpLoginToken
-          ? "For your security, enter the 6-digit code to complete sign-in."
-          : "Sign in to access your dashboard."
-      }
-      footer={
-        <>
-          Don’t have an account?{" "}
-          <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/register">
-            Create one
-          </Link>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {error ? <Alert variant="danger" title="Sign in failed">{error}</Alert> : null}
-
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="email">
-              Email
-            </label>
-            <Input
-              id="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              required
-              disabled={Boolean(otpLoginToken) || submitting}
-              placeholder="you@company.com"
-            />
-          </div>
-
-          {!otpLoginToken ? (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-3">
-                <label className="text-sm font-medium" htmlFor="password">
-                  Password
-                </label>
+              <div className="mt-5 text-center text-sm text-zinc-600">
                 <button
                   type="button"
-                  className="text-xs font-medium text-zinc-600 hover:text-[var(--rb-text)]"
+                  className="font-medium text-[var(--rb-text)] underline underline-offset-4"
                   onClick={() => {
-                    setForgotPassword(true);
+                    setForgotPassword(false);
                     setResetSent(false);
                     setError(null);
                     setStatus(null);
                   }}
                 >
-                  Forgot password?
-                </button>
-              </div>
-
-              <div className="relative">
-                <Input
-                  id="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type={showPassword ? "text" : "password"}
-                  required
-                  disabled={submitting}
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                  Back to sign in
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="otp">
-                  Verification code
-                </label>
-                <Input
-                  id="otp"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  placeholder="6-digit code"
-                  autoComplete="one-time-code"
-                  required
-                  disabled={submitting}
-                />
-              </div>
+          </div>
+        </section>
+      </PublicPageShell>
+    );
+  }
 
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-zinc-600">Didn’t mean to use this account?</div>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-[var(--rb-text)] underline underline-offset-4"
-                  onClick={() => {
-                    setOtpLoginToken(null);
-                    setOtpCode("");
-                    setPassword("");
-                    setError(null);
-                    setStatus(null);
-                  }}
-                  disabled={submitting}
-                >
-                  Use different email
-                </button>
-              </div>
+  return (
+    <PublicPageShell badge={otpLoginToken ? "Verification" : "Sign in"} centerContent>
+      <section className="mx-auto w-full max-w-6xl px-4 py-10">
+        <div className="flex justify-center">
+          <div className="w-full max-w-md">
+            <Card className="bg-white/70">
+              <CardHeader>
+                <CardTitle className="text-base">{otpLoginToken ? "Enter verification code" : "Sign in"}</CardTitle>
+                <CardDescription>
+                  {otpLoginToken
+                    ? "For your security, enter the 6-digit code to complete sign-in."
+                    : "Sign in to access your dashboard."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {error ? <Alert variant="danger" title="Sign in failed">{error}</Alert> : null}
+
+                  <form className="space-y-4" onSubmit={onSubmit}>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="email">
+                        Email
+                      </label>
+                      <Input
+                        id="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        type="email"
+                        required
+                        disabled={Boolean(otpLoginToken) || submitting}
+                        placeholder="you@company.com"
+                      />
+                    </div>
+
+                    {!otpLoginToken ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-sm font-medium" htmlFor="password">
+                            Password
+                          </label>
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-zinc-600 hover:text-[var(--rb-text)]"
+                            onClick={() => {
+                              setForgotPassword(true);
+                              setResetSent(false);
+                              setError(null);
+                              setStatus(null);
+                            }}
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
+
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            type={showPassword ? "text" : "password"}
+                            required
+                            disabled={submitting}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--rb-radius-sm)] px-2 py-1 text-zinc-500 hover:bg-[var(--rb-surface-muted)] hover:text-[var(--rb-text)]"
+                            onClick={() => setShowPassword((v) => !v)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor="otp">
+                            Verification code
+                          </label>
+                          <Input
+                            id="otp"
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]{6}"
+                            maxLength={6}
+                            placeholder="6-digit code"
+                            autoComplete="one-time-code"
+                            required
+                            disabled={submitting}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-xs text-zinc-600">Didn’t mean to use this account?</div>
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-[var(--rb-text)] underline underline-offset-4"
+                            onClick={() => {
+                              setOtpLoginToken(null);
+                              setOtpCode("");
+                              setPassword("");
+                              setError(null);
+                              setStatus(null);
+                            }}
+                            disabled={submitting}
+                          >
+                            Use different email
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button className="w-full" type="submit" disabled={submitting}>
+                      {submitting ? "Signing in..." : otpLoginToken ? "Verify code" : "Sign in"}
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-5 text-center text-sm text-zinc-600">
+              Don’t have an account?{" "}
+              <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/register">
+                Create one
+              </Link>
             </div>
-          )}
-
-          <Button className="w-full" type="submit" disabled={submitting}>
-            {submitting ? "Signing in..." : otpLoginToken ? "Verify code" : "Sign in"}
-          </Button>
-        </form>
-      </div>
-    </AuthLayout>
+          </div>
+        </div>
+      </section>
+    </PublicPageShell>
   );
 }
 

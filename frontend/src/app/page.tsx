@@ -7,6 +7,11 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Alert } from "@/components/ui/Alert";
+import { BillingPlanCard } from "@/components/billing/BillingPlanCard";
+import { ApiError } from "@/lib/api";
+import { getPublicBillingPlans } from "@/lib/publicBilling";
+import type { BillingPlan, BillingPlanVersion, BillingPrice } from "@/lib/types";
 
 function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
   const { className, ...rest } = props;
@@ -91,49 +96,146 @@ export default function Home() {
   const router = useRouter();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
-  const pricing = useMemo(
-    () => [
-      {
-        name: "Starter",
-        blurb: "For solo techs and small teams starting to scale.",
-        pricePerUserMonthly: 9,
-        highlight: false,
-        items: [
-          "Tickets & customer profiles",
-          "Device intake + checklists",
-          "Email updates",
-          "Customer portal (case-number access)",
-        ],
-      },
-      {
-        name: "Pro",
-        blurb: "The sweet spot for busy shops with multiple techs.",
-        pricePerUserMonthly: 19,
-        highlight: true,
-        items: [
-          "Everything in Starter",
-          "Smart statuses + SLA reminders",
-          "Internal notes + assignments",
-          "Inventory & parts tracking",
-          "Automations & templates",
-        ],
-      },
-      {
-        name: "Scale",
-        blurb: "For high-volume operations and multi-location workflows.",
-        pricePerUserMonthly: 39,
-        highlight: false,
-        items: [
-          "Everything in Pro",
-          "Advanced permissions",
-          "Custom fields & workflows",
-          "Priority support",
-          "SSO (planned)",
-        ],
-      },
-    ],
-    [],
-  );
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [plans, setPlans] = useState<BillingPlan[]>([]);
+  const [currency, setCurrency] = useState("USD");
+
+  useEffect(() => {
+    let alive = true;
+    setPlansLoading(true);
+    setPlansError(null);
+
+    getPublicBillingPlans()
+      .then((res) => {
+        if (!alive) return;
+        setPlans(Array.isArray(res.billing_plans) ? res.billing_plans : []);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        if (e instanceof ApiError) {
+          setPlansError(e.message);
+        } else {
+          setPlansError(e instanceof Error ? e.message : "Failed to load plans.");
+        }
+      })
+      .finally(() => {
+        if (!alive) return;
+        setPlansLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const normalizeCurrency = (value: string) => value.trim().toUpperCase();
+
+  const activePlanVersions = useMemo(() => {
+    const rows: Array<{ plan: BillingPlan; version: BillingPlanVersion }> = [];
+    for (const plan of plans) {
+      const versions = Array.isArray(plan.versions) ? plan.versions : [];
+      const active = versions
+        .filter((v) => v.status === "active")
+        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+      const top = active[0];
+      if (top) rows.push({ plan, version: top });
+    }
+    return rows;
+  }, [plans]);
+
+  const activePrices = useMemo(() => {
+    const rows: Array<{ plan: BillingPlan; version: BillingPlanVersion; price: BillingPrice }> = [];
+    for (const { plan, version } of activePlanVersions) {
+      const prices = Array.isArray(version.prices) ? version.prices : [];
+      for (const price of prices) {
+        rows.push({ plan, version, price });
+      }
+    }
+    return rows;
+  }, [activePlanVersions]);
+
+  const availableCurrencies = useMemo(() => {
+    const s = new Set<string>();
+    for (const row of activePrices) {
+      if (row.price.currency) s.add(String(row.price.currency).toUpperCase());
+    }
+    return Array.from(s).sort();
+  }, [activePrices]);
+
+  const availableIntervals = useMemo(() => {
+    const s = new Set<string>();
+    for (const row of activePrices) {
+      if (row.price.interval) s.add(String(row.price.interval));
+    }
+    return Array.from(s).sort();
+  }, [activePrices]);
+
+  useEffect(() => {
+    if (plansLoading) return;
+    if (availableCurrencies.length > 0) {
+      setCurrency((prev) => {
+        const next = normalizeCurrency(prev || "");
+        return availableCurrencies.includes(next) ? next : availableCurrencies[0];
+      });
+    }
+  }, [availableCurrencies, plansLoading]);
+
+  const interval = useMemo(() => {
+    const desired = billing === "annual" ? "year" : "month";
+    if (availableIntervals.includes(desired)) return desired;
+    return availableIntervals[0] ?? desired;
+  }, [availableIntervals, billing]);
+
+  const hasYearly = availableIntervals.includes("year");
+
+  const formatMoney = (amountCents: number, cur: string) => {
+    const value = (typeof amountCents === "number" ? amountCents : 0) / 100;
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: cur,
+        maximumFractionDigits: 2,
+      }).format(value);
+    } catch {
+      return `${cur} ${value.toFixed(2)}`;
+    }
+  };
+
+  const intervalLabel = (v: BillingPlanVersion, intervalCode: string) => {
+    const prices = Array.isArray(v.prices) ? v.prices : [];
+    const match = prices.find((p) => p.interval === intervalCode);
+    const modelName = match?.interval_model?.name;
+    if (modelName) return modelName;
+    if (intervalCode === "month") return "Monthly";
+    if (intervalCode === "year") return "Yearly";
+    return intervalCode;
+  };
+
+  const selectPriceForPlan = (v: BillingPlanVersion) => {
+    const prices = Array.isArray(v.prices) ? v.prices : [];
+    const cur = normalizeCurrency(currency);
+    const intervalCode = interval;
+
+    const matching = prices.filter((p) => normalizeCurrency(p.currency) === cur && p.interval === intervalCode);
+    const preferred = matching.find((p) => p.is_default) ?? matching[0];
+    if (preferred) return preferred;
+
+    const anyByCurrency = prices.filter((p) => normalizeCurrency(p.currency) === cur);
+    return anyByCurrency.find((p) => p.is_default) ?? anyByCurrency[0] ?? prices.find((p) => p.is_default) ?? prices[0] ?? null;
+  };
+
+  const isRecommended = (price: BillingPrice | null) => {
+    if (!price) return false;
+    const amounts = activePlanVersions
+      .map(({ version }) => selectPriceForPlan(version))
+      .filter((p): p is BillingPrice => Boolean(p))
+      .map((p) => p.amount_cents)
+      .sort((a, b) => a - b);
+    if (amounts.length < 2) return false;
+    const median = amounts[Math.floor(amounts.length / 2)];
+    return price.amount_cents === median;
+  };
 
   useEffect(() => {
     if (auth.loading) return;
@@ -235,7 +337,7 @@ export default function Home() {
                   Sign in
                 </Button>
                 <div className="text-xs text-zinc-600">
-                  Sample pricing below. Update anytime.
+                  Pricing below reflects your configured billing plans.
                 </div>
               </div>
             </div>
@@ -388,7 +490,7 @@ export default function Home() {
             <div>
               <h2 className="text-2xl font-semibold text-[var(--rb-text)]">Per-user pricing that scales with you</h2>
               <p className="mt-2 max-w-2xl text-sm text-zinc-700">
-                Simple tiers. Clear value. Swap the sample prices later.
+                Pricing below is based on your configured billing plans.
               </p>
             </div>
             <div className="flex items-center justify-between gap-2 rounded-full border border-[var(--rb-border)] bg-white/70 p-1 text-sm">
@@ -406,86 +508,78 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => setBilling("annual")}
+                onClick={() => {
+                  if (!hasYearly) return;
+                  setBilling("annual");
+                }}
                 className={
                   "rounded-full px-3 py-1 transition-colors " +
                   (billing === "annual"
                     ? "bg-[var(--rb-blue)] text-white"
-                    : "text-zinc-700 hover:bg-[var(--rb-surface-muted)]")
+                    : "text-zinc-700 hover:bg-[var(--rb-surface-muted)]") +
+                  (!hasYearly ? " opacity-50 cursor-not-allowed" : "")
                 }
+                aria-disabled={!hasYearly}
               >
                 Annual
               </button>
-              <Badge variant="warning" className="mr-1">
-                2 months free
-              </Badge>
+              {hasYearly ? (
+                <Badge variant="warning" className="mr-1">
+                  2 months free
+                </Badge>
+              ) : null}
             </div>
           </div>
 
+          {plansError ? (
+            <div className="mt-6">
+              <Alert variant="danger" title="Unable to load pricing">
+                {plansError}
+              </Alert>
+            </div>
+          ) : null}
+
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {pricing.map((tier) => {
-              const monthly = tier.pricePerUserMonthly;
-              const displayed = billing === "annual" ? Math.round((monthly * 10 * 100) / 12) / 100 : monthly;
-              const priceLabel = billing === "annual" ? "per user / month (billed annually)" : "per user / month";
+            {plansLoading ? (
+              <div className="lg:col-span-3">
+                <div className="rounded-[var(--rb-radius-lg)] border border-dashed border-[var(--rb-border)] bg-white/70 p-8 text-center">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">Loading plans...</div>
+                </div>
+              </div>
+            ) : activePlanVersions.length === 0 ? (
+              <div className="lg:col-span-3">
+                <div className="rounded-[var(--rb-radius-lg)] border border-dashed border-[var(--rb-border)] bg-white/70 p-8 text-center">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">No plans available</div>
+                  <div className="mt-1 text-sm text-zinc-600">Ask your admin to configure billing plans.</div>
+                </div>
+              </div>
+            ) : (
+              activePlanVersions.map(({ plan, version }) => {
+                const selected = selectPriceForPlan(version);
+                const recommended = isRecommended(selected);
+                const priceLabel = selected ? formatMoney(selected.amount_cents, normalizeCurrency(selected.currency)) : "Not available";
+                const entitlements = Array.isArray(version.entitlements) ? version.entitlements : [];
+                const visibleEntitlements = entitlements.filter((e) => e.definition?.name);
 
-              return (
-                <Card
-                  key={tier.name}
-                  className={
-                    tier.highlight
-                      ? "relative border-[color:color-mix(in_srgb,var(--rb-orange),white_30%)] shadow-[0_12px_30px_rgba(6,62,112,0.12)]"
-                      : ""
-                  }
-                >
-                  {tier.highlight ? (
-                    <div className="absolute right-4 top-4">
-                      <Badge variant="warning">Most popular</Badge>
-                    </div>
-                  ) : null}
-
-                  <CardHeader>
-                    <CardTitle className="text-base">{tier.name}</CardTitle>
-                    <CardDescription>{tier.blurb}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-end gap-2">
-                      <div className="text-4xl font-semibold tracking-tight text-[var(--rb-text)]">
-                        ${displayed}
-                      </div>
-                      <div className="pb-1 text-xs text-zinc-600">{priceLabel}</div>
-                    </div>
-
-                    <div className="mt-4 grid gap-2 text-sm text-zinc-700">
-                      {tier.items.map((it) => (
-                        <div key={it} className="flex items-start gap-2">
-                          <CheckIcon className="mt-0.5 text-[var(--rb-orange)]" />
-                          <span>{it}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-6 grid gap-2">
-                      <Button
-                        variant={tier.highlight ? "secondary" : "primary"}
-                        onClick={() => router.push("/register")}
-                        className="w-full"
-                      >
-                        Choose {tier.name}
-                      </Button>
-                      <Button variant="outline" onClick={() => router.push("/login")}
-                        className="w-full"
-                      >
-                        I already have an account
-                      </Button>
-                    </div>
-
-                    <div className="mt-4 text-xs text-zinc-600">
-                      Pricing shown is placeholder. Replace with your real pricing later.
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                return (
+                  <BillingPlanCard
+                    key={plan.id}
+                    plan={plan}
+                    version={version}
+                    selectedPrice={selected}
+                    currency={currency}
+                    interval={interval}
+                    recommended={recommended}
+                    priceLabel={priceLabel}
+                    intervalLabel={selected ? intervalLabel(version, selected.interval) : interval}
+                    visibleEntitlements={visibleEntitlements}
+                    submitting={false}
+                    onSelect={() => router.push("/register")}
+                    actionLabel="Start now"
+                  />
+                );
+              })
+            )}
           </div>
         </section>
 
@@ -521,7 +615,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle className="text-base">Is pricing per user?</CardTitle>
                   <CardDescription>
-                    Yes. Pricing is shown per user per month. The values on this page are placeholders.
+                    Yes. Pricing is shown per user per month, based on your configured billing plans.
                   </CardDescription>
                 </CardHeader>
               </Card>
