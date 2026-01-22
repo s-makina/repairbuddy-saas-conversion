@@ -88,6 +88,13 @@ export interface User {
   email: string;
   avatar_url?: string | null;
   email_verified_at?: string | null;
+  phone?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_postal_code?: string | null;
+  address_country?: string | null;
   tenant_id?: number | null;
   role?: UserRole | null;
   role_id?: number | null;

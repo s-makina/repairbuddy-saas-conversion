@@ -610,20 +610,50 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:64'],
+            'address_line1' => ['nullable', 'string', 'max:255'],
+            'address_line2' => ['nullable', 'string', 'max:255'],
+            'address_city' => ['nullable', 'string', 'max:255'],
+            'address_state' => ['nullable', 'string', 'max:255'],
+            'address_postal_code' => ['nullable', 'string', 'max:64'],
+            'address_country' => ['nullable', 'string', 'size:2'],
         ]);
 
         $before = [
             'name' => $user->name,
+            'phone' => $user->phone,
+            'address_line1' => $user->address_line1,
+            'address_line2' => $user->address_line2,
+            'address_city' => $user->address_city,
+            'address_state' => $user->address_state,
+            'address_postal_code' => $user->address_postal_code,
+            'address_country' => $user->address_country,
         ];
 
         $user->forceFill([
             'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? null,
+            'address_line1' => $validated['address_line1'] ?? null,
+            'address_line2' => $validated['address_line2'] ?? null,
+            'address_city' => $validated['address_city'] ?? null,
+            'address_state' => $validated['address_state'] ?? null,
+            'address_postal_code' => $validated['address_postal_code'] ?? null,
+            'address_country' => isset($validated['address_country']) && $validated['address_country']
+                ? strtoupper((string) $validated['address_country'])
+                : null,
         ])->save();
 
         $this->logAuthEvent($request, 'profile.updated', $user, $user->email, $user->tenant, [
             'before' => $before,
             'after' => [
                 'name' => $user->name,
+                'phone' => $user->phone,
+                'address_line1' => $user->address_line1,
+                'address_line2' => $user->address_line2,
+                'address_city' => $user->address_city,
+                'address_state' => $user->address_state,
+                'address_postal_code' => $user->address_postal_code,
+                'address_country' => $user->address_country,
             ],
         ]);
 
