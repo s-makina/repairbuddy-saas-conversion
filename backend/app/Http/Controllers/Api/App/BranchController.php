@@ -150,13 +150,21 @@ class BranchController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Branch $branch)
+    public function update(Request $request, string $business, $branch)
     {
-        $tenantId = TenantContext::tenantId();
-
-        if ((int) $branch->tenant_id !== (int) $tenantId) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+        if (! is_numeric($branch)) {
+            return response()->json(['message' => 'Branch not found.'], 404);
         }
+
+        $branchId = (int) $branch;
+
+        $branchModel = Branch::query()->whereKey($branchId)->first();
+
+        if (! $branchModel) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        $tenantId = TenantContext::tenantId();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -177,7 +185,7 @@ class BranchController extends Controller
         $exists = Branch::query()
             ->where('tenant_id', $tenantId)
             ->where('code', $nextCode)
-            ->where('id', '!=', $branch->id)
+            ->where('id', '!=', $branchModel->id)
             ->exists();
 
         if ($exists) {
@@ -189,20 +197,28 @@ class BranchController extends Controller
             ], 422);
         }
 
-        $branch->forceFill($validated)->save();
+        $branchModel->forceFill($validated)->save();
 
         return response()->json([
-            'branch' => $branch->fresh(),
+            'branch' => $branchModel->fresh(),
         ]);
     }
 
-    public function assignUsers(Request $request, Branch $branch)
+    public function assignUsers(Request $request, string $business, $branch)
     {
-        $tenantId = TenantContext::tenantId();
-
-        if ((int) $branch->tenant_id !== (int) $tenantId) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+        if (! is_numeric($branch)) {
+            return response()->json(['message' => 'Branch not found.'], 404);
         }
+
+        $branchId = (int) $branch;
+
+        $branchModel = Branch::query()->whereKey($branchId)->first();
+
+        if (! $branchModel) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        $tenantId = TenantContext::tenantId();
 
         $validated = $request->validate([
             'user_ids' => ['required', 'array'],
@@ -218,20 +234,28 @@ class BranchController extends Controller
             ->pluck('id')
             ->all();
 
-        $branch->users()->sync($validUserIds);
+        $branchModel->users()->sync($validUserIds);
 
         return response()->json([
             'status' => 'ok',
         ]);
     }
 
-    public function users(Request $request, Branch $branch)
+    public function users(Request $request, string $business, $branch)
     {
-        $tenantId = TenantContext::tenantId();
-
-        if ((int) $branch->tenant_id !== (int) $tenantId) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+        if (! is_numeric($branch)) {
+            return response()->json(['message' => 'Branch not found.'], 404);
         }
+
+        $branchId = (int) $branch;
+
+        $branchModel = Branch::query()->whereKey($branchId)->first();
+
+        if (! $branchModel) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        $tenantId = TenantContext::tenantId();
 
         $users = User::query()
             ->where('tenant_id', $tenantId)
@@ -239,7 +263,7 @@ class BranchController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'status']);
 
-        $assignedUserIds = $branch->users()->pluck('users.id')->all();
+        $assignedUserIds = $branchModel->users()->pluck('users.id')->all();
 
         return response()->json([
             'users' => $users,
@@ -247,12 +271,43 @@ class BranchController extends Controller
         ]);
     }
 
-    public function setDefault(Request $request, Branch $branch)
+    public function setDefault(Request $request, string $business, $branch)
     {
+        \Log::info('branches.set_default.request', [
+            'path' => $request->path(),
+            'business_param' => $business,
+            'branch_param' => $branch,
+            'tenant_id' => TenantContext::tenantId(),
+            'tenant_slug' => TenantContext::tenant()?->slug,
+        ]);
+
+        if (! is_numeric($branch)) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        $branchId = (int) $branch;
+
         $tenantId = TenantContext::tenantId();
 
-        if ((int) $branch->tenant_id !== (int) $tenantId) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+        if (! $tenantId) {
+            return response()->json(['message' => 'Tenant context is missing.'], 422);
+        }
+
+        $branchModel = Branch::query()->withoutGlobalScopes()->whereKey($branchId)->first();
+
+        \Log::info('branches.set_default.lookup', [
+            'branch_id' => $branchId,
+            'found' => (bool) $branchModel,
+            'found_tenant_id' => $branchModel?->tenant_id,
+            'tenant_id' => $tenantId,
+        ]);
+
+        if (! $branchModel) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        if ((int) $branchModel->tenant_id !== (int) $tenantId) {
+            return response()->json(['message' => 'Branch not found.'], 404);
         }
 
         $tenant = TenantContext::tenant();
@@ -262,7 +317,7 @@ class BranchController extends Controller
         }
 
         $tenant->forceFill([
-            'default_branch_id' => $branch->id,
+            'default_branch_id' => $branchModel->id,
         ])->save();
 
         return response()->json([

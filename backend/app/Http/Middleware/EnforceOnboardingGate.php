@@ -62,6 +62,10 @@ class EnforceOnboardingGate
                 return $next($request);
             }
 
+            if (preg_match('#^(?:api/)?[^/]+/app/branches(?:/.*)?$#', $path)) {
+                return $next($request);
+            }
+
             return $this->deny('Business setup is required.', 'setup_required', '/'.$business.'/setup');
         }
 

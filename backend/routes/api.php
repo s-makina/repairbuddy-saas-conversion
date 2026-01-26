@@ -242,6 +242,21 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
             Route::get('/branches/current', [\App\Http\Controllers\Api\App\BranchController::class, 'current']);
             Route::post('/branches/active', [\App\Http\Controllers\Api\App\BranchController::class, 'setActive']);
 
+            Route::post('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'store'])
+                ->middleware('permission:branches.manage');
+            Route::put('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'update'])
+                ->whereNumber('branch')
+                ->middleware('permission:branches.manage');
+            Route::post('/branches/{branch}/assign-users', [\App\Http\Controllers\Api\App\BranchController::class, 'assignUsers'])
+                ->whereNumber('branch')
+                ->middleware('permission:branches.manage');
+            Route::get('/branches/{branch}/users', [\App\Http\Controllers\Api\App\BranchController::class, 'users'])
+                ->whereNumber('branch')
+                ->middleware('permission:branches.manage');
+            Route::post('/branches/{branch}/default', [\App\Http\Controllers\Api\App\BranchController::class, 'setDefault'])
+                ->whereNumber('branch')
+                ->middleware('permission:branches.manage');
+
             Route::middleware(['branch.active'])->group(function () {
                 Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
 
@@ -281,21 +296,6 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     ->middleware('permission:users.manage');
                 Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
                     ->middleware('permission:users.manage');
-
-                Route::post('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'store'])
-                    ->middleware('permission:branches.manage');
-                Route::put('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'update'])
-                    ->whereNumber('branch')
-                    ->middleware('permission:branches.manage');
-                Route::post('/branches/{branch}/assign-users', [\App\Http\Controllers\Api\App\BranchController::class, 'assignUsers'])
-                    ->whereNumber('branch')
-                    ->middleware('permission:branches.manage');
-                Route::get('/branches/{branch}/users', [\App\Http\Controllers\Api\App\BranchController::class, 'users'])
-                    ->whereNumber('branch')
-                    ->middleware('permission:branches.manage');
-                Route::post('/branches/{branch}/default', [\App\Http\Controllers\Api\App\BranchController::class, 'setDefault'])
-                    ->whereNumber('branch')
-                    ->middleware('permission:branches.manage');
             });
         });
     });

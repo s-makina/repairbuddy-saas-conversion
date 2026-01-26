@@ -11,13 +11,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/lib/auth";
-import { ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
-import type { Tenant } from "@/lib/types";
+import type { Branch, Tenant } from "@/lib/types";
 import { completeSetup, getSetup, updateSetup } from "@/lib/setup";
 
-type StepId = "welcome" | "business" | "address" | "branding" | "preferences" | "tax" | "team" | "finish";
+type StepId = "welcome" | "business" | "address" | "branches" | "branding" | "preferences" | "tax" | "team" | "finish";
 
 type WizardState = {
   name: string;
@@ -61,7 +63,7 @@ type WizardState = {
   team_default_role: string;
 };
 
-const stepOrder: StepId[] = ["welcome", "business", "address", "branding", "preferences", "tax", "team", "finish"];
+const stepOrder: StepId[] = ["welcome", "business", "address", "branches", "branding", "preferences", "tax", "team", "finish"];
 
 const skippableSteps: StepId[] = ["branding", "preferences", "tax", "team"];
 
@@ -87,6 +89,7 @@ function stepLabel(step: StepId): string {
   if (step === "welcome") return "Welcome";
   if (step === "business") return "Business";
   if (step === "address") return "Address";
+  if (step === "branches") return "Branches";
   if (step === "branding") return "Brand";
   if (step === "preferences") return "Operations";
   if (step === "tax") return "Tax";
@@ -98,6 +101,7 @@ function stepDescription(step: StepId): string {
   if (step === "welcome") return "Set expectations and start setup.";
   if (step === "business") return "Confirm your business details.";
   if (step === "address") return "Add your address and locale details.";
+  if (step === "branches") return "Add and manage your shop locations.";
   if (step === "branding") return "Upload a logo and configure customer-facing info.";
   if (step === "preferences") return "Set default operations and notification preferences.";
   if (step === "tax") return "Configure VAT and invoice numbering (optional).";
@@ -163,6 +167,20 @@ export default function BusinessSetupPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [completing, setCompleting] = useState(false);
 
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchesError, setBranchesError] = useState<string | null>(null);
+  const [branchSaving, setBranchSaving] = useState(false);
+  const [branchModalOpen, setBranchModalOpen] = useState(false);
+  const [branchEditId, setBranchEditId] = useState<number | null>(null);
+  const [branchName, setBranchName] = useState("");
+  const [branchCode, setBranchCode] = useState("");
+  const [branchIsActive, setBranchIsActive] = useState(true);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState<React.ReactNode>("");
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null);
+
   const initializedRef = useRef(false);
   const dirtyRef = useRef(false);
   const saveTimerRef = useRef<number | null>(null);
@@ -179,6 +197,115 @@ export default function BusinessSetupPage() {
       return fallbackTimezones;
     }
   }, []);
+
+  function openCreateBranch() {
+    setBranchEditId(null);
+    setBranchName("");
+    setBranchCode("");
+    setBranchIsActive(true);
+    setBranchModalOpen(true);
+  }
+
+  function openEditBranch(b: Branch) {
+    setBranchEditId(b.id);
+    setBranchName(b.name ?? "");
+    setBranchCode(b.code ?? "");
+    setBranchIsActive(Boolean(b.is_active));
+    setBranchModalOpen(true);
+  }
+
+  const loadBranches = useCallback(async () => {
+    if (typeof business !== "string" || business.length === 0) return;
+    setBranchesLoading(true);
+    setBranchesError(null);
+    try {
+      const payload = await apiFetch<{ branches: Branch[] }>(`/api/${business}/app/branches`);
+      setBranches(Array.isArray(payload.branches) ? payload.branches : []);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBranchesError(e.message);
+      } else {
+        setBranchesError(e instanceof Error ? e.message : "Failed to load branches.");
+      }
+    } finally {
+      setBranchesLoading(false);
+    }
+  }, [business]);
+
+  const saveBranch = useCallback(async () => {
+    if (typeof business !== "string" || business.length === 0) return;
+
+    setBranchSaving(true);
+    setBranchesError(null);
+
+    try {
+      const payload = {
+        name: branchName,
+        code: branchCode,
+        is_active: branchIsActive,
+      };
+
+      if (branchEditId) {
+        await apiFetch(`/api/${business}/app/branches/${branchEditId}`, {
+          method: "PUT",
+          body: payload,
+        });
+      } else {
+        await apiFetch(`/api/${business}/app/branches`, {
+          method: "POST",
+          body: payload,
+        });
+      }
+
+      setBranchModalOpen(false);
+      notify.success("Saved branch.");
+      await loadBranches();
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBranchesError(e.message);
+      } else {
+        setBranchesError(e instanceof Error ? e.message : "Failed to save branch.");
+      }
+    } finally {
+      setBranchSaving(false);
+    }
+  }, [branchCode, branchEditId, branchIsActive, branchName, business, loadBranches]);
+
+  const setDefaultBranch = useCallback(
+    async (branchId: number) => {
+      if (typeof business !== "string" || business.length === 0) return;
+      setBranchSaving(true);
+      setBranchesError(null);
+
+      try {
+        const payload = await apiFetch<{ status: "ok"; tenant: Tenant }>(`/api/${business}/app/branches/${branchId}/default`, {
+          method: "POST",
+          body: {},
+        });
+        setTenant(payload.tenant);
+        notify.success("Default branch updated.");
+      } catch (e) {
+        if (e instanceof ApiError) {
+          setBranchesError(e.message);
+        } else {
+          setBranchesError(e instanceof Error ? e.message : "Failed to set default branch.");
+        }
+      } finally {
+        setBranchSaving(false);
+      }
+    },
+    [business],
+  );
+
+  function confirmDefault(b: Branch) {
+    setConfirmMessage(
+      <div>
+        Set <span className="font-semibold">{b.code} - {b.name}</span> as the default branch?
+      </div>,
+    );
+    setConfirmAction(() => async () => setDefaultBranch(b.id));
+    setConfirmOpen(true);
+  }
 
   const billingAddressJson = useMemo(() => {
     const out: Record<string, string> = {};
@@ -242,11 +369,19 @@ export default function BusinessSetupPage() {
         if (form.tax_registered && !form.billing_vat_number.trim()) {
           return "VAT number is required when tax/VAT registered is enabled.";
         }
+        if (!tenant?.default_branch_id) {
+          return "Default branch is required.";
+        }
       }
       return null;
     },
-    [form],
+    [form, tenant?.default_branch_id],
   );
+
+  useEffect(() => {
+    if (step !== "branches") return;
+    void loadBranches();
+  }, [loadBranches, step]);
 
   const persist = useCallback(
     async (nextStep: StepId, showStatus: boolean) => {
@@ -419,6 +554,14 @@ export default function BusinessSetupPage() {
   }, [business]);
 
   useEffect(() => {
+    if (!tenant?.default_branch_id) return;
+    if (branches.length === 0) return;
+    const hasDefault = branches.some((b) => b.id === tenant.default_branch_id);
+    if (hasDefault) return;
+    void loadBranches();
+  }, [branches, loadBranches, tenant?.default_branch_id]);
+
+  useEffect(() => {
     if (!initializedRef.current) return;
     if (!dirtyRef.current) return;
     if (typeof business !== "string" || business.length === 0) return;
@@ -543,6 +686,12 @@ export default function BusinessSetupPage() {
     }
   }, [auth, billingAddressJson, business, form.billing_country, form.contact_email, form.contact_phone, form.currency, form.language, form.name, form.timezone, persist, router, validateStep]);
 
+  const tenantName = tenant?.name ?? business;
+
+  const branchesSorted = useMemo(() => {
+    return branches.slice().sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  }, [branches]);
+
   if (auth.loading || loading) {
     return <Preloader label="Loading setup" />;
   }
@@ -559,8 +708,6 @@ export default function BusinessSetupPage() {
       </div>
     );
   }
-
-  const tenantName = tenant?.name ?? business;
 
   return (
     <RequireAuth>
@@ -620,6 +767,75 @@ export default function BusinessSetupPage() {
                 />
 
                 {error ? <Alert variant="danger" title="Setup error">{error}</Alert> : null}
+
+                <Modal
+                  open={branchModalOpen}
+                  onClose={() => {
+                    if (branchSaving) return;
+                    setBranchModalOpen(false);
+                  }}
+                  title={branchEditId ? "Edit branch" : "Create branch"}
+                  footer={
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="outline" onClick={() => setBranchModalOpen(false)} disabled={branchSaving}>
+                        Cancel
+                      </Button>
+                      <Button onClick={() => void saveBranch()} disabled={branchSaving}>
+                        {branchSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="grid gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-[var(--rb-text)]" htmlFor="setup_branch_name">Name</label>
+                      <Input
+                        id="setup_branch_name"
+                        value={branchName}
+                        onChange={(e) => setBranchName(e.target.value)}
+                        placeholder="e.g. Main Shop"
+                        disabled={branchSaving}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-[var(--rb-text)]" htmlFor="setup_branch_code">Code</label>
+                      <Input
+                        id="setup_branch_code"
+                        value={branchCode}
+                        onChange={(e) => setBranchCode(e.target.value)}
+                        placeholder="e.g. MAIN"
+                        disabled={branchSaving}
+                        maxLength={16}
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                      <input type="checkbox" checked={branchIsActive} onChange={(e) => setBranchIsActive(e.target.checked)} disabled={branchSaving} />
+                      Active
+                    </label>
+                  </div>
+                </Modal>
+
+                <ConfirmDialog
+                  open={confirmOpen}
+                  title="Set default branch"
+                  message={confirmMessage}
+                  busy={branchSaving}
+                  onCancel={() => {
+                    if (branchSaving) return;
+                    setConfirmOpen(false);
+                    setConfirmAction(null);
+                  }}
+                  onConfirm={() => {
+                    if (!confirmAction) return;
+                    void (async () => {
+                      await confirmAction();
+                      setConfirmOpen(false);
+                      setConfirmAction(null);
+                    })();
+                  }}
+                />
 
                 <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
                   <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
@@ -879,6 +1095,75 @@ export default function BusinessSetupPage() {
                         placeholder="e.g. CRN-123456"
                       />
                     </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "branches" ? (
+                <div className="space-y-4">
+                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-[var(--rb-text)]">Your shops / branches</div>
+                        <div className="mt-1 text-xs text-zinc-600">Branches are used for staff access and branch-specific invoice numbering.</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => void loadBranches()} disabled={branchesLoading || branchSaving}>
+                          Refresh
+                        </Button>
+                        <Button size="sm" onClick={openCreateBranch} disabled={branchSaving}>
+                          New branch
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {branchesError ? <Alert variant="danger" title="Branches error">{branchesError}</Alert> : null}
+
+                  <div className="space-y-2">
+                    {branchesLoading ? <div className="text-sm text-zinc-600">Loading branches...</div> : null}
+
+                    {!branchesLoading && branchesSorted.length === 0 ? (
+                      <div className="text-sm text-zinc-600">No branches found.</div>
+                    ) : null}
+
+                    {branchesSorted.map((b) => {
+                      const isDefault = tenant?.default_branch_id === b.id;
+                      return (
+                        <div
+                          key={b.id}
+                          className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-[var(--rb-text)]">
+                              {b.code} - {b.name}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
+                              <span>{b.is_active ? "Active" : "Inactive"}</span>
+                              {isDefault ? (
+                                <span className="rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                                  Default
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditBranch(b)} disabled={branchSaving}>
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => confirmDefault(b)}
+                              disabled={branchSaving || isDefault}
+                            >
+                              Set default
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}

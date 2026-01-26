@@ -474,6 +474,7 @@ class TenantController extends Controller
             'settings.manage',
             'users.manage',
             'roles.manage',
+            'branches.manage',
         ];
 
         $memberPermissions = [
