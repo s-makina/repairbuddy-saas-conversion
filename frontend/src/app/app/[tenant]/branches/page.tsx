@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Branch, User } from "@/lib/types";
@@ -44,13 +45,6 @@ export default function TenantBranchesPage() {
 
   const defaultBranchId = auth.tenant?.default_branch_id ?? null;
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editBranchId, setEditBranchId] = useState<number | null>(null);
-
-  const [formName, setFormName] = useState("");
-  const [formCode, setFormCode] = useState("");
-  const [formIsActive, setFormIsActive] = useState(true);
-
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignBranchId, setAssignBranchId] = useState<number | null>(null);
   const [assignUsersLoading, setAssignUsersLoading] = useState(false);
@@ -83,64 +77,7 @@ export default function TenantBranchesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant]);
 
-  function openCreate() {
-    setEditBranchId(null);
-    setFormName("");
-    setFormCode("");
-    setFormIsActive(true);
-    setEditOpen(true);
-  }
-
-  function openEdit(b: Branch) {
-    setEditBranchId(b.id);
-    setFormName(b.name ?? "");
-    setFormCode(b.code ?? "");
-    setFormIsActive(Boolean(b.is_active));
-    setEditOpen(true);
-  }
-
-  async function onSaveBranch(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (typeof tenant !== "string" || tenant.length === 0) return;
-
-    setBusy(true);
-    setError(null);
-    setStatus(null);
-
-    try {
-      const payload = {
-        name: formName,
-        code: formCode,
-        is_active: formIsActive,
-      };
-
-      if (editBranchId) {
-        await apiFetch<{ branch: Branch }>(`/api/${tenant}/app/branches/${editBranchId}`, {
-          method: "PUT",
-          body: payload,
-        });
-        setStatus("Branch updated.");
-      } else {
-        await apiFetch<{ branch: Branch }>(`/api/${tenant}/app/branches`, {
-          method: "POST",
-          body: payload,
-        });
-        setStatus("Branch created.");
-      }
-
-      setEditOpen(false);
-      await load();
-      await auth.refresh();
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.message);
-      } else {
-        setError("Failed to save branch.");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
+  const branchesBaseHref = typeof tenant === "string" && tenant.length > 0 ? `/app/${tenant}/branches` : "/app";
 
   async function onSetDefault(branchId: number) {
     if (typeof tenant !== "string" || tenant.length === 0) return;
@@ -264,61 +201,6 @@ export default function TenantBranchesPage() {
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
         <Modal
-          open={editOpen}
-          onClose={() => {
-            if (busy) return;
-            setEditOpen(false);
-          }}
-          title={editBranchId ? "Edit branch" : "Create branch"}
-          footer={
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={busy}>
-                Cancel
-              </Button>
-              <Button onClick={() => void onSaveBranch()} disabled={busy}>
-                {busy ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          }
-        >
-          <form className="grid gap-3" onSubmit={onSaveBranch}>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="branch_name">
-                Name
-              </label>
-              <input
-                id="branch_name"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                required
-                disabled={busy}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="branch_code">
-                Code
-              </label>
-              <input
-                id="branch_code"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={formCode}
-                onChange={(e) => setFormCode(e.target.value)}
-                required
-                maxLength={16}
-                disabled={busy}
-              />
-            </div>
-
-            <label className="flex items-center gap-2 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm">
-              <input type="checkbox" checked={formIsActive} onChange={(e) => setFormIsActive(e.target.checked)} disabled={busy} />
-              <span>Active</span>
-            </label>
-          </form>
-        </Modal>
-
-        <Modal
           open={assignOpen}
           onClose={() => {
             if (busy) return;
@@ -400,8 +282,8 @@ export default function TenantBranchesPage() {
                     <div className="text-sm font-semibold text-[var(--rb-text)]">Create branch</div>
                     <div className="mt-1 text-sm text-zinc-600">Add another location under this business.</div>
                   </div>
-                  <Button onClick={openCreate} disabled={busy}>
-                    New
+                  <Button asChild disabled={busy}>
+                    <Link href={`${branchesBaseHref}/new`}>New</Link>
                   </Button>
                 </div>
 
@@ -464,13 +346,15 @@ export default function TenantBranchesPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openEdit(b)}
                               disabled={rowBusy}
                               aria-label="Edit branch"
                               title="Edit"
                               className="px-2"
+                              asChild
                             >
-                              <EditIcon className="h-4 w-4" />
+                              <Link href={`${branchesBaseHref}/${b.id}/edit`}>
+                                <EditIcon className="h-4 w-4" />
+                              </Link>
                             </Button>
                           </div>
                         );

@@ -244,6 +244,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
             Route::post('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'store'])
                 ->middleware('permission:branches.manage');
+            Route::get('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'show'])
+                ->whereNumber('branch')
+                ->middleware('permission:branches.manage');
             Route::put('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'update'])
                 ->whereNumber('branch')
                 ->middleware('permission:branches.manage');

@@ -34,6 +34,31 @@ class BranchController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $business, $branch)
+    {
+        if (! is_numeric($branch)) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        $branchId = (int) $branch;
+
+        $tenantId = TenantContext::tenantId();
+
+        if (! $tenantId) {
+            return response()->json(['message' => 'Tenant context is missing.'], 422);
+        }
+
+        $branchModel = Branch::query()->withoutGlobalScopes()->whereKey($branchId)->first();
+
+        if (! $branchModel || (int) $branchModel->tenant_id !== (int) $tenantId) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        return response()->json([
+            'branch' => $branchModel,
+        ]);
+    }
+
     public function current(Request $request)
     {
         $user = $request->user();
