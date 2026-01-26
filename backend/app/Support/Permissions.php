@@ -57,6 +57,7 @@ class Permissions
 
             'users.manage',
             'roles.manage',
+            'branches.manage',
         ];
     }
 
@@ -150,6 +151,7 @@ class Permissions
                 'settings.manage',
                 'users.manage',
                 'roles.manage',
+                'branches.manage',
             ],
             'member' => [
                 'app.access',

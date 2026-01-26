@@ -19,9 +19,47 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use Laravel\Sanctum\NewAccessToken;
 
 class AuthController extends Controller
 {
+    protected function resolveInitialActiveBranchIdForUser(User $user): ?int
+    {
+        if ($user->is_admin) {
+            return null;
+        }
+
+        $tenantId = (int) ($user->tenant_id ?? 0);
+        if ($tenantId <= 0) {
+            return null;
+        }
+
+        if (Permissions::userHas($user, 'branches.manage')) {
+            $defaultBranchId = DB::table('tenants')->where('id', $tenantId)->value('default_branch_id');
+            $defaultBranchId = is_numeric($defaultBranchId) ? (int) $defaultBranchId : null;
+
+            return $defaultBranchId && $defaultBranchId > 0 ? $defaultBranchId : null;
+        }
+
+        $branchIds = DB::table('branch_user')
+            ->join('branches', 'branches.id', '=', 'branch_user.branch_id')
+            ->where('branch_user.tenant_id', $tenantId)
+            ->where('branch_user.user_id', (int) $user->id)
+            ->where('branches.is_active', true)
+            ->orderBy('branches.id')
+            ->pluck('branches.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $branchIds = array_values(array_unique(array_filter($branchIds, fn ($id) => $id > 0)));
+
+        if (count($branchIds) === 1) {
+            return $branchIds[0];
+        }
+
+        return null;
+    }
+
     protected function logAuthEvent(Request $request, string $eventType, ?User $user = null, ?string $email = null, ?Tenant $tenant = null, array $metadata = []): void
     {
         AuthEvent::query()->create([
@@ -146,6 +184,7 @@ class AuthController extends Controller
             'settings.manage',
             'users.manage',
             'roles.manage',
+            'branches.manage',
         ];
 
         $memberPermissions = [
@@ -304,7 +343,38 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('api')->plainTextToken;
+        if (! $user->is_admin) {
+            $tenantId = (int) ($user->tenant_id ?? 0);
+            if ($tenantId <= 0) {
+                return response()->json([
+                    'message' => 'Account is not linked to a business.',
+                ], 403);
+            }
+
+            $hasAnyAssignment = DB::table('branch_user')
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', (int) $user->id)
+                ->exists();
+
+            $permissions = Permissions::forUser($user);
+            $isBranchAdmin = in_array('branches.manage', $permissions, true);
+
+            if (! $isBranchAdmin && ! $hasAnyAssignment) {
+                return response()->json([
+                    'message' => 'No branch access assigned. Please contact your administrator.',
+                ], 403);
+            }
+        }
+
+        /** @var NewAccessToken $newToken */
+        $newToken = $user->createToken('api');
+        $activeBranchId = $this->resolveInitialActiveBranchIdForUser($user);
+        if ($activeBranchId) {
+            $newToken->accessToken->forceFill([
+                'active_branch_id' => $activeBranchId,
+            ])->save();
+        }
+        $token = $newToken->plainTextToken;
 
         $this->logAuthEvent($request, 'login_success', $user, $user->email, $user->tenant);
 
@@ -367,7 +437,37 @@ class AuthController extends Controller
 
         Cache::forget('otp_login:'.$validated['otp_login_token']);
 
-        $token = $user->createToken('api')->plainTextToken;
+        if (! $user->is_admin) {
+            $tenantId = (int) ($user->tenant_id ?? 0);
+            if ($tenantId <= 0) {
+                return response()->json([
+                    'message' => 'Account is not linked to a business.',
+                ], 403);
+            }
+
+            $hasAnyAssignment = DB::table('branch_user')
+                ->where('tenant_id', $tenantId)
+                ->where('user_id', (int) $user->id)
+                ->exists();
+
+            $isBranchAdmin = Permissions::userHas($user, 'branches.manage');
+
+            if (! $isBranchAdmin && ! $hasAnyAssignment) {
+                return response()->json([
+                    'message' => 'No branch access assigned. Please contact your administrator.',
+                ], 403);
+            }
+        }
+
+        /** @var NewAccessToken $newToken */
+        $newToken = $user->createToken('api');
+        $activeBranchId = $this->resolveInitialActiveBranchIdForUser($user);
+        if ($activeBranchId) {
+            $newToken->accessToken->forceFill([
+                'active_branch_id' => $activeBranchId,
+            ])->save();
+        }
+        $token = $newToken->plainTextToken;
 
         $this->logAuthEvent($request, 'login_otp_success', $user, $user->email, $user->tenant);
 

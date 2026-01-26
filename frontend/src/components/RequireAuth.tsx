@@ -24,6 +24,11 @@ export function RequireAuth({
   const setupPath = tenantSlug ? `/${tenantSlug}/setup` : null;
   const isOnSetupPath = setupPath ? (pathname === setupPath || pathname.startsWith(`${setupPath}/`)) : false;
 
+  const branchSelectPath = tenantSlug ? `/app/${tenantSlug}/branches/select` : null;
+  const isOnBranchSelect = branchSelectPath
+    ? pathname === branchSelectPath || pathname.startsWith(`${branchSelectPath}/`)
+    : false;
+
   useEffect(() => {
     if (auth.loading) return;
 
@@ -80,6 +85,13 @@ export function RequireAuth({
           });
         })
         .catch((err) => {
+          if (err instanceof ApiError && err.status === 428) {
+            if (!isOnBranchSelect && branchSelectPath) {
+              router.replace(`${branchSelectPath}?next=${encodeURIComponent(pathname)}`);
+            }
+            return;
+          }
+
           if (err instanceof ApiError && err.status === 403) {
             return;
           }
@@ -90,7 +102,7 @@ export function RequireAuth({
           }
         });
     }
-  }, [adminOnly, auth, isOnSetupPath, pathname, requiredPermission, router, setupPath, tenantSlug]);
+  }, [adminOnly, auth, branchSelectPath, isOnBranchSelect, isOnSetupPath, pathname, requiredPermission, router, setupPath, tenantSlug]);
 
   if (auth.loading) {
     return <Preloader />;

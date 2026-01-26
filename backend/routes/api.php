@@ -211,8 +211,6 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     ->middleware(['tenant'])
     ->group(function () {
         Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce', 'onboarding.gate'])->group(function () {
-            Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
-
             Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);
 
             Route::get('/billing/plans', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'plans']);
@@ -240,41 +238,64 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
             Route::patch('/setup', [\App\Http\Controllers\Api\App\SetupController::class, 'update']);
             Route::post('/setup/complete', [\App\Http\Controllers\Api\App\SetupController::class, 'complete']);
 
-            Route::get('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'show'])
-                ->middleware('permission:settings.manage');
-            Route::patch('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'update'])
-                ->middleware('permission:settings.manage');
+            Route::get('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'index']);
+            Route::get('/branches/current', [\App\Http\Controllers\Api\App\BranchController::class, 'current']);
+            Route::post('/branches/active', [\App\Http\Controllers\Api\App\BranchController::class, 'setActive']);
 
-            Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);
+            Route::middleware(['branch.active'])->group(function () {
+                Route::get('/dashboard', [\App\Http\Controllers\Api\App\DashboardController::class, 'show']);
 
-            Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
-            Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
+                Route::get('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'show'])
+                    ->middleware('permission:settings.manage');
+                Route::patch('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'update'])
+                    ->middleware('permission:settings.manage');
 
-            Route::get('/permissions', [\App\Http\Controllers\Api\App\PermissionController::class, 'index'])
-                ->middleware('permission:roles.manage');
+                Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);
 
-            Route::get('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'index'])
-                ->middleware('permission:roles.manage');
-            Route::post('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'store'])
-                ->middleware('permission:roles.manage');
-            Route::put('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'update'])
-                ->middleware('permission:roles.manage');
-            Route::delete('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'destroy'])
-                ->middleware('permission:roles.manage');
+                Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);
+                Route::post('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'store']);
 
-            Route::get('/users', [\App\Http\Controllers\Api\App\UserController::class, 'index'])
-                ->middleware('permission:users.manage');
-            Route::get('/users/export', [\App\Http\Controllers\Api\App\UserController::class, 'export'])
-                ->middleware('permission:users.manage');
-            Route::post('/users', [\App\Http\Controllers\Api\App\UserController::class, 'store'])
-                ->middleware('permission:users.manage');
-            Route::put('/users/{user}', [\App\Http\Controllers\Api\App\UserController::class, 'update'])
-                ->middleware('permission:users.manage');
-            Route::patch('/users/{user}/role', [\App\Http\Controllers\Api\App\UserController::class, 'updateRole'])
-                ->middleware('permission:users.manage');
-            Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\App\UserController::class, 'updateStatus'])
-                ->middleware('permission:users.manage');
-            Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
-                ->middleware('permission:users.manage');
+                Route::get('/permissions', [\App\Http\Controllers\Api\App\PermissionController::class, 'index'])
+                    ->middleware('permission:roles.manage');
+
+                Route::get('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'index'])
+                    ->middleware('permission:roles.manage');
+                Route::post('/roles', [\App\Http\Controllers\Api\App\RoleController::class, 'store'])
+                    ->middleware('permission:roles.manage');
+                Route::put('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'update'])
+                    ->middleware('permission:roles.manage');
+                Route::delete('/roles/{role}', [\App\Http\Controllers\Api\App\RoleController::class, 'destroy'])
+                    ->middleware('permission:roles.manage');
+
+                Route::get('/users', [\App\Http\Controllers\Api\App\UserController::class, 'index'])
+                    ->middleware('permission:users.manage');
+                Route::get('/users/export', [\App\Http\Controllers\Api\App\UserController::class, 'export'])
+                    ->middleware('permission:users.manage');
+                Route::post('/users', [\App\Http\Controllers\Api\App\UserController::class, 'store'])
+                    ->middleware('permission:users.manage');
+                Route::put('/users/{user}', [\App\Http\Controllers\Api\App\UserController::class, 'update'])
+                    ->middleware('permission:users.manage');
+                Route::patch('/users/{user}/role', [\App\Http\Controllers\Api\App\UserController::class, 'updateRole'])
+                    ->middleware('permission:users.manage');
+                Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\App\UserController::class, 'updateStatus'])
+                    ->middleware('permission:users.manage');
+                Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
+                    ->middleware('permission:users.manage');
+
+                Route::post('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'store'])
+                    ->middleware('permission:branches.manage');
+                Route::put('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'update'])
+                    ->whereNumber('branch')
+                    ->middleware('permission:branches.manage');
+                Route::post('/branches/{branch}/assign-users', [\App\Http\Controllers\Api\App\BranchController::class, 'assignUsers'])
+                    ->whereNumber('branch')
+                    ->middleware('permission:branches.manage');
+                Route::get('/branches/{branch}/users', [\App\Http\Controllers\Api\App\BranchController::class, 'users'])
+                    ->whereNumber('branch')
+                    ->middleware('permission:branches.manage');
+                Route::post('/branches/{branch}/default', [\App\Http\Controllers\Api\App\BranchController::class, 'setDefault'])
+                    ->whereNumber('branch')
+                    ->middleware('permission:branches.manage');
+            });
         });
     });

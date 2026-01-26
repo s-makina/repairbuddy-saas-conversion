@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { apiFetch } from "@/lib/api";
+import type { Branch } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -290,6 +291,64 @@ export function DashboardShell({
     [tenantBaseHref],
   );
 
+  const [branches, setBranches] = React.useState<Branch[]>([]);
+  const [activeBranchId, setActiveBranchId] = React.useState<number | null>(null);
+  const [branchesLoading, setBranchesLoading] = React.useState(false);
+  const [branchSwitchBusy, setBranchSwitchBusy] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    async function loadBranches() {
+      if (!tenantSlug || auth.isAdmin) return;
+
+      setBranchesLoading(true);
+      try {
+        const [listRes, currentRes] = await Promise.all([
+          apiFetch<{ branches: Branch[] }>(`/api/${tenantSlug}/app/branches`),
+          apiFetch<{ active_branch_id: number | null; branch: Branch | null }>(`/api/${tenantSlug}/app/branches/current`),
+        ]);
+
+        if (!alive) return;
+        setBranches(Array.isArray(listRes.branches) ? listRes.branches : []);
+        setActiveBranchId(typeof currentRes.active_branch_id === "number" ? currentRes.active_branch_id : null);
+      } catch {
+        if (!alive) return;
+        setBranches([]);
+        setActiveBranchId(null);
+      } finally {
+        if (!alive) return;
+        setBranchesLoading(false);
+      }
+    }
+
+    void loadBranches();
+
+    return () => {
+      alive = false;
+    };
+  }, [auth.isAdmin, tenantSlug]);
+
+  const activeBranchLabel = React.useMemo(() => {
+    const b = branches.find((x) => x.id === activeBranchId) ?? null;
+    if (!b) return branchesLoading ? "Loading..." : "Select branch";
+    return `${b.code} - ${b.name}`;
+  }, [activeBranchId, branches, branchesLoading]);
+
+  async function switchBranch(branchId: number) {
+    if (!tenantSlug) return;
+    setBranchSwitchBusy(branchId);
+    try {
+      await apiFetch(`/api/${tenantSlug}/app/branches/active`, {
+        method: "POST",
+        body: { branch_id: branchId },
+      });
+      setActiveBranchId(branchId);
+    } finally {
+      setBranchSwitchBusy(null);
+    }
+  }
+
   type NavItem = {
     label: string;
     href: string;
@@ -375,6 +434,7 @@ export function DashboardShell({
             { label: "Managers", href: tenantPlaceholderHref("managers"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },
             { label: "Users", href: tenantSlug ? `/app/${tenantSlug}/users` : "/app", icon: "users", show: Boolean(tenantSlug) && auth.can("users.manage") },
             { label: "Roles", href: tenantSlug ? `/app/${tenantSlug}/roles` : "/app", icon: "shield", show: Boolean(tenantSlug) && auth.can("roles.manage") },
+            { label: "Branches", href: tenantSlug ? `/app/${tenantSlug}/branches` : "/app", icon: "home", show: Boolean(tenantSlug) && auth.can("branches.manage") },
           ],
         },
         {
@@ -758,6 +818,35 @@ export function DashboardShell({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {!auth.isAdmin && tenantSlug ? (
+                      <div className="relative">
+                        <select
+                          className={cn(
+                            "h-10 max-w-[260px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)]",
+                          )}
+                          value={typeof activeBranchId === "number" ? String(activeBranchId) : ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            const id = v ? Number(v) : null;
+                            if (typeof id === "number" && Number.isFinite(id) && id > 0) {
+                              void switchBranch(id);
+                            }
+                          }}
+                          disabled={branchesLoading || branchSwitchBusy !== null || branches.length === 0}
+                          aria-label="Active branch"
+                        >
+                          <option value="">{activeBranchLabel}</option>
+                          {branches
+                            .filter((b) => b.is_active)
+                            .map((b) => (
+                              <option key={b.id} value={String(b.id)}>
+                                {b.code} - {b.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    ) : null}
                     {header?.actions ? <div className="flex items-center gap-2">{header.actions}</div> : null}
                     <UserMenu
                       userName={userName}

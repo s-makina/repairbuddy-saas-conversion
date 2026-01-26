@@ -32,6 +32,7 @@ export interface Tenant {
   name: string;
   slug: string;
   status: TenantStatus;
+  default_branch_id?: number | null;
   contact_email?: string | null;
   contact_phone?: string | null;
   plan_id?: number | null;
@@ -267,4 +268,22 @@ export interface Invoice {
   updated_at?: string;
   lines?: InvoiceLine[];
   subscription?: TenantSubscription;
+}
+
+export interface Branch {
+  id: number;
+  tenant_id: number;
+  name: string;
+  code: string;
+  phone?: string | null;
+  email?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_postal_code?: string | null;
+  address_country?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }

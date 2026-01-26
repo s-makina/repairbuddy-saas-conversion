@@ -2,13 +2,15 @@
 
 namespace App\Support\Billing;
 
+use App\Models\Branch;
+use App\Models\BranchInvoiceCounter;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
-use App\Models\InvoiceSequence;
 use App\Models\TaxProfile;
 use App\Models\TaxRate;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +23,8 @@ class InvoicingService
             TenantContext::set($tenant);
 
             try {
-                $invoiceNumber = $this->nextInvoiceNumber($tenant);
+                $branch = $this->resolveInvoiceBranch($tenant);
+                $invoiceNumber = $this->nextInvoiceNumber($tenant, $branch);
 
                 $sellerCountry = strtoupper((string) config('billing.seller_country'));
                 $billingAddress = is_array($tenant->billing_address_json) ? $tenant->billing_address_json : [];
@@ -47,6 +50,7 @@ class InvoicingService
                 $totalCents = $subtotalCents + $taxCents;
 
                 $invoice = Invoice::query()->create([
+                    'branch_id' => $branch?->id,
                     'tenant_subscription_id' => $subscription->id,
                     'invoice_number' => $invoiceNumber,
                     'status' => 'draft',
@@ -90,6 +94,23 @@ class InvoicingService
                 TenantContext::set(null);
             }
         });
+    }
+
+    protected function resolveInvoiceBranch(Tenant $tenant): ?Branch
+    {
+        $branch = BranchContext::branch();
+
+        if ($branch instanceof Branch) {
+            return $branch;
+        }
+
+        $branchId = is_numeric($tenant->default_branch_id ?? null) ? (int) $tenant->default_branch_id : null;
+
+        if ($branchId && $branchId > 0) {
+            return Branch::query()->whereKey($branchId)->first();
+        }
+
+        return Branch::query()->where('is_active', true)->orderBy('id')->first();
     }
 
     public function issue(Invoice $invoice): Invoice
@@ -174,33 +195,44 @@ class InvoicingService
         return Pdf::loadHTML($html)->setPaper('a4', 'portrait');
     }
 
-    protected function nextInvoiceNumber(Tenant $tenant): string
+    protected function nextInvoiceNumber(Tenant $tenant, ?Branch $branch): string
     {
         $tenantSlug = strtoupper((string) $tenant->slug);
+        $branchCode = strtoupper((string) ($branch?->code ?? 'MAIN'));
         $year = (int) now()->format('Y');
 
-        $seq = InvoiceSequence::query()
+        $branchId = $branch?->id;
+
+        if (! $branchId) {
+            $padded = str_pad('1', 4, '0', STR_PAD_LEFT);
+            return 'RB-'.$tenantSlug.'-'.$branchCode.'-'.$year.'-'.$padded;
+        }
+
+        $counter = BranchInvoiceCounter::query()
+            ->where('branch_id', $branchId)
             ->where('year', $year)
             ->lockForUpdate()
             ->first();
 
-        if (! $seq) {
-            $seq = InvoiceSequence::query()->create([
+        if (! $counter) {
+            $counter = BranchInvoiceCounter::query()->create([
+                'branch_id' => $branchId,
                 'year' => $year,
-                'last_number' => 0,
+                'next_number' => 1,
             ]);
 
-            $seq->refresh();
+            $counter->refresh();
         }
 
-        $seq->forceFill([
-            'last_number' => ((int) $seq->last_number) + 1,
+        $n = (int) ($counter->next_number ?? 1);
+
+        $counter->forceFill([
+            'next_number' => $n + 1,
         ])->save();
 
-        $n = (int) $seq->last_number;
-        $padded = str_pad((string) $n, 6, '0', STR_PAD_LEFT);
+        $padded = str_pad((string) $n, 4, '0', STR_PAD_LEFT);
 
-        return 'RB-'.$tenantSlug.'-'.$year.'-'.$padded;
+        return 'RB-'.$tenantSlug.'-'.$branchCode.'-'.$year.'-'.$padded;
     }
 
     protected function resolveVat(string $sellerCountry, string $buyerCountry, ?string $buyerVatNumber): array

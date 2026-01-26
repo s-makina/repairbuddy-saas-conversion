@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class Tenant extends Model
@@ -16,6 +17,7 @@ class Tenant extends Model
     ];
 
     protected $fillable = [
+        'default_branch_id',
         'name',
         'slug',
         'status',
@@ -45,6 +47,7 @@ class Tenant extends Model
     protected function casts(): array
     {
         return [
+            'default_branch_id' => 'integer',
             'setup_completed_at' => 'datetime',
             'activated_at' => 'datetime',
             'suspended_at' => 'datetime',
@@ -59,6 +62,16 @@ class Tenant extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    public function defaultBranch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'default_branch_id');
+    }
+
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Branch::class);
     }
 
     public function getLogoUrlAttribute(): ?string

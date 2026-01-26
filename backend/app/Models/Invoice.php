@@ -15,6 +15,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'tenant_id',
+        'branch_id',
         'tenant_subscription_id',
         'invoice_number',
         'status',
@@ -36,6 +37,7 @@ class Invoice extends Model
     protected function casts(): array
     {
         return [
+            'branch_id' => 'integer',
             'subtotal_cents' => 'integer',
             'tax_cents' => 'integer',
             'total_cents' => 'integer',
@@ -64,6 +66,11 @@ class Invoice extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function subscription(): BelongsTo
