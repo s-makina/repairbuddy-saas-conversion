@@ -32,9 +32,9 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
   const { draft, updateSection, setDraft, isMock, savingDisabledReason } = useRepairBuddyDraft();
 
   const selectedKey = useMemo(() => {
-    const rbParam = searchParams.get("rb");
+    const sectionParam = searchParams.get("section");
     const keys = new Set(repairBuddyNav.map((item) => item.key));
-    if (rbParam && keys.has(rbParam)) return rbParam;
+    if (sectionParam && keys.has(sectionParam)) return sectionParam;
     return "general";
   }, [searchParams]);
 
@@ -99,8 +99,8 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle>RepairBuddy</CardTitle>
-            <CardDescription>Legacy Repair Buddy / computer-repair-shop settings.</CardDescription>
+            <CardTitle>Business Settings</CardTitle>
+            <CardDescription>Operational settings for this business.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1">
             {repairBuddyNav.map((item) => {
@@ -109,7 +109,8 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
               return (
                 <Link
                   key={item.key}
-                  href={`/app/${tenantSlug}/settings?tab=repairbuddy&rb=${item.key}`}
+                  href={`/app/${tenantSlug}/business-settings?section=${item.key}`}
+                  scroll={false}
                   className={
                     "block rounded-[var(--rb-radius-sm)] px-3 py-2 text-sm transition-colors " +
                     (isActive
@@ -124,16 +125,13 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedItem?.label ?? "RepairBuddy"}</CardTitle>
-            <CardDescription>Business: {tenantSlug}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between gap-3 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+        <div className="space-y-4">
+          <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white px-5 py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-medium text-[var(--rb-text)]">UI-only</div>
-                <div className="mt-1 text-xs text-zinc-500">
+                <div className="text-sm font-semibold text-[var(--rb-text)]">{selectedItem?.label ?? "Business Settings"}</div>
+                <div className="mt-1 text-xs text-zinc-500">Business: {tenantSlug}</div>
+                <div className="mt-2 text-xs text-zinc-500">
                   Editing is allowed for UX testing, but saving will be added later. ({savingDisabledReason})
                 </div>
               </div>
@@ -141,10 +139,10 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
                 Save
               </Button>
             </div>
+          </div>
 
-            {sectionNode}
-          </CardContent>
-        </Card>
+          {sectionNode}
+        </div>
       </div>
     </div>
   );

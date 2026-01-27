@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { getSetup, updateSetup } from "@/lib/setup";
-import { RepairBuddySettingsTab } from "@/app/app/[tenant]/settings/_components/repairbuddy/RepairBuddySettingsTab";
 
 type SettingsPayload = {
   tenant: Tenant;
@@ -46,7 +45,6 @@ export default function TenantSettingsPage() {
   const auth = useAuth();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
-  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,23 +99,6 @@ export default function TenantSettingsPage() {
       return fallbackTimezones;
     }
   }, []);
-
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    const rbParam = searchParams.get("rb");
-
-    if (tabParam === "repairbuddy" || rbParam) {
-      if (activeTab !== "repairbuddy") setActiveTab("repairbuddy");
-      return;
-    }
-
-    if (!tabParam) return;
-
-    const allowedTabs = ["company", "billing", "branding", "operations", "tax", "team", "repairbuddy"] as const;
-    if ((allowedTabs as readonly string[]).includes(tabParam) && activeTab !== tabParam) {
-      setActiveTab(tabParam);
-    }
-  }, [activeTab, searchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -303,39 +284,35 @@ export default function TenantSettingsPage() {
     workingHours,
   ]);
 
-  const onUploadLogo = useCallback(
+  const onUploadLogo = React.useCallback(
     async (file: File) => {
       if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
 
       setUploadingLogo(true);
       setError(null);
-      setStatus(null);
       try {
-        const payload = await updateSetup(tenantSlug, { logo: file });
-        setData((prev) => (prev ? { ...prev, tenant: payload.tenant } : prev));
-        await auth.refresh();
-        setStatus("Logo uploaded.");
+        const payload = await updateSetup(String(tenantSlug), { logo: file });
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                tenant: payload.tenant,
+              }
+            : prev,
+        );
       } catch (e) {
-        if (e instanceof ApiError) {
-          setError(e.message);
-        } else {
-          setError(e instanceof Error ? e.message : "Failed to upload logo.");
-        }
+        setError(e instanceof Error ? e.message : "Failed to upload logo.");
       } finally {
         setUploadingLogo(false);
       }
     },
-    [auth, tenantSlug],
+    [tenantSlug],
   );
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setStatus(null);
-
-    if (activeTab === "repairbuddy") {
-      return;
-    }
 
     if (!name.trim()) {
       setError("Company name is required.");
@@ -475,7 +452,6 @@ export default function TenantSettingsPage() {
                 <TabsTrigger value="operations">Operations</TabsTrigger>
                 <TabsTrigger value="tax">Tax</TabsTrigger>
                 <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="repairbuddy">RepairBuddy</TabsTrigger>
               </TabsList>
 
               <TabsContent value="company">
@@ -916,18 +892,13 @@ export default function TenantSettingsPage() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="repairbuddy">
-                <RepairBuddySettingsTab tenantSlug={String(tenantSlug)} />
-              </TabsContent>
             </Tabs>
 
-            {activeTab !== "repairbuddy" ? (
-              <div className="flex items-center justify-end gap-2">
-                <Button type="submit" disabled={saving || !hasChanges}>
-                  {saving ? "Saving..." : "Save changes"}
-                </Button>
-              </div>
-            ) : null}
+            <div className="flex items-center justify-end gap-2">
+              <Button type="submit" disabled={saving || !hasChanges}>
+                {saving ? "Saving..." : "Save changes"}
+              </Button>
+            </div>
           </form>
         ) : null}
       </div>

@@ -366,14 +366,59 @@ export function DashboardShell({
       [
         {
           items: [
-            { label: "Home", href: "/", icon: "home", show: true },
-            { label: "Dashboard", href: "/admin", icon: "dashboard", show: auth.can("admin.access") },
             { label: "Businesses", href: "/admin/businesses", icon: "admin", show: auth.can("admin.tenants.read") },
+          ],
+        },
+        {
+          title: "Overview",
+          items: [
+            {
+              label: "Dashboard",
+              href: "/admin",
+              icon: "dashboard",
+              show: auth.can("admin.access"),
+            },
             {
               label: auth.can("admin.access") ? "Business Dashboard" : "Dashboard",
               href: tenantBaseHref ?? "/app",
               icon: "dashboard",
               show: Boolean(tenantBaseHref) && auth.can("dashboard.view"),
+            },
+            {
+              label: "Business Settings",
+              href: tenantSlug ? `/app/${tenantSlug}/business-settings` : "/app",
+              icon: "services",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage"),
+            },
+            {
+              label: "Users",
+              href: tenantSlug ? `/app/${tenantSlug}/users` : "/app",
+              icon: "users",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("users.manage"),
+            },
+            {
+              label: "Roles",
+              href: tenantSlug ? `/app/${tenantSlug}/roles` : "/app",
+              icon: "shield",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("roles.manage"),
+            },
+            {
+              label: "Branches",
+              href: tenantSlug ? `/app/${tenantSlug}/branches` : "/app",
+              icon: "home",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("branches.manage"),
+            },
+            {
+              label: "Settings",
+              href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/app",
+              icon: "settings",
+              show: auth.isAuthenticated && auth.can("settings.manage"),
+            },
+            {
+              label: "Security",
+              href: tenantSlug ? `/app/${tenantSlug}/security` : "/app",
+              icon: "shield",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("security.manage"),
             },
           ],
         },
@@ -473,6 +518,12 @@ export function DashboardShell({
               icon: "settings",
               show: auth.isAuthenticated && auth.can("settings.manage"),
             },
+            {
+              label: "Business Settings",
+              href: tenantSlug ? `/app/${tenantSlug}/business-settings` : "/app",
+              icon: "services",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage"),
+            },
           ],
         },
       ],
@@ -538,13 +589,22 @@ export function DashboardShell({
   React.useEffect(() => {
     setOpenSections((prev) => {
       const active = resolvedNavSections.find((s) => Boolean(s.title) && s.hasActiveItem);
-      if (!active) return prev;
-
       const next: Record<string, boolean> = { ...prev };
       let changed = false;
 
+      const overview = resolvedNavSections.find((s) => s.title === "Overview");
+      if (overview && next[overview.key] === undefined) {
+        next[overview.key] = true;
+        changed = true;
+      }
+
+      if (!active) {
+        return changed ? next : prev;
+      }
+
       for (const s of resolvedNavSections) {
         if (!s.title) continue;
+        if (s.title === "Overview") continue;
         const shouldBeOpen = s.key === active.key;
         if (next[s.key] !== shouldBeOpen) {
           next[s.key] = shouldBeOpen;
@@ -685,6 +745,7 @@ export function DashboardShell({
                         const next: Record<string, boolean> = { ...prev };
                         for (const s of resolvedNavSections) {
                           if (!s.title) continue;
+                          if (section.title !== "Overview" && s.title === "Overview") continue;
                           next[s.key] = false;
                         }
                         next[section.key] = willOpen;
