@@ -11,6 +11,7 @@ import type { Branch } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { UserMenu } from "@/components/ui/UserMenu";
 
 type DashboardHeaderConfig = {
@@ -255,6 +256,36 @@ function ChevronRightIcon({ className }: { className?: string }) {
   );
 }
 
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={cn("h-4 w-4 shrink-0 fill-none stroke-current", className)}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={cn("h-4 w-4 shrink-0 fill-none stroke-current", className)}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
 export function DashboardShell({
   title,
   children,
@@ -334,6 +365,21 @@ export function DashboardShell({
     if (!b) return branchesLoading ? "Loading..." : "Select branch";
     return `${b.code} - ${b.name}`;
   }, [activeBranchId, branches, branchesLoading]);
+
+  const activeBranch = React.useMemo(() => {
+    return branches.find((x) => x.id === activeBranchId) ?? null;
+  }, [activeBranchId, branches]);
+
+  const activeBranchInitials = React.useMemo(() => {
+    const seed = (activeBranch?.code || activeBranch?.name || "S").trim();
+    if (!seed) return "S";
+    const parts = seed.split(/\s+/).filter(Boolean);
+    const letters = (parts.length > 1 ? parts.slice(0, 2).map((p) => p[0]) : [seed[0], seed[1]])
+      .filter(Boolean)
+      .join("")
+      .toUpperCase();
+    return letters.slice(0, 2) || "S";
+  }, [activeBranch?.code, activeBranch?.name]);
 
   async function switchBranch(branchId: number) {
     if (!tenantSlug) return;
@@ -447,30 +493,30 @@ export function DashboardShell({
         {
           title: "Operations",
           items: [
-            { label: "Appointments", href: tenantPlaceholderHref("appointments"), icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
+            { label: "Appointments", href: tenantSlug ? `/app/${tenantSlug}/appointments` : "/app", icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
             { label: "Jobs", href: tenantSlug ? `/app/${tenantSlug}/jobs` : "/app", icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
             { label: "Estimates", href: tenantSlug ? `/app/${tenantSlug}/estimates` : "/app", icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
-            { label: "Services", href: tenantPlaceholderHref("services"), icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
+            { label: "Services", href: tenantSlug ? `/app/${tenantSlug}/services` : "/app", icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
           ],
         },
         {
           title: "Inventory",
           items: [
-            { label: "Devices", href: tenantPlaceholderHref("devices"), icon: "devices", show: Boolean(tenantBaseHref) && auth.can("devices.view") },
-            { label: "Device Brands", href: tenantPlaceholderHref("device-brands"), icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_brands.view") },
-            { label: "Device Types", href: tenantPlaceholderHref("device-types"), icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_types.view") },
-            { label: "Parts", href: tenantPlaceholderHref("parts"), icon: "parts", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
+            { label: "Devices", href: tenantSlug ? `/app/${tenantSlug}/devices` : "/app", icon: "devices", show: Boolean(tenantBaseHref) && auth.can("devices.view") },
+            { label: "Device Brands", href: tenantSlug ? `/app/${tenantSlug}/device-brands` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_brands.view") },
+            { label: "Device Types", href: tenantSlug ? `/app/${tenantSlug}/device-types` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_types.view") },
+            { label: "Parts", href: tenantSlug ? `/app/${tenantSlug}/parts` : "/app", icon: "parts", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
           ],
         },
         {
           title: "Finance",
           items: [
-            { label: "Payments", href: tenantPlaceholderHref("payments"), icon: "payments", show: Boolean(tenantBaseHref) && auth.can("payments.view") },
-            { label: "Reports", href: tenantPlaceholderHref("reports"), icon: "reports", show: Boolean(tenantBaseHref) && auth.can("reports.view") },
-            { label: "Expenses", href: tenantPlaceholderHref("expenses"), icon: "calculator", show: Boolean(tenantBaseHref) && auth.can("expenses.view") },
+            { label: "Payments", href: tenantSlug ? `/app/${tenantSlug}/payments` : "/app", icon: "payments", show: Boolean(tenantBaseHref) && auth.can("payments.view") },
+            { label: "Reports", href: tenantSlug ? `/app/${tenantSlug}/reports` : "/app", icon: "reports", show: Boolean(tenantBaseHref) && auth.can("reports.view") },
+            { label: "Expenses", href: tenantSlug ? `/app/${tenantSlug}/expenses` : "/app", icon: "calculator", show: Boolean(tenantBaseHref) && auth.can("expenses.view") },
             {
               label: "Expense Categories",
-              href: tenantPlaceholderHref("expense-categories"),
+              href: tenantSlug ? `/app/${tenantSlug}/expense-categories` : "/app",
               icon: "calculator",
               show: Boolean(tenantBaseHref) && auth.can("expense_categories.view"),
             },
@@ -480,9 +526,9 @@ export function DashboardShell({
           title: "People",
           items: [
             { label: "Clients", href: tenantSlug ? `/app/${tenantSlug}/clients` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("clients.view") },
-            { label: "Customer Devices", href: tenantPlaceholderHref("customer-devices"), icon: "devices", show: Boolean(tenantBaseHref) && auth.can("customer_devices.view") },
-            { label: "Technicians", href: tenantPlaceholderHref("technicians"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("technicians.view") },
-            { label: "Managers", href: tenantPlaceholderHref("managers"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },
+            { label: "Customer Devices", href: tenantSlug ? `/app/${tenantSlug}/customer-devices` : "/app", icon: "devices", show: Boolean(tenantBaseHref) && auth.can("customer_devices.view") },
+            { label: "Technicians", href: tenantSlug ? `/app/${tenantSlug}/technicians` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("technicians.view") },
+            { label: "Managers", href: tenantSlug ? `/app/${tenantSlug}/managers` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },
             { label: "Users", href: tenantSlug ? `/app/${tenantSlug}/users` : "/app", icon: "users", show: Boolean(tenantSlug) && auth.can("users.manage") },
             { label: "Roles", href: tenantSlug ? `/app/${tenantSlug}/roles` : "/app", icon: "shield", show: Boolean(tenantSlug) && auth.can("roles.manage") },
             { label: "Branches", href: tenantSlug ? `/app/${tenantSlug}/branches` : "/app", icon: "home", show: Boolean(tenantSlug) && auth.can("branches.manage") },
@@ -491,16 +537,16 @@ export function DashboardShell({
         {
           title: "Quality",
           items: [
-            { label: "Job Reviews", href: tenantPlaceholderHref("job-reviews"), icon: "review", show: Boolean(tenantBaseHref) && auth.can("job_reviews.view") },
+            { label: "Job Reviews", href: tenantSlug ? `/app/${tenantSlug}/job-reviews` : "/app", icon: "review", show: Boolean(tenantBaseHref) && auth.can("job_reviews.view") },
           ],
         },
         {
           title: "Tools",
           items: [
-            { label: "Time Logs", href: tenantPlaceholderHref("time-logs"), icon: "clock", show: Boolean(tenantBaseHref) && auth.can("time_logs.view") },
-            { label: "Manage Hourly Rates", href: tenantPlaceholderHref("hourly-rates"), icon: "clock", show: Boolean(tenantBaseHref) && auth.can("hourly_rates.view") },
-            { label: "Reminder Logs", href: tenantPlaceholderHref("reminder-logs"), icon: "clock", show: Boolean(tenantBaseHref) && auth.can("reminder_logs.view") },
-            { label: "Print Screen", href: tenantPlaceholderHref("print-screen"), icon: "printer", show: Boolean(tenantBaseHref) && auth.can("print_screen.view") },
+            { label: "Time Logs", href: tenantSlug ? `/app/${tenantSlug}/time-logs` : "/app", icon: "clock", show: Boolean(tenantBaseHref) && auth.can("time_logs.view") },
+            { label: "Manage Hourly Rates", href: tenantSlug ? `/app/${tenantSlug}/hourly-rates` : "/app", icon: "clock", show: Boolean(tenantBaseHref) && auth.can("hourly_rates.view") },
+            { label: "Reminder Logs", href: tenantSlug ? `/app/${tenantSlug}/reminder-logs` : "/app", icon: "clock", show: Boolean(tenantBaseHref) && auth.can("reminder_logs.view") },
+            { label: "Print Screen", href: tenantSlug ? `/app/${tenantSlug}/print-screen` : "/app", icon: "printer", show: Boolean(tenantBaseHref) && auth.can("print_screen.view") },
           ],
         },
         {
@@ -887,31 +933,105 @@ export function DashboardShell({
                   <div className="flex items-center gap-2">
                     {!auth.isAdmin && tenantSlug ? (
                       <div className="relative">
-                        <select
-                          className={cn(
-                            "h-10 max-w-[260px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)]",
-                          )}
-                          value={typeof activeBranchId === "number" ? String(activeBranchId) : ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            const id = v ? Number(v) : null;
-                            if (typeof id === "number" && Number.isFinite(id) && id > 0) {
-                              void switchBranch(id);
-                            }
+                        <DropdownMenu
+                          align="right"
+                          trigger={({ open, toggle }) => {
+                            const disabled = branchesLoading || branchSwitchBusy !== null || branches.length === 0;
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={toggle}
+                                disabled={disabled}
+                                className={cn(
+                                  "group inline-flex h-10 max-w-[280px] items-center gap-2 rounded-[var(--rb-radius-sm)] border px-3",
+                                  "bg-white text-zinc-700 border-[var(--rb-border)]",
+                                  "hover:bg-[var(--rb-surface-muted)]",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)]",
+                                  disabled ? "pointer-events-none opacity-60" : "",
+                                )}
+                                aria-haspopup="menu"
+                                aria-expanded={open}
+                                aria-label="Active shop"
+                              >
+                                <Avatar
+                                  src={null}
+                                  alt={activeBranch?.name || "Shop"}
+                                  fallback={activeBranchInitials}
+                                  size={28}
+                                  className="bg-[var(--rb-blue)] text-white ring-0"
+                                />
+                                <span className="min-w-0 flex-1 text-left">
+                                  <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">
+                                    {activeBranch?.name || activeBranchLabel}
+                                  </span>
+                                  {activeBranch?.code ? (
+                                    <span className="block truncate text-[11px] font-medium text-zinc-500">{activeBranch.code}</span>
+                                  ) : null}
+                                </span>
+                                <ChevronDownIcon className={cn("text-zinc-500 transition-transform", open ? "rotate-180" : "rotate-0")} />
+                              </button>
+                            );
                           }}
-                          disabled={branchesLoading || branchSwitchBusy !== null || branches.length === 0}
-                          aria-label="Active branch"
                         >
-                          <option value="">{activeBranchLabel}</option>
-                          {branches
-                            .filter((b) => b.is_active)
-                            .map((b) => (
-                              <option key={b.id} value={String(b.id)}>
-                                {b.code} - {b.name}
-                              </option>
-                            ))}
-                        </select>
+                          {({ close }) => {
+                            const activeBranches = branches.filter((b) => b.is_active);
+
+                            return (
+                              <div>
+                                <div className="px-3 py-2">
+                                  <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Shop</div>
+                                  <div className="mt-1 truncate text-sm font-semibold text-[var(--rb-text)]">
+                                    {activeBranch?.name || activeBranchLabel}
+                                  </div>
+                                </div>
+                                <DropdownMenuSeparator />
+
+                                {branchesLoading ? (
+                                  <DropdownMenuItem onSelect={() => close()} disabled>
+                                    Loading shops...
+                                  </DropdownMenuItem>
+                                ) : activeBranches.length === 0 ? (
+                                  <DropdownMenuItem onSelect={() => close()} disabled>
+                                    No shops available
+                                  </DropdownMenuItem>
+                                ) : (
+                                  activeBranches.map((b) => {
+                                    const isActive = b.id === activeBranchId;
+                                    const busy = branchSwitchBusy === b.id;
+
+                                    return (
+                                      <DropdownMenuItem
+                                        key={b.id}
+                                        disabled={branchSwitchBusy !== null}
+                                        onSelect={() => {
+                                          close();
+                                          if (!busy && !isActive) {
+                                            void switchBranch(b.id);
+                                          }
+                                        }}
+                                      >
+                                        <span className="flex w-full items-center justify-between gap-3">
+                                          <span className="min-w-0">
+                                            <span className="block truncate text-sm font-medium text-zinc-800">{b.name}</span>
+                                            <span className="block truncate text-[11px] font-medium text-zinc-500">{b.code}</span>
+                                          </span>
+                                          <span className="shrink-0">
+                                            {busy ? (
+                                              <span className="text-xs font-medium text-zinc-500">Switching...</span>
+                                            ) : isActive ? (
+                                              <CheckIcon className="text-[var(--rb-blue)]" />
+                                            ) : null}
+                                          </span>
+                                        </span>
+                                      </DropdownMenuItem>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            );
+                          }}
+                        </DropdownMenu>
                       </div>
                     ) : null}
                     {header?.actions ? <div className="flex items-center gap-2">{header.actions}</div> : null}

@@ -9,6 +9,8 @@ import type {
   Device,
   DeviceBrand,
   DeviceType,
+  Expense,
+  ExpenseCategory,
   Estimate,
   EstimateId,
   EstimateStatus,
@@ -23,6 +25,7 @@ import type {
   Payment,
   Review,
   Service,
+  TimeLog,
 } from "@/mock/types";
 
 const STORAGE_KEY = "rb.mockData.overrides:v1";
@@ -295,6 +298,18 @@ export const mockApi = {
 
   async listPayments(): Promise<Payment[]> {
     return await withLatency(() => getBundle().payments);
+  },
+
+  async listExpenses(): Promise<Expense[]> {
+    return await withLatency(() => getBundle().expenses);
+  },
+
+  async listExpenseCategories(): Promise<ExpenseCategory[]> {
+    return await withLatency(() => getBundle().expense_categories);
+  },
+
+  async listTimeLogs(): Promise<TimeLog[]> {
+    return await withLatency(() => getBundle().time_logs);
   },
 
   async listServices(): Promise<Service[]> {
