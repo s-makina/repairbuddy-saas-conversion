@@ -92,9 +92,9 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
 
   return (
     <div className="space-y-6">
-      <Alert variant="warning" title="Mock screens">
+      {/* <Alert variant="warning" title="Mock screens">
         Saving is not available yet.
-      </Alert>
+      </Alert> */}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
         <Card>
