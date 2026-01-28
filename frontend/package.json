@@ -10,10 +10,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/list": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "next": "16.1.2",
+    "preact": "^10.24.3",
     "react": "19.2.3",
-    "react-qr-code": "^2.0.12",
     "react-dom": "19.2.3",
+    "react-qr-code": "^2.0.12",
     "sonner": "^1.7.4"
   },
   "devDependencies": {

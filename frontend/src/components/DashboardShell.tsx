@@ -385,6 +385,12 @@ export function DashboardShell({
               show: Boolean(tenantBaseHref) && auth.can("dashboard.view"),
             },
             {
+              label: "Calendar",
+              href: tenantSlug ? `/app/${tenantSlug}/calendar` : "/app",
+              icon: "calendar",
+              show: Boolean(tenantBaseHref) && auth.can("appointments.view"),
+            },
+            {
               label: "Business Settings",
               href: tenantSlug ? `/app/${tenantSlug}/business-settings` : "/app",
               icon: "services",

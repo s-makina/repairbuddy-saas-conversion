@@ -89,7 +89,7 @@ export function UserMenu({
   }
 
   return (
-    <div ref={rootRef} className={cn("relative", className)}>
+    <div ref={rootRef} className={cn("relative z-50", className)}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -119,7 +119,7 @@ export function UserMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-56 overflow-hidden rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white shadow-[var(--rb-shadow)]"
+          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white shadow-[var(--rb-shadow)]"
         >
           <div className="border-b border-[var(--rb-border)] px-3 py-2">
             <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{userName || "User"}</div>
