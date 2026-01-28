@@ -449,7 +449,7 @@ export function DashboardShell({
           items: [
             { label: "Appointments", href: tenantPlaceholderHref("appointments"), icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
             { label: "Jobs", href: tenantSlug ? `/app/${tenantSlug}/jobs` : "/app", icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
-            { label: "Estimates", href: tenantPlaceholderHref("estimates"), icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
+            { label: "Estimates", href: tenantSlug ? `/app/${tenantSlug}/estimates` : "/app", icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
             { label: "Services", href: tenantPlaceholderHref("services"), icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
           ],
         },
@@ -479,7 +479,7 @@ export function DashboardShell({
         {
           title: "People",
           items: [
-            { label: "Clients", href: tenantPlaceholderHref("clients"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("clients.view") },
+            { label: "Clients", href: tenantSlug ? `/app/${tenantSlug}/clients` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("clients.view") },
             { label: "Customer Devices", href: tenantPlaceholderHref("customer-devices"), icon: "devices", show: Boolean(tenantBaseHref) && auth.can("customer_devices.view") },
             { label: "Technicians", href: tenantPlaceholderHref("technicians"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("technicians.view") },
             { label: "Managers", href: tenantPlaceholderHref("managers"), icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },
