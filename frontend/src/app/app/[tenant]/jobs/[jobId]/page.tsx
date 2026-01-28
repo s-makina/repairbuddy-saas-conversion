@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
 import { mockApi, computeEstimateTotalCents } from "@/mock/mockApi";
-import type { Estimate, Job, JobStatusKey } from "@/mock/types";
+import type { Estimate, EstimateId, Job, JobId, JobStatusKey } from "@/mock/types";
 import { formatMoney } from "@/lib/money";
 
 function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
@@ -51,7 +51,7 @@ export default function TenantJobDetailPage() {
           return;
         }
 
-        const j = await mockApi.getJob(jobId as any);
+        const j = await mockApi.getJob(jobId as JobId);
         if (!alive) return;
 
         if (!j) {
@@ -64,7 +64,7 @@ export default function TenantJobDetailPage() {
         setJob(j);
 
         if (j.estimate_id) {
-          const e = await mockApi.getEstimate(j.estimate_id as any);
+          const e = await mockApi.getEstimate(j.estimate_id as EstimateId);
           if (!alive) return;
           setEstimate(e);
         } else {

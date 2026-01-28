@@ -33,7 +33,7 @@ export default function TenantPrintScreenPage() {
               <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Document type</div>
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value as any)}
+                onChange={(e) => setType(e.target.value as "job" | "estimate" | "invoice")}
                 className="mt-2 h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
               >
                 <option value="job">Job</option>

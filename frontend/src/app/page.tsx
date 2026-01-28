@@ -99,12 +99,10 @@ export default function Home() {
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState<string | null>(null);
   const [plans, setPlans] = useState<BillingPlan[]>([]);
-  const [currency, setCurrency] = useState("USD");
+  const [currency] = useState("USD");
 
   useEffect(() => {
     let alive = true;
-    setPlansLoading(true);
-    setPlansError(null);
 
     getPublicBillingPlans()
       .then((res) => {
@@ -171,15 +169,11 @@ export default function Home() {
     return Array.from(s).sort();
   }, [activePrices]);
 
-  useEffect(() => {
-    if (plansLoading) return;
-    if (availableCurrencies.length > 0) {
-      setCurrency((prev) => {
-        const next = normalizeCurrency(prev || "");
-        return availableCurrencies.includes(next) ? next : availableCurrencies[0];
-      });
-    }
-  }, [availableCurrencies, plansLoading]);
+  const resolvedCurrency = useMemo(() => {
+    const next = normalizeCurrency(currency || "USD");
+    if (availableCurrencies.length === 0) return next;
+    return availableCurrencies.includes(next) ? next : availableCurrencies[0];
+  }, [availableCurrencies, currency]);
 
   const interval = useMemo(() => {
     const desired = billing === "annual" ? "year" : "month";
@@ -214,7 +208,7 @@ export default function Home() {
 
   const selectPriceForPlan = (v: BillingPlanVersion) => {
     const prices = Array.isArray(v.prices) ? v.prices : [];
-    const cur = normalizeCurrency(currency);
+    const cur = normalizeCurrency(resolvedCurrency);
     const intervalCode = interval;
 
     const matching = prices.filter((p) => normalizeCurrency(p.currency) === cur && p.interval === intervalCode);
@@ -567,7 +561,7 @@ export default function Home() {
                     plan={plan}
                     version={version}
                     selectedPrice={selected}
-                    currency={currency}
+                    currency={resolvedCurrency}
                     interval={interval}
                     recommended={recommended}
                     priceLabel={priceLabel}

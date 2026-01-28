@@ -55,7 +55,11 @@ export function Button({
       return null;
     }
 
-    const child = onlyChild as React.ReactElement<any>;
+    type ChildProps = React.HTMLAttributes<HTMLElement> & {
+      tabIndex?: number;
+    };
+
+    const child = onlyChild as React.ReactElement<ChildProps>;
 
     return React.cloneElement(child, {
       className: cn(resolvedClassName, child.props?.className),

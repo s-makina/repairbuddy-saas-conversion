@@ -25,11 +25,15 @@ export default function CheckoutPage() {
     let alive = true;
     if (!business) return;
 
-    setLoading(true);
-    setError(null);
+    void (async () => {
+      await Promise.resolve();
+      if (!alive) return;
 
-    getCheckoutSnapshot(business)
-      .then((res) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await getCheckoutSnapshot(business);
         if (!alive) return;
         const sub = res.subscription;
         setHasPending(Boolean(sub));
@@ -44,19 +48,18 @@ export default function CheckoutPage() {
         } else {
           setSubscriptionLabel(null);
         }
-      })
-      .catch((e) => {
+      } catch (e) {
         if (!alive) return;
         if (e instanceof ApiError) {
           setError(e.message);
         } else {
           setError(e instanceof Error ? e.message : "Failed to load checkout.");
         }
-      })
-      .finally(() => {
+      } finally {
         if (!alive) return;
         setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       alive = false;

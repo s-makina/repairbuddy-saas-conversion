@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
 import { mockApi } from "@/mock/mockApi";
-import type { Client, CustomerDevice, Device, DeviceBrand, DeviceType, Job } from "@/mock/types";
+import type { Client, ClientId, CustomerDevice, Device, DeviceBrand, DeviceType, Job } from "@/mock/types";
 
 export default function TenantClientDetailPage() {
   const router = useRouter();
@@ -42,7 +42,7 @@ export default function TenantClientDetailPage() {
         }
 
         const [c, j, cd, d, b, t] = await Promise.all([
-          mockApi.getClient(clientId as any),
+          mockApi.getClient(clientId as ClientId),
           mockApi.listJobs(),
           mockApi.listCustomerDevices(),
           mockApi.listDevices(),

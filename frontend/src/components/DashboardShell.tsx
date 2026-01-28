@@ -317,10 +317,6 @@ export function DashboardShell({
     .slice(0, 2);
 
   const tenantBaseHref = tenantSlug ? `/app/${tenantSlug}` : null;
-  const tenantPlaceholderHref = React.useCallback(
-    (path: string) => (tenantBaseHref ? `${tenantBaseHref}/placeholder/${path}` : "/app"),
-    [tenantBaseHref],
-  );
 
   const [branches, setBranches] = React.useState<Branch[]>([]);
   const [activeBranchId, setActiveBranchId] = React.useState<number | null>(null);
@@ -579,7 +575,7 @@ export function DashboardShell({
           ],
         },
       ],
-    [auth, tenantBaseHref, tenantPlaceholderHref, tenantSlug],
+    [auth, tenantBaseHref, tenantSlug],
   );
 
   const activeNavHref = React.useMemo(() => {

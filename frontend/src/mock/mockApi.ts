@@ -19,7 +19,6 @@ import type {
   JobId,
   JobMessage,
   JobStatus,
-  JobTimelineEvent,
   MockDataBundle,
   Part,
   Payment,

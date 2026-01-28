@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
 import { mockApi } from "@/mock/mockApi";
-import type { Client, Estimate, Job } from "@/mock/types";
+import type { Client, ClientId, Estimate, EstimateId, Job, JobId } from "@/mock/types";
 import { formatMoney } from "@/lib/money";
 
 function estimateBadgeVariant(status: Estimate["status"]): "default" | "success" | "warning" | "danger" {
@@ -51,7 +51,7 @@ export default function TenantEstimateDetailPage() {
           return;
         }
 
-        const e = await mockApi.getEstimate(estimateId as any);
+        const e = await mockApi.getEstimate(estimateId as EstimateId);
         if (!alive) return;
 
         if (!e) {
@@ -64,7 +64,7 @@ export default function TenantEstimateDetailPage() {
 
         setEstimate(e);
 
-        const [j, c] = await Promise.all([mockApi.getJob(e.job_id as any), mockApi.getClient(e.client_id as any)]);
+        const [j, c] = await Promise.all([mockApi.getJob(e.job_id as JobId), mockApi.getClient(e.client_id as ClientId)]);
         if (!alive) return;
         setJob(j);
         setClient(c);

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { mockApi } from "@/mock/mockApi";
-import type { Estimate, Job, JobStatusKey } from "@/mock/types";
+import type { Estimate, EstimateId, Job, JobStatusKey } from "@/mock/types";
 import { formatMoney } from "@/lib/money";
 
 function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
@@ -81,7 +81,7 @@ export default function PublicStatusPage() {
       setJob(found);
 
       if (found.estimate_id) {
-        const est = await mockApi.getEstimate(found.estimate_id as any);
+        const est = await mockApi.getEstimate(found.estimate_id as EstimateId);
         setEstimate(est);
       } else {
         setEstimate(null);

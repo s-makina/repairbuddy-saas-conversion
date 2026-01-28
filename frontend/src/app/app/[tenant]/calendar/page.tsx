@@ -31,6 +31,35 @@ type MockCalendarItem = {
   post_date: string;
 };
 
+type CalendarExtendedProps = {
+  type?: string;
+  status?: string;
+  tooltip?: string;
+};
+
+function DateFieldButton({
+  field,
+  label,
+  active,
+  onSelect,
+}: {
+  field: DateField;
+  label: string;
+  active: boolean;
+  onSelect: (field: DateField) => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant={active ? "primary" : "outline"}
+      className="rounded-none border-0"
+      onClick={() => onSelect(field)}
+    >
+      {label}
+    </Button>
+  );
+}
+
 function normalizeStatusClass(status: string) {
   return `status-${status.toLowerCase().replace(/\s+/g, "").replace(/\//g, "")}`;
 }
@@ -135,7 +164,7 @@ export default function TenantCalendarPage() {
   );
 
   const loadEvents = React.useCallback(
-    (info: EventSourceFuncArg, successCallback: (events: EventInput[]) => void, failureCallback: (error: unknown) => void) => {
+    (info: EventSourceFuncArg, successCallback: (events: EventInput[]) => void, failureCallback: (error: Error) => void) => {
       const seq = ++fetchSeq.current;
       setLoading(true);
 
@@ -172,7 +201,7 @@ export default function TenantCalendarPage() {
         try {
           successCallback(events);
         } catch (err) {
-          failureCallback(err);
+          failureCallback(err instanceof Error ? err : new Error("Failed to load calendar events."));
         }
         setLoading(false);
       }, 450);
@@ -188,25 +217,7 @@ export default function TenantCalendarPage() {
     calendarRef.current?.getApi().refetchEvents();
   }, [dateField, filter]);
 
-  function DateFieldButton({
-    field,
-    label,
-  }: {
-    field: DateField;
-    label: string;
-  }) {
-    const active = dateField === field;
-    return (
-      <Button
-        size="sm"
-        variant={active ? "primary" : "outline"}
-        className="rounded-none border-0"
-        onClick={() => setDateField(field)}
-      >
-        {label}
-      </Button>
-    );
-  }
+  const onSelectDateField = React.useCallback((field: DateField) => setDateField(field), []);
 
   return (
     <div className="space-y-6">
@@ -216,17 +227,17 @@ export default function TenantCalendarPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex overflow-hidden rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white">
-              <DateFieldButton field="pickup_date" label="Pickup Date" />
+              <DateFieldButton field="pickup_date" label="Pickup Date" active={dateField === "pickup_date"} onSelect={onSelectDateField} />
               <div className="h-8 w-px bg-[var(--rb-border)]" />
-              <DateFieldButton field="delivery_date" label="Delivery Date" />
+              <DateFieldButton field="delivery_date" label="Delivery Date" active={dateField === "delivery_date"} onSelect={onSelectDateField} />
               {enableNextServiceDate ? (
                 <>
                   <div className="h-8 w-px bg-[var(--rb-border)]" />
-                  <DateFieldButton field="next_service_date" label="Next Service" />
+                  <DateFieldButton field="next_service_date" label="Next Service" active={dateField === "next_service_date"} onSelect={onSelectDateField} />
                 </>
               ) : null}
               <div className="h-8 w-px bg-[var(--rb-border)]" />
-              <DateFieldButton field="post_date" label="Creation" />
+              <DateFieldButton field="post_date" label="Creation" active={dateField === "post_date"} onSelect={onSelectDateField} />
             </div>
           </div>
         }
@@ -290,13 +301,13 @@ export default function TenantCalendarPage() {
                 dayMaxEvents={10}
                 events={loadEvents}
                 eventDidMount={(info: EventMountArg) => {
-                  const tip = (info.event.extendedProps as any)?.tooltip;
+                  const tip = (info.event.extendedProps as CalendarExtendedProps | undefined)?.tooltip;
                   if (typeof tip === "string" && tip.length > 0) {
                     info.el.setAttribute("title", tip);
                   }
                 }}
                 eventContent={(arg: EventContentArg) => {
-                  const status = (arg.event.extendedProps as any)?.status as string | undefined;
+                  const status = (arg.event.extendedProps as CalendarExtendedProps | undefined)?.status;
                   return (
                     <div className="flex flex-col">
                       <div className="text-[0.875rem] font-medium leading-[1.1]">{arg.event.title}</div>
