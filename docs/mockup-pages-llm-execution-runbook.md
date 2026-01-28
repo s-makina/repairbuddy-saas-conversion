@@ -71,6 +71,112 @@ Choose the route base for customer/public pages:
   - Menu item → Route → Page type (list/detail) → Mock dependencies
 - No unresolved TBD routes.
 
+### Output — Authoritative route map (Phase 1 deliverable)
+
+This route map is authoritative for subsequent phases. It is derived from the current staff sidebar configuration (`frontend/src/components/DashboardShell.tsx`) plus the required customer/public + portal pages.
+
+#### ID patterns (deterministic)
+
+- **Tenant slug**
+  - Route param: `[tenant]`
+  - Example: `acme-repairs`
+
+- **Job ID**
+  - Route param: `[jobId]`
+  - Pattern: `job_\d{3}`
+  - Examples:
+    - `job_001`
+    - `job_014`
+
+- **Client ID**
+  - Route param: `[clientId]`
+  - Pattern: `client_\d{3}`
+  - Examples:
+    - `client_001`
+
+- **Estimate ID**
+  - Route param: `[estimateId]`
+  - Pattern: `estimate_\d{3}`
+  - Examples:
+    - `estimate_001`
+
+- **Case number (customer-facing lookup key)**
+  - Used on status check page input (not a route param)
+  - Pattern: `RB-\d{5}`
+  - Example: `RB-10421`
+
+#### Staff app + admin routes (must match sidebar menu)
+
+Notes:
+- The sidebar currently links many modules to `/app/[tenant]/placeholder/...`. In subsequent phases, these will be replaced with the dedicated routes below.
+- Permissions shown here correspond to the sidebar `auth.can(...)` checks.
+
+| Menu section | Menu item | Route | Page type | Mock dependencies | Notes |
+|---|---|---|---|---|---|
+| (Admin quick) | Businesses | `/admin/businesses` | list-only | (n/a – existing) | Admin-only: `admin.tenants.read` |
+| Overview | Dashboard (Admin) | `/admin` | list-only | (n/a – existing) | Admin-only: `admin.access` |
+| Overview | Business Dashboard | `/app/[tenant]` | list-only | (n/a – existing) | `dashboard.view` |
+| Overview | Calendar | `/app/[tenant]/calendar` | list-only | `Job`, `Estimate`, `Appointment` | Already implemented as mock calendar |
+| Overview | Business Settings | `/app/[tenant]/business-settings` | list-only | (n/a – existing UI) | Already implemented; Phase 6 adds preview cross-links |
+| Overview | Users | `/app/[tenant]/users` | list-only | (n/a – existing) | Already implemented; real API-backed |
+| Overview | Roles | `/app/[tenant]/roles` | list-only | (n/a – existing) | Already implemented; real API-backed |
+| Overview | Branches | `/app/[tenant]/branches` | list-only | (n/a – existing) | Already implemented; real API-backed |
+| Overview | Settings | `/app/[tenant]/settings` | list-only | (n/a – existing) | Existing tenant settings page (API-backed) |
+| Overview | Security | `/app/[tenant]/security` | list-only | (n/a – existing) | Existing security page |
+| Billing (Admin) | Plans | `/admin/billing/plans` | list-only | (n/a – existing) | Admin-only: `admin.billing.read` |
+| Billing (Admin) | Plan Builder | `/admin/billing/builder` | list-only | (n/a – existing) | Admin-only: `admin.billing.read` |
+| Billing (Admin) | Intervals | `/admin/billing/intervals` | list-only | (n/a – existing) | Admin-only: `admin.billing.read` |
+| Billing (Admin) | Entitlements | `/admin/billing/entitlements` | list-only | (n/a – existing) | Admin-only: `admin.billing.read` |
+| Billing (Admin) | Currencies | `/admin/billing/currencies` | list-only | (n/a – existing) | Admin-only: `admin.billing.read` |
+| Billing (Admin) | Business Billing | `/admin/billing/businesses` | list-only | (n/a – existing) | Admin-only |
+| Operations | Appointments | `/app/[tenant]/appointments` | list-only | `Appointment` | Must replace placeholder link |
+| Operations | Jobs | `/app/[tenant]/jobs` | list + detail | `Job`, `Client`, `CustomerDevice`, `Estimate`, `Payment` | Detail route below |
+| Operations | Jobs (detail) | `/app/[tenant]/jobs/[jobId]` | detail | `Job`, `JobStatus`, `JobMessage`, `JobAttachment`, `Client`, `CustomerDevice`, `Estimate`, `Payment`, `Expense`, `TimeLog` | Tabs per Phase 3 |
+| Operations | Estimates | `/app/[tenant]/estimates` | list + detail | `Estimate`, `Client`, `Job` | Detail route below |
+| Operations | Estimates (detail) | `/app/[tenant]/estimates/[estimateId]` | detail | `Estimate`, `Client`, `Job`, `Payment` | Approve/reject UI (mock) |
+| Operations | Services | `/app/[tenant]/services` | list-only | `Service` (mock type) | List-only acceptable initially |
+| Inventory | Devices | `/app/[tenant]/devices` | list-only | `Device`, `DeviceBrand`, `DeviceType` | List-only |
+| Inventory | Device Brands | `/app/[tenant]/device-brands` | list-only | `DeviceBrand` | List-only |
+| Inventory | Device Types | `/app/[tenant]/device-types` | list-only | `DeviceType` | List-only |
+| Inventory | Parts | `/app/[tenant]/parts` | list-only | `Part` (mock type) | List-only |
+| Finance | Payments | `/app/[tenant]/payments` | list-only | `Payment` | List-only |
+| Finance | Reports | `/app/[tenant]/reports` | list-only | `Job`, `Payment`, `Expense`, `TimeLog` | List-only |
+| Finance | Expenses | `/app/[tenant]/expenses` | list-only | `Expense` | List-only |
+| Finance | Expense Categories | `/app/[tenant]/expense-categories` | list-only | `ExpenseCategory` (mock type) | List-only |
+| People | Clients | `/app/[tenant]/clients` | list + detail | `Client`, `CustomerDevice`, `Job`, `Estimate` | Detail route below |
+| People | Clients (detail) | `/app/[tenant]/clients/[clientId]` | detail | `Client`, `CustomerDevice`, `Job`, `Estimate`, `Review`, `Payment` | Client profile detail |
+| People | Customer Devices | `/app/[tenant]/customer-devices` | list-only | `CustomerDevice`, `Client`, `Device` | List-only |
+| People | Technicians | `/app/[tenant]/technicians` | list-only | `User` (mock subset) | List-only |
+| People | Managers | `/app/[tenant]/managers` | list-only | `User` (mock subset) | List-only |
+| Quality | Job Reviews | `/app/[tenant]/job-reviews` | list-only | `Review`, `Job`, `Client` | List-only |
+| Tools | Time Logs | `/app/[tenant]/time-logs` | list-only | `TimeLog`, `Job`, `User` | List-only |
+| Tools | Manage Hourly Rates | `/app/[tenant]/hourly-rates` | list-only | `HourlyRate` (mock type), `User` | List-only |
+| Tools | Reminder Logs | `/app/[tenant]/reminder-logs` | list-only | `ReminderLog` (mock type), `Job`, `Client` | List-only |
+| Tools | Print Screen | `/app/[tenant]/print-screen` | list-only | `Job`, `Estimate`, `Invoice` (mock types ok) | List-only |
+| Account | Profile | `/app/[tenant]/profile` | list-only | (n/a – existing) | Existing page |
+| Account | Settings | `/app/[tenant]/settings` | list-only | (n/a – existing) | Existing page |
+| Account | Business Settings | `/app/[tenant]/business-settings` | list-only | (n/a – existing) | Existing page |
+
+#### Customer/public + portal routes (no staff auth)
+
+All customer/public pages must live under `/t/[tenant]/...`.
+
+| Area | Route | Page type | Mock dependencies | Notes |
+|---|---|---|---|---|
+| Public | `/t/[tenant]/status` | detail | `Job`, `JobStatus`, `JobMessage`, `JobAttachment`, `Estimate`, `Payment` | Case-number-based lookup; message + attachment UI; estimate approve/reject updates local state |
+| Public | `/t/[tenant]/book` | detail | `Appointment` | Booking flow produces confirmation linking to status + portal |
+| Public | `/t/[tenant]/quote` | detail | `Estimate`, `Client`, `Device` | Request quote form (mock) |
+| Public catalog | `/t/[tenant]/services` | list-only | `Service` (mock type) | Public services list |
+| Public catalog | `/t/[tenant]/parts` | list-only | `Part` (mock type) | Public parts list |
+| Portal shell | `/t/[tenant]/portal` | list-only | `Job`, `Estimate`, `Review`, `CustomerDevice` | Portal home/dashboard; uses `PortalShell` |
+| Portal | `/t/[tenant]/portal/tickets` | list-only | `Job` | Jobs/tickets list |
+| Portal | `/t/[tenant]/portal/tickets/[jobId]` | detail | `Job`, `JobMessage`, `JobAttachment`, `Estimate`, `Payment` | Ticket/job detail (portal view) |
+| Portal | `/t/[tenant]/portal/estimates` | list-only | `Estimate`, `Job` | Estimates list |
+| Portal | `/t/[tenant]/portal/reviews` | list-only | `Review`, `Job` | Reviews list + create (mock) |
+| Portal | `/t/[tenant]/portal/devices` | list-only | `CustomerDevice`, `Device` | “My Devices” |
+| Portal | `/t/[tenant]/portal/booking` | list-only | `Appointment` | Customer booking history (mock) |
+| Portal | `/t/[tenant]/portal/profile` | detail | `Client` | Profile page (mock) |
+
 ---
 
 ## Phase 2 — Shared mock foundation (types + fixtures + mock API)

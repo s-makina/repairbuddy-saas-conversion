@@ -6,6 +6,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { Loader } from "@/components/ui/Loader";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -261,7 +262,7 @@ export default function TenantDashboardPage() {
         }
       />
 
-      {loading ? <div className="text-sm text-zinc-500">Loading dashboard...</div> : null}
+      {loading ? <Loader label="Loading dashboard" fullscreen={false} size="sm" className="justify-start" /> : null}
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
       {data ? (

@@ -448,7 +448,7 @@ export function DashboardShell({
           title: "Operations",
           items: [
             { label: "Appointments", href: tenantPlaceholderHref("appointments"), icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
-            { label: "Jobs", href: tenantPlaceholderHref("jobs"), icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
+            { label: "Jobs", href: tenantSlug ? `/app/${tenantSlug}/jobs` : "/app", icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
             { label: "Estimates", href: tenantPlaceholderHref("estimates"), icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
             { label: "Services", href: tenantPlaceholderHref("services"), icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
           ],
