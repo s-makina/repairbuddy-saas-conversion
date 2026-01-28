@@ -35,6 +35,8 @@ Choose the route base for customer/public pages:
 - **Option A (recommended):** `/t/[tenant]/...`
 - **Option B:** public pages under `/app/[tenant]/...` (or similar)
 
+**Decision:** Option A selected — all customer/public mock pages must live under `/t/[tenant]/...`.
+
 ### Invariants
 - Do not break existing `/app/[tenant]/*` and `/admin/*` routes.
 - Frontend-only implementation; avoid backend/database changes.
