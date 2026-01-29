@@ -8,9 +8,19 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
-import { mockApi, computeEstimateTotalCents } from "@/mock/mockApi";
-import type { Estimate, EstimateId, Job, JobId, JobStatusKey } from "@/mock/types";
-import { formatMoney } from "@/lib/money";
+import { apiFetch } from "@/lib/api";
+
+type JobStatusKey = string;
+
+type ApiJob = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: JobStatusKey;
+  updated_at: string;
+  timeline: Array<{ id: string; title: string; type: string; created_at: string }>;
+  messages: Array<{ id: string; author: string; body: string; created_at: string }>;
+};
 
 function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
   if (status === "delivered" || status === "completed") return "success";
@@ -27,8 +37,7 @@ export default function TenantJobDetailPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [job, setJob] = React.useState<Job | null>(null);
-  const [estimate, setEstimate] = React.useState<Estimate | null>(null);
+  const [job, setJob] = React.useState<ApiJob | null>(null);
 
   const [messageBody, setMessageBody] = React.useState<string>("");
   const [messageBusy, setMessageBusy] = React.useState(false);
@@ -47,34 +56,21 @@ export default function TenantJobDetailPage() {
         if (!jobId) {
           setError("Job ID is missing.");
           setJob(null);
-          setEstimate(null);
           return;
         }
 
-        const j = await mockApi.getJob(jobId as JobId);
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const res = await apiFetch<{ job: ApiJob }>(`/api/${tenantSlug}/app/repairbuddy/jobs/${jobId}`);
         if (!alive) return;
 
-        if (!j) {
-          setError("Job not found.");
-          setJob(null);
-          setEstimate(null);
-          return;
-        }
-
-        setJob(j);
-
-        if (j.estimate_id) {
-          const e = await mockApi.getEstimate(j.estimate_id as EstimateId);
-          if (!alive) return;
-          setEstimate(e);
-        } else {
-          setEstimate(null);
-        }
+        setJob(res.job ?? null);
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load job.");
         setJob(null);
-        setEstimate(null);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -88,28 +84,8 @@ export default function TenantJobDetailPage() {
     };
   }, [jobId, refreshKey]);
 
-  const estimateTotal = React.useMemo(() => {
-    if (!estimate) return null;
-    return computeEstimateTotalCents(estimate);
-  }, [estimate]);
-
   async function postMessage() {
-    if (!job) return;
-    setMessageBusy(true);
-    setMessageError(null);
-    try {
-      await mockApi.postJobMessage({
-        jobId: job.id,
-        author: "staff",
-        body: messageBody,
-      });
-      setMessageBody("");
-      setRefreshKey((x) => x + 1);
-    } catch (e) {
-      setMessageError(e instanceof Error ? e.message : "Failed to post message.");
-    } finally {
-      setMessageBusy(false);
-    }
+    setMessageError("Messaging will be enabled in EPIC 3.");
   }
 
   return (
@@ -241,38 +217,11 @@ export default function TenantJobDetailPage() {
               </div>
             ),
             financial: (
-              <div className="space-y-4">
-                <Card className="shadow-none">
-                  <CardContent className="pt-5">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Estimate</div>
-                    {estimate ? (
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm text-zinc-700">Status</div>
-                          <Badge variant={estimate.status === "approved" ? "success" : estimate.status === "rejected" ? "danger" : "warning"}>
-                            {estimate.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm text-zinc-700">Total</div>
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">
-                            {formatMoney({ amountCents: estimateTotal ?? 0, currency: estimate.lines[0]?.unit_price.currency ?? "USD" })}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-sm text-zinc-600">No estimate linked.</div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-none">
-                  <CardContent className="pt-5">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Payments</div>
-                    <div className="mt-2 text-sm text-zinc-600">Payments list will be wired in Phase 4/5.</div>
-                  </CardContent>
-                </Card>
-              </div>
+              <Card className="shadow-none">
+                <CardContent className="pt-5">
+                  <div className="text-sm text-zinc-600">Financials will be enabled in EPIC 7–9.</div>
+                </CardContent>
+              </Card>
             ),
             print: (
               <Card className="shadow-none">

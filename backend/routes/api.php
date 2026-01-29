@@ -302,6 +302,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     ->middleware('permission:users.manage');
                 Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
                     ->middleware('permission:users.manage');
+
+                Route::prefix('repairbuddy')->middleware('permission:jobs.view')->group(function () {
+                    Route::get('/job-statuses', [\App\Http\Controllers\Api\App\RepairBuddyJobStatusController::class, 'index']);
+                    Route::get('/payment-statuses', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'index']);
+
+                    Route::get('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'index']);
+                    Route::post('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'store']);
+                    Route::get('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'show'])->whereNumber('jobId');
+                    Route::patch('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'update'])->whereNumber('jobId');
+                });
             });
         });
     });

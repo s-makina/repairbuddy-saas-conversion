@@ -4,7 +4,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 
 ## Conventions
 
-- **Tenant scoping**: Every domain table must include `tenant_id` (and optionally `branch_id` if you later decide branches are first-class).
+- **Tenant + branch scoping**: Every RepairBuddy domain table must include `tenant_id` and `branch_id`. Models should default to `BelongsToTenantAndBranch`.
 - **Auth**: Staff routes live under `app/[tenant]/...`. Public/portal routes live under `t/[tenant]/...`.
 - **Acceptance criteria (AC)**: Each ticket includes deterministic AC.
 - **Non-goals**: Do not implement “nice-to-have” refactors inside feature tickets.
@@ -16,14 +16,17 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-0001 — Domain tenant scoping standard
 - **Dependencies**: none
 - **Scope**:
-  - Establish a standard for tenant-scoped domain models.
+  - Establish a standard for tenant + branch scoped domain models.
 - **Backend**:
-  - Add `tenant_id` to all new RepairBuddy domain tables.
-  - Add base query scoping helper (e.g. global scope or repository pattern) for tenant filtering.
+  - Add `tenant_id` and `branch_id` to all new RepairBuddy domain tables.
+  - Add base query scoping helper (global scope / model concern) for tenant + branch filtering.
 - **API**:
   - All domain endpoints must derive `tenant_id` from route param and enforce it.
+  - All staff/app endpoints must enforce an active branch context (`branch.active`) and use branch-scoped models.
+  - Public endpoints must resolve a branch (initially use tenant `default_branch_id`; later can accept explicit branch code or tokenized links).
 - **AC**:
   - Attempting to access any resource from a different tenant returns 404/403.
+  - Attempting to access branch-scoped resources without an active branch returns an error (or empty result) and does not leak data.
 
 ### RB-0002 — RBAC mapping for plugin roles
 - **Dependencies**: RB-0001
@@ -44,7 +47,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
   - Provide a reusable “job history / event feed” mechanism.
 - **Backend**:
   - Create `rb_events` (or similar) table:
-    - `tenant_id`, `actor_user_id`, `entity_type`, `entity_id`, `visibility` (public/private), `event_type`, `payload_json`, timestamps.
+    - `tenant_id`, `branch_id`, `actor_user_id`, `entity_type`, `entity_id`, `visibility` (public/private), `event_type`, `payload_json`, timestamps.
 - **AC**:
   - Creating a Repair Job emits an event record.
 
@@ -57,8 +60,8 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 - **Scope**:
   - Replicate `wc_cr_job_status` and `wc_cr_payment_status`.
 - **Backend (DB)**:
-  - `rb_job_statuses`: `tenant_id`, `slug`, `label`, `email_enabled`, `email_template`, `sms_enabled`, `invoice_label`, `is_active`, timestamps.
-  - `rb_payment_statuses`: `tenant_id`, `slug`, `label`, `email_template`, `is_active`, timestamps.
+  - `rb_job_statuses`: `tenant_id`, `branch_id`, `slug`, `label`, `email_enabled`, `email_template`, `sms_enabled`, `invoice_label`, `is_active`, timestamps.
+  - `rb_payment_statuses`: `tenant_id`, `branch_id`, `slug`, `label`, `email_template`, `is_active`, timestamps.
 - **Backend (Seed)**:
   - Seed default statuses matching the plugin defaults.
 - **UI**:
@@ -71,8 +74,8 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 - **Scope**:
   - Create first-class Repair Job entity (not queue jobs).
 - **Backend (DB)**:
-  - `rb_jobs`: `tenant_id`, `id`, `case_number`, `status_slug`, `payment_status_slug`, `priority`, `customer_id`, `created_by`, `opened_at`, `closed_at`, timestamps.
-  - Unique index: (`tenant_id`, `case_number`).
+  - `rb_jobs`: `tenant_id`, `branch_id`, `id`, `case_number`, `status_slug`, `payment_status_slug`, `priority`, `customer_id`, `created_by`, `opened_at`, `closed_at`, timestamps.
+  - Unique index: (`tenant_id`, `branch_id`, `case_number`).
 - **Backend (Model)**:
   - Relationships: customer, assigned technicians (later), devices (later), payments (later), items (later).
 - **API**:
@@ -115,6 +118,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
     - B) Case number + last name/serial partial
     - C) Case number + time-limited signed token
   - Start with **A** for parity.
+  - Branch resolution (Option A): initially resolve branch via tenant `default_branch_id` and only search within that branch.
 - **API**:
   - `POST /api/t/{tenant}/status/lookup` { caseNumber }
 - **AC**:
@@ -190,14 +194,14 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-0501 — Device catalog (types/brands/devices)
 - **Dependencies**: RB-0001
 - **Backend (DB)**:
-  - `rb_device_types`, `rb_device_brands` (brand image), `rb_devices` (supports variations).
+  - `rb_device_types`, `rb_device_brands` (brand image), `rb_devices` (supports variations), all with `tenant_id` + `branch_id`.
 - **AC**:
   - Admin can create device type/brand/device via API (UI can come later).
 
 ### RB-0502 — Customer devices
 - **Dependencies**: RB-0501, RB-0401
 - **Backend (DB)**:
-  - `rb_customer_devices`: `tenant_id`, `customer_id`, `device_id?`, label, serial, pin, notes.
+  - `rb_customer_devices`: `tenant_id`, `branch_id`, `customer_id`, `device_id?`, label, serial, pin, notes.
 - **UI**:
   - Portal page listing customer devices.
 - **AC**:
@@ -206,7 +210,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-0503 — Attach devices to job
 - **Dependencies**: RB-0502, RB-0102
 - **Backend (DB)**:
-  - `rb_job_devices`: job_id, customer_device_id, snapshot fields (serial/pin/label) to preserve history.
+  - `rb_job_devices`: `tenant_id`, `branch_id`, job_id, customer_device_id, snapshot fields (serial/pin/label) to preserve history.
 - **UI**:
   - Job detail includes “Devices” panel.
 - **AC**:
@@ -219,14 +223,14 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-0601 — Services catalog
 - **Dependencies**: RB-0001
 - **Backend (DB)**:
-  - `rb_service_types`, `rb_services`.
+  - `rb_service_types`, `rb_services`, both with `tenant_id` + `branch_id`.
 - **AC**:
   - Services can be listed via API.
 
 ### RB-0602 — Parts catalog
 - **Dependencies**: RB-0001
 - **Backend (DB)**:
-  - `rb_part_types`, `rb_part_brands`, `rb_parts`.
+  - `rb_part_types`, `rb_part_brands`, `rb_parts`, all with `tenant_id` + `branch_id`.
 - **Note**:
   - Decide later whether to integrate WooCommerce-equivalent; start native.
 - **AC**:
@@ -239,14 +243,14 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-0701 — Taxes
 - **Dependencies**: RB-0001
 - **Backend (DB)**:
-  - `rb_taxes`: name, rate, is_default.
+  - `rb_taxes`: `tenant_id`, `branch_id`, name, rate, is_default.
 - **AC**:
   - Tenant can have multiple taxes; one default.
 
 ### RB-0702 — Job line items
 - **Dependencies**: RB-0102, RB-0601, RB-0602
 - **Backend (DB)**:
-  - `rb_job_items`: job_id, item_type (service/part/fee/discount), ref_id, name_snapshot, qty, unit_price, tax_id, meta_json.
+  - `rb_job_items`: `tenant_id`, `branch_id`, job_id, item_type (service/part/fee/discount), ref_id, name_snapshot, qty, unit_price, tax_id, meta_json.
 - **API**:
   - `POST /api/app/{tenant}/jobs/{job}/items`
   - `DELETE /api/app/{tenant}/jobs/{job}/items/{item}`
@@ -267,8 +271,8 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-0801 — Payment methods + payments
 - **Dependencies**: RB-0102
 - **Backend (DB)**:
-  - `rb_payment_methods` (configurable)
-  - `rb_payments`: job_id, method, transaction_id, amount, currency, note, status.
+  - `rb_payment_methods` (configurable, with `tenant_id` + `branch_id`)
+  - `rb_payments`: `tenant_id`, `branch_id`, job_id, method, transaction_id, amount, currency, note, status.
 - **UI**:
   - Job detail “Payments” panel.
 - **AC**:
@@ -316,7 +320,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-1101 — Estimates model + items
 - **Dependencies**: RB-0702
 - **Backend (DB)**:
-  - `rb_estimates`, `rb_estimate_items`.
+  - `rb_estimates`, `rb_estimate_items`, both with `tenant_id` + `branch_id`.
 - **AC**:
   - Estimate can be created and viewed.
 
@@ -342,7 +346,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-1202 — Public signature request + submit
 - **Dependencies**: RB-1201, RB-0102, RB-0003
 - **Backend (DB)**:
-  - `rb_signatures`: job_id, type (pickup/delivery), storage_key, signed_at, signer_name.
+  - `rb_signatures`: `tenant_id`, `branch_id`, job_id, type (pickup/delivery), storage_key, signed_at, signer_name.
 - **API**:
   - `POST /api/t/{tenant}/jobs/{caseNumber}/signature` (upload)
 - **AC**:
@@ -355,7 +359,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-1301 — Time log entries + activities
 - **Dependencies**: RB-0102
 - **Backend (DB)**:
-  - `rb_time_logs`: job_id, technician_id, activity, start_at, end_at, minutes, notes, hourly_rate, approvals.
+  - `rb_time_logs`: `tenant_id`, `branch_id`, job_id, technician_id, activity, start_at, end_at, minutes, notes, hourly_rate, approvals.
 - **AC**:
   - Technician can create a time log on an assigned job.
 
@@ -366,7 +370,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-1401 — Expense categories + expenses
 - **Dependencies**: RB-0102
 - **Backend (DB)**:
-  - `rb_expense_categories`, `rb_expenses`.
+  - `rb_expense_categories`, `rb_expenses`, both with `tenant_id` + `branch_id`.
 - **AC**:
   - Manager can create an expense linked to a job.
 
@@ -377,7 +381,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-1501 — Maintenance reminders definitions + logs
 - **Dependencies**: RB-0501
 - **Backend (DB)**:
-  - `rb_maintenance_reminders`, `rb_reminder_logs`.
+  - `rb_maintenance_reminders`, `rb_reminder_logs`, both with `tenant_id` + `branch_id`.
 - **AC**:
   - Reminder can be created and a “test send” produces a log.
 
@@ -402,7 +406,7 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 ### RB-1601 — Feedback requests + review capture
 - **Dependencies**: RB-0102
 - **Backend**:
-  - `rb_feedback_log`, `rb_reviews`.
+  - `rb_feedback_log`, `rb_reviews`, both with `tenant_id` + `branch_id`.
 - **AC**:
   - Customer can submit a review via tokenized link.
 
@@ -410,5 +414,4 @@ This backlog decomposes the RepairBuddy WordPress plugin into small, dependency-
 - **Dependencies**: RB-0801, RB-0703
 - **Scope**:
   - Revenue by date, jobs by status, technician time summary.
-- **AC**:
   - Reports page loads and matches computed totals for seed data.

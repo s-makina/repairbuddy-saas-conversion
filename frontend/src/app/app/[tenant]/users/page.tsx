@@ -42,6 +42,40 @@ function PencilIcon(props: { className?: string }) {
   );
 }
 
+function ShopIcon(props: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={props.className}
+      aria-hidden="true"
+    >
+      <path
+        d="M3 9.5L5 4h14l2 5.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 10h16v10H4V10z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 20v-6h6v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 type UsersPayload = {
   users: User[];
   meta?: {
@@ -79,7 +113,6 @@ export default function TenantUsersPage() {
   const [busy, setBusy] = useState(false);
 
   const [actionBusyUserId, setActionBusyUserId] = useState<number | null>(null);
-  const [shopBusyUserId, setShopBusyUserId] = useState<number | null>(null);
 
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -115,21 +148,6 @@ export default function TenantUsersPage() {
   }, [branches]);
 
   const activeBranchOptions = useMemo(() => branchOptions.filter((b) => b.isActive), [branchOptions]);
-
-  const shopDropdownOptions = useMemo(() => {
-    const canManageBranches = auth.can("branches.manage");
-    if (canManageBranches) return activeBranchOptions;
-
-    const myBranchIds = new Set(
-      (Array.isArray(auth.user?.branches) ? auth.user?.branches : [])
-        .filter((b) => Boolean(b?.is_active))
-        .map((b) => b.id),
-    );
-
-    if (myBranchIds.size === 0) return [];
-
-    return activeBranchOptions.filter((b) => myBranchIds.has(b.id));
-  }, [activeBranchOptions, auth]);
 
   const filteredNewShopOptions = useMemo(() => {
     const q = newShopQuery.trim().toLowerCase();
@@ -238,12 +256,6 @@ export default function TenantUsersPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function getUserShopId(u: User): number | null {
-    const bs = Array.isArray(u.branches) ? u.branches : [];
-    const active = bs.find((b) => b.is_active);
-    return (active?.id ?? bs[0]?.id ?? null) as number | null;
   }
 
   async function onSendPasswordReset(userId: number) {
@@ -393,30 +405,6 @@ export default function TenantUsersPage() {
     setConfirmMessage(args.message);
     setConfirmAction(() => args.action);
     setConfirmOpen(true);
-  }
-
-  async function onChangeUserShop(userId: number, branchId: number) {
-    if (typeof tenant !== "string" || tenant.length === 0) return;
-
-    setShopBusyUserId(userId);
-
-    try {
-      const res = await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${userId}/shop`, {
-        method: "PATCH",
-        body: { branch_ids: [branchId] },
-      });
-
-      setUsers((prev) => prev.map((u) => (u.id === userId ? res.user : u)));
-      notify.success("Shop updated.");
-    } catch (err) {
-      if (err instanceof ApiError) {
-        notify.error(err.message);
-      } else {
-        notify.error("Failed to update shop.");
-      }
-    } finally {
-      setShopBusyUserId(null);
-    }
   }
 
   return (
@@ -737,29 +725,43 @@ export default function TenantUsersPage() {
                       header: "Shops",
                       className: "min-w-[220px]",
                       cell: (u) => {
-                        const shopId = getUserShopId(u);
-                        const effectiveShopId =
-                          typeof shopId === "number" && shopDropdownOptions.some((b) => b.id === shopId)
-                            ? shopId
-                            : shopDropdownOptions[0]?.id ?? null;
-                        const disabled = busy || loading || shopBusyUserId === u.id || shopDropdownOptions.length === 0;
+                        const branches = Array.isArray(u.branches) ? u.branches : [];
+                        const active = branches.filter((b) => Boolean(b?.is_active));
+                        const list = (active.length > 0 ? active : branches)
+                          .filter((b) => b && typeof b.id === "number")
+                          .slice()
+                          .sort((a, b) => `${a.code ?? ""} ${a.name ?? ""}`.localeCompare(`${b.code ?? ""} ${b.name ?? ""}`));
+
+                        const shown = list.slice(0, 3);
+                        const more = Math.max(0, list.length - shown.length);
+
                         return (
-                          <select
-                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-2 py-1 text-sm"
-                            value={effectiveShopId ?? ""}
-                            onChange={(e) => {
-                              const nextId = Number(e.target.value);
-                              if (!Number.isFinite(nextId) || nextId <= 0) return;
-                              void onChangeUserShop(u.id, nextId);
-                            }}
-                            disabled={disabled}
-                          >
-                            {shopDropdownOptions.map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {b.label}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="flex items-center gap-2">
+                            <ShopIcon className="h-4 w-4 text-zinc-500" />
+                            <div className="flex flex-wrap gap-1">
+                              {shown.length === 0 ? (
+                                <span className="text-sm text-zinc-600">(none)</span>
+                              ) : (
+                                <>
+                                  {shown.map((b) => (
+                                    <span
+                                      key={b.id}
+                                      className="inline-flex items-center rounded-full border border-[var(--rb-border)] bg-white px-2 py-0.5 text-xs text-zinc-700"
+                                      title={`${b.code ? `${b.code} - ` : ""}${b.name}`}
+                                    >
+                                      {b.code ? `${b.code} - ` : ""}
+                                      {b.name}
+                                    </span>
+                                  ))}
+                                  {more > 0 ? (
+                                    <span className="inline-flex items-center rounded-full border border-[var(--rb-border)] bg-white px-2 py-0.5 text-xs text-zinc-700">
+                                      +{more}
+                                    </span>
+                                  ) : null}
+                                </>
+                              )}
+                            </div>
+                          </div>
                         );
                       },
                     },

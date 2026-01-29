@@ -7,8 +7,23 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Job, JobStatusKey } from "@/mock/types";
+import { apiFetch } from "@/lib/api";
+
+type JobStatusKey = string;
+
+type ApiJob = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: JobStatusKey;
+  updated_at: string;
+};
+
+type ApiJobStatus = {
+  id: number;
+  slug: string;
+  label: string;
+};
 
 function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
   if (status === "delivered" || status === "completed") return "success";
@@ -25,7 +40,7 @@ export default function TenantJobsPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [jobs, setJobs] = React.useState<Job[]>([]);
+  const [jobs, setJobs] = React.useState<ApiJob[]>([]);
   const [q, setQ] = React.useState<string>("");
   const [statusLabels, setStatusLabels] = React.useState<Record<string, string>>({});
 
@@ -39,12 +54,22 @@ export default function TenantJobsPage() {
       try {
         setLoading(true);
         setError(null);
-        const [res, statuses] = await Promise.all([mockApi.listJobs(), mockApi.getStatuses()]);
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const [jobsRes, statusesRes] = await Promise.all([
+          apiFetch<{ jobs: ApiJob[] }>(`/api/${tenantSlug}/app/repairbuddy/jobs`),
+          apiFetch<{ job_statuses: ApiJobStatus[] }>(`/api/${tenantSlug}/app/repairbuddy/job-statuses`),
+        ]);
         if (!alive) return;
-        setJobs(Array.isArray(res) ? res : []);
+
+        setJobs(Array.isArray(jobsRes.jobs) ? jobsRes.jobs : []);
         const next: Record<string, string> = {};
-        for (const s of Array.isArray(statuses) ? statuses : []) {
-          next[s.key] = s.label;
+
+        for (const s of Array.isArray(statusesRes.job_statuses) ? statusesRes.job_statuses : []) {
+          next[s.slug] = s.label;
         }
         setStatusLabels(next);
       } catch (e) {
@@ -79,7 +104,7 @@ export default function TenantJobsPage() {
     return filtered.slice(start, end);
   }, [filtered, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<Job>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiJob>>>(
     () => [
       {
         id: "case",

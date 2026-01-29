@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToTenantAndBranch;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class RepairBuddyJob extends Model
+{
+    use HasFactory;
+    use BelongsToTenantAndBranch;
+
+    protected $table = 'rb_jobs';
+
+    protected $fillable = [
+        'tenant_id',
+        'branch_id',
+        'case_number',
+        'title',
+        'status_slug',
+        'payment_status_slug',
+        'priority',
+        'customer_id',
+        'created_by',
+        'opened_at',
+        'closed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'customer_id' => 'integer',
+            'created_by' => 'integer',
+            'opened_at' => 'datetime',
+            'closed_at' => 'datetime',
+        ];
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}
