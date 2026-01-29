@@ -9,11 +9,22 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { mockApi } from "@/mock/mockApi";
-import type { Estimate, EstimateId, Job, JobStatusKey } from "@/mock/types";
-import { formatMoney } from "@/lib/money";
+import { apiFetch, ApiError } from "@/lib/api";
 
-function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
+type ApiLookupJob = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  status_label?: string | null;
+  updated_at: string;
+};
+
+function portalSessionKey(tenantSlug: string) {
+  return `rb.portal.session:v1:${tenantSlug}`;
+}
+
+function statusBadgeVariant(status: string): "default" | "info" | "success" | "warning" | "danger" {
   if (status === "delivered" || status === "completed") return "success";
   if (status === "ready") return "warning";
   if (status === "cancelled") return "danger";
@@ -29,33 +40,23 @@ export default function PublicStatusPage() {
   const [caseNumber, setCaseNumber] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [job, setJob] = React.useState<Job | null>(null);
-  const [estimate, setEstimate] = React.useState<Estimate | null>(null);
-  const [statusLabels, setStatusLabels] = React.useState<Record<string, string>>({});
+  const [job, setJob] = React.useState<ApiLookupJob | null>(null);
 
   const [messageBody, setMessageBody] = React.useState("");
   const [messageBusy, setMessageBusy] = React.useState(false);
   const [messageError, setMessageError] = React.useState<string | null>(null);
-
-  const [estimateBusy, setEstimateBusy] = React.useState(false);
-  const [estimateError, setEstimateError] = React.useState<string | null>(null);
+  const [messageSuccess, setMessageSuccess] = React.useState<string | null>(null);
 
   const [refreshKey, setRefreshKey] = React.useState(0);
   const lastCaseNumberRef = React.useRef<string>("");
 
   const normalizedTenant = typeof tenantSlug === "string" ? tenantSlug : "";
 
-  const estimateTotalCents = React.useMemo(() => {
-    if (!estimate) return 0;
-    return mockApi.computeEstimateTotalCents(estimate);
-  }, [estimate]);
-
   async function loadByCaseNumber(input: string) {
     const normalized = input.trim();
     if (!normalized) {
       setError("Case number is required.");
       setJob(null);
-      setEstimate(null);
       return;
     }
 
@@ -64,34 +65,90 @@ export default function PublicStatusPage() {
     setLoading(true);
     setError(null);
     try {
-      const [statuses, found] = await Promise.all([mockApi.getStatuses(), mockApi.getJobByCaseNumber(normalized)]);
-      const nextLabels: Record<string, string> = {};
-      for (const s of Array.isArray(statuses) ? statuses : []) {
-        nextLabels[s.key] = s.label;
-      }
-      setStatusLabels(nextLabels);
-
-      if (!found) {
-        setError("No job found for that case number.");
-        setJob(null);
-        setEstimate(null);
-        return;
+      if (!normalizedTenant) {
+        throw new Error("Tenant slug is required in the URL.");
       }
 
-      setJob(found);
+      const res = await apiFetch<{ job: ApiLookupJob }>(`/api/t/${normalizedTenant}/status/lookup`, {
+        method: "POST",
+        body: { caseNumber: normalized },
+        token: null,
+        impersonationSessionId: null,
+      });
 
-      if (found.estimate_id) {
-        const est = await mockApi.getEstimate(found.estimate_id as EstimateId);
-        setEstimate(est);
-      } else {
-        setEstimate(null);
+      if (!res?.job) {
+        throw new Error("No job found for that case number.");
+      }
+
+      setJob(res.job);
+      setMessageBody("");
+      setMessageError(null);
+      setMessageSuccess(null);
+
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            portalSessionKey(normalizedTenant),
+            JSON.stringify({
+              job_id: String(res.job.id),
+              case_number: res.job.case_number,
+            }),
+          );
+        }
+      } catch {
+        // ignore
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load status.");
+      if (e instanceof ApiError && e.status === 404) {
+        setError("No job found for that case number.");
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to load status.");
+      }
       setJob(null);
-      setEstimate(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function postMessage() {
+    setMessageError(null);
+    setMessageSuccess(null);
+
+    const body = messageBody.trim();
+    if (!body) {
+      setMessageError("Message is required.");
+      return;
+    }
+
+    if (!job) {
+      setMessageError("Load a case first.");
+      return;
+    }
+
+    if (!normalizedTenant) {
+      setMessageError("Tenant slug is required in the URL.");
+      return;
+    }
+
+    setMessageBusy(true);
+    try {
+      await apiFetch<{ message: string; event_id: number }>(`/api/t/${normalizedTenant}/status/${encodeURIComponent(job.case_number)}/message`, {
+        method: "POST",
+        body: { message: body },
+        token: null,
+        impersonationSessionId: null,
+      });
+
+      setMessageBody("");
+      setMessageSuccess("Message sent. We'll get back to you soon.");
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setMessageError(e.message);
+      } else {
+        setMessageError(e instanceof Error ? e.message : "Failed to send message.");
+      }
+    } finally {
+      setMessageBusy(false);
     }
   }
 
@@ -99,42 +156,6 @@ export default function PublicStatusPage() {
     if (!lastCaseNumberRef.current) return;
     void loadByCaseNumber(lastCaseNumberRef.current);
   }, [refreshKey]);
-
-  async function postMessage() {
-    if (!job) return;
-    const body = messageBody.trim();
-    if (!body) return;
-
-    setMessageBusy(true);
-    setMessageError(null);
-    try {
-      await mockApi.postJobMessage({
-        jobId: job.id,
-        author: "customer",
-        body,
-      });
-      setMessageBody("");
-      setRefreshKey((x) => x + 1);
-    } catch (e) {
-      setMessageError(e instanceof Error ? e.message : "Failed to post message.");
-    } finally {
-      setMessageBusy(false);
-    }
-  }
-
-  async function setEstimateStatus(status: "approved" | "rejected") {
-    if (!estimate) return;
-    setEstimateBusy(true);
-    setEstimateError(null);
-    try {
-      await mockApi.setEstimateStatus({ estimateId: estimate.id, status });
-      setRefreshKey((x) => x + 1);
-    } catch (e) {
-      setEstimateError(e instanceof Error ? e.message : "Failed to update estimate.");
-    } finally {
-      setEstimateBusy(false);
-    }
-  }
 
   return (
     <PublicPageShell
@@ -196,7 +217,7 @@ export default function PublicStatusPage() {
                         <div className="mt-1 text-sm text-zinc-600">{job.title}</div>
                         <div className="mt-2 text-xs text-zinc-500">Last updated: {new Date(job.updated_at).toLocaleString()}</div>
                       </div>
-                      <Badge variant={statusBadgeVariant(job.status)}>{statusLabels[job.status] ?? job.status.replace(/_/g, " ")}</Badge>
+                      <Badge variant={statusBadgeVariant(job.status)}>{job.status_label ?? job.status.replace(/_/g, " ")}</Badge>
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -216,147 +237,41 @@ export default function PublicStatusPage() {
                     </div>
                   </div>
 
-                  <Card className="shadow-none">
-                    <CardContent className="pt-5">
-                      <div className="text-sm font-semibold text-[var(--rb-text)]">Timeline</div>
-                      <div className="mt-4 space-y-3">
-                        {job.timeline.length === 0 ? <div className="text-sm text-zinc-600">No timeline events.</div> : null}
-                        {job.timeline
-                          .slice()
-                          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-                          .map((ev) => (
-                            <div key={ev.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{ev.title}</div>
-                                  <div className="mt-1 text-xs text-zinc-500">{new Date(ev.created_at).toLocaleString()}</div>
-                                </div>
-                                <Badge variant="default">{ev.type}</Badge>
-                              </div>
-                            </div>
-                          ))}
+                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Send a message to the shop</div>
+                    <div className="mt-1 text-xs text-zinc-500">Reference: {job.case_number}</div>
+
+                    {messageSuccess ? (
+                      <div className="mt-3">
+                        <Alert variant="success" title="Message sent">
+                          {messageSuccess}
+                        </Alert>
                       </div>
-                    </CardContent>
-                  </Card>
+                    ) : null}
 
-                  <Card className="shadow-none">
-                    <CardContent className="pt-5">
-                      <div className="text-sm font-semibold text-[var(--rb-text)]">Messages</div>
-
-                      {messageError ? (
-                        <div className="mt-3">
-                          <Alert variant="danger" title="Could not post message">
-                            {messageError}
-                          </Alert>
-                        </div>
-                      ) : null}
-
-                      <div className="mt-4">
-                        <textarea
-                          value={messageBody}
-                          onChange={(e) => setMessageBody(e.target.value)}
-                          placeholder="Write a message to the shop..."
-                          className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                          rows={4}
-                          disabled={messageBusy}
-                        />
-                        <div className="mt-3 flex items-center justify-end">
-                          <Button onClick={() => void postMessage()} disabled={messageBusy || messageBody.trim().length === 0}>
-                            {messageBusy ? "Sending..." : "Send"}
-                          </Button>
-                        </div>
+                    {messageError ? (
+                      <div className="mt-3">
+                        <Alert variant="danger" title="Could not send message">
+                          {messageError}
+                        </Alert>
                       </div>
+                    ) : null}
 
-                      <div className="mt-5 space-y-3">
-                        {job.messages.length === 0 ? <div className="text-sm text-zinc-600">No messages yet.</div> : null}
-                        {job.messages
-                          .slice()
-                          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-                          .map((m) => (
-                            <div key={m.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{m.author}</div>
-                                  <div className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{m.body}</div>
-                                  <div className="mt-2 text-xs text-zinc-500">{new Date(m.created_at).toLocaleString()}</div>
-                                </div>
-                                <Badge variant={m.author === "staff" ? "info" : "default"}>{m.author}</Badge>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <textarea
+                      value={messageBody}
+                      onChange={(e) => setMessageBody(e.target.value)}
+                      placeholder="Write your message..."
+                      className="mt-3 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                      rows={4}
+                      disabled={messageBusy}
+                    />
 
-                  <Card className="shadow-none">
-                    <CardContent className="pt-5">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">Estimate</div>
-                          <div className="mt-1 text-sm text-zinc-600">Approve or reject your estimate.</div>
-                        </div>
-                        {estimate ? (
-                          <Badge variant={estimate.status === "approved" ? "success" : estimate.status === "rejected" ? "danger" : "warning"}>{estimate.status}</Badge>
-                        ) : (
-                          <Badge variant="default">none</Badge>
-                        )}
-                      </div>
-
-                      {estimateError ? (
-                        <div className="mt-3">
-                          <Alert variant="danger" title="Could not update estimate">
-                            {estimateError}
-                          </Alert>
-                        </div>
-                      ) : null}
-
-                      {estimate ? (
-                        <div className="mt-4 space-y-3">
-                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">Line items</div>
-                            <div className="mt-3 space-y-2">
-                              {estimate.lines.map((line) => (
-                                <div key={line.id} className="flex items-start justify-between gap-3 text-sm">
-                                  <div className="min-w-0">
-                                    <div className="truncate text-zinc-700">{line.label}</div>
-                                    <div className="text-xs text-zinc-500">Qty: {line.qty}</div>
-                                  </div>
-                                  <div className="whitespace-nowrap font-semibold text-[var(--rb-text)]">
-                                    {formatMoney({ amountCents: line.qty * line.unit_price.amount_cents, currency: line.unit_price.currency })}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="mt-4 flex items-center justify-between border-t border-[var(--rb-border)] pt-3">
-                              <div className="text-sm text-zinc-700">Total</div>
-                              <div className="text-sm font-semibold text-[var(--rb-text)]">
-                                {formatMoney({ amountCents: estimateTotalCents, currency: estimate.lines[0]?.unit_price.currency ?? "USD" })}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              disabled={estimateBusy || estimate.status !== "pending"}
-                              onClick={() => void setEstimateStatus("rejected")}
-                            >
-                              Reject
-                            </Button>
-                            <Button disabled={estimateBusy || estimate.status !== "pending"} onClick={() => void setEstimateStatus("approved")}>
-                              Approve
-                            </Button>
-                          </div>
-
-                          <div className="text-xs text-zinc-500">
-                            Approving/rejecting is saved in your browser (mock persistence).
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-3 text-sm text-zinc-600">No estimate linked to this case.</div>
-                      )}
-                    </CardContent>
-                  </Card>
+                    <div className="mt-3 flex items-center justify-end">
+                      <Button onClick={() => void postMessage()} disabled={messageBusy || messageBody.trim().length === 0}>
+                        {messageBusy ? "Sending..." : "Send message"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>

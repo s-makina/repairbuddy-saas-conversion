@@ -1,24 +1,45 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Device, DeviceBrand, DeviceType } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+
+type ApiDeviceType = {
+  id: number;
+  name: string;
+  is_active: boolean;
+};
+
+type ApiDeviceBrand = {
+  id: number;
+  name: string;
+  image_path: string | null;
+  is_active: boolean;
+};
+
+type ApiDevice = {
+  id: number;
+  model: string;
+  device_type_id: number;
+  device_brand_id: number;
+  is_active: boolean;
+};
 
 export default function TenantDevicesPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [devices, setDevices] = React.useState<Device[]>([]);
-  const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
-  const [types, setTypes] = React.useState<DeviceType[]>([]);
+  const [devices, setDevices] = React.useState<ApiDevice[]>([]);
+  const [brands, setBrands] = React.useState<ApiDeviceBrand[]>([]);
+  const [types, setTypes] = React.useState<ApiDeviceType[]>([]);
 
   const [query, setQuery] = React.useState("");
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -31,13 +52,29 @@ export default function TenantDevicesPage() {
       try {
         setLoading(true);
         setError(null);
-        const [d, b, t] = await Promise.all([mockApi.listDevices(), mockApi.listDeviceBrands(), mockApi.listDeviceTypes()]);
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const [devicesRes, brandsRes, typesRes] = await Promise.all([
+          apiFetch<{ devices: ApiDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/devices`),
+          apiFetch<{ device_brands: ApiDeviceBrand[] }>(`/api/${tenantSlug}/app/repairbuddy/device-brands`),
+          apiFetch<{ device_types: ApiDeviceType[] }>(`/api/${tenantSlug}/app/repairbuddy/device-types`),
+        ]);
         if (!alive) return;
-        setDevices(Array.isArray(d) ? d : []);
-        setBrands(Array.isArray(b) ? b : []);
-        setTypes(Array.isArray(t) ? t : []);
+        setDevices(Array.isArray(devicesRes.devices) ? devicesRes.devices : []);
+        setBrands(Array.isArray(brandsRes.device_brands) ? brandsRes.device_brands : []);
+        setTypes(Array.isArray(typesRes.device_types) ? typesRes.device_types : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/devices`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load devices.");
       } finally {
         if (!alive) return;
@@ -50,7 +87,7 @@ export default function TenantDevicesPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const brandById = React.useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
   const typeById = React.useMemo(() => new Map(types.map((t) => [t.id, t])), [types]);
@@ -60,8 +97,8 @@ export default function TenantDevicesPage() {
     if (!needle) return devices;
 
     return devices.filter((d) => {
-      const brand = brandById.get(d.brand_id)?.name ?? d.brand_id;
-      const type = typeById.get(d.type_id)?.name ?? d.type_id;
+      const brand = brandById.get(d.device_brand_id)?.name ?? String(d.device_brand_id);
+      const type = typeById.get(d.device_type_id)?.name ?? String(d.device_type_id);
       const hay = `${d.id} ${d.model} ${brand} ${type}`.toLowerCase();
       return hay.includes(needle);
     });
@@ -74,7 +111,7 @@ export default function TenantDevicesPage() {
     return filtered.slice(start, end);
   }, [filtered, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<Device>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiDevice>>>(
     () => [
       {
         id: "model",
@@ -90,13 +127,13 @@ export default function TenantDevicesPage() {
       {
         id: "brand",
         header: "Brand",
-        cell: (row) => <div className="text-sm text-zinc-700">{brandById.get(row.brand_id)?.name ?? row.brand_id}</div>,
+        cell: (row) => <div className="text-sm text-zinc-700">{brandById.get(row.device_brand_id)?.name ?? String(row.device_brand_id)}</div>,
         className: "min-w-[200px]",
       },
       {
         id: "type",
         header: "Type",
-        cell: (row) => <div className="text-sm text-zinc-700">{typeById.get(row.type_id)?.name ?? row.type_id}</div>,
+        cell: (row) => <div className="text-sm text-zinc-700">{typeById.get(row.device_type_id)?.name ?? String(row.device_type_id)}</div>,
         className: "min-w-[200px]",
       },
     ],

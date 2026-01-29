@@ -1,21 +1,28 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { DeviceBrand } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+
+type ApiDeviceBrand = {
+  id: number;
+  name: string;
+  image_path: string | null;
+  is_active: boolean;
+};
 
 export default function TenantDeviceBrandsPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
+  const [brands, setBrands] = React.useState<ApiDeviceBrand[]>([]);
 
   const [query, setQuery] = React.useState("");
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -28,11 +35,23 @@ export default function TenantDeviceBrandsPage() {
       try {
         setLoading(true);
         setError(null);
-        const res = await mockApi.listDeviceBrands();
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const res = await apiFetch<{ device_brands: ApiDeviceBrand[] }>(`/api/${tenantSlug}/app/repairbuddy/device-brands`);
         if (!alive) return;
-        setBrands(Array.isArray(res) ? res : []);
+        setBrands(Array.isArray(res.device_brands) ? res.device_brands : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/device-brands`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load device brands.");
       } finally {
         if (!alive) return;
@@ -45,7 +64,7 @@ export default function TenantDeviceBrandsPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -60,7 +79,7 @@ export default function TenantDeviceBrandsPage() {
     return filtered.slice(start, end);
   }, [filtered, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<DeviceBrand>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiDeviceBrand>>>(
     () => [
       {
         id: "name",

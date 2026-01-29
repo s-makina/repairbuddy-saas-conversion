@@ -8,8 +8,32 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Client, ClientId, CustomerDevice, Device, DeviceBrand, DeviceType, Job } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+
+type ApiClient = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  tax_id: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_postal_code: string | null;
+  address_country: string | null;
+  created_at: string;
+  jobs_count: number;
+};
+
+type ApiClientJob = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  updated_at: string;
+};
 
 export default function TenantClientDetailPage() {
   const router = useRouter();
@@ -20,12 +44,8 @@ export default function TenantClientDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [client, setClient] = React.useState<Client | null>(null);
-  const [jobs, setJobs] = React.useState<Job[]>([]);
-  const [customerDevices, setCustomerDevices] = React.useState<CustomerDevice[]>([]);
-  const [devices, setDevices] = React.useState<Device[]>([]);
-  const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
-  const [types, setTypes] = React.useState<DeviceType[]>([]);
+  const [client, setClient] = React.useState<ApiClient | null>(null);
+  const [jobs, setJobs] = React.useState<ApiClientJob[]>([]);
 
   React.useEffect(() => {
     let alive = true;
@@ -41,31 +61,28 @@ export default function TenantClientDetailPage() {
           return;
         }
 
-        const [c, j, cd, d, b, t] = await Promise.all([
-          mockApi.getClient(clientId as ClientId),
-          mockApi.listJobs(),
-          mockApi.listCustomerDevices(),
-          mockApi.listDevices(),
-          mockApi.listDeviceBrands(),
-          mockApi.listDeviceTypes(),
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const [clientRes, jobsRes] = await Promise.all([
+          apiFetch<{ client: ApiClient }>(`/api/${tenantSlug}/app/clients/${clientId}`),
+          apiFetch<{ jobs: ApiClientJob[] }>(`/api/${tenantSlug}/app/clients/${clientId}/jobs`),
         ]);
 
         if (!alive) return;
 
-        if (!c) {
-          setError("Client not found.");
-          setClient(null);
+        setClient(clientRes.client ?? null);
+        setJobs(Array.isArray(jobsRes.jobs) ? jobsRes.jobs : []);
+      } catch (e) {
+        if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/clients/${clientId}`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
           return;
         }
 
-        setClient(c);
-        setJobs(Array.isArray(j) ? j : []);
-        setCustomerDevices(Array.isArray(cd) ? cd : []);
-        setDevices(Array.isArray(d) ? d : []);
-        setBrands(Array.isArray(b) ? b : []);
-        setTypes(Array.isArray(t) ? t : []);
-      } catch (e) {
-        if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load client.");
         setClient(null);
       } finally {
@@ -79,34 +96,25 @@ export default function TenantClientDetailPage() {
     return () => {
       alive = false;
     };
-  }, [clientId]);
+  }, [clientId, router, tenantSlug]);
 
   const clientJobs = React.useMemo(() => {
-    if (!client) return [];
-    return jobs.filter((j) => j.client_id === client.id).slice().sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
-  }, [client, jobs]);
+    return jobs.slice().sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
+  }, [jobs]);
 
-  const deviceById = React.useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
-  const brandById = React.useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
-  const typeById = React.useMemo(() => new Map(types.map((t) => [t.id, t])), [types]);
-
-  const myDevices = React.useMemo(() => {
-    if (!client) return [];
-    return customerDevices
-      .filter((cd) => cd.client_id === client.id)
-      .map((cd) => {
-        const dev = deviceById.get(cd.device_id) ?? null;
-        const brand = dev ? brandById.get(dev.brand_id) ?? null : null;
-        const type = dev ? typeById.get(dev.type_id) ?? null : null;
-        return {
-          id: cd.id,
-          label: dev ? `${brand?.name ?? ""} ${dev.model}`.trim() : cd.device_id,
-          type: type?.name ?? "—",
-          serial: cd.serial_number ?? "—",
-          notes: cd.notes ?? "",
-        };
-      });
-  }, [brandById, client, customerDevices, deviceById, typeById]);
+  const addressSummary = React.useMemo(() => {
+    if (!client) return "—";
+    const parts = [
+      client.address_line1,
+      client.address_line2,
+      [client.address_city, client.address_state].filter(Boolean).join(", "),
+      client.address_postal_code,
+      client.address_country,
+    ]
+      .map((p) => (typeof p === "string" ? p.trim() : ""))
+      .filter(Boolean);
+    return parts.length > 0 ? parts.join("\n") : "—";
+  }, [client]);
 
   return (
     <div className="space-y-6">
@@ -131,7 +139,7 @@ export default function TenantClientDetailPage() {
           }
           backHref={typeof tenantSlug === "string" ? `/app/${tenantSlug}/clients` : "/app"}
           title={client.name}
-          description={client.email ?? client.phone ?? client.id}
+          description={client.email ?? client.phone ?? String(client.id)}
           actions={
             <div className="flex items-center gap-2">
               <Badge variant="info">{client.id}</Badge>
@@ -152,6 +160,18 @@ export default function TenantClientDetailPage() {
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Phone</div>
                       <div className="mt-1 text-sm text-zinc-700">{client.phone ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Company</div>
+                      <div className="mt-1 text-sm text-zinc-700">{client.company ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Tax ID</div>
+                      <div className="mt-1 text-sm text-zinc-700">{client.tax_id ?? "—"}</div>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Address</div>
+                      <div className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{addressSummary}</div>
                     </div>
                     <div className="sm:col-span-2">
                       <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Created</div>
@@ -197,19 +217,7 @@ export default function TenantClientDetailPage() {
                 <CardContent className="pt-5">
                   <div className="text-sm font-semibold text-[var(--rb-text)]">Devices</div>
                   <div className="mt-4 space-y-3">
-                    {myDevices.length === 0 ? <div className="text-sm text-zinc-600">No devices linked.</div> : null}
-                    {myDevices.map((d) => (
-                      <div key={d.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{d.label}</div>
-                            <div className="mt-1 text-xs text-zinc-500">Type: {d.type} · Serial: {d.serial}</div>
-                          </div>
-                          <Badge variant="default">{d.id}</Badge>
-                        </div>
-                        {d.notes ? <div className="mt-2 text-sm text-zinc-700">{d.notes}</div> : null}
-                      </div>
-                    ))}
+                    <div className="text-sm text-zinc-600">Customer devices will appear here after EPIC 5 (devices + customer devices) is enabled.</div>
                   </div>
                 </CardContent>
               </Card>

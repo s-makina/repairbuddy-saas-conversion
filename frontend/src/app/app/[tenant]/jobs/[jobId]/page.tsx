@@ -18,7 +18,7 @@ type ApiJob = {
   title: string;
   status: JobStatusKey;
   updated_at: string;
-  timeline: Array<{ id: string; title: string; type: string; created_at: string }>;
+  timeline: Array<{ id: string; title: string; type: string; message?: string | null; created_at: string }>;
   messages: Array<{ id: string; author: string; body: string; created_at: string }>;
 };
 
@@ -43,6 +43,10 @@ export default function TenantJobDetailPage() {
   const [messageBody, setMessageBody] = React.useState<string>("");
   const [messageBusy, setMessageBusy] = React.useState(false);
   const [messageError, setMessageError] = React.useState<string | null>(null);
+
+  const [noteBody, setNoteBody] = React.useState<string>("");
+  const [noteBusy, setNoteBusy] = React.useState(false);
+  const [noteError, setNoteError] = React.useState<string | null>(null);
 
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -93,6 +97,44 @@ export default function TenantJobDetailPage() {
 
   async function postMessage() {
     setMessageError("Messaging will be enabled in EPIC 3.");
+  }
+
+  async function postInternalNote() {
+    setNoteError(null);
+
+    if (!noteBody.trim()) {
+      setNoteError("Note is required.");
+      return;
+    }
+
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+      setNoteError("Business is missing.");
+      return;
+    }
+
+    if (!jobId) {
+      setNoteError("Job ID is missing.");
+      return;
+    }
+
+    setNoteBusy(true);
+    try {
+      await apiFetch<{ event: unknown }>(`/api/${tenantSlug}/app/repairbuddy/jobs/${jobId}/events`, {
+        method: "POST",
+        body: { message: noteBody.trim() },
+      });
+
+      setNoteBody("");
+      setRefreshKey((x) => x + 1);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setNoteError(e.message);
+      } else {
+        setNoteError("Failed to post note.");
+      }
+    } finally {
+      setNoteBusy(false);
+    }
   }
 
   return (
@@ -149,27 +191,55 @@ export default function TenantJobDetailPage() {
               </Card>
             ),
             timeline: (
-              <Card className="shadow-none">
-                <CardContent className="pt-5">
-                  <div className="space-y-3">
-                    {job.timeline.length === 0 ? <div className="text-sm text-zinc-600">No timeline events.</div> : null}
-                    {job.timeline
-                      .slice()
-                      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-                      .map((ev) => (
-                        <div key={ev.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{ev.title}</div>
-                              <div className="mt-1 text-xs text-zinc-500">{new Date(ev.created_at).toLocaleString()}</div>
+              <div className="space-y-4">
+                {noteError ? (
+                  <Alert variant="danger" title="Could not post note">
+                    {noteError}
+                  </Alert>
+                ) : null}
+
+                <Card className="shadow-none">
+                  <CardContent className="pt-5">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Add internal note</div>
+                    <textarea
+                      value={noteBody}
+                      onChange={(e) => setNoteBody(e.target.value)}
+                      placeholder="Write a note for internal staff..."
+                      className="mt-3 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                      rows={3}
+                      disabled={noteBusy}
+                    />
+                    <div className="mt-3 flex items-center justify-end">
+                      <Button onClick={() => void postInternalNote()} disabled={noteBusy || noteBody.trim().length === 0}>
+                        {noteBusy ? "Posting..." : "Add note"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-none">
+                  <CardContent className="pt-5">
+                    <div className="space-y-3">
+                      {job.timeline.length === 0 ? <div className="text-sm text-zinc-600">No timeline events.</div> : null}
+                      {job.timeline
+                        .slice()
+                        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+                        .map((ev) => (
+                          <div key={ev.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{ev.title}</div>
+                                {ev.message ? <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{ev.message}</div> : null}
+                                <div className="mt-2 text-xs text-zinc-500">{new Date(ev.created_at).toLocaleString()}</div>
+                              </div>
+                              <Badge variant="default">{ev.type}</Badge>
                             </div>
-                            <Badge variant="default">{ev.type}</Badge>
                           </div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             ),
             messages: (
               <div className="space-y-4">

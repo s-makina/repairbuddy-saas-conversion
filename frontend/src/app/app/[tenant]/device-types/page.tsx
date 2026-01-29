@@ -1,21 +1,27 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { DeviceType } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+
+type ApiDeviceType = {
+  id: number;
+  name: string;
+  is_active: boolean;
+};
 
 export default function TenantDeviceTypesPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [types, setTypes] = React.useState<DeviceType[]>([]);
+  const [types, setTypes] = React.useState<ApiDeviceType[]>([]);
 
   const [query, setQuery] = React.useState("");
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -28,11 +34,23 @@ export default function TenantDeviceTypesPage() {
       try {
         setLoading(true);
         setError(null);
-        const res = await mockApi.listDeviceTypes();
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const res = await apiFetch<{ device_types: ApiDeviceType[] }>(`/api/${tenantSlug}/app/repairbuddy/device-types`);
         if (!alive) return;
-        setTypes(Array.isArray(res) ? res : []);
+        setTypes(Array.isArray(res.device_types) ? res.device_types : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/device-types`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load device types.");
       } finally {
         if (!alive) return;
@@ -45,7 +63,7 @@ export default function TenantDeviceTypesPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -60,7 +78,7 @@ export default function TenantDeviceTypesPage() {
     return filtered.slice(start, end);
   }, [filtered, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<DeviceType>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiDeviceType>>>(
     () => [
       {
         id: "name",

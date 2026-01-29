@@ -13,6 +13,17 @@ Route::prefix('public')->group(function () {
     Route::get('/billing/plans', [\App\Http\Controllers\Api\Public\BillingPlansController::class, 'index']);
 });
 
+Route::prefix('t/{business}')
+    ->where(['business' => '[A-Za-z0-9\-]+' ])
+    ->middleware(['tenant', 'branch.public'])
+    ->group(function () {
+        Route::prefix('status')->group(function () {
+            Route::post('/lookup', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'lookup']);
+            Route::post('/{caseNumber}/message', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'message'])
+                ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
+        });
+    });
+
 Route::prefix('auth')->group(function () {
     Route::post('/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:auth');
     Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:auth');
@@ -303,6 +314,29 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                 Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
                     ->middleware('permission:users.manage');
 
+                Route::prefix('clients')->middleware('permission:clients.view')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\App\ClientController::class, 'index']);
+                    Route::get('/{client}', [\App\Http\Controllers\Api\App\ClientController::class, 'show'])->whereNumber('client');
+                    Route::get('/{client}/jobs', [\App\Http\Controllers\Api\App\ClientController::class, 'jobs'])->whereNumber('client');
+                });
+
+                Route::prefix('repairbuddy')->group(function () {
+                    Route::get('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'index'])
+                        ->middleware('permission:device_types.view');
+                    Route::post('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'store'])
+                        ->middleware('permission:device_types.view');
+
+                    Route::get('/device-brands', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'index'])
+                        ->middleware('permission:device_brands.view');
+                    Route::post('/device-brands', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'store'])
+                        ->middleware('permission:device_brands.view');
+
+                    Route::get('/devices', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'index'])
+                        ->middleware('permission:devices.view');
+                    Route::post('/devices', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'store'])
+                        ->middleware('permission:devices.view');
+                });
+
                 Route::prefix('repairbuddy')->middleware('permission:jobs.view')->group(function () {
                     Route::get('/job-statuses', [\App\Http\Controllers\Api\App\RepairBuddyJobStatusController::class, 'index']);
                     Route::get('/payment-statuses', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'index']);
@@ -311,6 +345,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::post('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'store']);
                     Route::get('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'show'])->whereNumber('jobId');
                     Route::patch('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'update'])->whereNumber('jobId');
+
+                    Route::get('/jobs/{jobId}/events', [\App\Http\Controllers\Api\App\RepairBuddyJobEventController::class, 'index'])->whereNumber('jobId');
+                    Route::post('/jobs/{jobId}/events', [\App\Http\Controllers\Api\App\RepairBuddyJobEventController::class, 'store'])->whereNumber('jobId');
                 });
             });
         });

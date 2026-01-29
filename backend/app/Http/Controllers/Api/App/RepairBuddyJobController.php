@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCaseCounter;
+use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobStatus;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class RepairBuddyJobController extends Controller
         $jobs = $query->limit($limit)->get();
 
         return response()->json([
-            'jobs' => $jobs->map(fn (RepairBuddyJob $j) => $this->serializeJob($j)),
+            'jobs' => $jobs->map(fn (RepairBuddyJob $j) => $this->serializeJob($j, includeTimeline: false)),
         ]);
     }
 
@@ -55,7 +56,7 @@ class RepairBuddyJobController extends Controller
         }
 
         return response()->json([
-            'job' => $this->serializeJob($job),
+            'job' => $this->serializeJob($job, includeTimeline: true),
         ]);
     }
 
@@ -82,19 +83,35 @@ class RepairBuddyJobController extends Controller
 
         $caseNumber = $this->generateCaseNumber();
 
-        $job = RepairBuddyJob::query()->create([
-            'case_number' => $caseNumber,
-            'title' => $validated['title'],
-            'status_slug' => $statusSlug,
-            'payment_status_slug' => $validated['payment_status_slug'] ?? null,
-            'priority' => $validated['priority'] ?? null,
-            'customer_id' => $validated['customer_id'] ?? null,
-            'created_by' => $request->user()?->id,
-            'opened_at' => now(),
-        ]);
+        $job = DB::transaction(function () use ($caseNumber, $request, $statusSlug, $validated) {
+            $job = RepairBuddyJob::query()->create([
+                'case_number' => $caseNumber,
+                'title' => $validated['title'],
+                'status_slug' => $statusSlug,
+                'payment_status_slug' => $validated['payment_status_slug'] ?? null,
+                'priority' => $validated['priority'] ?? null,
+                'customer_id' => $validated['customer_id'] ?? null,
+                'created_by' => $request->user()?->id,
+                'opened_at' => now(),
+            ]);
+
+            RepairBuddyEvent::query()->create([
+                'actor_user_id' => $request->user()?->id,
+                'entity_type' => 'job',
+                'entity_id' => $job->id,
+                'visibility' => 'private',
+                'event_type' => 'job.created',
+                'payload_json' => [
+                    'title' => 'Job created',
+                    'case_number' => $job->case_number,
+                ],
+            ]);
+
+            return $job;
+        });
 
         return response()->json([
-            'job' => $this->serializeJob($job),
+            'job' => $this->serializeJob($job, includeTimeline: true),
         ], 201);
     }
 
@@ -180,8 +197,40 @@ class RepairBuddyJobController extends Controller
         return $prefix.'-'.$numberPart;
     }
 
-    private function serializeJob(RepairBuddyJob $job): array
+    private function serializeJob(RepairBuddyJob $job, bool $includeTimeline = false): array
     {
+        $timeline = [];
+        if ($includeTimeline) {
+            $events = RepairBuddyEvent::query()
+                ->where('entity_type', 'job')
+                ->where('entity_id', $job->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(200)
+                ->get();
+
+            $timeline = $events->map(function (RepairBuddyEvent $e) {
+                $payload = is_array($e->payload_json) ? $e->payload_json : [];
+                $title = is_string($payload['title'] ?? null) ? $payload['title'] : null;
+                if (! $title) {
+                    $title = match ((string) $e->event_type) {
+                        'job.created' => 'Job created',
+                        'note' => 'Internal note',
+                        default => (string) $e->event_type,
+                    };
+                }
+
+                $message = is_string($payload['message'] ?? null) ? $payload['message'] : null;
+
+                return [
+                    'id' => (string) $e->id,
+                    'title' => $title,
+                    'type' => (string) $e->event_type,
+                    'message' => $message,
+                    'created_at' => $e->created_at,
+                ];
+            })->all();
+        }
+
         return [
             'id' => $job->id,
             'case_number' => $job->case_number,
@@ -192,7 +241,7 @@ class RepairBuddyJobController extends Controller
             'customer_id' => $job->customer_id,
             'created_at' => $job->created_at,
             'updated_at' => $job->updated_at,
-            'timeline' => [],
+            'timeline' => $timeline,
             'messages' => [],
             'attachments' => [],
         ];

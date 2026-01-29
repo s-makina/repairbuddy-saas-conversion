@@ -7,8 +7,18 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Client, Job } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+
+type ApiClient = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  tax_id: string | null;
+  created_at: string;
+  jobs_count: number;
+};
 
 export default function TenantClientsPage() {
   const router = useRouter();
@@ -17,8 +27,7 @@ export default function TenantClientsPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [clients, setClients] = React.useState<Client[]>([]);
-  const [jobs, setJobs] = React.useState<Job[]>([]);
+  const [clients, setClients] = React.useState<ApiClient[]>([]);
   const [q, setQ] = React.useState<string>("");
 
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -31,12 +40,27 @@ export default function TenantClientsPage() {
       try {
         setLoading(true);
         setError(null);
-        const [c, j] = await Promise.all([mockApi.listClients(), mockApi.listJobs()]);
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const qs = new URLSearchParams();
+        if (q.trim().length > 0) qs.set("query", q.trim());
+
+        const res = await apiFetch<{ clients: ApiClient[] }>(`/api/${tenantSlug}/app/clients?${qs.toString()}`);
         if (!alive) return;
-        setClients(Array.isArray(c) ? c : []);
-        setJobs(Array.isArray(j) ? j : []);
+
+        setClients(Array.isArray(res.clients) ? res.clients : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/clients`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load clients.");
       } finally {
         if (!alive) return;
@@ -49,33 +73,16 @@ export default function TenantClientsPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [q, router, tenantSlug]);
 
-  const jobsByClientId = React.useMemo(() => {
-    const map = new Map<string, number>();
-    for (const j of jobs) {
-      map.set(j.client_id, (map.get(j.client_id) ?? 0) + 1);
-    }
-    return map;
-  }, [jobs]);
-
-  const filtered = React.useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return clients;
-    return clients.filter((c) => {
-      const hay = `${c.name} ${c.email ?? ""} ${c.phone ?? ""} ${c.id}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [clients, q]);
-
-  const totalRows = filtered.length;
+  const totalRows = clients.length;
   const pageRows = React.useMemo(() => {
     const start = pageIndex * pageSize;
     const end = start + pageSize;
-    return filtered.slice(start, end);
-  }, [filtered, pageIndex, pageSize]);
+    return clients.slice(start, end);
+  }, [clients, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<Client>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiClient>>>(
     () => [
       {
         id: "name",
@@ -103,7 +110,7 @@ export default function TenantClientsPage() {
       {
         id: "jobs",
         header: "Jobs",
-        cell: (row) => <Badge variant={((jobsByClientId.get(row.id) ?? 0) > 0) ? "info" : "default"}>{jobsByClientId.get(row.id) ?? 0}</Badge>,
+        cell: (row) => <Badge variant={(row.jobs_count ?? 0) > 0 ? "info" : "default"}>{row.jobs_count ?? 0}</Badge>,
         className: "whitespace-nowrap",
       },
       {
@@ -113,7 +120,7 @@ export default function TenantClientsPage() {
         className: "whitespace-nowrap",
       },
     ],
-    [jobsByClientId],
+    [],
   );
 
   return (
@@ -138,7 +145,7 @@ export default function TenantClientsPage() {
       }
       loading={loading}
       error={error}
-      empty={!loading && !error && filtered.length === 0}
+      empty={!loading && !error && clients.length === 0}
       emptyTitle="No clients found"
       emptyDescription="Try adjusting your search."
     >
