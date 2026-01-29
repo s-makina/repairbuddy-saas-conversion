@@ -1,22 +1,30 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Part } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
+type ApiPart = {
+  id: number;
+  name: string;
+  sku: string | null;
+  price: { currency: string; amount_cents: number } | null;
+  stock: number | null;
+};
+
 export default function TenantPartsPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [parts, setParts] = React.useState<Part[]>([]);
+  const [parts, setParts] = React.useState<ApiPart[]>([]);
   const [q, setQ] = React.useState("");
 
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -29,11 +37,23 @@ export default function TenantPartsPage() {
       try {
         setLoading(true);
         setError(null);
-        const res = await mockApi.listParts();
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const res = await apiFetch<{ parts: ApiPart[] }>(`/api/${tenantSlug}/app/repairbuddy/parts`);
         if (!alive) return;
-        setParts(Array.isArray(res) ? res : []);
+        setParts(Array.isArray(res?.parts) ? res.parts : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/parts`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load parts.");
       } finally {
         if (!alive) return;
@@ -46,7 +66,7 @@ export default function TenantPartsPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const filtered = React.useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -61,7 +81,7 @@ export default function TenantPartsPage() {
     return filtered.slice(start, end);
   }, [filtered, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<Part>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiPart>>>(
     () => [
       {
         id: "name",

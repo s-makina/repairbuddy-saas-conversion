@@ -18,6 +18,7 @@ Route::prefix('t/{business}')
     ->middleware(['tenant', 'branch.public'])
     ->group(function () {
         Route::get('/services', [\App\Http\Controllers\Api\Public\RepairBuddyServicesController::class, 'index']);
+        Route::get('/parts', [\App\Http\Controllers\Api\Public\RepairBuddyPartsController::class, 'index']);
 
         Route::prefix('status')->group(function () {
             Route::post('/lookup', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'lookup']);
@@ -345,6 +346,21 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                         ->middleware('permission:devices.view');
                     Route::post('/devices', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'store'])
                         ->middleware('permission:devices.view');
+
+                    Route::get('/part-types', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'index'])
+                        ->middleware('permission:parts.view');
+                    Route::post('/part-types', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'store'])
+                        ->middleware('permission:parts.view');
+
+                    Route::get('/part-brands', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'index'])
+                        ->middleware('permission:parts.view');
+                    Route::post('/part-brands', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'store'])
+                        ->middleware('permission:parts.view');
+
+                    Route::get('/parts', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'index'])
+                        ->middleware('permission:parts.view');
+                    Route::post('/parts', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'store'])
+                        ->middleware('permission:parts.view');
                 });
 
                 Route::prefix('repairbuddy')->middleware('permission:jobs.view')->group(function () {

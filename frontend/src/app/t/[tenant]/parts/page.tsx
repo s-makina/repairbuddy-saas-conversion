@@ -7,9 +7,16 @@ import { PublicPageShell } from "@/components/PublicPageShell";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { mockApi } from "@/mock/mockApi";
-import type { Part } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
+
+type ApiPart = {
+  id: number;
+  name: string;
+  sku: string | null;
+  price: { currency: string; amount_cents: number } | null;
+  stock: number | null;
+};
 
 export default function PublicPartsPage() {
   const params = useParams() as { tenant?: string };
@@ -17,7 +24,7 @@ export default function PublicPartsPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [parts, setParts] = React.useState<Part[]>([]);
+  const [parts, setParts] = React.useState<ApiPart[]>([]);
 
   React.useEffect(() => {
     let alive = true;
@@ -26,12 +33,26 @@ export default function PublicPartsPage() {
       try {
         setLoading(true);
         setError(null);
-        const res = await mockApi.listParts();
+
+        if (!tenantSlug) {
+          setParts([]);
+          return;
+        }
+
+        const res = await apiFetch<{ parts: ApiPart[] }>(`/api/t/${tenantSlug}/parts`, {
+          token: null,
+          impersonationSessionId: null,
+        });
         if (!alive) return;
-        setParts(Array.isArray(res) ? res : []);
+        setParts(Array.isArray(res?.parts) ? res.parts : []);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load parts.");
+
+        if (e instanceof ApiError) {
+          setError(e.message);
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load parts.");
+        }
         setParts([]);
       } finally {
         if (!alive) return;
@@ -44,7 +65,7 @@ export default function PublicPartsPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [tenantSlug]);
 
   return (
     <PublicPageShell
