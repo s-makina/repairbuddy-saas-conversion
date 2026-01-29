@@ -732,8 +732,12 @@ export default function TenantUsersPage() {
                           .slice()
                           .sort((a, b) => `${a.code ?? ""} ${a.name ?? ""}`.localeCompare(`${b.code ?? ""} ${b.name ?? ""}`));
 
-                        const shown = list.slice(0, 3);
-                        const more = Math.max(0, list.length - shown.length);
+                        const shown = list.slice(0, 2);
+                        const overflow = list.slice(2);
+                        const more = overflow.length;
+                        const overflowTitle = overflow
+                          .map((b) => `${b.code ? `${b.code} - ` : ""}${b.name}`)
+                          .join("\n");
 
                         return (
                           <div className="flex items-center gap-2">
@@ -754,8 +758,11 @@ export default function TenantUsersPage() {
                                     </span>
                                   ))}
                                   {more > 0 ? (
-                                    <span className="inline-flex items-center rounded-full border border-[var(--rb-border)] bg-white px-2 py-0.5 text-xs text-zinc-700">
-                                      +{more}
+                                    <span
+                                      className="inline-flex items-center rounded-full border border-[var(--rb-border)] bg-white px-2 py-0.5 text-xs text-zinc-700"
+                                      title={overflowTitle}
+                                    >
+                                      +{more} more
                                     </span>
                                   ) : null}
                                 </>
