@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\TenantContext;
@@ -40,7 +41,10 @@ class UserController extends Controller
             ->where('users.is_admin', false);
 
         if ($withRelations) {
-            $query->with(['roleModel']);
+            $query->with([
+                'roleModel',
+                'branches:id,code,name,is_active',
+            ]);
         }
 
         if ($q !== '') {
@@ -288,6 +292,7 @@ class UserController extends Controller
                 PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
             ],
             'role_id' => ['required', 'integer'],
+            'branch_id' => ['required', 'integer'],
         ]);
 
         $role = Role::query()->where('tenant_id', $tenantId)->where('id', $validated['role_id'])->first();
@@ -295,6 +300,16 @@ class UserController extends Controller
         if (! $role) {
             return response()->json([
                 'message' => 'Role is invalid.',
+            ], 422);
+        }
+
+        $branchId = (int) $validated['branch_id'];
+
+        $branch = Branch::query()->whereKey($branchId)->first();
+
+        if (! $branch || ! $branch->is_active) {
+            return response()->json([
+                'message' => 'Shop is invalid.',
             ], 422);
         }
 
@@ -310,9 +325,40 @@ class UserController extends Controller
             'email_verified_at' => now(),
         ]);
 
+        $user->branches()->sync([
+            $branch->id => ['tenant_id' => $tenantId],
+        ]);
+
         return response()->json([
-            'user' => $user->load('roleModel'),
+            'user' => $user->load(['roleModel', 'branches:id,code,name,is_active']),
         ], 201);
+    }
+
+    public function updateShop(Request $request, string $tenant, User $user)
+    {
+        $tenantId = TenantContext::tenantId();
+        $this->ensureTenantUser($user);
+
+        $validated = $request->validate([
+            'branch_id' => ['required', 'integer'],
+        ]);
+
+        $branchId = (int) $validated['branch_id'];
+        $branch = Branch::query()->whereKey($branchId)->first();
+
+        if (! $branch || ! $branch->is_active) {
+            return response()->json([
+                'message' => 'Shop is invalid.',
+            ], 422);
+        }
+
+        $user->branches()->sync([
+            $branch->id => ['tenant_id' => $tenantId],
+        ]);
+
+        return response()->json([
+            'user' => $user->load(['roleModel', 'branches:id,code,name,is_active']),
+        ]);
     }
 
     public function updateRole(Request $request, string $tenant, User $user)

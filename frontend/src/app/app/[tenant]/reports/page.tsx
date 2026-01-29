@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -23,6 +24,10 @@ export default function TenantReportsPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [rows, setRows] = React.useState<ReportRow[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -102,6 +107,19 @@ export default function TenantReportsPage() {
     [],
   );
 
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((r) => `${r.key} ${r.label} ${r.meta ?? ""} ${r.value}`.toLowerCase().includes(needle));
+  }, [query, rows]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
+
   return (
     <ListPageShell
       title="Reports"
@@ -117,14 +135,36 @@ export default function TenantReportsPage() {
       emptyTitle="No report data"
       emptyDescription="Mock data will populate once fixtures exist."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Reports · ${tenantSlug}` : "Reports"}
-        data={rows}
-        loading={loading}
-        emptyMessage="No report rows."
-        columns={columns}
-        getRowId={(row) => row.key}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Reports · ${tenantSlug}` : "Reports"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No report rows."
+            columns={columns}
+            getRowId={(row) => row.key}
+            search={{
+              placeholder: "Search metrics...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

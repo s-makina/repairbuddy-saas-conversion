@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { formatMoney } from "@/lib/money";
@@ -19,6 +20,10 @@ type Row = {
 export default function TenantHourlyRatesPage() {
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   const data = React.useMemo<Row[]>(
     () => [
@@ -77,13 +82,47 @@ export default function TenantHourlyRatesPage() {
       emptyTitle="No hourly rates"
       emptyDescription="Rates will apply to time logs and labor charges."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Hourly Rates · ${tenantSlug}` : "Hourly Rates"}
-        data={data}
-        columns={columns}
-        getRowId={(row) => row.id}
-        emptyMessage="No hourly rates."
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Hourly Rates · ${tenantSlug}` : "Hourly Rates"}
+            data={data
+              .filter((row) => {
+                const needle = query.trim().toLowerCase();
+                if (!needle) return true;
+                const hay = `${row.id} ${row.user_label} ${row.currency} ${row.status}`.toLowerCase();
+                return hay.includes(needle);
+              })
+              .slice(pageIndex * pageSize, pageIndex * pageSize + pageSize)}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No hourly rates."
+            search={{
+              placeholder: "Search rates...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows: data.filter((row) => {
+                const needle = query.trim().toLowerCase();
+                if (!needle) return true;
+                const hay = `${row.id} ${row.user_label} ${row.currency} ${row.status}`.toLowerCase();
+                return hay.includes(needle);
+              }).length,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

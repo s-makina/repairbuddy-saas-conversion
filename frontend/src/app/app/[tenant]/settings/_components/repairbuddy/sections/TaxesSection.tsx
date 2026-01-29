@@ -2,6 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
@@ -18,9 +20,44 @@ export function TaxesSection({
   isMock: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const t = draft.taxes;
 
   const activeTaxes = useMemo(() => t.taxes.filter((x) => x.status === "active"), [t.taxes]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return t.taxes;
+    return t.taxes.filter((x) => `${x.id} ${x.name} ${x.ratePercent} ${x.status}`.toLowerCase().includes(needle));
+  }, [query, t.taxes]);
+
+  const totalRows = filtered.length;
+  const pageRows = useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
+
+  const columns = useMemo<Array<DataTableColumn<RepairBuddyTax>>>(
+    () => [
+      { id: "name", header: "Name", cell: (x) => <div className="text-sm text-zinc-700">{x.name}</div>, className: "min-w-[220px]" },
+      { id: "rate", header: "Rate (%)", cell: (x) => <div className="text-sm text-zinc-700">{x.ratePercent}</div>, className: "whitespace-nowrap" },
+      { id: "status", header: "Status", cell: (x) => <div className="text-sm text-zinc-700">{x.status}</div>, className: "whitespace-nowrap" },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: () => (
+          <Button size="sm" variant="outline" disabled={isMock}>
+            Edit
+          </Button>
+        ),
+        className: "whitespace-nowrap",
+      },
+    ],
+    [isMock],
+  );
 
   return (
     <SectionShell title="Taxes" description="Tax rates and invoice calculation preferences.">
@@ -38,32 +75,33 @@ export function TaxesSection({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
-            <tr>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Rate (%)</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {t.taxes.map((x) => (
-              <tr key={x.id} className="border-b border-[color:color-mix(in_srgb,var(--rb-border),transparent_30%)]">
-                <td className="px-3 py-2">{x.name}</td>
-                <td className="px-3 py-2">{x.ratePercent}</td>
-                <td className="px-3 py-2">{x.status}</td>
-                <td className="px-3 py-2">
-                  <Button size="sm" variant="outline" disabled={isMock}>
-                    Edit
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title="Taxes"
+            data={pageRows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No tax rates."
+            search={{ placeholder: "Search taxes..." }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">

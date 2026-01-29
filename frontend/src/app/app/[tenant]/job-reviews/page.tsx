@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -18,6 +19,10 @@ export default function TenantJobReviewsPage() {
   const [reviews, setReviews] = React.useState<Review[]>([]);
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [clients, setClients] = React.useState<Client[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -49,6 +54,24 @@ export default function TenantJobReviewsPage() {
 
   const jobById = React.useMemo(() => new Map(jobs.map((j) => [j.id, j])), [jobs]);
   const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return reviews;
+    return reviews.filter((r) => {
+      const jobCase = jobById.get(r.job_id)?.case_number ?? r.job_id;
+      const clientName = clientById.get(r.client_id)?.name ?? r.client_id;
+      const hay = `${r.id} ${jobCase} ${clientName} ${r.rating} ${r.comment}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [clientById, jobById, query, reviews]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Review>>>(
     () => [
@@ -106,14 +129,36 @@ export default function TenantJobReviewsPage() {
       emptyTitle="No reviews"
       emptyDescription="Reviews submitted from the portal will show here."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Job Reviews · ${tenantSlug}` : "Job Reviews"}
-        data={reviews}
-        loading={loading}
-        emptyMessage="No reviews."
-        columns={columns}
-        getRowId={(row) => row.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Job Reviews · ${tenantSlug}` : "Job Reviews"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No reviews."
+            columns={columns}
+            getRowId={(row) => row.id}
+            search={{
+              placeholder: "Search reviews...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

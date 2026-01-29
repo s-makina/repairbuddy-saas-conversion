@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
@@ -16,7 +18,42 @@ export function MaintenanceRemindersSection({
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const reminders = draft.maintenanceReminders.reminders;
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return reminders;
+    return reminders.filter((r) => `${r.id} ${r.name} ${r.intervalDays} ${r.status}`.toLowerCase().includes(needle));
+  }, [query, reminders]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
+
+  const columns = React.useMemo<Array<DataTableColumn<RepairBuddyMaintenanceReminder>>>(
+    () => [
+      { id: "name", header: "Name", cell: (r) => <div className="text-sm text-zinc-700">{r.name}</div>, className: "min-w-[220px]" },
+      { id: "interval", header: "Interval (days)", cell: (r) => <div className="text-sm text-zinc-700">{r.intervalDays}</div>, className: "whitespace-nowrap" },
+      { id: "status", header: "Status", cell: (r) => <div className="text-sm text-zinc-700">{r.status}</div>, className: "whitespace-nowrap" },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: () => (
+          <Button size="sm" variant="outline" disabled={isMock}>
+            Edit
+          </Button>
+        ),
+        className: "whitespace-nowrap",
+      },
+    ],
+    [isMock],
+  );
 
   return (
     <SectionShell title="Maintenance Reminders" description="Reminder rules and test UI (all actions disabled).">
@@ -33,40 +70,33 @@ export function MaintenanceRemindersSection({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
-            <tr>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Interval (days)</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reminders.length === 0 ? (
-              <tr>
-                <td className="px-3 py-4 text-zinc-500" colSpan={4}>
-                  No reminders configured.
-                </td>
-              </tr>
-            ) : (
-              reminders.map((r) => (
-                <tr key={r.id} className="border-b border-[color:color-mix(in_srgb,var(--rb-border),transparent_30%)]">
-                  <td className="px-3 py-2">{r.name}</td>
-                  <td className="px-3 py-2">{r.intervalDays}</td>
-                  <td className="px-3 py-2">{r.status}</td>
-                  <td className="px-3 py-2">
-                    <Button size="sm" variant="outline" disabled={isMock}>
-                      Edit
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title="Reminders"
+            data={pageRows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No reminders configured."
+            search={{ placeholder: "Search reminders..." }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <Modal
         open={addOpen}

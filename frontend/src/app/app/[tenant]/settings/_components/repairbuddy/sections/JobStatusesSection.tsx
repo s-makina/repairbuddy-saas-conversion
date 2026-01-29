@@ -2,9 +2,11 @@
 
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
 import type { RepairBuddyJobStatus, RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
 
@@ -21,8 +23,55 @@ export function JobStatusesSection({
 }) {
   const [addOpen, setAddOpen] = useState(false);
 
+  const [query, setQuery] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
   const statuses = draft.jobStatuses.statuses;
   const statusOptions = useMemo(() => statuses.map((s) => ({ id: s.id, name: s.name })), [statuses]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return statuses;
+    return statuses.filter((s) => {
+      const hay = `${s.id} ${s.name} ${s.slug} ${s.invoiceLabel} ${s.manageWooStock ? "woo" : ""} ${s.status}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [query, statuses]);
+
+  const totalRows = filtered.length;
+  const pageRows = useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
+
+  const columns = useMemo<Array<DataTableColumn<RepairBuddySettingsDraft["jobStatuses"]["statuses"][number]>>>(
+    () => [
+      { id: "id", header: "ID", cell: (s) => <div className="text-sm text-zinc-600">{s.id}</div>, className: "whitespace-nowrap" },
+      { id: "name", header: "Name", cell: (s) => <div className="text-sm text-zinc-700">{s.name}</div>, className: "min-w-[180px]" },
+      { id: "slug", header: "Slug", cell: (s) => <div className="text-sm text-zinc-600">{s.slug}</div>, className: "min-w-[180px]" },
+      { id: "invoiceLabel", header: "Invoice label", cell: (s) => <div className="text-sm text-zinc-700">{s.invoiceLabel}</div>, className: "min-w-[200px]" },
+      { id: "woo", header: "Woo stock", cell: (s) => <div className="text-sm text-zinc-700">{s.manageWooStock ? "Yes" : "No"}</div>, className: "whitespace-nowrap" },
+      { id: "status", header: "Status", cell: (s) => <div className="text-sm text-zinc-700">{s.status}</div>, className: "whitespace-nowrap" },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: (s) => (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={isMock}>
+              Edit
+            </Button>
+            <Button variant="outline" size="sm" disabled={isMock} onClick={() => toggleActive(s.id)}>
+              Toggle
+            </Button>
+          </div>
+        ),
+        className: "whitespace-nowrap",
+      },
+    ],
+    [isMock, toggleActive],
+  );
 
   function toggleActive(id: string) {
     setDraft((prev) => ({
@@ -45,43 +94,33 @@ export function JobStatusesSection({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
-            <tr>
-              <th className="px-3 py-2 font-medium">ID</th>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Slug</th>
-              <th className="px-3 py-2 font-medium">Invoice label</th>
-              <th className="px-3 py-2 font-medium">Woo stock</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {statuses.map((s) => (
-              <tr key={s.id} className="border-b border-[color:color-mix(in_srgb,var(--rb-border),transparent_30%)]">
-                <td className="px-3 py-2 text-zinc-600">{s.id}</td>
-                <td className="px-3 py-2">{s.name}</td>
-                <td className="px-3 py-2 text-zinc-600">{s.slug}</td>
-                <td className="px-3 py-2">{s.invoiceLabel}</td>
-                <td className="px-3 py-2">{s.manageWooStock ? "Yes" : "No"}</td>
-                <td className="px-3 py-2">{s.status}</td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" disabled={isMock}>
-                      Edit
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={isMock} onClick={() => toggleActive(s.id)}>
-                      Toggle
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title="Statuses"
+            data={pageRows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No statuses."
+            search={{ placeholder: "Search statuses..." }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">

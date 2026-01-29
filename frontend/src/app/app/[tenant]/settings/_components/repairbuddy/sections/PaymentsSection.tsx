@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
@@ -19,6 +21,45 @@ export function PaymentsSection({
   const [addOpen, setAddOpen] = useState(false);
   const p = draft.payments;
 
+  const [query, setQuery] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return p.statuses;
+    return p.statuses.filter((s) => `${s.id} ${s.name} ${s.slug} ${s.status}`.toLowerCase().includes(needle));
+  }, [p.statuses, query]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
+
+  type PaymentStatusRow = RepairBuddySettingsDraft["payments"]["statuses"][number];
+
+  const columns = React.useMemo<Array<DataTableColumn<PaymentStatusRow>>>(
+    () => [
+      { id: "id", header: "ID", cell: (s) => <div className="text-sm text-zinc-600">{s.id}</div>, className: "whitespace-nowrap" },
+      { id: "name", header: "Name", cell: (s) => <div className="text-sm text-zinc-700">{s.name}</div>, className: "min-w-[200px]" },
+      { id: "slug", header: "Slug", cell: (s) => <div className="text-sm text-zinc-600">{s.slug}</div>, className: "min-w-[200px]" },
+      { id: "status", header: "Status", cell: (s) => <div className="text-sm text-zinc-700">{s.status}</div>, className: "whitespace-nowrap" },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: () => (
+          <Button size="sm" variant="outline" disabled={isMock}>
+            Edit
+          </Button>
+        ),
+        className: "whitespace-nowrap",
+      },
+    ],
+    [isMock],
+  );
+
   return (
     <SectionShell title="Payments" description="Payment statuses and allowed payment methods.">
       <div className="flex items-center justify-between gap-3">
@@ -30,34 +71,33 @@ export function PaymentsSection({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
-            <tr>
-              <th className="px-3 py-2 font-medium">ID</th>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Slug</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {p.statuses.map((s) => (
-              <tr key={s.id} className="border-b border-[color:color-mix(in_srgb,var(--rb-border),transparent_30%)]">
-                <td className="px-3 py-2 text-zinc-600">{s.id}</td>
-                <td className="px-3 py-2">{s.name}</td>
-                <td className="px-3 py-2 text-zinc-600">{s.slug}</td>
-                <td className="px-3 py-2">{s.status}</td>
-                <td className="px-3 py-2">
-                  <Button size="sm" variant="outline" disabled={isMock}>
-                    Edit
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title="Payment statuses"
+            data={pageRows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No payment statuses."
+            search={{ placeholder: "Search statuses..." }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <div>
         <div className="text-sm font-semibold text-[var(--rb-text)]">Payment methods</div>

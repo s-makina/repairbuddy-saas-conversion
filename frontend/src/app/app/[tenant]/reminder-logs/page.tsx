@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 
@@ -24,6 +25,10 @@ function statusVariant(status: Row["status"]): "default" | "info" | "success" | 
 export default function TenantReminderLogsPage() {
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   const data = React.useMemo<Row[]>(
     () => [
@@ -84,13 +89,47 @@ export default function TenantReminderLogsPage() {
       emptyTitle="No reminders"
       emptyDescription="Reminders will be generated from job status changes and timelines."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Reminder Logs · ${tenantSlug}` : "Reminder Logs"}
-        data={data}
-        columns={columns}
-        getRowId={(row) => row.id}
-        emptyMessage="No reminder logs."
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Reminder Logs · ${tenantSlug}` : "Reminder Logs"}
+            data={data
+              .filter((row) => {
+                const needle = query.trim().toLowerCase();
+                if (!needle) return true;
+                const hay = `${row.id} ${row.target} ${row.channel} ${row.status}`.toLowerCase();
+                return hay.includes(needle);
+              })
+              .slice(pageIndex * pageSize, pageIndex * pageSize + pageSize)}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No reminder logs."
+            search={{
+              placeholder: "Search reminders...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows: data.filter((row) => {
+                const needle = query.trim().toLowerCase();
+                if (!needle) return true;
+                const hay = `${row.id} ${row.target} ${row.channel} ${row.status}`.toLowerCase();
+                return hay.includes(needle);
+              }).length,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

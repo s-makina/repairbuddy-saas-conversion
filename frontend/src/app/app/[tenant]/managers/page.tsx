@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 
@@ -18,6 +19,10 @@ type ManagerRow = {
 export default function TenantManagersPage() {
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   const data = React.useMemo<ManagerRow[]>(
     () => [
@@ -89,13 +94,47 @@ export default function TenantManagersPage() {
       emptyTitle="No managers"
       emptyDescription="Assign manager roles once staff management is wired."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Managers · ${tenantSlug}` : "Managers"}
-        data={data}
-        columns={columns}
-        getRowId={(row) => row.id}
-        emptyMessage="No managers."
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Managers · ${tenantSlug}` : "Managers"}
+            data={data
+              .filter((row) => {
+                const needle = query.trim().toLowerCase();
+                if (!needle) return true;
+                const hay = `${row.id} ${row.name} ${row.email} ${row.permissions.join(" ")} ${row.status}`.toLowerCase();
+                return hay.includes(needle);
+              })
+              .slice(pageIndex * pageSize, pageIndex * pageSize + pageSize)}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No managers."
+            search={{
+              placeholder: "Search managers...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows: data.filter((row) => {
+                const needle = query.trim().toLowerCase();
+                if (!needle) return true;
+                const hay = `${row.id} ${row.name} ${row.email} ${row.permissions.join(" ")} ${row.status}`.toLowerCase();
+                return hay.includes(needle);
+              }).length,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

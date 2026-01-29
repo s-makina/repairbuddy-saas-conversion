@@ -955,9 +955,9 @@ export function DashboardShell({
                               >
                                 <MenuIcon name="building" className="h-4 w-4 text-zinc-500" />
                                 <span className="min-w-0 flex-1 text-left">
-                                  <span className="block truncate text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                                  {/* <span className="block truncate text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                                     Shop
-                                  </span>
+                                  </span> */}
                                   <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">
                                     {activeBranch?.name || activeBranchLabel}
                                   </span>

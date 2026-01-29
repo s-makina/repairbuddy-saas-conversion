@@ -293,6 +293,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     ->middleware('permission:users.manage');
                 Route::put('/users/{user}', [\App\Http\Controllers\Api\App\UserController::class, 'update'])
                     ->middleware('permission:users.manage');
+                Route::patch('/users/{user}/shop', [\App\Http\Controllers\Api\App\UserController::class, 'updateShop'])
+                    ->whereNumber('user')
+                    ->middleware('permission:users.manage');
                 Route::patch('/users/{user}/role', [\App\Http\Controllers\Api\App\UserController::class, 'updateRole'])
                     ->middleware('permission:users.manage');
                 Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\App\UserController::class, 'updateStatus'])

@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch, ApiError } from "@/lib/api";
-import type { Role, User, UserStatus } from "@/lib/types";
+import type { Branch, Role, User, UserStatus } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -56,6 +56,10 @@ type RolesPayload = {
   roles: Role[];
 };
 
+type BranchesPayload = {
+  branches: Branch[];
+};
+
 export default function TenantUsersPage() {
   const auth = useAuth();
   const params = useParams() as { tenant?: string; business?: string };
@@ -64,6 +68,7 @@ export default function TenantUsersPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -71,9 +76,11 @@ export default function TenantUsersPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRoleId, setNewRoleId] = useState<number | null>(null);
+  const [newBranchId, setNewBranchId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [actionBusyUserId, setActionBusyUserId] = useState<number | null>(null);
+  const [shopBusyUserId, setShopBusyUserId] = useState<number | null>(null);
 
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -102,6 +109,23 @@ export default function TenantUsersPage() {
     }
     return map;
   }, [roles]);
+
+  const branchLabelById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const b of branches) {
+      map.set(b.id, `${b.code} - ${b.name}`);
+    }
+    return map;
+  }, [branches]);
+
+  const branchOptions = useMemo(() => {
+    const list = branches.slice().sort((a, b) => `${a.code} ${a.name}`.localeCompare(`${b.code} ${b.name}`));
+    return list.map((b) => ({
+      id: b.id,
+      label: `${b.code} - ${b.name}${b.is_active ? "" : " (inactive)"}`,
+      isActive: b.is_active,
+    }));
+  }, [branches]);
 
   const roleOptions = useMemo(() => {
     return [
@@ -152,17 +176,28 @@ export default function TenantUsersPage() {
       const usersPath = `/api/${tenant}/app/users?${qs.toString()}`;
 
       if (includeRoles) {
-        const [usersRes, rolesRes] = await Promise.all([
+        const [usersRes, rolesRes, branchesRes] = await Promise.all([
           apiFetch<UsersPayload>(usersPath),
           apiFetch<RolesPayload>(`/api/${tenant}/app/roles`),
+          apiFetch<BranchesPayload>(`/api/${tenant}/app/branches`),
         ]);
 
         setUsers(Array.isArray(usersRes.users) ? usersRes.users : []);
         setTotalUsers(typeof usersRes.meta?.total === "number" ? usersRes.meta.total : 0);
         setPageSize(typeof usersRes.meta?.per_page === "number" ? usersRes.meta.per_page : pageSize);
         setRoles(Array.isArray(rolesRes.roles) ? rolesRes.roles : []);
+        setBranches(Array.isArray(branchesRes.branches) ? branchesRes.branches : []);
+
         const firstRoleId = (Array.isArray(rolesRes.roles) ? rolesRes.roles : [])[0]?.id ?? null;
         setNewRoleId(firstRoleId);
+
+        const defaultBranchId = auth.tenant?.default_branch_id ?? null;
+        const branchList = Array.isArray(branchesRes.branches) ? branchesRes.branches : [];
+        const activeBranchIds = branchList.filter((b) => b.is_active).map((b) => b.id);
+        const nextBranchId =
+          (defaultBranchId && activeBranchIds.includes(defaultBranchId) ? defaultBranchId : null) ??
+          (activeBranchIds[0] ?? null);
+        setNewBranchId(nextBranchId);
       } else {
         const usersRes = await apiFetch<UsersPayload>(usersPath);
         setUsers(Array.isArray(usersRes.users) ? usersRes.users : []);
@@ -174,6 +209,12 @@ export default function TenantUsersPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function getUserShopId(u: User): number | null {
+    const bs = Array.isArray(u.branches) ? u.branches : [];
+    const active = bs.find((b) => b.is_active);
+    return (active?.id ?? bs[0]?.id ?? null) as number | null;
   }
 
   async function onSendPasswordReset(userId: number) {
@@ -214,6 +255,7 @@ export default function TenantUsersPage() {
   async function onCreateUser(e: React.FormEvent) {
     e.preventDefault();
     if (!newRoleId) return;
+    if (!newBranchId) return;
 
     setBusy(true);
     setError(null);
@@ -227,6 +269,7 @@ export default function TenantUsersPage() {
           email: newEmail,
           password: newPassword,
           role_id: newRoleId,
+          branch_id: newBranchId,
         },
       });
 
@@ -316,6 +359,32 @@ export default function TenantUsersPage() {
     setConfirmMessage(args.message);
     setConfirmAction(() => args.action);
     setConfirmOpen(true);
+  }
+
+  async function onChangeUserShop(userId: number, branchId: number) {
+    if (typeof tenant !== "string" || tenant.length === 0) return;
+
+    setShopBusyUserId(userId);
+    setError(null);
+    setStatus(null);
+
+    try {
+      const res = await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${userId}/shop`, {
+        method: "PATCH",
+        body: { branch_id: branchId },
+      });
+
+      setUsers((prev) => prev.map((u) => (u.id === userId ? res.user : u)));
+      setStatus("Shop updated.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to update shop.");
+      }
+    } finally {
+      setShopBusyUserId(null);
+    }
   }
 
   async function onChangeUserRole(userId: number, roleId: number) {
@@ -507,13 +576,41 @@ export default function TenantUsersPage() {
                     </select>
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium" htmlFor="user_branch">
+                      Shop
+                    </label>
+                    <select
+                      id="user_branch"
+                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                      value={newBranchId ?? ""}
+                      onChange={(e) => setNewBranchId(Number(e.target.value))}
+                      required
+                      disabled={busy || loading || branches.length === 0}
+                    >
+                      {branchOptions.map((b) => (
+                        <option key={b.id} value={b.id} disabled={!b.isActive}>
+                          {b.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-xs text-zinc-600">
+                      This user will only see and work within the selected shop.
+                    </div>
+                  </div>
+
                   <div>
-                    <Button type="submit" disabled={busy || loading || roles.length === 0}>
+                    <Button type="submit" disabled={busy || loading || roles.length === 0 || branches.length === 0}>
                       {busy ? "Saving..." : "Create user"}
                     </Button>
                     {roles.length === 0 ? (
                       <div className="mt-2 text-sm text-zinc-600">
                         Create a role first before adding users.
+                      </div>
+                    ) : null}
+                    {branches.length === 0 ? (
+                      <div className="mt-2 text-sm text-zinc-600">
+                        Create a shop first before adding users.
                       </div>
                     ) : null}
                   </div>
@@ -615,6 +712,32 @@ export default function TenantUsersPage() {
                         );
                       },
                       className: "whitespace-nowrap",
+                    },
+                    {
+                      id: "shop",
+                      header: "Shop",
+                      className: "whitespace-nowrap",
+                      cell: (u) => {
+                        const current = getUserShopId(u);
+                        const rowBusy = shopBusyUserId === u.id || busy || loading;
+
+                        return (
+                          <select
+                            className="h-9 max-w-[260px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-2.5 text-sm text-zinc-700"
+                            value={current ?? ""}
+                            onChange={(e) => void onChangeUserShop(u.id, Number(e.target.value))}
+                            disabled={rowBusy || branchOptions.length === 0}
+                            aria-label="Assign shop"
+                            title={rowBusy ? "Saving..." : branchLabelById.get(current ?? -1) ?? "Assign shop"}
+                          >
+                            {branchOptions.map((b) => (
+                              <option key={b.id} value={b.id} disabled={!b.isActive}>
+                                {b.label}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      },
                     },
                     {
                       id: "status",

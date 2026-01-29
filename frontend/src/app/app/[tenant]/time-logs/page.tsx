@@ -3,6 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -24,6 +25,10 @@ export default function TenantTimeLogsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
   const [jobs, setJobs] = React.useState<Job[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -66,6 +71,23 @@ export default function TenantTimeLogsPage() {
       };
     });
   }, [jobById, timeLogs]);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((r) => {
+      const jobCase = r.job?.case_number ?? r.timeLog.job_id;
+      const hay = `${r.timeLog.id} ${jobCase} ${r.timeLog.user_label}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [query, rows]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Row>>>(
     () => [
@@ -137,14 +159,36 @@ export default function TenantTimeLogsPage() {
       emptyTitle="No time logs"
       emptyDescription="Time entries created by technicians will show here."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Time Logs · ${tenantSlug}` : "Time Logs"}
-        data={rows}
-        loading={loading}
-        emptyMessage="No time logs."
-        columns={columns}
-        getRowId={(row) => row.timeLog.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Time Logs · ${tenantSlug}` : "Time Logs"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No time logs."
+            columns={columns}
+            getRowId={(row) => row.timeLog.id}
+            search={{
+              placeholder: "Search case, user, ID...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
@@ -19,7 +21,43 @@ export function DevicesBrandsSection({
   const [addFieldOpen, setAddFieldOpen] = useState(false);
   const d = draft.devicesBrands;
 
+  const [query, setQuery] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
   const fields = d.additionalDeviceFields;
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return fields;
+    return fields.filter((f) => `${f.id} ${f.label} ${f.key} ${f.required ? "required" : ""}`.toLowerCase().includes(needle));
+  }, [fields, query]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
+
+  const columns = React.useMemo<Array<DataTableColumn<RepairBuddyAdditionalDeviceField>>>(
+    () => [
+      { id: "label", header: "Label", cell: (f) => <div className="text-sm text-zinc-700">{f.label}</div>, className: "min-w-[200px]" },
+      { id: "key", header: "Key", cell: (f) => <div className="text-sm text-zinc-600">{f.key}</div>, className: "min-w-[200px]" },
+      { id: "required", header: "Required", cell: (f) => <div className="text-sm text-zinc-700">{f.required ? "Yes" : "No"}</div>, className: "whitespace-nowrap" },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: () => (
+          <Button size="sm" variant="outline" disabled={isMock}>
+            Edit
+          </Button>
+        ),
+        className: "whitespace-nowrap",
+      },
+    ],
+    [isMock],
+  );
 
   return (
     <SectionShell title="Devices & Brands" description="Device fields, labels and pickup/delivery/rental toggles.">
@@ -70,40 +108,33 @@ export function DevicesBrandsSection({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
-            <tr>
-              <th className="px-3 py-2 font-medium">Label</th>
-              <th className="px-3 py-2 font-medium">Key</th>
-              <th className="px-3 py-2 font-medium">Required</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fields.length === 0 ? (
-              <tr>
-                <td className="px-3 py-4 text-zinc-500" colSpan={4}>
-                  No additional fields yet.
-                </td>
-              </tr>
-            ) : (
-              fields.map((f) => (
-                <tr key={f.id} className="border-b border-[color:color-mix(in_srgb,var(--rb-border),transparent_30%)]">
-                  <td className="px-3 py-2">{f.label}</td>
-                  <td className="px-3 py-2 text-zinc-600">{f.key}</td>
-                  <td className="px-3 py-2">{f.required ? "Yes" : "No"}</td>
-                  <td className="px-3 py-2">
-                    <Button size="sm" variant="outline" disabled={isMock}>
-                      Edit
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title="Additional device fields"
+            data={pageRows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            emptyMessage="No additional fields yet."
+            search={{ placeholder: "Search fields..." }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <div>
         <div className="text-sm font-semibold text-[var(--rb-text)]">Pickup / Delivery</div>
