@@ -116,6 +116,21 @@ export default function TenantUsersPage() {
 
   const activeBranchOptions = useMemo(() => branchOptions.filter((b) => b.isActive), [branchOptions]);
 
+  const shopDropdownOptions = useMemo(() => {
+    const canManageBranches = auth.can("branches.manage");
+    if (canManageBranches) return activeBranchOptions;
+
+    const myBranchIds = new Set(
+      (Array.isArray(auth.user?.branches) ? auth.user?.branches : [])
+        .filter((b) => Boolean(b?.is_active))
+        .map((b) => b.id),
+    );
+
+    if (myBranchIds.size === 0) return [];
+
+    return activeBranchOptions.filter((b) => myBranchIds.has(b.id));
+  }, [activeBranchOptions, auth]);
+
   const filteredNewShopOptions = useMemo(() => {
     const q = newShopQuery.trim().toLowerCase();
     if (!q) return activeBranchOptions;
@@ -723,8 +738,11 @@ export default function TenantUsersPage() {
                       className: "min-w-[220px]",
                       cell: (u) => {
                         const shopId = getUserShopId(u);
-                        const effectiveShopId = shopId ?? activeBranchOptions[0]?.id ?? null;
-                        const disabled = busy || loading || shopBusyUserId === u.id || activeBranchOptions.length === 0;
+                        const effectiveShopId =
+                          typeof shopId === "number" && shopDropdownOptions.some((b) => b.id === shopId)
+                            ? shopId
+                            : shopDropdownOptions[0]?.id ?? null;
+                        const disabled = busy || loading || shopBusyUserId === u.id || shopDropdownOptions.length === 0;
                         return (
                           <select
                             className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-2 py-1 text-sm"
@@ -736,7 +754,7 @@ export default function TenantUsersPage() {
                             }}
                             disabled={disabled}
                           >
-                            {activeBranchOptions.map((b) => (
+                            {shopDropdownOptions.map((b) => (
                               <option key={b.id} value={b.id}>
                                 {b.label}
                               </option>

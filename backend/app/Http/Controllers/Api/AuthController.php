@@ -860,6 +860,14 @@ class AuthController extends Controller
 
         $actorUser = $actor instanceof User ? $actor : null;
 
+        if ($user instanceof User) {
+            $user->load(['branches:id,code,name,is_active']);
+        }
+
+        if ($actorUser instanceof User) {
+            $actorUser->load(['branches:id,code,name,is_active']);
+        }
+
         return response()->json([
             'user' => $user,
             'tenant' => $user?->tenant,
