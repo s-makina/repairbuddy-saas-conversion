@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 type JobStatusKey = string;
 
@@ -31,6 +31,7 @@ function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success
 }
 
 export default function TenantJobDetailPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string; jobId?: string };
   const tenantSlug = params.business ?? params.tenant;
   const jobId = params.jobId;
@@ -69,6 +70,12 @@ export default function TenantJobDetailPage() {
         setJob(res.job ?? null);
       } catch (e) {
         if (!alive) return;
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/jobs/${jobId}`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load job.");
         setJob(null);
       } finally {
@@ -82,7 +89,7 @@ export default function TenantJobDetailPage() {
     return () => {
       alive = false;
     };
-  }, [jobId, refreshKey]);
+  }, [jobId, refreshKey, router, tenantSlug]);
 
   async function postMessage() {
     setMessageError("Messaging will be enabled in EPIC 3.");

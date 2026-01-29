@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 type JobStatusKey = string;
 
@@ -74,6 +74,12 @@ export default function TenantJobsPage() {
         setStatusLabels(next);
       } catch (e) {
         if (!alive) return;
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/jobs`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load jobs.");
       } finally {
         if (!alive) return;
@@ -86,7 +92,7 @@ export default function TenantJobsPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const filtered = React.useMemo(() => {
     const needle = q.trim().toLowerCase();
