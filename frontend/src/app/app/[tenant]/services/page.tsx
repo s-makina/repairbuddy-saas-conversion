@@ -1,22 +1,29 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Service } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
+type ApiService = {
+  id: number;
+  name: string;
+  description: string | null;
+  base_price: { currency: string; amount_cents: number } | null;
+};
+
 export default function TenantServicesPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [services, setServices] = React.useState<Service[]>([]);
+  const [services, setServices] = React.useState<ApiService[]>([]);
   const [q, setQ] = React.useState("");
 
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -29,11 +36,23 @@ export default function TenantServicesPage() {
       try {
         setLoading(true);
         setError(null);
-        const res = await mockApi.listServices();
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const res = await apiFetch<{ services: ApiService[] }>(`/api/${tenantSlug}/app/repairbuddy/services`);
         if (!alive) return;
-        setServices(Array.isArray(res) ? res : []);
+        setServices(Array.isArray(res?.services) ? res.services : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/services`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load services.");
       } finally {
         if (!alive) return;
@@ -46,7 +65,7 @@ export default function TenantServicesPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const filtered = React.useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -61,7 +80,7 @@ export default function TenantServicesPage() {
     return filtered.slice(start, end);
   }, [filtered, pageIndex, pageSize]);
 
-  const columns = React.useMemo<Array<DataTableColumn<Service>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiService>>>(
     () => [
       {
         id: "name",

@@ -7,12 +7,20 @@ import { PortalShell } from "@/components/shells/PortalShell";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
-import { mockApi } from "@/mock/mockApi";
-import type { Job, JobId, JobStatusKey } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 
 type PortalSession = {
   jobId: string;
   caseNumber: string;
+};
+
+type ApiPortalTicket = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  status_label?: string | null;
+  updated_at: string;
 };
 
 function portalSessionKey(tenantSlug: string) {
@@ -34,7 +42,7 @@ function loadPortalSession(tenantSlug: string): PortalSession | null {
   }
 }
 
-function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
+function statusBadgeVariant(status: string): "default" | "info" | "success" | "warning" | "danger" {
   if (status === "delivered" || status === "completed") return "success";
   if (status === "ready") return "warning";
   if (status === "cancelled") return "danger";
@@ -49,8 +57,7 @@ export default function PortalTicketsPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [session, setSession] = React.useState<PortalSession | null>(null);
-  const [job, setJob] = React.useState<Job | null>(null);
-  const [statusLabels, setStatusLabels] = React.useState<Record<string, string>>({});
+  const [job, setJob] = React.useState<ApiPortalTicket | null>(null);
 
   React.useEffect(() => {
     let alive = true;
@@ -74,19 +81,20 @@ export default function PortalTicketsPage() {
           return;
         }
 
-        const [statuses, found] = await Promise.all([mockApi.getStatuses(), mockApi.getJob(s.jobId as JobId)]);
+        const res = await apiFetch<{ tickets: ApiPortalTicket[] }>(`/api/t/${tenantSlug}/portal/tickets?caseNumber=${encodeURIComponent(s.caseNumber)}`);
         if (!alive) return;
 
-        const nextLabels: Record<string, string> = {};
-        for (const st of Array.isArray(statuses) ? statuses : []) {
-          nextLabels[st.key] = st.label;
-        }
-        setStatusLabels(nextLabels);
-
+        const tickets = Array.isArray(res?.tickets) ? res.tickets : [];
+        const found = tickets.find((t) => String(t.id) === String(s.jobId)) ?? tickets[0] ?? null;
         setJob(found);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load tickets.");
+
+        if (e instanceof ApiError && e.status === 404) {
+          setError("We couldn’t find a ticket for your current session.");
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load tickets.");
+        }
         setJob(null);
       } finally {
         if (!alive) return;
@@ -133,7 +141,7 @@ export default function PortalTicketsPage() {
                   <div className="mt-1 text-sm text-zinc-600">{job.title}</div>
                   <div className="mt-2 text-xs text-zinc-500">Last updated: {new Date(job.updated_at).toLocaleString()}</div>
                 </div>
-                <Badge variant={statusBadgeVariant(job.status)}>{statusLabels[job.status] ?? job.status.replace(/_/g, " ")}</Badge>
+                <Badge variant={statusBadgeVariant(job.status)}>{job.status_label ?? job.status.replace(/_/g, " ")}</Badge>
               </div>
 
               <div className="mt-4">

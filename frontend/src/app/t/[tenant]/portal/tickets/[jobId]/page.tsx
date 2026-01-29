@@ -8,8 +8,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { mockApi } from "@/mock/mockApi";
-import type { Estimate, EstimateId, Job, JobId, JobStatusKey } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
 type PortalSession = {
@@ -44,6 +43,33 @@ function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success
   return "default";
 }
 
+type JobStatusKey = string;
+
+type ApiPortalTimelineEvent = {
+  id: string;
+  title: string;
+  type: string;
+  message?: string | null;
+  created_at: string;
+  visibility?: string;
+};
+
+type ApiPortalTicket = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  status_label?: string | null;
+  updated_at: string;
+  timeline: ApiPortalTimelineEvent[];
+};
+
+type Estimate = {
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  lines: Array<{ id: string; label: string; qty: number; unit_price: { currency: string; amount_cents: number } }>;
+};
+
 export default function PortalTicketDetailPage() {
   const params = useParams() as { tenant?: string; jobId?: string };
   const tenantSlug = typeof params.tenant === "string" ? params.tenant : "";
@@ -53,9 +79,8 @@ export default function PortalTicketDetailPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [session, setSession] = React.useState<PortalSession | null>(null);
 
-  const [job, setJob] = React.useState<Job | null>(null);
+  const [job, setJob] = React.useState<ApiPortalTicket | null>(null);
   const [estimate, setEstimate] = React.useState<Estimate | null>(null);
-  const [statusLabels, setStatusLabels] = React.useState<Record<string, string>>({});
 
   const [messageBody, setMessageBody] = React.useState("");
   const [messageBusy, setMessageBusy] = React.useState(false);
@@ -104,15 +129,16 @@ export default function PortalTicketDetailPage() {
           return;
         }
 
-        const [statuses, found] = await Promise.all([mockApi.getStatuses(), mockApi.getJob(jobId as JobId)]);
+        const res = await apiFetch<{ ticket: ApiPortalTicket }>(
+          `/api/t/${tenantSlug}/portal/tickets/${encodeURIComponent(jobId)}?caseNumber=${encodeURIComponent(s.caseNumber)}`,
+          {
+            token: null,
+            impersonationSessionId: null,
+          },
+        );
         if (!alive) return;
 
-        const nextLabels: Record<string, string> = {};
-        for (const st of Array.isArray(statuses) ? statuses : []) {
-          nextLabels[st.key] = st.label;
-        }
-        setStatusLabels(nextLabels);
-
+        const found = res?.ticket ?? null;
         if (!found) {
           setError("Ticket not found.");
           setJob(null);
@@ -121,17 +147,15 @@ export default function PortalTicketDetailPage() {
         }
 
         setJob(found);
-
-        if (found.estimate_id) {
-          const e = await mockApi.getEstimate(found.estimate_id as EstimateId);
-          if (!alive) return;
-          setEstimate(e);
-        } else {
-          setEstimate(null);
-        }
+        setEstimate(null);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load ticket.");
+
+        if (e instanceof ApiError && e.status === 404) {
+          setError("Ticket not found.");
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load ticket.");
+        }
         setJob(null);
         setEstimate(null);
       } finally {
@@ -149,7 +173,7 @@ export default function PortalTicketDetailPage() {
 
   const estimateTotalCents = React.useMemo(() => {
     if (!estimate) return 0;
-    return mockApi.computeEstimateTotalCents(estimate);
+    return estimate.lines.reduce((sum, line) => sum + line.qty * line.unit_price.amount_cents, 0);
   }, [estimate]);
 
   async function postMessage() {
@@ -160,33 +184,42 @@ export default function PortalTicketDetailPage() {
     setMessageBusy(true);
     setMessageError(null);
     try {
-      await mockApi.postJobMessage({
-        jobId: job.id,
-        author: "customer",
-        body,
+      await apiFetch<{ message: string; event_id: number }>(`/api/t/${tenantSlug}/status/${encodeURIComponent(job.case_number)}/message`, {
+        method: "POST",
+        body: { message: body },
+        token: null,
+        impersonationSessionId: null,
       });
       setMessageBody("");
       setRefreshKey((x) => x + 1);
     } catch (e) {
-      setMessageError(e instanceof Error ? e.message : "Failed to post message.");
+      if (e instanceof ApiError) {
+        setMessageError(e.message);
+      } else {
+        setMessageError(e instanceof Error ? e.message : "Failed to post message.");
+      }
     } finally {
       setMessageBusy(false);
     }
   }
 
   async function setEstimateStatus(status: "approved" | "rejected") {
-    if (!estimate) return;
     setEstimateBusy(true);
-    setEstimateError(null);
-    try {
-      await mockApi.setEstimateStatus({ estimateId: estimate.id, status });
-      setRefreshKey((x) => x + 1);
-    } catch (e) {
-      setEstimateError(e instanceof Error ? e.message : "Failed to update estimate.");
-    } finally {
-      setEstimateBusy(false);
-    }
+    setEstimateError("Estimates will be enabled in a later milestone.");
+    setEstimateBusy(false);
   }
+
+  const messageEvents = React.useMemo(() => {
+    const timeline = Array.isArray(job?.timeline) ? job.timeline : [];
+    return timeline
+      .filter((ev) => ev.type === "customer.message")
+      .map((ev) => ({
+        id: ev.id,
+        author: "customer" as const,
+        body: ev.message ?? "",
+        created_at: ev.created_at,
+      }));
+  }, [job?.timeline]);
 
   return (
     <PortalShell tenantSlug={tenantSlug} title="Ticket" subtitle={session?.caseNumber ? `Case ${session.caseNumber}` : ""}>
@@ -215,7 +248,7 @@ export default function PortalTicketDetailPage() {
                     <div className="mt-1 text-sm text-zinc-600">{job.title}</div>
                     <div className="mt-2 text-xs text-zinc-500">Last updated: {new Date(job.updated_at).toLocaleString()}</div>
                   </div>
-                  <Badge variant={statusBadgeVariant(job.status)}>{statusLabels[job.status] ?? job.status.replace(/_/g, " ")}</Badge>
+                  <Badge variant={statusBadgeVariant(job.status)}>{job.status_label ?? job.status.replace(/_/g, " ")}</Badge>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -242,6 +275,7 @@ export default function PortalTicketDetailPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{ev.title}</div>
+                            {ev.message ? <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{ev.message}</div> : null}
                             <div className="mt-1 text-xs text-zinc-500">{new Date(ev.created_at).toLocaleString()}</div>
                           </div>
                           <Badge variant="default">{ev.type}</Badge>
@@ -281,8 +315,8 @@ export default function PortalTicketDetailPage() {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  {job.messages.length === 0 ? <div className="text-sm text-zinc-600">No messages yet.</div> : null}
-                  {job.messages
+                  {messageEvents.length === 0 ? <div className="text-sm text-zinc-600">No messages yet.</div> : null}
+                  {messageEvents
                     .slice()
                     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
                     .map((m) => (
@@ -293,7 +327,7 @@ export default function PortalTicketDetailPage() {
                             <div className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{m.body}</div>
                             <div className="mt-2 text-xs text-zinc-500">{new Date(m.created_at).toLocaleString()}</div>
                           </div>
-                          <Badge variant={m.author === "staff" ? "info" : "default"}>{m.author}</Badge>
+                          <Badge variant="default">{m.author}</Badge>
                         </div>
                       </div>
                     ))}

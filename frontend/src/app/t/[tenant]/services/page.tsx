@@ -7,9 +7,15 @@ import { PublicPageShell } from "@/components/PublicPageShell";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { mockApi } from "@/mock/mockApi";
-import type { Service } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
+
+type ApiService = {
+  id: number;
+  name: string;
+  description: string | null;
+  base_price: { currency: string; amount_cents: number } | null;
+};
 
 export default function PublicServicesPage() {
   const params = useParams() as { tenant?: string };
@@ -17,7 +23,7 @@ export default function PublicServicesPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [services, setServices] = React.useState<Service[]>([]);
+  const [services, setServices] = React.useState<ApiService[]>([]);
 
   React.useEffect(() => {
     let alive = true;
@@ -26,12 +32,25 @@ export default function PublicServicesPage() {
       try {
         setLoading(true);
         setError(null);
-        const res = await mockApi.listServices();
+        if (!tenantSlug) {
+          setServices([]);
+          return;
+        }
+
+        const res = await apiFetch<{ services: ApiService[] }>(`/api/t/${tenantSlug}/services`, {
+          token: null,
+          impersonationSessionId: null,
+        });
         if (!alive) return;
-        setServices(Array.isArray(res) ? res : []);
+        setServices(Array.isArray(res?.services) ? res.services : []);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load services.");
+
+        if (e instanceof ApiError) {
+          setError(e.message);
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load services.");
+        }
         setServices([]);
       } finally {
         if (!alive) return;
@@ -44,7 +63,7 @@ export default function PublicServicesPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [tenantSlug]);
 
   return (
     <PublicPageShell

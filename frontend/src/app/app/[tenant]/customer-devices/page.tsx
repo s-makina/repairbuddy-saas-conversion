@@ -1,35 +1,66 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Client, CustomerDevice, Device, DeviceBrand, DeviceType } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+
+type ApiClient = {
+  id: number;
+  name: string;
+};
+
+type ApiDeviceBrand = {
+  id: number;
+  name: string;
+};
+
+type ApiDeviceType = {
+  id: number;
+  name: string;
+};
+
+type ApiDevice = {
+  id: number;
+  model: string;
+  device_type_id: number;
+  device_brand_id: number;
+};
+
+type ApiCustomerDevice = {
+  id: number;
+  customer_id: number;
+  device_id: number | null;
+  label: string;
+  serial: string | null;
+  notes: string | null;
+};
 
 type Row = {
-  customerDevice: CustomerDevice;
-  client: Client | null;
-  device: Device | null;
-  brand: DeviceBrand | null;
-  type: DeviceType | null;
+  customerDevice: ApiCustomerDevice;
+  client: ApiClient | null;
+  device: ApiDevice | null;
+  brand: ApiDeviceBrand | null;
+  type: ApiDeviceType | null;
 };
 
 export default function TenantCustomerDevicesPage() {
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [customerDevices, setCustomerDevices] = React.useState<CustomerDevice[]>([]);
-  const [clients, setClients] = React.useState<Client[]>([]);
-  const [devices, setDevices] = React.useState<Device[]>([]);
-  const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
-  const [types, setTypes] = React.useState<DeviceType[]>([]);
+  const [customerDevices, setCustomerDevices] = React.useState<ApiCustomerDevice[]>([]);
+  const [clients, setClients] = React.useState<ApiClient[]>([]);
+  const [devices, setDevices] = React.useState<ApiDevice[]>([]);
+  const [brands, setBrands] = React.useState<ApiDeviceBrand[]>([]);
+  const [types, setTypes] = React.useState<ApiDeviceType[]>([]);
 
   const [query, setQuery] = React.useState("");
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -42,21 +73,34 @@ export default function TenantCustomerDevicesPage() {
       try {
         setLoading(true);
         setError(null);
-        const [cd, c, d, b, t] = await Promise.all([
-          mockApi.listCustomerDevices(),
-          mockApi.listClients(),
-          mockApi.listDevices(),
-          mockApi.listDeviceBrands(),
-          mockApi.listDeviceTypes(),
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          throw new Error("Business is missing.");
+        }
+
+        const [cdRes, clientsRes, devicesRes, brandsRes, typesRes] = await Promise.all([
+          apiFetch<{ customer_devices: ApiCustomerDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/customer-devices`),
+          apiFetch<{ clients: ApiClient[] }>(`/api/${tenantSlug}/app/clients`),
+          apiFetch<{ devices: ApiDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/devices`),
+          apiFetch<{ device_brands: ApiDeviceBrand[] }>(`/api/${tenantSlug}/app/repairbuddy/device-brands`),
+          apiFetch<{ device_types: ApiDeviceType[] }>(`/api/${tenantSlug}/app/repairbuddy/device-types`),
         ]);
+
         if (!alive) return;
-        setCustomerDevices(Array.isArray(cd) ? cd : []);
-        setClients(Array.isArray(c) ? c : []);
-        setDevices(Array.isArray(d) ? d : []);
-        setBrands(Array.isArray(b) ? b : []);
-        setTypes(Array.isArray(t) ? t : []);
+        setCustomerDevices(Array.isArray(cdRes?.customer_devices) ? cdRes.customer_devices : []);
+        setClients(Array.isArray(clientsRes?.clients) ? clientsRes.clients : []);
+        setDevices(Array.isArray(devicesRes?.devices) ? devicesRes.devices : []);
+        setBrands(Array.isArray(brandsRes?.device_brands) ? brandsRes.device_brands : []);
+        setTypes(Array.isArray(typesRes?.device_types) ? typesRes.device_types : []);
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/customer-devices`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load customer devices.");
       } finally {
         if (!alive) return;
@@ -69,7 +113,7 @@ export default function TenantCustomerDevicesPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router, tenantSlug]);
 
   const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const deviceById = React.useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
@@ -78,10 +122,10 @@ export default function TenantCustomerDevicesPage() {
 
   const rows = React.useMemo<Row[]>(() => {
     return customerDevices.map((cd) => {
-      const client = clientById.get(cd.client_id) ?? null;
-      const device = deviceById.get(cd.device_id) ?? null;
-      const brand = device ? brandById.get(device.brand_id) ?? null : null;
-      const type = device ? typeById.get(device.type_id) ?? null : null;
+      const client = clientById.get(cd.customer_id) ?? null;
+      const device = typeof cd.device_id === "number" ? deviceById.get(cd.device_id) ?? null : null;
+      const brand = device ? brandById.get(device.device_brand_id) ?? null : null;
+      const type = device ? typeById.get(device.device_type_id) ?? null : null;
       return { customerDevice: cd, client, device, brand, type };
     });
   }, [brandById, clientById, customerDevices, deviceById, typeById]);
@@ -91,8 +135,8 @@ export default function TenantCustomerDevicesPage() {
     if (!needle) return rows;
 
     return rows.filter((r) => {
-      const label = r.device ? `${r.brand?.name ?? ""} ${r.device.model}`.trim() : r.customerDevice.device_id;
-      const hay = `${r.customerDevice.id} ${label} ${r.client?.name ?? ""} ${r.customerDevice.serial_number ?? ""}`.toLowerCase();
+      const label = r.device ? `${r.brand?.name ?? ""} ${r.device.model}`.trim() : r.customerDevice.label;
+      const hay = `${r.customerDevice.id} ${label} ${r.client?.name ?? ""} ${r.customerDevice.serial ?? ""}`.toLowerCase();
       return hay.includes(needle);
     });
   }, [query, rows]);
@@ -112,7 +156,7 @@ export default function TenantCustomerDevicesPage() {
         cell: (row) => (
           <div className="min-w-0">
             <div className="truncate font-semibold text-[var(--rb-text)]">
-              {row.device ? `${row.brand?.name ?? ""} ${row.device.model}`.trim() : row.customerDevice.device_id}
+              {row.device ? `${row.brand?.name ?? ""} ${row.device.model}`.trim() : row.customerDevice.label}
             </div>
             <div className="truncate text-xs text-zinc-600">{row.customerDevice.id}</div>
           </div>
@@ -122,7 +166,7 @@ export default function TenantCustomerDevicesPage() {
       {
         id: "client",
         header: "Client",
-        cell: (row) => <div className="text-sm text-zinc-700">{row.client?.name ?? row.customerDevice.client_id}</div>,
+        cell: (row) => <div className="text-sm text-zinc-700">{row.client?.name ?? row.customerDevice.customer_id}</div>,
         className: "min-w-[220px]",
       },
       {
@@ -134,7 +178,7 @@ export default function TenantCustomerDevicesPage() {
       {
         id: "serial",
         header: "Serial",
-        cell: (row) => <Badge variant="default">{row.customerDevice.serial_number ?? "—"}</Badge>,
+        cell: (row) => <Badge variant="default">{row.customerDevice.serial ?? "—"}</Badge>,
         className: "whitespace-nowrap",
       },
     ],

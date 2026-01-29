@@ -17,10 +17,20 @@ Route::prefix('t/{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant', 'branch.public'])
     ->group(function () {
+        Route::get('/services', [\App\Http\Controllers\Api\Public\RepairBuddyServicesController::class, 'index']);
+
         Route::prefix('status')->group(function () {
             Route::post('/lookup', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'lookup']);
             Route::post('/{caseNumber}/message', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'message'])
                 ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
+        });
+
+        Route::prefix('portal')->group(function () {
+            Route::get('/tickets', [\App\Http\Controllers\Api\Public\RepairBuddyPortalTicketsController::class, 'index']);
+            Route::get('/tickets/{jobId}', [\App\Http\Controllers\Api\Public\RepairBuddyPortalTicketsController::class, 'show'])
+                ->whereNumber('jobId');
+            Route::get('/devices', [\App\Http\Controllers\Api\Public\RepairBuddyPortalDevicesController::class, 'index']);
+            Route::get('/job-devices', [\App\Http\Controllers\Api\Public\RepairBuddyPortalJobDevicesController::class, 'index']);
         });
     });
 
@@ -341,6 +351,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::get('/job-statuses', [\App\Http\Controllers\Api\App\RepairBuddyJobStatusController::class, 'index']);
                     Route::get('/payment-statuses', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'index']);
 
+                    Route::get('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'index']);
+
                     Route::get('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'index']);
                     Route::post('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'store']);
                     Route::get('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'show'])->whereNumber('jobId');
@@ -348,6 +360,17 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
                     Route::get('/jobs/{jobId}/events', [\App\Http\Controllers\Api\App\RepairBuddyJobEventController::class, 'index'])->whereNumber('jobId');
                     Route::post('/jobs/{jobId}/events', [\App\Http\Controllers\Api\App\RepairBuddyJobEventController::class, 'store'])->whereNumber('jobId');
+
+                    Route::get('/jobs/{jobId}/devices', [\App\Http\Controllers\Api\App\RepairBuddyJobDeviceController::class, 'index'])->whereNumber('jobId');
+                    Route::post('/jobs/{jobId}/devices', [\App\Http\Controllers\Api\App\RepairBuddyJobDeviceController::class, 'store'])->whereNumber('jobId');
+                    Route::delete('/jobs/{jobId}/devices/{jobDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyJobDeviceController::class, 'destroy'])
+                        ->whereNumber('jobId')
+                        ->whereNumber('jobDeviceId');
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:customer_devices.view')->group(function () {
+                    Route::get('/customer-devices', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'index']);
+                    Route::post('/customer-devices', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'store']);
                 });
             });
         });

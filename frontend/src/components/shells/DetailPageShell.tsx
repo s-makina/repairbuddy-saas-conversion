@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
-export type DetailTabKey = "overview" | "timeline" | "messages" | "financial" | "print";
+export type DetailTabKey = "overview" | "devices" | "timeline" | "messages" | "financial" | "print";
 
 export function DetailPageShell({
   breadcrumb,
@@ -47,6 +47,7 @@ export function DetailPageShell({
       <Tabs defaultValue={defaultTab}>
         <TabsList>
           {tabs.overview !== undefined ? <TabsTrigger value="overview">Overview</TabsTrigger> : null}
+          {tabs.devices !== undefined ? <TabsTrigger value="devices">Devices</TabsTrigger> : null}
           {tabs.timeline !== undefined ? <TabsTrigger value="timeline">Timeline</TabsTrigger> : null}
           {tabs.messages !== undefined ? <TabsTrigger value="messages">Messages</TabsTrigger> : null}
           {tabs.financial !== undefined ? <TabsTrigger value="financial">Financial</TabsTrigger> : null}
@@ -54,6 +55,7 @@ export function DetailPageShell({
         </TabsList>
 
         {tabs.overview !== undefined ? <TabsContent value="overview">{tabs.overview}</TabsContent> : null}
+        {tabs.devices !== undefined ? <TabsContent value="devices">{tabs.devices}</TabsContent> : null}
         {tabs.timeline !== undefined ? <TabsContent value="timeline">{tabs.timeline}</TabsContent> : null}
         {tabs.messages !== undefined ? <TabsContent value="messages">{tabs.messages}</TabsContent> : null}
         {tabs.financial !== undefined ? <TabsContent value="financial">{tabs.financial}</TabsContent> : null}

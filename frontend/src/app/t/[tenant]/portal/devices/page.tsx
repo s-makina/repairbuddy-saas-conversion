@@ -6,12 +6,19 @@ import { PortalShell } from "@/components/shells/PortalShell";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
-import { mockApi } from "@/mock/mockApi";
-import type { CustomerDevice, Device, DeviceBrand, DeviceType, Job, JobId } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 
 type PortalSession = {
   jobId: string;
   caseNumber: string;
+};
+
+type ApiJobDevice = {
+  id: number;
+  customer_device_id: number;
+  label: string;
+  serial: string | null;
+  notes: string | null;
 };
 
 function portalSessionKey(tenantSlug: string) {
@@ -41,11 +48,8 @@ export default function PortalDevicesPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [session, setSession] = React.useState<PortalSession | null>(null);
 
-  const [job, setJob] = React.useState<Job | null>(null);
-  const [customerDevices, setCustomerDevices] = React.useState<CustomerDevice[]>([]);
-  const [devices, setDevices] = React.useState<Device[]>([]);
-  const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
-  const [types, setTypes] = React.useState<DeviceType[]>([]);
+  const [jobIdOk, setJobIdOk] = React.useState(false);
+  const [jobDevices, setJobDevices] = React.useState<ApiJobDevice[]>([]);
 
   React.useEffect(() => {
     let alive = true;
@@ -57,7 +61,8 @@ export default function PortalDevicesPage() {
 
         if (!tenantSlug) {
           setSession(null);
-          setJob(null);
+          setJobIdOk(false);
+          setJobDevices([]);
           return;
         }
 
@@ -65,28 +70,23 @@ export default function PortalDevicesPage() {
         setSession(s);
 
         if (!s) {
-          setJob(null);
+          setJobIdOk(false);
           return;
         }
 
-        const [j, cd, d, b, t] = await Promise.all([
-          mockApi.getJob(s.jobId as JobId),
-          mockApi.listCustomerDevices(),
-          mockApi.listDevices(),
-          mockApi.listDeviceBrands(),
-          mockApi.listDeviceTypes(),
-        ]);
+        const devicesRes = await apiFetch<{ devices: ApiJobDevice[] }>(`/api/t/${tenantSlug}/portal/job-devices?caseNumber=${encodeURIComponent(s.caseNumber)}`);
 
         if (!alive) return;
 
-        setJob(j);
-        setCustomerDevices(Array.isArray(cd) ? cd : []);
-        setDevices(Array.isArray(d) ? d : []);
-        setBrands(Array.isArray(b) ? b : []);
-        setTypes(Array.isArray(t) ? t : []);
+        setJobIdOk(true);
+        setJobDevices(Array.isArray(devicesRes?.devices) ? devicesRes.devices : []);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load devices.");
+        if (e instanceof ApiError && e.status === 404) {
+          setError("We couldn’t load your ticket.");
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load devices.");
+        }
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -100,28 +100,14 @@ export default function PortalDevicesPage() {
     };
   }, [tenantSlug]);
 
-  const deviceById = React.useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
-  const brandById = React.useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
-  const typeById = React.useMemo(() => new Map(types.map((t) => [t.id, t])), [types]);
-
   const myDevices = React.useMemo(() => {
-    if (!job) return [];
-    const ids = new Set(job.customer_device_ids);
-    return customerDevices
-      .filter((cd) => ids.has(cd.id))
-      .map((cd) => {
-        const dev = deviceById.get(cd.device_id) ?? null;
-        const brand = dev ? brandById.get(dev.brand_id) ?? null : null;
-        const type = dev ? typeById.get(dev.type_id) ?? null : null;
-        return {
-          id: cd.id,
-          label: dev ? `${brand?.name ?? ""} ${dev.model}`.trim() : cd.device_id,
-          type: type?.name ?? "—",
-          serial: cd.serial_number ?? "—",
-          notes: cd.notes ?? "",
-        };
-      });
-  }, [brandById, customerDevices, deviceById, job, typeById]);
+    return jobDevices.map((d) => ({
+      id: d.id,
+      label: d.label,
+      serial: d.serial ?? "—",
+      notes: d.notes ?? "",
+    }));
+  }, [jobDevices]);
 
   return (
     <PortalShell tenantSlug={tenantSlug} title="My Devices" subtitle="Devices linked to your tickets.">
@@ -140,13 +126,13 @@ export default function PortalDevicesPage() {
           </Alert>
         ) : null}
 
-        {!loading && !error && session && !job ? (
+        {!loading && !error && session && !jobIdOk ? (
           <Alert variant="warning" title="Ticket not found">
             We couldn’t load your ticket.
           </Alert>
         ) : null}
 
-        {!loading && !error && session && job && myDevices.length === 0 ? (
+        {!loading && !error && session && jobIdOk && myDevices.length === 0 ? (
           <Alert variant="info" title="No devices linked">
             This ticket doesn’t have any devices linked yet.
           </Alert>
@@ -160,7 +146,7 @@ export default function PortalDevicesPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{d.label}</div>
-                      <div className="mt-1 text-xs text-zinc-500">Type: {d.type} · Serial: {d.serial}</div>
+                      <div className="mt-1 text-xs text-zinc-500">Serial: {d.serial}</div>
                     </div>
                     <Badge variant="default">{d.id}</Badge>
                   </div>

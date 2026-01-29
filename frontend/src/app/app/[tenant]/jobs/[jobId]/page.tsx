@@ -18,8 +18,28 @@ type ApiJob = {
   title: string;
   status: JobStatusKey;
   updated_at: string;
+  customer_id: number | null;
   timeline: Array<{ id: string; title: string; type: string; message?: string | null; created_at: string }>;
   messages: Array<{ id: string; author: string; body: string; created_at: string }>;
+};
+
+type ApiJobDevice = {
+  id: number;
+  job_id: number;
+  customer_device_id: number;
+  label: string;
+  serial: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type ApiCustomerDevice = {
+  id: number;
+  customer_id: number;
+  device_id: number | null;
+  label: string;
+  serial: string | null;
+  notes: string | null;
 };
 
 function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success" | "warning" | "danger" {
@@ -49,6 +69,15 @@ export default function TenantJobDetailPage() {
   const [noteError, setNoteError] = React.useState<string | null>(null);
 
   const [refreshKey, setRefreshKey] = React.useState(0);
+
+  const [devicesLoading, setDevicesLoading] = React.useState(false);
+  const [devicesError, setDevicesError] = React.useState<string | null>(null);
+  const [jobDevices, setJobDevices] = React.useState<ApiJobDevice[]>([]);
+  const [customerDevices, setCustomerDevices] = React.useState<ApiCustomerDevice[]>([]);
+
+  const [attachId, setAttachId] = React.useState<string>("");
+  const [attachBusy, setAttachBusy] = React.useState(false);
+  const [attachError, setAttachError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let alive = true;
@@ -95,8 +124,140 @@ export default function TenantJobDetailPage() {
     };
   }, [jobId, refreshKey, router, tenantSlug]);
 
+  React.useEffect(() => {
+    let alive = true;
+
+    async function loadDevices() {
+      try {
+        setDevicesLoading(true);
+        setDevicesError(null);
+
+        if (!jobId) {
+          setJobDevices([]);
+          setCustomerDevices([]);
+          return;
+        }
+
+        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+          setJobDevices([]);
+          setCustomerDevices([]);
+          return;
+        }
+
+        if (!job) {
+          setJobDevices([]);
+          setCustomerDevices([]);
+          return;
+        }
+
+        const jobDevicesRes = await apiFetch<{ job_devices: ApiJobDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/jobs/${jobId}/devices`);
+        if (!alive) return;
+        setJobDevices(Array.isArray(jobDevicesRes?.job_devices) ? jobDevicesRes.job_devices : []);
+
+        if (typeof job.customer_id !== "number") {
+          setCustomerDevices([]);
+          return;
+        }
+
+        const customerDevicesRes = await apiFetch<{ customer_devices: ApiCustomerDevice[] }>(
+          `/api/${tenantSlug}/app/repairbuddy/customer-devices?customer_id=${encodeURIComponent(String(job.customer_id))}`,
+        );
+        if (!alive) return;
+        setCustomerDevices(Array.isArray(customerDevicesRes?.customer_devices) ? customerDevicesRes.customer_devices : []);
+      } catch (e) {
+        if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
+          const next = `/app/${tenantSlug}/jobs/${jobId}`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
+        setDevicesError(e instanceof Error ? e.message : "Failed to load devices.");
+        setJobDevices([]);
+        setCustomerDevices([]);
+      } finally {
+        if (!alive) return;
+        setDevicesLoading(false);
+      }
+    }
+
+    void loadDevices();
+
+    return () => {
+      alive = false;
+    };
+  }, [job, jobId, refreshKey, router, tenantSlug]);
+
   async function postMessage() {
     setMessageError("Messaging will be enabled in EPIC 3.");
+  }
+
+  async function attachDevice() {
+    setAttachError(null);
+
+    if (!attachId || attachId.trim().length === 0) {
+      setAttachError("Select a customer device.");
+      return;
+    }
+
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+      setAttachError("Business is missing.");
+      return;
+    }
+
+    if (!jobId) {
+      setAttachError("Job ID is missing.");
+      return;
+    }
+
+    setAttachBusy(true);
+    try {
+      await apiFetch<{ job_device: unknown }>(`/api/${tenantSlug}/app/repairbuddy/jobs/${jobId}/devices`, {
+        method: "POST",
+        body: { customer_device_id: Number(attachId) },
+      });
+      setAttachId("");
+      setRefreshKey((x) => x + 1);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setAttachError(e.message);
+      } else {
+        setAttachError(e instanceof Error ? e.message : "Failed to attach device.");
+      }
+    } finally {
+      setAttachBusy(false);
+    }
+  }
+
+  async function detachDevice(jobDeviceId: number) {
+    setAttachError(null);
+
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
+      setAttachError("Business is missing.");
+      return;
+    }
+
+    if (!jobId) {
+      setAttachError("Job ID is missing.");
+      return;
+    }
+
+    setAttachBusy(true);
+    try {
+      await apiFetch<{ message: string }>(`/api/${tenantSlug}/app/repairbuddy/jobs/${jobId}/devices/${jobDeviceId}`, {
+        method: "DELETE",
+      });
+      setRefreshKey((x) => x + 1);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setAttachError(e.message);
+      } else {
+        setAttachError(e instanceof Error ? e.message : "Failed to detach device.");
+      }
+    } finally {
+      setAttachBusy(false);
+    }
   }
 
   async function postInternalNote() {
@@ -189,6 +350,74 @@ export default function TenantJobDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+            ),
+            devices: (
+              <div className="space-y-4">
+                {devicesError ? (
+                  <Alert variant="danger" title="Could not load devices">
+                    {devicesError}
+                  </Alert>
+                ) : null}
+
+                {attachError ? (
+                  <Alert variant="danger" title="Could not update devices">
+                    {attachError}
+                  </Alert>
+                ) : null}
+
+                {devicesLoading ? <div className="text-sm text-zinc-500">Loading devices...</div> : null}
+
+                <Card className="shadow-none">
+                  <CardContent className="pt-5">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Attach customer device</div>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <select
+                        value={attachId}
+                        onChange={(e) => setAttachId(e.target.value)}
+                        disabled={attachBusy || customerDevices.length === 0}
+                        className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                      >
+                        <option value="">Select a customer device...</option>
+                        {customerDevices.map((d) => (
+                          <option key={d.id} value={String(d.id)}>
+                            {d.label}{d.serial ? ` (Serial: ${d.serial})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <Button onClick={() => void attachDevice()} disabled={attachBusy || attachId.trim().length === 0}>
+                        {attachBusy ? "Saving..." : "Attach"}
+                      </Button>
+                    </div>
+                    {customerDevices.length === 0 ? <div className="mt-2 text-xs text-zinc-500">No customer devices available for this job.</div> : null}
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-none">
+                  <CardContent className="pt-5">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Attached devices</div>
+                    <div className="mt-4 space-y-3">
+                      {jobDevices.length === 0 ? <div className="text-sm text-zinc-600">No devices attached.</div> : null}
+                      {jobDevices.map((d) => (
+                        <div key={d.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{d.label}</div>
+                              <div className="mt-1 text-xs text-zinc-500">Serial: {d.serial ?? "—"}</div>
+                              {d.notes ? <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{d.notes}</div> : null}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="default">{d.customer_device_id}</Badge>
+                              <Button variant="outline" size="sm" onClick={() => void detachDevice(d.id)} disabled={attachBusy}>
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             ),
             timeline: (
               <div className="space-y-4">

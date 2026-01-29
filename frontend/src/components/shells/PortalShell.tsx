@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
-import { mockApi } from "@/mock/mockApi";
+import { apiFetch, ApiError } from "@/lib/api";
 
 type PortalNavItem = {
   label: string;
@@ -30,6 +30,11 @@ type PortalSession = {
   case_number: string;
   job_id: string;
   unlocked_at: string;
+};
+
+type ApiLookupJob = {
+  id: number;
+  case_number: string;
 };
 
 function portalSessionKey(tenantSlug: string) {
@@ -102,7 +107,14 @@ export function PortalShell({ tenantSlug, title, subtitle, actions, children }: 
           return;
         }
 
-        const job = await mockApi.getJobByCaseNumber(existing.case_number);
+        const res = await apiFetch<{ job: ApiLookupJob }>(`/api/t/${tenantSlug}/status/lookup`, {
+          method: "POST",
+          body: { caseNumber: existing.case_number },
+          token: null,
+          impersonationSessionId: null,
+        });
+
+        const job = res?.job ?? null;
         if (!alive) return;
         if (!job) {
           clearPortalSession(tenantSlug);
@@ -113,10 +125,10 @@ export function PortalShell({ tenantSlug, title, subtitle, actions, children }: 
         setSession({
           tenant: tenantSlug,
           case_number: job.case_number,
-          job_id: job.id,
+          job_id: String(job.id),
           unlocked_at: existing.unlocked_at,
         });
-      } catch {
+      } catch (e) {
         if (!alive) return;
         setSession(null);
       } finally {
@@ -145,22 +157,35 @@ export function PortalShell({ tenantSlug, title, subtitle, actions, children }: 
     setUnlockBusy(true);
     setUnlockError(null);
     try {
-      const job = await mockApi.getJobByCaseNumber(normalized);
+      const res = await apiFetch<{ job: ApiLookupJob }>(`/api/t/${tenantSlug}/status/lookup`, {
+        method: "POST",
+        body: { caseNumber: normalized },
+        token: null,
+        impersonationSessionId: null,
+      });
+
+      const job = res?.job ?? null;
+
       if (!job) {
         setUnlockError("Case number not found.");
         return;
       }
+
       const next: PortalSession = {
         tenant: tenantSlug,
         case_number: job.case_number,
-        job_id: job.id,
+        job_id: String(job.id),
         unlocked_at: new Date().toISOString(),
       };
       savePortalSession(tenantSlug, next);
       setSession(next);
       setCaseNumberInput("");
     } catch (e) {
-      setUnlockError(e instanceof Error ? e.message : "Could not unlock portal.");
+      if (e instanceof ApiError && e.status === 404) {
+        setUnlockError("Case number not found.");
+      } else {
+        setUnlockError(e instanceof Error ? e.message : "Could not unlock portal.");
+      }
     } finally {
       setUnlockBusy(false);
       setCheckingSession(false);
