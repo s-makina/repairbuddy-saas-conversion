@@ -3,6 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -15,6 +16,10 @@ export default function TenantDeviceTypesPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [types, setTypes] = React.useState<DeviceType[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -41,6 +46,19 @@ export default function TenantDeviceTypesPage() {
       alive = false;
     };
   }, []);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return types;
+    return types.filter((t) => `${t.id} ${t.name}`.toLowerCase().includes(needle));
+  }, [query, types]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<DeviceType>>>(
     () => [
@@ -74,14 +92,36 @@ export default function TenantDeviceTypesPage() {
       emptyTitle="No device types"
       emptyDescription="Add types to categorize devices."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Device Types · ${tenantSlug}` : "Device Types"}
-        data={types}
-        loading={loading}
-        emptyMessage="No device types."
-        columns={columns}
-        getRowId={(row) => row.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Device Types · ${tenantSlug}` : "Device Types"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No device types."
+            columns={columns}
+            getRowId={(row) => row.id}
+            search={{
+              placeholder: "Search types...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

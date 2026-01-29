@@ -440,8 +440,8 @@ export default function TenantUsersPage() {
           }}
         />
 
-        <div className="grid gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-4">
+        <div className="space-y-6">
+          <div>
             <Card className="shadow-none">
               <CardContent className="pt-5">
                 <div className="text-sm font-semibold text-[var(--rb-text)]">Create user</div>
@@ -522,7 +522,7 @@ export default function TenantUsersPage() {
             </Card>
           </div>
 
-          <div className="lg:col-span-8">
+          <div>
             <Card className="shadow-none">
               <CardContent className="pt-5">
                 <DataTable

@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -25,6 +26,10 @@ export default function TenantPaymentsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [jobs, setJobs] = React.useState<Job[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -54,6 +59,23 @@ export default function TenantPaymentsPage() {
   }, []);
 
   const jobById = React.useMemo(() => new Map(jobs.map((j) => [j.id, j])), [jobs]);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return payments;
+    return payments.filter((p) => {
+      const jobCase = jobById.get(p.job_id)?.case_number ?? "";
+      const hay = `${p.id} ${p.job_id} ${jobCase} ${p.method} ${p.status}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [jobById, payments, query]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Payment>>>(
     () => [
@@ -115,14 +137,36 @@ export default function TenantPaymentsPage() {
       emptyTitle="No payments"
       emptyDescription="Payments recorded against jobs will show here."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Payments · ${tenantSlug}` : "Payments"}
-        data={payments}
-        loading={loading}
-        emptyMessage="No payments."
-        columns={columns}
-        getRowId={(row) => row.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Payments · ${tenantSlug}` : "Payments"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No payments."
+            columns={columns}
+            getRowId={(row) => row.id}
+            search={{
+              placeholder: "Search payments...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

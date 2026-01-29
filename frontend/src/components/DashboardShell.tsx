@@ -43,6 +43,7 @@ function MenuIcon({
     | "home"
     | "admin"
     | "dashboard"
+    | "building"
     | "calendar"
     | "wrench"
     | "file"
@@ -80,6 +81,19 @@ function MenuIcon({
         <svg {...commonProps} className={cn(common, base, className)}>
           <path d="M3 11l9-8 9 8" />
           <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+        </svg>
+      );
+    case "building":
+      return (
+        <svg {...commonProps} className={cn(common, base, className)}>
+          <path d="M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14" />
+          <path d="M9 9h.01" />
+          <path d="M15 9h.01" />
+          <path d="M9 13h.01" />
+          <path d="M15 13h.01" />
+          <path d="M9 17h.01" />
+          <path d="M15 17h.01" />
+          <path d="M8 21v-4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v4" />
         </svg>
       );
     case "admin":
@@ -365,17 +379,6 @@ export function DashboardShell({
   const activeBranch = React.useMemo(() => {
     return branches.find((x) => x.id === activeBranchId) ?? null;
   }, [activeBranchId, branches]);
-
-  const activeBranchInitials = React.useMemo(() => {
-    const seed = (activeBranch?.code || activeBranch?.name || "S").trim();
-    if (!seed) return "S";
-    const parts = seed.split(/\s+/).filter(Boolean);
-    const letters = (parts.length > 1 ? parts.slice(0, 2).map((p) => p[0]) : [seed[0], seed[1]])
-      .filter(Boolean)
-      .join("")
-      .toUpperCase();
-    return letters.slice(0, 2) || "S";
-  }, [activeBranch?.code, activeBranch?.name]);
 
   async function switchBranch(branchId: number) {
     if (!tenantSlug) return;
@@ -940,8 +943,8 @@ export function DashboardShell({
                                 onClick={toggle}
                                 disabled={disabled}
                                 className={cn(
-                                  "group inline-flex h-10 max-w-[280px] items-center gap-2 rounded-[var(--rb-radius-sm)] border px-3",
-                                  "bg-white text-zinc-700 border-[var(--rb-border)]",
+                                  "group inline-flex h-9 max-w-[320px] items-center gap-2.5 rounded-[var(--rb-radius-sm)] border px-2.5",
+                                  "bg-white text-zinc-700 border-zinc-200",
                                   "hover:bg-[var(--rb-surface-muted)]",
                                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-orange)]",
                                   disabled ? "pointer-events-none opacity-60" : "",
@@ -950,20 +953,14 @@ export function DashboardShell({
                                 aria-expanded={open}
                                 aria-label="Active shop"
                               >
-                                <Avatar
-                                  src={null}
-                                  alt={activeBranch?.name || "Shop"}
-                                  fallback={activeBranchInitials}
-                                  size={28}
-                                  className="bg-[var(--rb-blue)] text-white ring-0"
-                                />
+                                <MenuIcon name="building" className="h-4 w-4 text-zinc-500" />
                                 <span className="min-w-0 flex-1 text-left">
+                                  <span className="block truncate text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                                    Shop
+                                  </span>
                                   <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">
                                     {activeBranch?.name || activeBranchLabel}
                                   </span>
-                                  {activeBranch?.code ? (
-                                    <span className="block truncate text-[11px] font-medium text-zinc-500">{activeBranch.code}</span>
-                                  ) : null}
                                 </span>
                                 <ChevronDownIcon className={cn("text-zinc-500 transition-transform", open ? "rotate-180" : "rotate-0")} />
                               </button>

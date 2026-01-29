@@ -4,6 +4,7 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -19,6 +20,9 @@ export default function TenantClientsPage() {
   const [clients, setClients] = React.useState<Client[]>([]);
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [q, setQ] = React.useState<string>("");
+
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -63,6 +67,13 @@ export default function TenantClientsPage() {
       return hay.includes(needle);
     });
   }, [clients, q]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Client>>>(
     () => [
@@ -131,18 +142,37 @@ export default function TenantClientsPage() {
       emptyTitle="No clients found"
       emptyDescription="Try adjusting your search."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Clients · ${tenantSlug}` : "Clients"}
-        data={filtered}
-        loading={loading}
-        emptyMessage="No clients."
-        columns={columns}
-        getRowId={(row) => row.id}
-        onRowClick={(row) => {
-          if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-          router.push(`/app/${tenantSlug}/clients/${row.id}`);
-        }}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Clients · ${tenantSlug}` : "Clients"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No clients."
+            columns={columns}
+            getRowId={(row) => row.id}
+            server={{
+              query: q,
+              onQueryChange: (value) => {
+                setQ(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+            onRowClick={(row) => {
+              if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+              router.push(`/app/${tenantSlug}/clients/${row.id}`);
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

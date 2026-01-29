@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -29,6 +30,10 @@ export default function TenantCustomerDevicesPage() {
   const [devices, setDevices] = React.useState<Device[]>([]);
   const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
   const [types, setTypes] = React.useState<DeviceType[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -80,6 +85,24 @@ export default function TenantCustomerDevicesPage() {
       return { customerDevice: cd, client, device, brand, type };
     });
   }, [brandById, clientById, customerDevices, deviceById, typeById]);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return rows;
+
+    return rows.filter((r) => {
+      const label = r.device ? `${r.brand?.name ?? ""} ${r.device.model}`.trim() : r.customerDevice.device_id;
+      const hay = `${r.customerDevice.id} ${label} ${r.client?.name ?? ""} ${r.customerDevice.serial_number ?? ""}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [query, rows]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Row>>>(
     () => [
@@ -133,14 +156,36 @@ export default function TenantCustomerDevicesPage() {
       emptyTitle="No customer devices"
       emptyDescription="Customer devices will appear when linked to clients."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Customer Devices · ${tenantSlug}` : "Customer Devices"}
-        data={rows}
-        loading={loading}
-        emptyMessage="No customer devices."
-        columns={columns}
-        getRowId={(row) => row.customerDevice.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Customer Devices · ${tenantSlug}` : "Customer Devices"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No customer devices."
+            columns={columns}
+            getRowId={(row) => row.customerDevice.id}
+            search={{
+              placeholder: "Search devices, clients, serial...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

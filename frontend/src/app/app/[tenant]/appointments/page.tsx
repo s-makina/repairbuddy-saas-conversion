@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -22,6 +23,10 @@ export default function TenantAppointmentsPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -48,6 +53,23 @@ export default function TenantAppointmentsPage() {
       alive = false;
     };
   }, []);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return appointments;
+
+    return appointments.filter((a) => {
+      const hay = `${a.id} ${a.client_name} ${a.client_email ?? ""} ${a.client_phone ?? ""}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [appointments, query]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Appointment>>>(
     () => [
@@ -104,14 +126,36 @@ export default function TenantAppointmentsPage() {
       emptyTitle="No appointments"
       emptyDescription="Appointments created from booking flows will show here."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Appointments · ${tenantSlug}` : "Appointments"}
-        data={appointments}
-        loading={loading}
-        emptyMessage="No appointments."
-        columns={columns}
-        getRowId={(row) => row.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Appointments · ${tenantSlug}` : "Appointments"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No appointments."
+            columns={columns}
+            getRowId={(row) => row.id}
+            search={{
+              placeholder: "Search by name or ID...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

@@ -3,6 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -18,6 +19,10 @@ export default function TenantDevicesPage() {
   const [devices, setDevices] = React.useState<Device[]>([]);
   const [brands, setBrands] = React.useState<DeviceBrand[]>([]);
   const [types, setTypes] = React.useState<DeviceType[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -49,6 +54,25 @@ export default function TenantDevicesPage() {
 
   const brandById = React.useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
   const typeById = React.useMemo(() => new Map(types.map((t) => [t.id, t])), [types]);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return devices;
+
+    return devices.filter((d) => {
+      const brand = brandById.get(d.brand_id)?.name ?? d.brand_id;
+      const type = typeById.get(d.type_id)?.name ?? d.type_id;
+      const hay = `${d.id} ${d.model} ${brand} ${type}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [brandById, devices, query, typeById]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Device>>>(
     () => [
@@ -94,14 +118,36 @@ export default function TenantDevicesPage() {
       emptyTitle="No devices"
       emptyDescription="Add device models to standardize intake and quoting."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
-        data={devices}
-        loading={loading}
-        emptyMessage="No devices."
-        columns={columns}
-        getRowId={(row) => row.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No devices."
+            columns={columns}
+            getRowId={(row) => row.id}
+            search={{
+              placeholder: "Search devices...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

@@ -4,6 +4,7 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -27,6 +28,9 @@ export default function TenantEstimatesPage() {
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [clients, setClients] = React.useState<Client[]>([]);
   const [q, setQ] = React.useState<string>("");
+
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -82,6 +86,13 @@ export default function TenantEstimatesPage() {
       return hay.includes(needle);
     });
   }, [clientById, estimates, jobById, q]);
+
+  const totalRows = rows.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return rows.slice(start, end);
+  }, [pageIndex, pageSize, rows]);
 
   const columns = React.useMemo<
     Array<
@@ -160,18 +171,37 @@ export default function TenantEstimatesPage() {
       emptyTitle="No estimates found"
       emptyDescription="Try adjusting your search."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Estimates · ${tenantSlug}` : "Estimates"}
-        data={rows}
-        loading={loading}
-        emptyMessage="No estimates."
-        columns={columns}
-        getRowId={(row) => row.estimate.id}
-        onRowClick={(row) => {
-          if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-          router.push(`/app/${tenantSlug}/estimates/${row.estimate.id}`);
-        }}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Estimates · ${tenantSlug}` : "Estimates"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No estimates."
+            columns={columns}
+            getRowId={(row) => row.estimate.id}
+            server={{
+              query: q,
+              onQueryChange: (value) => {
+                setQ(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+            onRowClick={(row) => {
+              if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+              router.push(`/app/${tenantSlug}/estimates/${row.estimate.id}`);
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }

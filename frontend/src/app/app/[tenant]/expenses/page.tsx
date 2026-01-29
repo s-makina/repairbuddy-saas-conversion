@@ -3,6 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { mockApi } from "@/mock/mockApi";
@@ -18,6 +19,10 @@ export default function TenantExpensesPage() {
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [categories, setCategories] = React.useState<ExpenseCategory[]>([]);
+
+  const [query, setQuery] = React.useState("");
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   React.useEffect(() => {
     let alive = true;
@@ -49,6 +54,25 @@ export default function TenantExpensesPage() {
 
   const jobById = React.useMemo(() => new Map(jobs.map((j) => [j.id, j])), [jobs]);
   const catById = React.useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+
+  const filtered = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return expenses;
+
+    return expenses.filter((e) => {
+      const jobCase = e.job_id ? (jobById.get(e.job_id)?.case_number ?? e.job_id) : "";
+      const catName = e.category_id ? (catById.get(e.category_id)?.name ?? e.category_id) : "";
+      const hay = `${e.id} ${e.label} ${jobCase} ${catName}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [catById, expenses, jobById, query]);
+
+  const totalRows = filtered.length;
+  const pageRows = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, pageIndex, pageSize]);
 
   const columns = React.useMemo<Array<DataTableColumn<Expense>>>(
     () => [
@@ -110,14 +134,36 @@ export default function TenantExpensesPage() {
       emptyTitle="No expenses"
       emptyDescription="Expenses can be linked to jobs and categories."
     >
-      <DataTable
-        title={typeof tenantSlug === "string" ? `Expenses · ${tenantSlug}` : "Expenses"}
-        data={expenses}
-        loading={loading}
-        emptyMessage="No expenses."
-        columns={columns}
-        getRowId={(row) => row.id}
-      />
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <DataTable
+            title={typeof tenantSlug === "string" ? `Expenses · ${tenantSlug}` : "Expenses"}
+            data={pageRows}
+            loading={loading}
+            emptyMessage="No expenses."
+            columns={columns}
+            getRowId={(row) => row.id}
+            search={{
+              placeholder: "Search expenses...",
+            }}
+            server={{
+              query,
+              onQueryChange: (value) => {
+                setQuery(value);
+                setPageIndex(0);
+              },
+              pageIndex,
+              onPageIndexChange: setPageIndex,
+              pageSize,
+              onPageSizeChange: (value) => {
+                setPageSize(value);
+                setPageIndex(0);
+              },
+              totalRows,
+            }}
+          />
+        </CardContent>
+      </Card>
     </ListPageShell>
   );
 }
