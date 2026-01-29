@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -29,6 +29,21 @@ export function JobStatusesSection({
 
   const statuses = draft.jobStatuses.statuses;
   const statusOptions = useMemo(() => statuses.map((s) => ({ id: s.id, name: s.name })), [statuses]);
+
+  const toggleActive = useCallback(
+    (id: string) => {
+      setDraft((prev) => ({
+        ...prev,
+        jobStatuses: {
+          ...prev.jobStatuses,
+          statuses: prev.jobStatuses.statuses.map((s) =>
+            s.id === id ? { ...s, status: s.status === "active" ? "inactive" : "active" } : s,
+          ),
+        },
+      }));
+    },
+    [setDraft],
+  );
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -72,16 +87,6 @@ export function JobStatusesSection({
     ],
     [isMock, toggleActive],
   );
-
-  function toggleActive(id: string) {
-    setDraft((prev) => ({
-      ...prev,
-      jobStatuses: {
-        ...prev.jobStatuses,
-        statuses: prev.jobStatuses.statuses.map((s) => (s.id === id ? { ...s, status: s.status === "active" ? "inactive" : "active" } : s)),
-      },
-    }));
-  }
 
   return (
     <SectionShell title="Job Statuses" description="Manage job lifecycle statuses. (UI-only; actions disabled)">

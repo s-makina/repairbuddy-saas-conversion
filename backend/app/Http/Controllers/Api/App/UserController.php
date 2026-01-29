@@ -292,7 +292,8 @@ class UserController extends Controller
                 PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
             ],
             'role_id' => ['required', 'integer'],
-            'branch_id' => ['required', 'integer'],
+            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids.*' => ['integer'],
         ]);
 
         $role = Role::query()->where('tenant_id', $tenantId)->where('id', $validated['role_id'])->first();
@@ -303,13 +304,21 @@ class UserController extends Controller
             ], 422);
         }
 
-        $branchId = (int) $validated['branch_id'];
+        $branchIds = array_values(array_unique(array_map('intval', $validated['branch_ids'])));
 
-        $branch = Branch::query()->whereKey($branchId)->first();
+        $validBranchIds = Branch::query()
+            ->where('is_active', true)
+            ->whereIn('id', $branchIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
-        if (! $branch || ! $branch->is_active) {
+        sort($branchIds);
+        sort($validBranchIds);
+
+        if (count($branchIds) === 0 || $branchIds !== $validBranchIds) {
             return response()->json([
-                'message' => 'Shop is invalid.',
+                'message' => 'Shop selection is invalid.',
             ], 422);
         }
 
@@ -325,9 +334,12 @@ class UserController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        $user->branches()->sync([
-            $branch->id => ['tenant_id' => $tenantId],
-        ]);
+        $sync = [];
+        foreach ($validBranchIds as $id) {
+            $sync[$id] = ['tenant_id' => $tenantId];
+        }
+
+        $user->branches()->sync($sync);
 
         return response()->json([
             'user' => $user->load(['roleModel', 'branches:id,code,name,is_active']),
@@ -340,21 +352,34 @@ class UserController extends Controller
         $this->ensureTenantUser($user);
 
         $validated = $request->validate([
-            'branch_id' => ['required', 'integer'],
+            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids.*' => ['integer'],
         ]);
 
-        $branchId = (int) $validated['branch_id'];
-        $branch = Branch::query()->whereKey($branchId)->first();
+        $branchIds = array_values(array_unique(array_map('intval', $validated['branch_ids'])));
 
-        if (! $branch || ! $branch->is_active) {
+        $validBranchIds = Branch::query()
+            ->where('is_active', true)
+            ->whereIn('id', $branchIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        sort($branchIds);
+        sort($validBranchIds);
+
+        if (count($branchIds) === 0 || $branchIds !== $validBranchIds) {
             return response()->json([
-                'message' => 'Shop is invalid.',
+                'message' => 'Shop selection is invalid.',
             ], 422);
         }
 
-        $user->branches()->sync([
-            $branch->id => ['tenant_id' => $tenantId],
-        ]);
+        $sync = [];
+        foreach ($validBranchIds as $id) {
+            $sync[$id] = ['tenant_id' => $tenantId];
+        }
+
+        $user->branches()->sync($sync);
 
         return response()->json([
             'user' => $user->load(['roleModel', 'branches:id,code,name,is_active']),
@@ -390,6 +415,7 @@ class UserController extends Controller
 
     public function update(Request $request, string $tenant, User $user)
     {
+        $tenantId = TenantContext::tenantId();
         $this->ensureTenantUser($user);
 
         $validated = $request->validate([

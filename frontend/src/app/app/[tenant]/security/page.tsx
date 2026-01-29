@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import QRCode from "react-qr-code";
@@ -107,12 +108,18 @@ export default function SecurityPage() {
   const [complianceLoading, setComplianceLoading] = useState(false);
   const [complianceError, setComplianceError] = useState<string | null>(null);
 
+  const [complianceQuery, setComplianceQuery] = useState("");
+  const [compliancePageIndex, setCompliancePageIndex] = useState(0);
+  const [compliancePageSize, setCompliancePageSize] = useState(10);
+
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [auditType, setAuditType] = useState<string>("");
   const [auditPage, setAuditPage] = useState<number>(1);
+  const [auditPageSize, setAuditPageSize] = useState<number>(25);
   const [auditTotalPages, setAuditTotalPages] = useState<number>(1);
+  const [auditTotalRows, setAuditTotalRows] = useState<number>(0);
 
   const [setup, setSetup] = useState<OtpSetupPayload | null>(null);
   const [code, setCode] = useState("");
@@ -194,16 +201,114 @@ export default function SecurityPage() {
     const qs = new URLSearchParams();
     if (auditType.trim().length > 0) qs.set("type", auditType.trim());
     qs.set("page", String(auditPage));
-    qs.set("per_page", "25");
+    qs.set("per_page", String(auditPageSize));
 
     void apiFetch<AuditEventsPayload>(`/api/${tenant}/app/audit-events?${qs.toString()}`)
       .then((res) => {
         setAuditEvents(Array.isArray(res.events) ? res.events : []);
         setAuditTotalPages(typeof res.meta?.last_page === "number" ? res.meta.last_page : 1);
+        setAuditTotalRows(typeof res.meta?.total === "number" ? res.meta.total : (Array.isArray(res.events) ? res.events.length : 0));
       })
       .catch((err) => setAuditError(err instanceof Error ? err.message : "Failed to load audit events."))
       .finally(() => setAuditLoading(false));
-  }, [canManage, tenant, auditType, auditPage]);
+  }, [canManage, tenant, auditType, auditPage, auditPageSize]);
+
+  const complianceRows = useMemo(() => {
+    const raw = Array.isArray(compliance?.non_compliant_users) ? compliance?.non_compliant_users : [];
+    return raw.map((u) => {
+      const roleName = u.roleModel?.name ?? (u as unknown as { role_model?: { name?: string } }).role_model?.name ?? "(none)";
+      const compliant = Boolean(u.otp_enabled && u.otp_confirmed_at);
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email ?? "",
+        roleName,
+        compliant,
+      };
+    });
+  }, [compliance?.non_compliant_users]);
+
+  const complianceFiltered = useMemo(() => {
+    const needle = complianceQuery.trim().toLowerCase();
+    if (!needle) return complianceRows;
+    return complianceRows.filter((row) => `${row.id} ${row.name} ${row.email} ${row.roleName}`.toLowerCase().includes(needle));
+  }, [complianceQuery, complianceRows]);
+
+  const complianceTotalRows = complianceFiltered.length;
+  const compliancePageRows = useMemo(() => {
+    const start = compliancePageIndex * compliancePageSize;
+    const end = start + compliancePageSize;
+    return complianceFiltered.slice(start, end);
+  }, [complianceFiltered, compliancePageIndex, compliancePageSize]);
+
+  const complianceColumns = useMemo<Array<DataTableColumn<(typeof complianceRows)[number]>>>(
+    () => [
+      {
+        id: "user",
+        header: "User",
+        cell: (row) => (
+          <div className="min-w-0">
+            <div className="truncate font-semibold text-[var(--rb-text)]">{row.name}</div>
+            <div className="truncate text-xs text-zinc-600">{row.email}</div>
+          </div>
+        ),
+        className: "min-w-[240px]",
+      },
+      {
+        id: "role",
+        header: "Role",
+        cell: (row) => <div className="text-sm text-zinc-700">{row.roleName}</div>,
+        className: "min-w-[200px]",
+      },
+      {
+        id: "otp",
+        header: "OTP",
+        cell: (row) => (row.compliant ? <Badge variant="success">Enabled</Badge> : <Badge variant="danger">Missing</Badge>),
+        className: "whitespace-nowrap",
+      },
+    ],
+    [],
+  );
+
+  const auditFiltered = useMemo(() => {
+    return auditEvents;
+  }, [auditEvents]);
+
+  const auditColumns = useMemo<Array<DataTableColumn<AuditEvent>>>(
+    () => [
+      {
+        id: "when",
+        header: "When",
+        cell: (row) => <div className="text-xs text-zinc-600">{row.created_at ?? ""}</div>,
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "type",
+        header: "Type",
+        cell: (row) => <div className="font-semibold text-[var(--rb-text)]">{row.type}</div>,
+        className: "min-w-[240px]",
+      },
+      {
+        id: "source",
+        header: "Source",
+        cell: (row) => <div className="text-zinc-700">{row.source}</div>,
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "user",
+        header: "User",
+        cell: (row) => <div className="text-zinc-700">{row.email ?? (row.user_id ? `#${row.user_id}` : "")}</div>,
+        className: "min-w-[220px]",
+      },
+      {
+        id: "ip",
+        header: "IP",
+        cell: (row) => <div className="text-zinc-700">{row.ip ?? ""}</div>,
+        className: "whitespace-nowrap",
+      },
+    ],
+    [],
+  );
 
   async function onSavePolicies(e: React.FormEvent) {
     e.preventDefault();
@@ -627,42 +732,31 @@ export default function SecurityPage() {
                   <Badge variant="danger">Non-compliant: {complianceLoading ? "…" : compliance?.non_compliant ?? 0}</Badge>
                 </div>
 
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-xs text-zinc-500">
-                        <th className="py-2 pr-3">User</th>
-                        <th className="py-2 pr-3">Role</th>
-                        <th className="py-2 pr-3">OTP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(Array.isArray(compliance?.non_compliant_users) ? compliance?.non_compliant_users : []).map((u) => {
-                        const roleName =
-                          u.roleModel?.name ?? (u as unknown as { role_model?: { name?: string } }).role_model?.name ?? "(none)";
-                        const compliant = Boolean(u.otp_enabled && u.otp_confirmed_at);
-                        return (
-                          <tr key={u.id} className="border-t border-[var(--rb-border)]">
-                            <td className="py-2 pr-3">
-                              <div className="font-semibold text-[var(--rb-text)]">{u.name}</div>
-                              <div className="text-xs text-zinc-600">{u.email}</div>
-                            </td>
-                            <td className="py-2 pr-3 text-zinc-700">{roleName}</td>
-                            <td className="py-2 pr-3">
-                              {compliant ? <Badge variant="success">Enabled</Badge> : <Badge variant="danger">Missing</Badge>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {!complianceLoading && (compliance?.non_compliant_users?.length ?? 0) === 0 ? (
-                        <tr>
-                          <td className="py-3 text-sm text-zinc-600" colSpan={3}>
-                            No non-compliant users.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
+                <div className="mt-4">
+                  <DataTable
+                    title="Non-compliant users"
+                    data={compliancePageRows}
+                    loading={complianceLoading}
+                    emptyMessage="No non-compliant users."
+                    columns={complianceColumns}
+                    getRowId={(row) => String(row.id)}
+                    search={{ placeholder: "Search users..." }}
+                    server={{
+                      query: complianceQuery,
+                      onQueryChange: (value) => {
+                        setComplianceQuery(value);
+                        setCompliancePageIndex(0);
+                      },
+                      pageIndex: compliancePageIndex,
+                      onPageIndexChange: setCompliancePageIndex,
+                      pageSize: compliancePageSize,
+                      onPageSizeChange: (value) => {
+                        setCompliancePageSize(value);
+                        setCompliancePageIndex(0);
+                      },
+                      totalRows: complianceTotalRows,
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -678,70 +772,31 @@ export default function SecurityPage() {
 
                 {auditError ? <div className="mt-3 text-sm text-red-600">{auditError}</div> : null}
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <input
-                    className="w-full max-w-[320px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={auditType}
-                    onChange={(e) => {
-                      setAuditType(e.target.value);
-                      setAuditPage(1);
+                <div className="mt-4">
+                  <DataTable
+                    title="Audit events"
+                    data={auditFiltered}
+                    loading={auditLoading}
+                    emptyMessage="No events."
+                    columns={auditColumns}
+                    getRowId={(row) => `${row.source}:${row.id}`}
+                    search={{ placeholder: "Filter by type (e.g. login_success)" }}
+                    server={{
+                      query: auditType,
+                      onQueryChange: (value) => {
+                        setAuditType(value);
+                        setAuditPage(1);
+                      },
+                      pageIndex: auditPage - 1,
+                      onPageIndexChange: (value) => setAuditPage(value + 1),
+                      pageSize: auditPageSize,
+                      onPageSizeChange: (value) => {
+                        setAuditPageSize(value);
+                        setAuditPage(1);
+                      },
+                      totalRows: auditTotalRows,
                     }}
-                    placeholder="Filter by type (e.g. login_success)"
                   />
-
-                  <div className="ml-auto flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
-                      disabled={auditLoading || auditPage <= 1}
-                    >
-                      Prev
-                    </Button>
-                    <div className="text-sm text-zinc-700">
-                      Page {auditPage} / {auditTotalPages}
-                    </div>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}
-                      disabled={auditLoading || auditPage >= auditTotalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-xs text-zinc-500">
-                        <th className="py-2 pr-3">When</th>
-                        <th className="py-2 pr-3">Type</th>
-                        <th className="py-2 pr-3">Source</th>
-                        <th className="py-2 pr-3">User</th>
-                        <th className="py-2 pr-3">IP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditEvents.map((e) => (
-                        <tr key={`${e.source}:${e.id}`} className="border-t border-[var(--rb-border)]">
-                          <td className="py-2 pr-3 text-xs text-zinc-600">{e.created_at ?? ""}</td>
-                          <td className="py-2 pr-3 font-semibold text-[var(--rb-text)]">{e.type}</td>
-                          <td className="py-2 pr-3 text-zinc-700">{e.source}</td>
-                          <td className="py-2 pr-3 text-zinc-700">{e.email ?? (e.user_id ? `#${e.user_id}` : "")}</td>
-                          <td className="py-2 pr-3 text-zinc-700">{e.ip ?? ""}</td>
-                        </tr>
-                      ))}
-                      {!auditLoading && auditEvents.length === 0 ? (
-                        <tr>
-                          <td className="py-3 text-sm text-zinc-600" colSpan={5}>
-                            No events.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
                 </div>
               </CardContent>
             </Card>

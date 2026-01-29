@@ -8,12 +8,12 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
-import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
+import { notify } from "@/lib/notify";
 import { useParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 function PencilIcon(props: { className?: string }) {
   return (
@@ -69,14 +69,13 @@ export default function TenantUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRoleId, setNewRoleId] = useState<number | null>(null);
-  const [newBranchId, setNewBranchId] = useState<number | null>(null);
+  const [newShopQuery, setNewShopQuery] = useState<string>("");
+  const [newShopSelected, setNewShopSelected] = useState<Record<number, boolean>>({});
   const [busy, setBusy] = useState(false);
 
   const [actionBusyUserId, setActionBusyUserId] = useState<number | null>(null);
@@ -91,11 +90,7 @@ export default function TenantUsersPage() {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [sort, setSort] = useState<{ id: string; dir: "asc" | "desc" } | null>(null);
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editUserId, setEditUserId] = useState<number | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editRoleId, setEditRoleId] = useState<number | null>(null);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
@@ -110,14 +105,6 @@ export default function TenantUsersPage() {
     return map;
   }, [roles]);
 
-  const branchLabelById = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const b of branches) {
-      map.set(b.id, `${b.code} - ${b.name}`);
-    }
-    return map;
-  }, [branches]);
-
   const branchOptions = useMemo(() => {
     const list = branches.slice().sort((a, b) => `${a.code} ${a.name}`.localeCompare(`${b.code} ${b.name}`));
     return list.map((b) => ({
@@ -126,6 +113,29 @@ export default function TenantUsersPage() {
       isActive: b.is_active,
     }));
   }, [branches]);
+
+  const activeBranchOptions = useMemo(() => branchOptions.filter((b) => b.isActive), [branchOptions]);
+
+  const filteredNewShopOptions = useMemo(() => {
+    const q = newShopQuery.trim().toLowerCase();
+    if (!q) return activeBranchOptions;
+    return activeBranchOptions.filter((b) => b.label.toLowerCase().includes(q));
+  }, [activeBranchOptions, newShopQuery]);
+
+  const newShopAllChecked = useMemo(() => {
+    if (filteredNewShopOptions.length === 0) return false;
+    return filteredNewShopOptions.every((b) => Boolean(newShopSelected[b.id]));
+  }, [filteredNewShopOptions, newShopSelected]);
+
+  const newShopSomeChecked = useMemo(() => {
+    return filteredNewShopOptions.some((b) => Boolean(newShopSelected[b.id]));
+  }, [filteredNewShopOptions, newShopSelected]);
+
+  const newShopCheckAllRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!newShopCheckAllRef.current) return;
+    newShopCheckAllRef.current.indeterminate = newShopSomeChecked && !newShopAllChecked;
+  }, [newShopAllChecked, newShopSomeChecked]);
 
   const roleOptions = useMemo(() => {
     return [
@@ -156,9 +166,6 @@ export default function TenantUsersPage() {
 
   async function load({ includeRoles }: { includeRoles: boolean }) {
     if (typeof tenant !== "string" || tenant.length === 0) return;
-
-    setError(null);
-    setStatus(null);
     setLoading(true);
 
     try {
@@ -194,10 +201,17 @@ export default function TenantUsersPage() {
         const defaultBranchId = auth.tenant?.default_branch_id ?? null;
         const branchList = Array.isArray(branchesRes.branches) ? branchesRes.branches : [];
         const activeBranchIds = branchList.filter((b) => b.is_active).map((b) => b.id);
-        const nextBranchId =
-          (defaultBranchId && activeBranchIds.includes(defaultBranchId) ? defaultBranchId : null) ??
-          (activeBranchIds[0] ?? null);
-        setNewBranchId(nextBranchId);
+        const seedIds =
+          (defaultBranchId && activeBranchIds.includes(defaultBranchId) ? [defaultBranchId] : [])
+            .concat(activeBranchIds.length > 0 ? [activeBranchIds[0]] : [])
+            .filter((v, idx, arr) => arr.indexOf(v) === idx);
+
+        setNewShopSelected((prev) => {
+          if (Object.keys(prev).length > 0) return prev;
+          const next: Record<number, boolean> = {};
+          for (const id of seedIds) next[id] = true;
+          return next;
+        });
       } else {
         const usersRes = await apiFetch<UsersPayload>(usersPath);
         setUsers(Array.isArray(usersRes.users) ? usersRes.users : []);
@@ -205,7 +219,7 @@ export default function TenantUsersPage() {
         setPageSize(typeof usersRes.meta?.per_page === "number" ? usersRes.meta.per_page : pageSize);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load users.");
+      notify.error(err instanceof Error ? err.message : "Failed to load users.");
     } finally {
       setLoading(false);
     }
@@ -219,20 +233,18 @@ export default function TenantUsersPage() {
 
   async function onSendPasswordReset(userId: number) {
     setActionBusyUserId(userId);
-    setError(null);
-    setStatus(null);
 
     try {
       await apiFetch<{ message: string }>(`/api/${tenant}/app/users/${userId}/reset-password`, {
         method: "POST",
       });
 
-      setStatus("Password reset link sent.");
+      notify.success("Password reset link sent.");
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        notify.error(err.message);
       } else {
-        setError("Failed to send password reset link.");
+        notify.error("Failed to send password reset link.");
       }
     } finally {
       setActionBusyUserId(null);
@@ -252,38 +264,69 @@ export default function TenantUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, roleFilter, statusFilter, pageIndex, pageSize, sort?.id, sort?.dir]);
 
-  async function onCreateUser(e: React.FormEvent) {
+  async function onSaveUser(e: React.FormEvent) {
     e.preventDefault();
     if (!newRoleId) return;
-    if (!newBranchId) return;
+    if (activeBranchOptions.length === 0) return;
+
+    const selectedBranchIds = Object.entries(newShopSelected)
+      .filter(([, v]) => v)
+      .map(([k]) => Number(k))
+      .filter((n) => Number.isFinite(n) && n > 0);
+
+    if (selectedBranchIds.length === 0) {
+      notify.error("Select at least one shop.");
+      return;
+    }
 
     setBusy(true);
-    setError(null);
-    setStatus(null);
 
     try {
-      await apiFetch<{ user: User }>(`/api/${tenant}/app/users`, {
-        method: "POST",
-        body: {
-          name: newName,
-          email: newEmail,
-          password: newPassword,
-          role_id: newRoleId,
-          branch_id: newBranchId,
-        },
-      });
+      if (editingUserId) {
+        await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${editingUserId}`, {
+          method: "PUT",
+          body: {
+            name: newName,
+            email: newEmail,
+            role_id: newRoleId,
+            ...(newPassword.trim().length > 0 ? { password: newPassword } : {}),
+          },
+        });
+
+        const shopsRes = await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${editingUserId}/shop`, {
+          method: "PATCH",
+          body: { branch_ids: selectedBranchIds },
+        });
+        setUsers((prev) => prev.map((u) => (u.id === editingUserId ? shopsRes.user : u)));
+        notify.success("User updated.");
+      } else {
+        await apiFetch<{ user: User }>(`/api/${tenant}/app/users`, {
+          method: "POST",
+          body: {
+            name: newName,
+            email: newEmail,
+            password: newPassword,
+            role_id: newRoleId,
+            branch_ids: selectedBranchIds,
+          },
+        });
+        notify.success("User created.");
+      }
 
       setNewName("");
       setNewEmail("");
       setNewPassword("");
-      setStatus("User created.");
+      setNewShopQuery("");
+      setNewShopSelected({});
+      setEditingUserId(null);
       setPageIndex(0);
       await load({ includeRoles: false });
+      await auth.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        notify.error(err.message);
       } else {
-        setError("Failed to create user.");
+        notify.error(editingUserId ? "Failed to update user." : "Failed to create user.");
       }
     } finally {
       setBusy(false);
@@ -292,8 +335,6 @@ export default function TenantUsersPage() {
 
   async function onUpdateUserStatus(userId: number, nextStatus: UserStatus) {
     setActionBusyUserId(userId);
-    setError(null);
-    setStatus(null);
 
     try {
       await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${userId}/status`, {
@@ -301,13 +342,13 @@ export default function TenantUsersPage() {
         body: { status: nextStatus },
       });
 
-      setStatus("User updated.");
+      notify.success("User updated.");
       await load({ includeRoles: false });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        notify.error(err.message);
       } else {
-        setError("Failed to update user.");
+        notify.error("Failed to update user.");
       }
     } finally {
       setActionBusyUserId(null);
@@ -315,43 +356,21 @@ export default function TenantUsersPage() {
   }
 
   function openEdit(user: User) {
-    setEditUserId(user.id);
-    setEditName(user.name ?? "");
-    setEditEmail(user.email ?? "");
-    setEditRoleId(user.role_id ?? null);
-    setEditOpen(true);
-  }
-
-  async function onSaveEdit() {
-    if (!editUserId) return;
-
-    setActionBusyUserId(editUserId);
-    setError(null);
-    setStatus(null);
-
-    try {
-      await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${editUserId}`, {
-        method: "PUT",
-        body: {
-          name: editName,
-          email: editEmail,
-          role_id: editRoleId,
-        },
-      });
-
-      setEditOpen(false);
-      setStatus("User updated.");
-      await auth.refresh();
-      await load({ includeRoles: false });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to update user.");
-      }
-    } finally {
-      setActionBusyUserId(null);
+    const current = Array.isArray(user.branches) ? user.branches : [];
+    const map: Record<number, boolean> = {};
+    for (const b of current) {
+      if (typeof b.id === "number") map[b.id] = true;
     }
+
+    setEditingUserId(user.id);
+    setNewName(user.name ?? "");
+    setNewEmail(user.email ?? "");
+    setNewPassword("");
+    setNewRoleId(user.role_id ?? null);
+    setNewShopSelected(map);
+    setNewShopQuery("");
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openConfirm(args: { title: string; message: React.ReactNode; action: () => Promise<void> }) {
@@ -365,50 +384,23 @@ export default function TenantUsersPage() {
     if (typeof tenant !== "string" || tenant.length === 0) return;
 
     setShopBusyUserId(userId);
-    setError(null);
-    setStatus(null);
 
     try {
       const res = await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${userId}/shop`, {
         method: "PATCH",
-        body: { branch_id: branchId },
+        body: { branch_ids: [branchId] },
       });
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? res.user : u)));
-      setStatus("Shop updated.");
+      notify.success("Shop updated.");
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        notify.error(err.message);
       } else {
-        setError("Failed to update shop.");
+        notify.error("Failed to update shop.");
       }
     } finally {
       setShopBusyUserId(null);
-    }
-  }
-
-  async function onChangeUserRole(userId: number, roleId: number) {
-    setBusy(true);
-    setError(null);
-    setStatus(null);
-
-    try {
-      await apiFetch<{ user: User }>(`/api/${tenant}/app/users/${userId}/role`, {
-        method: "PATCH",
-        body: { role_id: roleId },
-      });
-
-      setStatus("Role updated.");
-      await auth.refresh();
-      await load({ includeRoles: false });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to update role.");
-      }
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -416,78 +408,6 @@ export default function TenantUsersPage() {
     <RequireAuth requiredPermission="users.manage">
       <div className="space-y-6">
         <PageHeader title="Users" description="Manage tenant users and their roles." />
-
-        {status ? <div className="text-sm text-green-700">{status}</div> : null}
-        {error ? <div className="text-sm text-red-600">{error}</div> : null}
-
-        <Modal
-          open={editOpen}
-          onClose={() => {
-            if (actionBusyUserId) return;
-            setEditOpen(false);
-          }}
-          title="Edit user"
-          footer={
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={!!actionBusyUserId}>
-                Cancel
-              </Button>
-              <Button onClick={() => void onSaveEdit()} disabled={!!actionBusyUserId}>
-                {actionBusyUserId ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          }
-        >
-          <div className="grid gap-3">
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="edit_user_name">
-                Name
-              </label>
-              <input
-                id="edit_user_name"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                required
-                disabled={!!actionBusyUserId}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="edit_user_email">
-                Email
-              </label>
-              <input
-                id="edit_user_email"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-                type="email"
-                required
-                disabled={!!actionBusyUserId}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="edit_user_role">
-                Role
-              </label>
-              <select
-                id="edit_user_role"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editRoleId ?? ""}
-                onChange={(e) => setEditRoleId(Number(e.target.value))}
-                disabled={!!actionBusyUserId}
-              >
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </Modal>
 
         <ConfirmDialog
           open={confirmOpen}
@@ -513,106 +433,190 @@ export default function TenantUsersPage() {
           <div>
             <Card className="shadow-none">
               <CardContent className="pt-5">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Create user</div>
-                <form className="mt-4 grid gap-3" onSubmit={onCreateUser}>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="user_name">
-                      Name
-                    </label>
-                    <input
-                      id="user_name"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      required
-                    />
-                  </div>
+                <div className="text-sm font-semibold text-[var(--rb-text)]">{editingUserId ? "Edit user" : "Create user"}</div>
+                <form className="mt-4" onSubmit={onSaveUser}>
+                  <div className="grid gap-6 lg:grid-cols-12">
+                    <div className="lg:col-span-7">
+                      <div className="grid gap-3">
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor="user_name">
+                            Name
+                          </label>
+                          <input
+                            id="user_name"
+                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            required
+                          />
+                        </div>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="user_email">
-                      Email
-                    </label>
-                    <input
-                      id="user_email"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      type="email"
-                      required
-                    />
-                  </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor="user_email">
+                            Email
+                          </label>
+                          <input
+                            id="user_email"
+                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            type="email"
+                            required
+                          />
+                        </div>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="user_password">
-                      Password
-                    </label>
-                    <input
-                      id="user_password"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                    />
-                  </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor="user_password">
+                            Password
+                          </label>
+                          <input
+                            id="user_password"
+                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            type="password"
+                            autoComplete="new-password"
+                            required={!editingUserId}
+                          />
+                        </div>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="user_role">
-                      Role
-                    </label>
-                    <select
-                      id="user_role"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={newRoleId ?? ""}
-                      onChange={(e) => setNewRoleId(Number(e.target.value))}
-                      required
-                    >
-                      {roles.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor="user_role">
+                            Role
+                          </label>
+                          <select
+                            id="user_role"
+                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                            value={newRoleId ?? ""}
+                            onChange={(e) => setNewRoleId(Number(e.target.value))}
+                            required
+                          >
+                            {roles.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="user_branch">
-                      Shop
-                    </label>
-                    <select
-                      id="user_branch"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={newBranchId ?? ""}
-                      onChange={(e) => setNewBranchId(Number(e.target.value))}
-                      required
-                      disabled={busy || loading || branches.length === 0}
-                    >
-                      {branchOptions.map((b) => (
-                        <option key={b.id} value={b.id} disabled={!b.isActive}>
-                          {b.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="text-xs text-zinc-600">
-                      This user will only see and work within the selected shop.
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="submit"
+                              disabled={
+                                busy ||
+                                loading ||
+                                roles.length === 0 ||
+                                activeBranchOptions.length === 0 ||
+                                Object.values(newShopSelected).filter(Boolean).length === 0
+                              }
+                            >
+                              {busy ? "Saving..." : editingUserId ? "Save changes" : "Create user"}
+                            </Button>
+                            {editingUserId ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={busy || loading}
+                                onClick={() => {
+                                  setEditingUserId(null);
+                                  setNewName("");
+                                  setNewEmail("");
+                                  setNewPassword("");
+                                  setNewShopQuery("");
+                                  setNewShopSelected({});
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            ) : null}
+                          </div>
+                          {roles.length === 0 ? (
+                            <div className="mt-2 text-sm text-zinc-600">Create a role first before adding users.</div>
+                          ) : null}
+                          {activeBranchOptions.length === 0 ? (
+                            <div className="mt-2 text-sm text-zinc-600">Create a shop first before adding users.</div>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <Button type="submit" disabled={busy || loading || roles.length === 0 || branches.length === 0}>
-                      {busy ? "Saving..." : "Create user"}
-                    </Button>
-                    {roles.length === 0 ? (
-                      <div className="mt-2 text-sm text-zinc-600">
-                        Create a role first before adding users.
+                    <div className="lg:col-span-5">
+                      <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Shops</div>
+                            <div className="mt-1 text-xs text-zinc-600">Select one or more shops this user can access.</div>
+                          </div>
+                          <div className="text-xs text-zinc-600">Selected: {Object.values(newShopSelected).filter(Boolean).length}</div>
+                        </div>
+
+                        <div className="mt-3 space-y-1">
+                          <label className="text-sm font-medium" htmlFor="new_user_shop_search">
+                            Search
+                          </label>
+                          <input
+                            id="new_user_shop_search"
+                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                            value={newShopQuery}
+                            onChange={(e) => setNewShopQuery(e.target.value)}
+                            placeholder="Search shops..."
+                            disabled={busy || loading}
+                          />
+                        </div>
+
+                        <div className="mt-3 max-h-[260px] overflow-y-auto pr-1">
+                          <div className="grid gap-2">
+                            <label className="flex items-center justify-between gap-3 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium text-[var(--rb-text)]">Check all</div>
+                              </div>
+                              <input
+                                ref={newShopCheckAllRef}
+                                type="checkbox"
+                                checked={newShopAllChecked}
+                                onChange={(e) => {
+                                  const next = e.target.checked;
+                                  setNewShopSelected((prev) => {
+                                    const copy = { ...prev };
+                                    for (const b of filteredNewShopOptions) {
+                                      copy[b.id] = next;
+                                    }
+                                    return copy;
+                                  });
+                                }}
+                                disabled={busy || loading}
+                              />
+                            </label>
+
+                            {filteredNewShopOptions.map((b) => {
+                                const checked = Boolean(newShopSelected[b.id]);
+                                return (
+                                  <label
+                                    key={b.id}
+                                    className="flex items-center justify-between gap-3 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2"
+                                  >
+                                    <div className="min-w-0">
+                                      <div className="truncate text-sm font-medium text-[var(--rb-text)]">{b.label}</div>
+                                    </div>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={(e) =>
+                                        setNewShopSelected((prev) => ({
+                                          ...prev,
+                                          [b.id]: e.target.checked,
+                                        }))
+                                      }
+                                      disabled={busy || loading}
+                                    />
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
                       </div>
-                    ) : null}
-                    {branches.length === 0 ? (
-                      <div className="mt-2 text-sm text-zinc-600">
-                        Create a shop first before adding users.
-                      </div>
-                    ) : null}
+                    </div>
                   </div>
                 </form>
               </CardContent>
@@ -715,23 +719,25 @@ export default function TenantUsersPage() {
                     },
                     {
                       id: "shop",
-                      header: "Shop",
-                      className: "whitespace-nowrap",
+                      header: "Shops",
+                      className: "min-w-[220px]",
                       cell: (u) => {
-                        const current = getUserShopId(u);
-                        const rowBusy = shopBusyUserId === u.id || busy || loading;
-
+                        const shopId = getUserShopId(u);
+                        const effectiveShopId = shopId ?? activeBranchOptions[0]?.id ?? null;
+                        const disabled = busy || loading || shopBusyUserId === u.id || activeBranchOptions.length === 0;
                         return (
                           <select
-                            className="h-9 max-w-[260px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-2.5 text-sm text-zinc-700"
-                            value={current ?? ""}
-                            onChange={(e) => void onChangeUserShop(u.id, Number(e.target.value))}
-                            disabled={rowBusy || branchOptions.length === 0}
-                            aria-label="Assign shop"
-                            title={rowBusy ? "Saving..." : branchLabelById.get(current ?? -1) ?? "Assign shop"}
+                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-2 py-1 text-sm"
+                            value={effectiveShopId ?? ""}
+                            onChange={(e) => {
+                              const nextId = Number(e.target.value);
+                              if (!Number.isFinite(nextId) || nextId <= 0) return;
+                              void onChangeUserShop(u.id, nextId);
+                            }}
+                            disabled={disabled}
                           >
-                            {branchOptions.map((b) => (
-                              <option key={b.id} value={b.id} disabled={!b.isActive}>
+                            {activeBranchOptions.map((b) => (
+                              <option key={b.id} value={b.id}>
                                 {b.label}
                               </option>
                             ))}
