@@ -3,7 +3,6 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { repairBuddyNav } from "@/app/app/[tenant]/settings/_components/repairbuddy/repairBuddyNav";
@@ -133,6 +132,23 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
                 <div className="mt-1 text-xs text-zinc-500">Business: {tenantSlug}</div>
                 <div className="mt-2 text-xs text-zinc-500">
                   Editing is allowed for UX testing, but saving will be added later. ({savingDisabledReason})
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/t/${tenantSlug}/portal`}>Preview portal</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/t/${tenantSlug}/status`}>Preview status</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/t/${tenantSlug}/book`}>Preview booking</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/t/${tenantSlug}/services`}>Preview services</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/t/${tenantSlug}/parts`}>Preview parts</Link>
+                  </Button>
                 </div>
               </div>
               <Button disabled variant="outline">

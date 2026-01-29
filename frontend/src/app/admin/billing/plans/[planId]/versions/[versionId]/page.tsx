@@ -308,7 +308,7 @@ export default function AdminBillingPlanVersionDetailPage() {
       const trialDays = priceTrialDays.trim() === "" ? null : Number(priceTrialDays);
       const res = await updateBillingPrice({
         priceId: selectedPrice.id,
-        amountCents: toAmountCents(priceAmount),
+        amountCents: parseAmountCents(priceAmount),
         trialDays: typeof trialDays === "number" && Number.isFinite(trialDays) ? trialDays : null,
         isDefault: priceIsDefault,
       });
