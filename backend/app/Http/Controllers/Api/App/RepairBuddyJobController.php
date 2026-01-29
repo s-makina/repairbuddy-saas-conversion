@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCaseCounter;
 use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
+use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -231,6 +232,61 @@ class RepairBuddyJobController extends Controller
             })->all();
         }
 
+        $items = RepairBuddyJobItem::query()
+            ->where('job_id', $job->id)
+            ->with('tax')
+            ->orderBy('id', 'asc')
+            ->limit(5000)
+            ->get();
+
+        $subtotalCents = 0;
+        $taxCents = 0;
+        $currency = (string) ($this->tenant()->currency ?? 'USD');
+
+        foreach ($items as $item) {
+            $qty = is_numeric($item->qty) ? (int) $item->qty : 0;
+            $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+            $lineSubtotal = $qty * $unit;
+
+            $rate = $item->tax ? (float) $item->tax->rate : 0.0;
+            $lineTax = (int) round($lineSubtotal * ($rate / 100.0));
+
+            $subtotalCents += $lineSubtotal;
+            $taxCents += $lineTax;
+
+            if (is_string($item->unit_price_currency) && $item->unit_price_currency !== '') {
+                $currency = (string) $item->unit_price_currency;
+            }
+        }
+
+        $serializedItems = $items->map(function (RepairBuddyJobItem $i) {
+            $tax = null;
+            if ($i->tax) {
+                $tax = [
+                    'id' => $i->tax->id,
+                    'name' => $i->tax->name,
+                    'rate' => $i->tax->rate,
+                    'is_default' => (bool) $i->tax->is_default,
+                ];
+            }
+
+            return [
+                'id' => $i->id,
+                'job_id' => $i->job_id,
+                'item_type' => $i->item_type,
+                'ref_id' => $i->ref_id,
+                'name' => $i->name_snapshot,
+                'qty' => $i->qty,
+                'unit_price' => [
+                    'currency' => $i->unit_price_currency,
+                    'amount_cents' => (int) $i->unit_price_amount_cents,
+                ],
+                'tax' => $tax,
+                'meta' => is_array($i->meta_json) ? $i->meta_json : null,
+                'created_at' => $i->created_at,
+            ];
+        })->all();
+
         return [
             'id' => $job->id,
             'case_number' => $job->case_number,
@@ -242,6 +298,13 @@ class RepairBuddyJobController extends Controller
             'created_at' => $job->created_at,
             'updated_at' => $job->updated_at,
             'timeline' => $timeline,
+            'items' => $serializedItems,
+            'totals' => [
+                'currency' => $currency,
+                'subtotal_cents' => $subtotalCents,
+                'tax_cents' => $taxCents,
+                'total_cents' => $subtotalCents + $taxCents,
+            ],
             'messages' => [],
             'attachments' => [],
         ];

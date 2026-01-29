@@ -369,10 +369,18 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
                     Route::get('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'index']);
 
+                    Route::get('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'index']);
+                    Route::post('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'store']);
+
                     Route::get('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'index']);
                     Route::post('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'store']);
                     Route::get('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'show'])->whereNumber('jobId');
                     Route::patch('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'update'])->whereNumber('jobId');
+
+                    Route::post('/jobs/{jobId}/items', [\App\Http\Controllers\Api\App\RepairBuddyJobItemController::class, 'store'])->whereNumber('jobId');
+                    Route::delete('/jobs/{jobId}/items/{itemId}', [\App\Http\Controllers\Api\App\RepairBuddyJobItemController::class, 'destroy'])
+                        ->whereNumber('jobId')
+                        ->whereNumber('itemId');
 
                     Route::get('/jobs/{jobId}/events', [\App\Http\Controllers\Api\App\RepairBuddyJobEventController::class, 'index'])->whereNumber('jobId');
                     Route::post('/jobs/{jobId}/events', [\App\Http\Controllers\Api\App\RepairBuddyJobEventController::class, 'store'])->whereNumber('jobId');
