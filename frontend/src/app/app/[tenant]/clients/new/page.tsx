@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
+import { notify } from "@/lib/notify";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -75,6 +76,7 @@ export default function NewClientPage() {
         body: payload,
       });
 
+      notify.success("Customer created.");
       router.replace(`/app/${tenant}/clients/${res.client.id}`);
     } catch (e) {
       if (e instanceof ApiError) {
@@ -90,7 +92,21 @@ export default function NewClientPage() {
   return (
     <RequireAuth requiredPermission="clients.view">
       <div className="space-y-6">
-        <PageHeader title="Create customer" description="Add a new customer record." />
+        <PageHeader
+          title="Create customer"
+          description="Add a new customer record."
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                router.back();
+              }}
+            >
+              Back
+            </Button>
+          }
+        />
 
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 

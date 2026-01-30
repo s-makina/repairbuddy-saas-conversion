@@ -99,7 +99,6 @@ export default function TenantClientsPage() {
         cell: (row) => (
           <div className="min-w-0">
             <div className="truncate font-semibold text-[var(--rb-text)]">{row.name}</div>
-            <div className="truncate text-xs text-zinc-600">{row.id}</div>
           </div>
         ),
         className: "min-w-[240px]",
@@ -169,23 +168,34 @@ export default function TenantClientsPage() {
       title="Customers"
       description="Your customer list and contact details."
       actions={
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-            router.push(`/app/${tenantSlug}/clients/new`);
-          }}
-        >
-          New customer
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              router.back();
+            }}
+          >
+            Back
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+              router.push(`/app/${tenantSlug}/clients/new`);
+            }}
+          >
+            New customer
+          </Button>
+        </div>
       }
       error={error}
     >
       <Card className="shadow-none">
         <CardContent className="pt-5">
           <DataTable
-            title={typeof tenantSlug === "string" ? `Customers · ${tenantSlug}` : "Customers"}
+            // title={typeof tenantSlug === "string" ? `Customers` : "Customers"}
             data={pageRows}
             loading={loading}
             emptyMessage="No customers."

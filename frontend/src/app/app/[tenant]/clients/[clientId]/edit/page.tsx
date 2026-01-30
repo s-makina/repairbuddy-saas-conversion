@@ -3,10 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
+import { notify } from "@/lib/notify";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { FormRow } from "@/components/ui/FormRow";
 
 type ApiClient = {
   id: number;
@@ -79,7 +82,7 @@ export default function EditClientPage() {
         setAddressCountry(c?.address_country ?? "");
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load client.");
+        setError(e instanceof Error ? e.message : "Failed to load customer.");
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -121,6 +124,7 @@ export default function EditClientPage() {
         body: payload,
       });
 
+      notify.success("Customer updated.");
       router.replace(`/app/${tenant}/clients/${clientId}`);
     } catch (e) {
       if (e instanceof ApiError) {
@@ -138,7 +142,21 @@ export default function EditClientPage() {
   return (
     <RequireAuth requiredPermission="clients.view">
       <div className="space-y-6">
-        <PageHeader title="Edit customer" description="Update this customer record." />
+        <PageHeader
+          title="Edit customer"
+          description="Update this customer record."
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                router.back();
+              }}
+            >
+              Back
+            </Button>
+          }
+        />
 
         {invalidClientId ? <div className="text-sm text-red-600">Customer is invalid.</div> : null}
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
@@ -148,166 +166,167 @@ export default function EditClientPage() {
             {loading ? <div className="text-sm text-zinc-600">Loading...</div> : null}
 
             {!loading && !invalidClientId ? (
-              <form className="grid gap-3" onSubmit={onSubmit}>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_name">
-                    Name
-                  </label>
-                  <input
-                    id="client_name"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    disabled={busy}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_email">
-                    Email
-                  </label>
-                  <input
-                    id="client_email"
-                    type="email"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={busy}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_phone">
-                    Phone
-                  </label>
-                  <input
-                    id="client_phone"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    disabled={busy}
-                    maxLength={64}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_company">
-                    Company
-                  </label>
-                  <input
-                    id="client_company"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    disabled={busy}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_tax_id">
-                    Tax ID
-                  </label>
-                  <input
-                    id="client_tax_id"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={taxId}
-                    onChange={(e) => setTaxId(e.target.value)}
-                    disabled={busy}
-                    maxLength={64}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_address_line1">
-                    Address line 1
-                  </label>
-                  <input
-                    id="client_address_line1"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={addressLine1}
-                    onChange={(e) => setAddressLine1(e.target.value)}
-                    disabled={busy}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="client_address_line2">
-                    Address line 2
-                  </label>
-                  <input
-                    id="client_address_line2"
-                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                    value={addressLine2}
-                    onChange={(e) => setAddressLine2(e.target.value)}
-                    disabled={busy}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="client_address_city">
-                      City
-                    </label>
-                    <input
-                      id="client_address_city"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={addressCity}
-                      onChange={(e) => setAddressCity(e.target.value)}
+              <form className="grid gap-4" onSubmit={onSubmit}>
+                <FormRow label="Name" fieldId="client_name" required description="Customer full name.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
                       disabled={busy}
                       maxLength={255}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
                     />
-                  </div>
+                  )}
+                </FormRow>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="client_address_state">
-                      State
-                    </label>
-                    <input
-                      id="client_address_state"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={addressState}
-                      onChange={(e) => setAddressState(e.target.value)}
+                <FormRow label="Email" fieldId="client_email" required description="Used for invoices and notifications.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                       disabled={busy}
                       maxLength={255}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
                     />
-                  </div>
-                </div>
+                  )}
+                </FormRow>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="client_address_postal_code">
-                      Postal code
-                    </label>
-                    <input
-                      id="client_address_postal_code"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                      value={addressPostalCode}
-                      onChange={(e) => setAddressPostalCode(e.target.value)}
+                <FormRow label="Phone" fieldId="client_phone" description="Optional. Include country code if needed.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       disabled={busy}
                       maxLength={64}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
                     />
-                  </div>
+                  )}
+                </FormRow>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="client_address_country">
-                      Country (2-letter)
-                    </label>
-                    <input
-                      id="client_address_country"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm uppercase"
-                      value={addressCountry}
-                      onChange={(e) => setAddressCountry(e.target.value)}
+                <FormRow label="Company" fieldId="client_company" description="Optional company name.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_company"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
                       disabled={busy}
-                      maxLength={2}
+                      maxLength={255}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
                     />
-                  </div>
+                  )}
+                </FormRow>
+
+                <FormRow label="Tax ID" fieldId="client_tax_id" description="Optional. VAT / tax identification number.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_tax_id"
+                      value={taxId}
+                      onChange={(e) => setTaxId(e.target.value)}
+                      disabled={busy}
+                      maxLength={64}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
+                    />
+                  )}
+                </FormRow>
+
+                <FormRow label="Address line 1" fieldId="client_address_line1" description="Optional street address.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_address_line1"
+                      value={addressLine1}
+                      onChange={(e) => setAddressLine1(e.target.value)}
+                      disabled={busy}
+                      maxLength={255}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
+                    />
+                  )}
+                </FormRow>
+
+                <FormRow label="Address line 2" fieldId="client_address_line2" description="Optional apartment, suite, etc.">
+                  {({ describedBy, invalid }) => (
+                    <Input
+                      id="client_address_line2"
+                      value={addressLine2}
+                      onChange={(e) => setAddressLine2(e.target.value)}
+                      disabled={busy}
+                      maxLength={255}
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid}
+                    />
+                  )}
+                </FormRow>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormRow label="City" fieldId="client_address_city">
+                    {({ describedBy, invalid }) => (
+                      <Input
+                        id="client_address_city"
+                        value={addressCity}
+                        onChange={(e) => setAddressCity(e.target.value)}
+                        disabled={busy}
+                        maxLength={255}
+                        aria-describedby={describedBy}
+                        aria-invalid={invalid}
+                      />
+                    )}
+                  </FormRow>
+
+                  <FormRow label="State" fieldId="client_address_state">
+                    {({ describedBy, invalid }) => (
+                      <Input
+                        id="client_address_state"
+                        value={addressState}
+                        onChange={(e) => setAddressState(e.target.value)}
+                        disabled={busy}
+                        maxLength={255}
+                        aria-describedby={describedBy}
+                        aria-invalid={invalid}
+                      />
+                    )}
+                  </FormRow>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormRow label="Postal code" fieldId="client_address_postal_code">
+                    {({ describedBy, invalid }) => (
+                      <Input
+                        id="client_address_postal_code"
+                        value={addressPostalCode}
+                        onChange={(e) => setAddressPostalCode(e.target.value)}
+                        disabled={busy}
+                        maxLength={64}
+                        aria-describedby={describedBy}
+                        aria-invalid={invalid}
+                      />
+                    )}
+                  </FormRow>
+
+                  <FormRow label="Country (2-letter)" fieldId="client_address_country" description="Example: ZA, US, GB.">
+                    {({ describedBy, invalid }) => (
+                      <Input
+                        id="client_address_country"
+                        className="uppercase"
+                        value={addressCountry}
+                        onChange={(e) => setAddressCountry(e.target.value)}
+                        disabled={busy}
+                        maxLength={2}
+                        aria-describedby={describedBy}
+                        aria-invalid={invalid}
+                      />
+                    )}
+                  </FormRow>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-2">

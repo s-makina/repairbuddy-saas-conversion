@@ -147,6 +147,15 @@ export default function TenantClientDetailPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
+                  router.back();
+                }}
+              >
+                Back
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
                   if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
                   router.push(`/app/${tenantSlug}/clients/${client.id}/edit`);
                 }}
