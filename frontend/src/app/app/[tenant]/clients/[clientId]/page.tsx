@@ -119,19 +119,19 @@ export default function TenantClientDetailPage() {
   return (
     <div className="space-y-6">
       {error ? (
-        <Alert variant="danger" title="Could not load client">
+        <Alert variant="danger" title="Could not load customer">
           {error}
         </Alert>
       ) : null}
 
-      {loading ? <div className="text-sm text-zinc-500">Loading client...</div> : null}
+      {loading ? <div className="text-sm text-zinc-500">Loading customer...</div> : null}
 
       {client ? (
         <DetailPageShell
           breadcrumb={
             <span>
               <Link href={typeof tenantSlug === "string" ? `/app/${tenantSlug}/clients` : "/app"} className="hover:text-[var(--rb-text)]">
-                Clients
+                Customers
               </Link>
               <span className="px-2">/</span>
               <span>{client.name}</span>
@@ -193,7 +193,7 @@ export default function TenantClientDetailPage() {
                 <CardContent className="pt-5">
                   <div className="text-sm font-semibold text-[var(--rb-text)]">Jobs</div>
                   <div className="mt-4 space-y-3">
-                    {clientJobs.length === 0 ? <div className="text-sm text-zinc-600">No jobs for this client.</div> : null}
+                    {clientJobs.length === 0 ? <div className="text-sm text-zinc-600">No jobs for this customer.</div> : null}
                     {clientJobs.map((j) => (
                       <div key={j.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
                         <div className="flex items-start justify-between gap-3">
@@ -233,7 +233,7 @@ export default function TenantClientDetailPage() {
               <Card className="shadow-none">
                 <CardContent className="pt-5">
                   <div className="text-sm font-semibold text-[var(--rb-text)]">Financial</div>
-                  <div className="mt-2 text-sm text-zinc-600">Client-level financials are wired in later phases.</div>
+                  <div className="mt-2 text-sm text-zinc-600">Customer-level financials are wired in later phases.</div>
                 </CardContent>
               </Card>
             ),
@@ -241,7 +241,7 @@ export default function TenantClientDetailPage() {
               <Card className="shadow-none">
                 <CardContent className="pt-5">
                   <div className="text-sm font-semibold text-[var(--rb-text)]">Print</div>
-                  <div className="mt-2 text-sm text-zinc-600">Printable client summaries are implemented in later phases.</div>
+                  <div className="mt-2 text-sm text-zinc-600">Printable customer summaries are implemented in later phases.</div>
                 </CardContent>
               </Card>
             ),

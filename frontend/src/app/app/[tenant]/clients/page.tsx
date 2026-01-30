@@ -95,7 +95,7 @@ export default function TenantClientsPage() {
     () => [
       {
         id: "name",
-        header: "Client",
+        header: "Customer",
         cell: (row) => (
           <div className="min-w-0">
             <div className="truncate font-semibold text-[var(--rb-text)]">{row.name}</div>
@@ -128,13 +128,45 @@ export default function TenantClientsPage() {
         cell: (row) => <div className="text-sm text-zinc-600">{new Date(row.created_at).toLocaleDateString()}</div>,
         className: "whitespace-nowrap",
       },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: (row) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                router.push(`/app/${tenantSlug}/clients/${row.id}`);
+              }}
+            >
+              View
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                router.push(`/app/${tenantSlug}/clients/${row.id}/edit`);
+              }}
+            >
+              Edit
+            </Button>
+          </div>
+        ),
+        className: "whitespace-nowrap text-right",
+        headerClassName: "text-right",
+      },
     ],
-    [],
+    [router, tenantSlug],
   );
 
   return (
     <ListPageShell
-      title="Clients"
+      title="Customers"
       description="Your customer list and contact details."
       actions={
         <Button
@@ -145,35 +177,21 @@ export default function TenantClientsPage() {
             router.push(`/app/${tenantSlug}/clients/new`);
           }}
         >
-          New client
+          New customer
         </Button>
       }
-      filters={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm font-semibold text-[var(--rb-text)]">Search</div>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, email, phone, or ID..."
-            className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm sm:max-w-[420px]"
-          />
-        </div>
-      }
-      loading={loading}
       error={error}
-      empty={!loading && !error && clients.length === 0}
-      emptyTitle="No clients found"
-      emptyDescription="Try adjusting your search."
     >
       <Card className="shadow-none">
         <CardContent className="pt-5">
           <DataTable
-            title={typeof tenantSlug === "string" ? `Clients · ${tenantSlug}` : "Clients"}
+            title={typeof tenantSlug === "string" ? `Customers · ${tenantSlug}` : "Customers"}
             data={pageRows}
             loading={loading}
-            emptyMessage="No clients."
+            emptyMessage="No customers."
             columns={columns}
             getRowId={(row) => row.id}
+            search={{ placeholder: "Search name, email, phone, or ID..." }}
             server={{
               query: q,
               onQueryChange: (value) => {

@@ -524,7 +524,7 @@ export function DashboardShell({
         {
           title: "People",
           items: [
-            { label: "Clients", href: tenantSlug ? `/app/${tenantSlug}/clients` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("clients.view") },
+            { label: "Customers", href: tenantSlug ? `/app/${tenantSlug}/clients` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("clients.view") },
             { label: "Customer Devices", href: tenantSlug ? `/app/${tenantSlug}/customer-devices` : "/app", icon: "devices", show: Boolean(tenantBaseHref) && auth.can("customer_devices.view") },
             { label: "Technicians", href: tenantSlug ? `/app/${tenantSlug}/technicians` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("technicians.view") },
             { label: "Managers", href: tenantSlug ? `/app/${tenantSlug}/managers` : "/app", icon: "users", show: Boolean(tenantBaseHref) && auth.can("managers.view") },

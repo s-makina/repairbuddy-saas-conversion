@@ -7,7 +7,7 @@ export function Select({ className, children, ...props }: React.SelectHTMLAttrib
   return (
     <select
       className={cn(
-        "w-full appearance-none rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-[var(--rb-text)] shadow-sm outline-none transition",
+        "w-full appearance-none rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)] outline-none transition",
         "focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--rb-orange),white_65%)] focus-visible:ring-offset-2 focus-visible:ring-offset-white",
         "disabled:cursor-not-allowed disabled:bg-[var(--rb-surface-muted)] disabled:opacity-70",
         "bg-[right_0.75rem_center] bg-no-repeat pr-10",

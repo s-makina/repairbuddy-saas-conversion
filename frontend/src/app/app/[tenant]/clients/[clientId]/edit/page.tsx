@@ -126,7 +126,7 @@ export default function EditClientPage() {
       if (e instanceof ApiError) {
         setError(e.message);
       } else {
-        setError("Failed to save client.");
+        setError("Failed to save customer.");
       }
     } finally {
       setBusy(false);
@@ -138,9 +138,9 @@ export default function EditClientPage() {
   return (
     <RequireAuth requiredPermission="clients.view">
       <div className="space-y-6">
-        <PageHeader title="Edit client" description="Update this customer record." />
+        <PageHeader title="Edit customer" description="Update this customer record." />
 
-        {invalidClientId ? <div className="text-sm text-red-600">Client is invalid.</div> : null}
+        {invalidClientId ? <div className="text-sm text-red-600">Customer is invalid.</div> : null}
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
         <Card className="shadow-none">
