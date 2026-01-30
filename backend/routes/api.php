@@ -327,7 +327,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
                 Route::prefix('clients')->middleware('permission:clients.view')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\App\ClientController::class, 'index']);
+                    Route::post('/', [\App\Http\Controllers\Api\App\ClientController::class, 'store']);
                     Route::get('/{client}', [\App\Http\Controllers\Api\App\ClientController::class, 'show'])->whereNumber('client');
+                    Route::put('/{client}', [\App\Http\Controllers\Api\App\ClientController::class, 'update'])->whereNumber('client');
+                    Route::delete('/{client}', [\App\Http\Controllers\Api\App\ClientController::class, 'destroy'])->whereNumber('client');
                     Route::get('/{client}/jobs', [\App\Http\Controllers\Api\App\ClientController::class, 'jobs'])->whereNumber('client');
                 });
 

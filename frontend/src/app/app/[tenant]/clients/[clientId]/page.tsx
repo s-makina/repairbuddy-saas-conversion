@@ -143,7 +143,14 @@ export default function TenantClientDetailPage() {
           actions={
             <div className="flex items-center gap-2">
               <Badge variant="info">{client.id}</Badge>
-              <Button disabled variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                  router.push(`/app/${tenantSlug}/clients/${client.id}/edit`);
+                }}
+              >
                 Edit
               </Button>
             </div>

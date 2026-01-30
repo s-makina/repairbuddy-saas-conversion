@@ -20,6 +20,13 @@ type ApiClient = {
   jobs_count: number;
 };
 
+type ApiMeta = {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+};
+
 export default function TenantClientsPage() {
   const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
@@ -29,6 +36,8 @@ export default function TenantClientsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [clients, setClients] = React.useState<ApiClient[]>([]);
   const [q, setQ] = React.useState<string>("");
+
+  const [meta, setMeta] = React.useState<ApiMeta | null>(null);
 
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
@@ -40,6 +49,7 @@ export default function TenantClientsPage() {
       try {
         setLoading(true);
         setError(null);
+        setMeta(null);
 
         if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
           throw new Error("Business is missing.");
@@ -47,11 +57,14 @@ export default function TenantClientsPage() {
 
         const qs = new URLSearchParams();
         if (q.trim().length > 0) qs.set("query", q.trim());
+        qs.set("page", String(pageIndex + 1));
+        qs.set("per_page", String(pageSize));
 
-        const res = await apiFetch<{ clients: ApiClient[] }>(`/api/${tenantSlug}/app/clients?${qs.toString()}`);
+        const res = await apiFetch<{ clients: ApiClient[]; meta?: ApiMeta }>(`/api/${tenantSlug}/app/clients?${qs.toString()}`);
         if (!alive) return;
 
         setClients(Array.isArray(res.clients) ? res.clients : []);
+        setMeta(res.meta && typeof res.meta === "object" ? (res.meta as ApiMeta) : null);
       } catch (e) {
         if (!alive) return;
 
@@ -73,14 +86,10 @@ export default function TenantClientsPage() {
     return () => {
       alive = false;
     };
-  }, [q, router, tenantSlug]);
+  }, [pageIndex, pageSize, q, router, tenantSlug]);
 
-  const totalRows = clients.length;
-  const pageRows = React.useMemo(() => {
-    const start = pageIndex * pageSize;
-    const end = start + pageSize;
-    return clients.slice(start, end);
-  }, [clients, pageIndex, pageSize]);
+  const totalRows = typeof meta?.total === "number" ? meta.total : clients.length;
+  const pageRows = clients;
 
   const columns = React.useMemo<Array<DataTableColumn<ApiClient>>>(
     () => [
@@ -128,7 +137,14 @@ export default function TenantClientsPage() {
       title="Clients"
       description="Your customer list and contact details."
       actions={
-        <Button disabled variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+            router.push(`/app/${tenantSlug}/clients/new`);
+          }}
+        >
           New client
         </Button>
       }
