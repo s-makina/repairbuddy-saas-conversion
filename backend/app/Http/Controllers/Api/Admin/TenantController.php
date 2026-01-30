@@ -489,7 +489,19 @@ class TenantController extends Controller
             'security.manage',
         ];
 
-        [$tenant, $owner] = DB::transaction(function () use ($validated, $ownerPermissions, $memberPermissions) {
+        $technicianPermissions = [
+            'app.access',
+            'dashboard.view',
+            'jobs.view',
+            'appointments.view',
+            'estimates.view',
+            'clients.view',
+            'customer_devices.view',
+            'profile.manage',
+            'security.manage',
+        ];
+
+        [$tenant, $owner] = DB::transaction(function () use ($validated, $ownerPermissions, $memberPermissions, $technicianPermissions) {
             $slug = $validated['slug'] ?? Str::slug($validated['name']);
             $slug = $slug ?: 'tenant';
 
@@ -525,6 +537,11 @@ class TenantController extends Controller
                 'name' => 'Member',
             ]);
 
+            $technicianRole = Role::query()->firstOrCreate([
+                'tenant_id' => $tenant->id,
+                'name' => 'Technician',
+            ]);
+
             $permissionIdsByName = Permission::query()->pluck('id', 'name')->all();
 
             $ownerRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
@@ -534,6 +551,10 @@ class TenantController extends Controller
             $memberRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
                 return $permissionIdsByName[$name] ?? null;
             }, $memberPermissions))));
+
+            $technicianRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
+                return $permissionIdsByName[$name] ?? null;
+            }, $technicianPermissions))));
 
             $owner = User::query()->create([
                 'name' => $validated['owner_name'],

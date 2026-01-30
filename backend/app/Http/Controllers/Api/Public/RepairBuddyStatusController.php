@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobStatus;
+use App\Models\TenantStatusOverride;
 use Illuminate\Http\Request;
 
 class RepairBuddyStatusController extends Controller
@@ -27,6 +28,15 @@ class RepairBuddyStatusController extends Controller
         }
 
         $status = RepairBuddyJobStatus::query()->where('slug', $job->status_slug)->first();
+        $override = TenantStatusOverride::query()
+            ->where('domain', 'job')
+            ->where('code', $job->status_slug)
+            ->first();
+
+        $statusLabel = $status?->label;
+        if (is_string($override?->label) && $override->label !== '') {
+            $statusLabel = $override->label;
+        }
 
         return response()->json([
             'job' => [
@@ -34,7 +44,7 @@ class RepairBuddyStatusController extends Controller
                 'case_number' => $job->case_number,
                 'title' => $job->title,
                 'status' => $job->status_slug,
-                'status_label' => $status?->label,
+                'status_label' => $statusLabel,
                 'updated_at' => $job->updated_at,
             ],
         ]);

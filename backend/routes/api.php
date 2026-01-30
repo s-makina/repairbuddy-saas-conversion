@@ -325,6 +325,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                 Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\App\UserController::class, 'sendPasswordResetLink'])
                     ->middleware('permission:users.manage');
 
+                Route::get('/technicians', [\App\Http\Controllers\Api\App\TechnicianController::class, 'index'])
+                    ->middleware('permission:technicians.view');
+
                 Route::prefix('clients')->middleware('permission:clients.view')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\App\ClientController::class, 'index']);
                     Route::post('/', [\App\Http\Controllers\Api\App\ClientController::class, 'store']);
@@ -368,7 +371,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
 
                 Route::prefix('repairbuddy')->middleware('permission:jobs.view')->group(function () {
                     Route::get('/job-statuses', [\App\Http\Controllers\Api\App\RepairBuddyJobStatusController::class, 'index']);
+                    Route::patch('/job-statuses/{slug}', [\App\Http\Controllers\Api\App\RepairBuddyJobStatusController::class, 'updateDisplay'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage'])
+                        ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
                     Route::get('/payment-statuses', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'index']);
+                    Route::patch('/payment-statuses/{slug}', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'updateDisplay'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage'])
+                        ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
 
                     Route::get('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'index']);
 

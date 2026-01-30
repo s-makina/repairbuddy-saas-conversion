@@ -199,7 +199,19 @@ class AuthController extends Controller
             'security.manage',
         ];
 
-        $result = DB::transaction(function () use ($validated, $tenantSlug, $ownerPermissions, $memberPermissions) {
+        $technicianPermissions = [
+            'app.access',
+            'dashboard.view',
+            'jobs.view',
+            'appointments.view',
+            'estimates.view',
+            'clients.view',
+            'customer_devices.view',
+            'profile.manage',
+            'security.manage',
+        ];
+
+        $result = DB::transaction(function () use ($validated, $tenantSlug, $ownerPermissions, $memberPermissions, $technicianPermissions) {
             if ($tenantSlug) {
                 if (Tenant::query()->where('slug', $tenantSlug)->exists()) {
                     return response()->json([
@@ -251,6 +263,11 @@ class AuthController extends Controller
                 'name' => 'Member',
             ]);
 
+            $technicianRole = Role::query()->firstOrCreate([
+                'tenant_id' => $tenant->id,
+                'name' => 'Technician',
+            ]);
+
             $permissionIdsByName = Permission::query()->pluck('id', 'name')->all();
 
             $ownerRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
@@ -260,6 +277,10 @@ class AuthController extends Controller
             $memberRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
                 return $permissionIdsByName[$name] ?? null;
             }, $memberPermissions))));
+
+            $technicianRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
+                return $permissionIdsByName[$name] ?? null;
+            }, $technicianPermissions))));
 
             $user = User::query()->create([
                 'name' => $validated['name'],
