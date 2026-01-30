@@ -19,7 +19,10 @@ class RepairBuddyDevice extends Model
         'branch_id',
         'device_type_id',
         'device_brand_id',
+        'parent_device_id',
         'model',
+        'disable_in_booking_form',
+        'is_other',
         'is_active',
     ];
 
@@ -28,6 +31,9 @@ class RepairBuddyDevice extends Model
         return [
             'device_type_id' => 'integer',
             'device_brand_id' => 'integer',
+            'parent_device_id' => 'integer',
+            'disable_in_booking_form' => 'boolean',
+            'is_other' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -40,5 +46,10 @@ class RepairBuddyDevice extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(RepairBuddyDeviceBrand::class, 'device_brand_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_device_id');
     }
 }

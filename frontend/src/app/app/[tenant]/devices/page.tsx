@@ -26,6 +26,9 @@ type ApiDevice = {
   model: string;
   device_type_id: number;
   device_brand_id: number;
+  parent_device_id: number | null;
+  disable_in_booking_form: boolean;
+  is_other: boolean;
   is_active: boolean;
 };
 

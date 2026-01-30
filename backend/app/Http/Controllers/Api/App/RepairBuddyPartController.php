@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api\App;
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyPart;
 use App\Models\RepairBuddyPartBrand;
+use App\Models\RepairBuddyPartPriceOverride;
 use App\Models\RepairBuddyPartType;
+use App\Models\RepairBuddyPartVariant;
+use App\Models\RepairBuddyTax;
 use Illuminate\Http\Request;
 
 class RepairBuddyPartController extends Controller
@@ -44,8 +47,17 @@ class RepairBuddyPartController extends Controller
             'sku' => ['sometimes', 'nullable', 'string', 'max:128'],
             'part_type_id' => ['sometimes', 'nullable', 'integer'],
             'part_brand_id' => ['sometimes', 'nullable', 'integer'],
+            'manufacturing_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'stock_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'price_amount_cents' => ['sometimes', 'nullable', 'integer'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
+            'tax_id' => ['sometimes', 'nullable', 'integer'],
+            'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'core_features' => ['sometimes', 'nullable', 'string'],
+            'capacity' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'installation_charges_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'installation_charges_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
+            'installation_message' => ['sometimes', 'nullable', 'string', 'max:255'],
             'stock' => ['sometimes', 'nullable', 'integer'],
             'is_active' => ['sometimes', 'nullable', 'boolean'],
         ]);
@@ -68,13 +80,36 @@ class RepairBuddyPartController extends Controller
             }
         }
 
+        $taxId = array_key_exists('tax_id', $validated) && is_numeric($validated['tax_id']) ? (int) $validated['tax_id'] : null;
+        if ($taxId) {
+            $tax = RepairBuddyTax::query()->whereKey($taxId)->first();
+            if (! $tax) {
+                return response()->json([
+                    'message' => 'Tax is invalid.',
+                ], 422);
+            }
+        }
+
         $part = RepairBuddyPart::query()->create([
             'name' => trim((string) $validated['name']),
             'sku' => $validated['sku'] ?? null,
             'part_type_id' => array_key_exists('part_type_id', $validated) ? $validated['part_type_id'] : null,
             'part_brand_id' => array_key_exists('part_brand_id', $validated) ? $validated['part_brand_id'] : null,
+            'manufacturing_code' => $validated['manufacturing_code'] ?? null,
+            'stock_code' => $validated['stock_code'] ?? null,
             'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? $validated['price_amount_cents'] : null,
-            'price_currency' => array_key_exists('price_currency', $validated) ? $validated['price_currency'] : null,
+            'price_currency' => array_key_exists('price_currency', $validated) && is_string($validated['price_currency']) && $validated['price_currency'] !== ''
+                ? strtoupper((string) $validated['price_currency'])
+                : null,
+            'tax_id' => $taxId,
+            'warranty' => $validated['warranty'] ?? null,
+            'core_features' => $validated['core_features'] ?? null,
+            'capacity' => $validated['capacity'] ?? null,
+            'installation_charges_amount_cents' => array_key_exists('installation_charges_amount_cents', $validated) ? $validated['installation_charges_amount_cents'] : null,
+            'installation_charges_currency' => array_key_exists('installation_charges_currency', $validated) && is_string($validated['installation_charges_currency']) && $validated['installation_charges_currency'] !== ''
+                ? strtoupper((string) $validated['installation_charges_currency'])
+                : null,
+            'installation_message' => $validated['installation_message'] ?? null,
             'stock' => array_key_exists('stock', $validated) ? $validated['stock'] : null,
             'is_active' => array_key_exists('is_active', $validated) ? (bool) $validated['is_active'] : true,
         ]);
@@ -82,6 +117,130 @@ class RepairBuddyPartController extends Controller
         return response()->json([
             'part' => $this->serialize($part),
         ], 201);
+    }
+
+    public function resolvePrice(Request $request, string $business)
+    {
+        $validated = $request->validate([
+            'part_id' => ['required', 'integer'],
+            'part_variant_id' => ['sometimes', 'nullable', 'integer'],
+            'device_id' => ['sometimes', 'nullable', 'integer'],
+            'device_brand_id' => ['sometimes', 'nullable', 'integer'],
+            'device_type_id' => ['sometimes', 'nullable', 'integer'],
+        ]);
+
+        $partId = (int) $validated['part_id'];
+        $part = RepairBuddyPart::query()->whereKey($partId)->first();
+        if (! $part) {
+            return response()->json([
+                'message' => 'Part not found.',
+            ], 404);
+        }
+
+        $variantId = array_key_exists('part_variant_id', $validated) && is_numeric($validated['part_variant_id'])
+            ? (int) $validated['part_variant_id']
+            : null;
+
+        $variant = null;
+        if ($variantId) {
+            $variant = RepairBuddyPartVariant::query()->whereKey($variantId)->first();
+            if (! $variant || (int) $variant->part_id !== (int) $part->id) {
+                return response()->json([
+                    'message' => 'Part variant is invalid.',
+                ], 422);
+            }
+        }
+
+        $deviceId = array_key_exists('device_id', $validated) && is_numeric($validated['device_id']) ? (int) $validated['device_id'] : null;
+        $brandId = array_key_exists('device_brand_id', $validated) && is_numeric($validated['device_brand_id']) ? (int) $validated['device_brand_id'] : null;
+        $typeId = array_key_exists('device_type_id', $validated) && is_numeric($validated['device_type_id']) ? (int) $validated['device_type_id'] : null;
+
+        $override = null;
+        $source = 'base';
+
+        if ($deviceId) {
+            $override = RepairBuddyPartPriceOverride::query()
+                ->where('part_id', $part->id)
+                ->where('part_variant_id', $variantId)
+                ->where('scope_type', 'device')
+                ->where('scope_ref_id', $deviceId)
+                ->where('is_active', true)
+                ->orderByDesc('id')
+                ->first();
+            if ($override) {
+                $source = 'device';
+            }
+        }
+
+        if (! $override && $brandId) {
+            $override = RepairBuddyPartPriceOverride::query()
+                ->where('part_id', $part->id)
+                ->where('part_variant_id', $variantId)
+                ->where('scope_type', 'brand')
+                ->where('scope_ref_id', $brandId)
+                ->where('is_active', true)
+                ->orderByDesc('id')
+                ->first();
+            if ($override) {
+                $source = 'brand';
+            }
+        }
+
+        if (! $override && $typeId) {
+            $override = RepairBuddyPartPriceOverride::query()
+                ->where('part_id', $part->id)
+                ->where('part_variant_id', $variantId)
+                ->where('scope_type', 'type')
+                ->where('scope_ref_id', $typeId)
+                ->where('is_active', true)
+                ->orderByDesc('id')
+                ->first();
+            if ($override) {
+                $source = 'type';
+            }
+        }
+
+        $base = $variant ?: $part;
+
+        $resolvedPriceCents = $override && is_numeric($override->price_amount_cents)
+            ? (int) $override->price_amount_cents
+            : (is_numeric($base->price_amount_cents) ? (int) $base->price_amount_cents : null);
+
+        $resolvedCurrency = $override && is_string($override->price_currency) && $override->price_currency !== ''
+            ? (string) $override->price_currency
+            : (is_string($base->price_currency) && $base->price_currency !== '' ? (string) $base->price_currency : null);
+
+        $resolvedTaxId = $override && is_numeric($override->tax_id)
+            ? (int) $override->tax_id
+            : (is_numeric($base->tax_id) ? (int) $base->tax_id : null);
+
+        $resolvedManufacturingCode = $override && is_string($override->manufacturing_code) && $override->manufacturing_code !== ''
+            ? (string) $override->manufacturing_code
+            : (is_string($base->manufacturing_code) ? (string) $base->manufacturing_code : null);
+
+        $resolvedStockCode = $override && is_string($override->stock_code) && $override->stock_code !== ''
+            ? (string) $override->stock_code
+            : (is_string($base->stock_code) ? (string) $base->stock_code : null);
+
+        $resolvedPrice = null;
+        if ($resolvedPriceCents !== null && $resolvedCurrency !== null && $resolvedCurrency !== '') {
+            $resolvedPrice = [
+                'currency' => $resolvedCurrency,
+                'amount_cents' => $resolvedPriceCents,
+            ];
+        }
+
+        return response()->json([
+            'part_id' => $part->id,
+            'part_variant_id' => $variantId,
+            'source' => $source,
+            'resolved' => [
+                'price' => $resolvedPrice,
+                'tax_id' => $resolvedTaxId,
+                'manufacturing_code' => $resolvedManufacturingCode,
+                'stock_code' => $resolvedStockCode,
+            ],
+        ]);
     }
 
     private function serialize(RepairBuddyPart $p): array
@@ -94,11 +253,29 @@ class RepairBuddyPartController extends Controller
             ];
         }
 
+        $installationCharges = null;
+        if (is_numeric($p->installation_charges_amount_cents) && is_string($p->installation_charges_currency) && $p->installation_charges_currency !== '') {
+            $installationCharges = [
+                'currency' => $p->installation_charges_currency,
+                'amount_cents' => (int) $p->installation_charges_amount_cents,
+            ];
+        }
+
         return [
             'id' => $p->id,
             'name' => $p->name,
             'sku' => $p->sku,
+            'part_type_id' => $p->part_type_id,
+            'part_brand_id' => $p->part_brand_id,
+            'manufacturing_code' => $p->manufacturing_code,
+            'stock_code' => $p->stock_code,
             'price' => $price,
+            'tax_id' => $p->tax_id,
+            'warranty' => $p->warranty,
+            'core_features' => $p->core_features,
+            'capacity' => $p->capacity,
+            'installation_charges' => $installationCharges,
+            'installation_message' => $p->installation_message,
             'stock' => $p->stock,
             'is_active' => (bool) $p->is_active,
         ];
