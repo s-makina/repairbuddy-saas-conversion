@@ -344,7 +344,15 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::get('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'index'])
                         ->middleware('permission:device_types.view');
                     Route::post('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'store'])
-                        ->middleware('permission:device_types.view');
+                        ->middleware('permission:device_types.manage');
+
+                    Route::patch('/device-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'update'])
+                        ->middleware('permission:device_types.manage')
+                        ->whereNumber('typeId');
+
+                    Route::delete('/device-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'destroy'])
+                        ->middleware('permission:device_types.manage')
+                        ->whereNumber('typeId');
 
                     Route::get('/device-brands', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'index'])
                         ->middleware('permission:device_brands.view');
