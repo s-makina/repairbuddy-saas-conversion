@@ -328,6 +328,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                 Route::get('/technicians', [\App\Http\Controllers\Api\App\TechnicianController::class, 'index'])
                     ->middleware('permission:technicians.view');
 
+                Route::post('/technicians', [\App\Http\Controllers\Api\App\TechnicianController::class, 'store'])
+                    ->middleware('permission:users.manage');
+
                 Route::prefix('clients')->middleware('permission:clients.view')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\App\ClientController::class, 'index']);
                     Route::post('/', [\App\Http\Controllers\Api\App\ClientController::class, 'store']);

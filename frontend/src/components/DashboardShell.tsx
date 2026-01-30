@@ -442,6 +442,12 @@ export function DashboardShell({
               show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage"),
             },
             {
+              label: "Statuses",
+              href: tenantSlug ? `/app/${tenantSlug}/statuses` : "/app",
+              icon: "tags",
+              show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage") && auth.can("jobs.view"),
+            },
+            {
               label: "Users",
               href: tenantSlug ? `/app/${tenantSlug}/users` : "/app",
               icon: "users",

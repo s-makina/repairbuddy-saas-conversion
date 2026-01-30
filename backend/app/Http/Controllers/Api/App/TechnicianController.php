@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class TechnicianController extends Controller
 {
@@ -15,6 +18,8 @@ class TechnicianController extends Controller
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', 'max:20'],
+            'sort' => ['nullable', 'string', 'max:50'],
+            'dir' => ['nullable', 'string', 'in:asc,desc'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
@@ -42,7 +47,17 @@ class TechnicianController extends Controller
 
         $q = is_string($validated['q'] ?? null) ? trim($validated['q']) : '';
         $status = is_string($validated['status'] ?? null) ? $validated['status'] : null;
+        $sort = is_string($validated['sort'] ?? null) ? $validated['sort'] : null;
+        $dir = is_string($validated['dir'] ?? null) ? strtolower($validated['dir']) : null;
         $perPage = (int) ($validated['per_page'] ?? 10);
+
+        $allowedSorts = [
+            'id' => 'users.id',
+            'name' => 'users.name',
+            'email' => 'users.email',
+            'status' => 'users.status',
+            'created_at' => 'users.created_at',
+        ];
 
         $query = User::query()
             ->where('users.tenant_id', $tenantId)
@@ -62,7 +77,15 @@ class TechnicianController extends Controller
             }
         }
 
-        $query->orderBy('users.id', 'desc');
+        $sortCol = $allowedSorts[$sort ?? ''] ?? null;
+        $sortDir = in_array($dir, ['asc', 'desc'], true) ? $dir : null;
+
+        if ($sortCol && $sortDir) {
+            $query->orderBy($sortCol, $sortDir);
+            $query->orderBy('users.id', 'desc');
+        } else {
+            $query->orderBy('users.id', 'desc');
+        }
 
         $paginator = $query->paginate($perPage);
 
@@ -75,5 +98,76 @@ class TechnicianController extends Controller
                 'last_page' => $paginator->lastPage(),
             ],
         ]);
+    }
+
+    public function store(Request $request, string $tenant)
+    {
+        $tenantId = TenantContext::tenantId();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => [
+                'required',
+                'string',
+                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
+            ],
+            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids.*' => ['integer'],
+        ]);
+
+        $roleId = Role::query()
+            ->where('tenant_id', $tenantId)
+            ->where('name', 'Technician')
+            ->value('id');
+
+        $roleId = is_numeric($roleId) ? (int) $roleId : null;
+
+        if (! $roleId) {
+            return response()->json([
+                'message' => 'Technician role is missing.',
+            ], 422);
+        }
+
+        $branchIds = array_values(array_unique(array_map('intval', $validated['branch_ids'])));
+
+        $validBranchIds = Branch::query()
+            ->where('is_active', true)
+            ->whereIn('id', $branchIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        sort($branchIds);
+        sort($validBranchIds);
+
+        if (count($branchIds) === 0 || $branchIds !== $validBranchIds) {
+            return response()->json([
+                'message' => 'Shop selection is invalid.',
+            ], 422);
+        }
+
+        $user = User::query()->create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'tenant_id' => $tenantId,
+            'role_id' => $roleId,
+            'role' => null,
+            'status' => 'active',
+            'is_admin' => false,
+            'email_verified_at' => now(),
+        ]);
+
+        $sync = [];
+        foreach ($validBranchIds as $id) {
+            $sync[$id] = ['tenant_id' => $tenantId];
+        }
+
+        $user->branches()->sync($sync);
+
+        return response()->json([
+            'user' => $user->load(['roleModel', 'branches:id,code,name,is_active']),
+        ], 201);
     }
 }
