@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
-import { Modal } from "@/components/ui/Modal";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
@@ -46,13 +45,6 @@ type ApiPartBrand = {
   is_active: boolean;
 };
 
-type ApiTax = {
-  id: number;
-  name: string;
-  rate: string;
-  is_default: boolean;
-};
-
 type PartsPayload = {
   parts: ApiPart[];
   meta?: {
@@ -71,10 +63,6 @@ type PartBrandsPayload = {
   part_brands: ApiPartBrand[];
 };
 
-type TaxesPayload = {
-  taxes: ApiTax[];
-};
-
 export default function TenantPartsPage() {
   const auth = useAuth();
   const router = useRouter();
@@ -89,27 +77,6 @@ export default function TenantPartsPage() {
 
   const [partTypes, setPartTypes] = React.useState<ApiPartType[]>([]);
   const [partBrands, setPartBrands] = React.useState<ApiPartBrand[]>([]);
-  const [taxes, setTaxes] = React.useState<ApiTax[]>([]);
-
-  const [editOpen, setEditOpen] = React.useState(false);
-  const [editId, setEditId] = React.useState<number | null>(null);
-  const [editName, setEditName] = React.useState("");
-  const [editSku, setEditSku] = React.useState("");
-  const [editTypeId, setEditTypeId] = React.useState<number | null>(null);
-  const [editBrandId, setEditBrandId] = React.useState<number | null>(null);
-  const [editManufacturingCode, setEditManufacturingCode] = React.useState("");
-  const [editStockCode, setEditStockCode] = React.useState("");
-  const [editPrice, setEditPrice] = React.useState("");
-  const [editCurrency, setEditCurrency] = React.useState("EUR");
-  const [editTaxId, setEditTaxId] = React.useState<number | null>(null);
-  const [editWarranty, setEditWarranty] = React.useState("");
-  const [editCapacity, setEditCapacity] = React.useState("");
-  const [editCoreFeatures, setEditCoreFeatures] = React.useState("");
-  const [editInstallationCharges, setEditInstallationCharges] = React.useState("");
-  const [editInstallationCurrency, setEditInstallationCurrency] = React.useState("EUR");
-  const [editInstallationMessage, setEditInstallationMessage] = React.useState("");
-  const [editStock, setEditStock] = React.useState("");
-  const [editIsActive, setEditIsActive] = React.useState(true);
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmTitle, setConfirmTitle] = React.useState("");
@@ -129,19 +96,16 @@ export default function TenantPartsPage() {
   const loadLookups = React.useCallback(async () => {
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
     try {
-      const [typesRes, brandsRes, taxesRes] = await Promise.all([
+      const [typesRes, brandsRes] = await Promise.all([
         apiFetch<PartTypesPayload>(`/api/${tenantSlug}/app/repairbuddy/part-types?limit=200`),
         apiFetch<PartBrandsPayload>(`/api/${tenantSlug}/app/repairbuddy/part-brands?limit=200`),
-        apiFetch<TaxesPayload>(`/api/${tenantSlug}/app/repairbuddy/taxes?limit=200`),
       ]);
 
       setPartTypes(Array.isArray(typesRes.part_types) ? typesRes.part_types : []);
       setPartBrands(Array.isArray(brandsRes.part_brands) ? brandsRes.part_brands : []);
-      setTaxes(Array.isArray(taxesRes.taxes) ? taxesRes.taxes : []);
     } catch {
       setPartTypes([]);
       setPartBrands([]);
-      setTaxes([]);
     }
   }, [tenantSlug]);
 
@@ -188,178 +152,11 @@ export default function TenantPartsPage() {
     void loadLookups();
   }, [loadLookups]);
 
-  function openCreate() {
-    if (!canManage) return;
-    setEditId(null);
-    setEditName("");
-    setEditSku("");
-    setEditTypeId(null);
-    setEditBrandId(null);
-    setEditManufacturingCode("");
-    setEditStockCode("");
-    setEditPrice("");
-    setEditCurrency("EUR");
-    setEditTaxId(null);
-    setEditWarranty("");
-    setEditCapacity("");
-    setEditCoreFeatures("");
-    setEditInstallationCharges("");
-    setEditInstallationCurrency("EUR");
-    setEditInstallationMessage("");
-    setEditStock("");
-    setEditIsActive(true);
-    setEditOpen(true);
-    setError(null);
-    setStatus(null);
-  }
-
-  function openEdit(row: ApiPart) {
-    if (!canManage) return;
-    setEditId(row.id);
-    setEditName(row.name);
-    setEditSku(row.sku ?? "");
-    setEditTypeId(typeof row.part_type_id === "number" ? row.part_type_id : null);
-    setEditBrandId(typeof row.part_brand_id === "number" ? row.part_brand_id : null);
-    setEditManufacturingCode(row.manufacturing_code ?? "");
-    setEditStockCode(row.stock_code ?? "");
-    setEditPrice(row.price ? (row.price.amount_cents / 100).toFixed(2) : "");
-    setEditCurrency(row.price?.currency ?? "EUR");
-    setEditTaxId(typeof row.tax_id === "number" ? row.tax_id : null);
-    setEditWarranty(row.warranty ?? "");
-    setEditCapacity(row.capacity ?? "");
-    setEditCoreFeatures(row.core_features ?? "");
-    setEditInstallationCharges(row.installation_charges ? (row.installation_charges.amount_cents / 100).toFixed(2) : "");
-    setEditInstallationCurrency(row.installation_charges?.currency ?? "EUR");
-    setEditInstallationMessage(row.installation_message ?? "");
-    setEditStock(typeof row.stock === "number" ? String(row.stock) : "");
-    setEditIsActive(Boolean(row.is_active));
-    setEditOpen(true);
-    setError(null);
-    setStatus(null);
-  }
-
   function openConfirm(args: { title: string; message: React.ReactNode; action: () => Promise<void> }) {
     setConfirmTitle(args.title);
     setConfirmMessage(args.message);
     setConfirmAction(() => args.action);
     setConfirmOpen(true);
-  }
-
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (busy) return;
-    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-    if (!canManage) {
-      setError("Forbidden.");
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    setStatus(null);
-
-    try {
-      const name = editName.trim();
-      if (name.length === 0) {
-        setError("Name is required.");
-        return;
-      }
-
-      const sku = editSku.trim().length > 0 ? editSku.trim() : null;
-
-      const manufacturingCode = editManufacturingCode.trim().length > 0 ? editManufacturingCode.trim() : null;
-      const stockCode = editStockCode.trim().length > 0 ? editStockCode.trim() : null;
-      const warranty = editWarranty.trim().length > 0 ? editWarranty.trim() : null;
-      const capacity = editCapacity.trim().length > 0 ? editCapacity.trim() : null;
-      const coreFeatures = editCoreFeatures.trim().length > 0 ? editCoreFeatures.trim() : null;
-      const installationMessage = editInstallationMessage.trim().length > 0 ? editInstallationMessage.trim() : null;
-
-      const priceText = editPrice.trim();
-      const currency = editCurrency.trim().toUpperCase();
-
-      let priceAmountCents: number | null = null;
-      let priceCurrency: string | null = null;
-      if (priceText.length > 0) {
-        const parsed = Number(priceText);
-        if (!Number.isFinite(parsed)) {
-          setError("Price is invalid.");
-          return;
-        }
-        priceAmountCents = Math.round(parsed * 100);
-        priceCurrency = currency.length > 0 ? currency : null;
-      }
-
-      const installationText = editInstallationCharges.trim();
-      const installationCurrency = editInstallationCurrency.trim().toUpperCase();
-      let installationAmountCents: number | null = null;
-      let installationCurrencyValue: string | null = null;
-      if (installationText.length > 0) {
-        const parsed = Number(installationText);
-        if (!Number.isFinite(parsed)) {
-          setError("Installation charges is invalid.");
-          return;
-        }
-        installationAmountCents = Math.round(parsed * 100);
-        installationCurrencyValue = installationCurrency.length > 0 ? installationCurrency : null;
-      }
-
-      const stockText = editStock.trim();
-      let stock: number | null = null;
-      if (stockText.length > 0) {
-        const parsed = Number(stockText);
-        if (!Number.isFinite(parsed)) {
-          setError("Stock is invalid.");
-          return;
-        }
-        stock = Math.trunc(parsed);
-      }
-
-      const payload: Record<string, unknown> = {
-        name,
-        sku,
-        part_type_id: editTypeId,
-        part_brand_id: editBrandId,
-        manufacturing_code: manufacturingCode,
-        stock_code: stockCode,
-        price_amount_cents: priceAmountCents,
-        price_currency: priceCurrency,
-        tax_id: editTaxId,
-        warranty,
-        core_features: coreFeatures,
-        capacity,
-        installation_charges_amount_cents: installationAmountCents,
-        installation_charges_currency: installationCurrencyValue,
-        installation_message: installationMessage,
-        stock,
-        is_active: editIsActive,
-      };
-
-      if (editId) {
-        await apiFetch<{ part: ApiPart }>(`/api/${tenantSlug}/app/repairbuddy/parts/${editId}`, {
-          method: "PATCH",
-          body: payload,
-        });
-        setStatus("Part updated.");
-      } else {
-        await apiFetch<{ part: ApiPart }>(`/api/${tenantSlug}/app/repairbuddy/parts`, {
-          method: "POST",
-          body: payload,
-        });
-        setStatus("Part created.");
-      }
-
-      setEditOpen(false);
-      setPageIndex(0);
-      await load();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError(editId ? "Failed to update part." : "Failed to create part.");
-      }
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function onDelete(row: ApiPart) {
@@ -510,7 +307,8 @@ export default function TenantPartsPage() {
                   <DropdownMenuItem
                     onSelect={() => {
                       close();
-                      openEdit(row);
+                      if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                      router.push(`/app/${tenantSlug}/parts/${row.id}/edit`);
                     }}
                     disabled={busy}
                   >
@@ -534,7 +332,7 @@ export default function TenantPartsPage() {
         },
       },
     ],
-    [brandNameById, busy, canManage, typeNameById],
+    [brandNameById, busy, canManage, router, tenantSlug, typeNameById],
   );
 
   return (
@@ -562,306 +360,6 @@ export default function TenantPartsPage() {
           }}
         />
 
-        <Modal
-          open={editOpen}
-          onClose={() => {
-            if (busy) return;
-            setEditOpen(false);
-          }}
-          title={editId ? "Edit part" : "New part"}
-          footer={
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={busy}>
-                Cancel
-              </Button>
-              <Button disabled={busy} type="submit" form="rb_part_form">
-                {busy ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          }
-        >
-          <form id="rb_part_form" className="space-y-3" onSubmit={onSave}>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="part_name">
-                Name
-              </label>
-              <input
-                id="part_name"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                required
-                disabled={busy}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="part_sku">
-                SKU
-              </label>
-              <input
-                id="part_sku"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editSku}
-                onChange={(e) => setEditSku(e.target.value)}
-                disabled={busy}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_manufacturing_code">
-                  Manufacturing code
-                </label>
-                <input
-                  id="part_manufacturing_code"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editManufacturingCode}
-                  onChange={(e) => setEditManufacturingCode(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_stock_code">
-                  Stock code
-                </label>
-                <input
-                  id="part_stock_code"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editStockCode}
-                  onChange={(e) => setEditStockCode(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_type">
-                  Part type
-                </label>
-                <select
-                  id="part_type"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editTypeId ?? ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw) {
-                      setEditTypeId(null);
-                      return;
-                    }
-                    const n = Number(raw);
-                    setEditTypeId(Number.isFinite(n) ? n : null);
-                  }}
-                  disabled={busy}
-                >
-                  <option value="">(none)</option>
-                  {partTypes
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_brand">
-                  Part brand
-                </label>
-                <select
-                  id="part_brand"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editBrandId ?? ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw) {
-                      setEditBrandId(null);
-                      return;
-                    }
-                    const n = Number(raw);
-                    setEditBrandId(Number.isFinite(n) ? n : null);
-                  }}
-                  disabled={busy}
-                >
-                  <option value="">(none)</option>
-                  {partBrands
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium" htmlFor="part_price">
-                  Price
-                </label>
-                <input
-                  id="part_price"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
-                  disabled={busy}
-                  inputMode="decimal"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_currency">
-                  Currency
-                </label>
-                <input
-                  id="part_currency"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editCurrency}
-                  onChange={(e) => setEditCurrency(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="part_tax">
-                Tax
-              </label>
-              <select
-                id="part_tax"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editTaxId ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (!raw) {
-                    setEditTaxId(null);
-                    return;
-                  }
-                  const n = Number(raw);
-                  setEditTaxId(Number.isFinite(n) ? n : null);
-                }}
-                disabled={busy}
-              >
-                <option value="">(none)</option>
-                {taxes
-                  .slice()
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_warranty">
-                  Warranty
-                </label>
-                <input
-                  id="part_warranty"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editWarranty}
-                  onChange={(e) => setEditWarranty(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_capacity">
-                  Capacity
-                </label>
-                <input
-                  id="part_capacity"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editCapacity}
-                  onChange={(e) => setEditCapacity(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="part_core_features">
-                Core features
-              </label>
-              <textarea
-                id="part_core_features"
-                className="w-full min-h-[96px] rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editCoreFeatures}
-                onChange={(e) => setEditCoreFeatures(e.target.value)}
-                disabled={busy}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium" htmlFor="part_installation_charges">
-                  Installation charges
-                </label>
-                <input
-                  id="part_installation_charges"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editInstallationCharges}
-                  onChange={(e) => setEditInstallationCharges(e.target.value)}
-                  disabled={busy}
-                  inputMode="decimal"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="part_installation_currency">
-                  Currency
-                </label>
-                <input
-                  id="part_installation_currency"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={editInstallationCurrency}
-                  onChange={(e) => setEditInstallationCurrency(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="part_installation_message">
-                Installation message
-              </label>
-              <input
-                id="part_installation_message"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editInstallationMessage}
-                onChange={(e) => setEditInstallationMessage(e.target.value)}
-                disabled={busy}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="part_stock">
-                Stock
-              </label>
-              <input
-                id="part_stock"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={editStock}
-                onChange={(e) => setEditStock(e.target.value)}
-                disabled={busy}
-                inputMode="numeric"
-              />
-            </div>
-
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={editIsActive} onChange={(e) => setEditIsActive(e.target.checked)} disabled={busy} />
-              Active
-            </label>
-          </form>
-        </Modal>
-
         {status ? <div className="text-sm text-green-700">{status}</div> : null}
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
@@ -869,7 +367,15 @@ export default function TenantPartsPage() {
           title="Parts"
           description="Inventory catalog and pricing for parts."
           actions={
-            <Button variant="primary" size="sm" onClick={openCreate} disabled={!canManage || loading || busy}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                router.push(`/app/${tenantSlug}/parts/new`);
+              }}
+              disabled={!canManage || loading || busy}
+            >
               New part
             </Button>
           }

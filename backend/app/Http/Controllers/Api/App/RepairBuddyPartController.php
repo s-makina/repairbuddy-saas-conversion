@@ -111,6 +111,27 @@ class RepairBuddyPartController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $business, $partId)
+    {
+        if (! is_numeric($partId)) {
+            return response()->json([
+                'message' => 'Part not found.',
+            ], 404);
+        }
+
+        $part = RepairBuddyPart::query()->whereKey((int) $partId)->first();
+
+        if (! $part) {
+            return response()->json([
+                'message' => 'Part not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'part' => $this->serialize($part),
+        ]);
+    }
+
     public function store(Request $request, string $business)
     {
         $validated = $request->validate([

@@ -448,6 +448,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::post('/parts', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'store'])
                         ->middleware('permission:parts.manage');
 
+                    Route::get('/parts/{partId}', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'show'])
+                        ->middleware('permission:parts.view')
+                        ->whereNumber('partId');
+
                     Route::patch('/parts/{partId}', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'update'])
                         ->middleware('permission:parts.manage')
                         ->whereNumber('partId');

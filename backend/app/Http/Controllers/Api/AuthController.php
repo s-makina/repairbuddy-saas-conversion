@@ -371,11 +371,19 @@ class AuthController extends Controller
         $this->clearFailedAttempts($request, $email);
 
         if ($usedOneTimePassword) {
-            $user->forceFill([
+            $updates = [
                 'one_time_password_used_at' => now(),
                 'one_time_password_hash' => null,
                 'one_time_password_expires_at' => null,
                 'must_change_password' => true,
+            ];
+
+            if (! $user->hasVerifiedEmail()) {
+                $updates['email_verified_at'] = now();
+            }
+
+            $user->forceFill([
+                ...$updates,
             ])->save();
 
             $this->logAuthEvent($request, 'login_one_time_password_used', $user, $user->email, $user->tenant);
