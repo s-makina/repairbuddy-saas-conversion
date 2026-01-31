@@ -350,6 +350,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                         ->middleware('permission:device_types.manage')
                         ->whereNumber('typeId');
 
+                    Route::post('/device-types/{typeId}/image', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'uploadImage'])
+                        ->middleware('permission:device_types.manage')
+                        ->whereNumber('typeId');
+
+                    Route::delete('/device-types/{typeId}/image', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'deleteImage'])
+                        ->middleware('permission:device_types.manage')
+                        ->whereNumber('typeId');
+
                     Route::delete('/device-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'destroy'])
                         ->middleware('permission:device_types.manage')
                         ->whereNumber('typeId');

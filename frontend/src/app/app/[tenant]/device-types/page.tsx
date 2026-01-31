@@ -9,14 +9,28 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
+import { ImagePickerWithPreview } from "@/components/ui/ImagePickerWithPreview";
 import { Modal } from "@/components/ui/Modal";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 
 type ApiDeviceType = {
   id: number;
+  parent_id: number | null;
   name: string;
+  description: string | null;
+  image_url: string | null;
   is_active: boolean;
+};
+
+type DeviceTypesPayload = {
+  device_types: ApiDeviceType[];
+  meta?: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+  };
 };
 
 export default function TenantDeviceTypesPage() {
@@ -34,7 +48,12 @@ export default function TenantDeviceTypesPage() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<number | null>(null);
   const [editName, setEditName] = React.useState("");
+  const [editParentId, setEditParentId] = React.useState<number | null>(null);
+  const [editDescription, setEditDescription] = React.useState("");
   const [editIsActive, setEditIsActive] = React.useState(true);
+
+  const [parentOptions, setParentOptions] = React.useState<ApiDeviceType[]>([]);
+  const [imageFile, setImageFile] = React.useState<File | null>(null);
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmTitle, setConfirmTitle] = React.useState("");
@@ -45,7 +64,20 @@ export default function TenantDeviceTypesPage() {
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
 
+  const [totalRows, setTotalRows] = React.useState(0);
+  const [sort, setSort] = React.useState<{ id: string; dir: "asc" | "desc" } | null>(null);
+
   const canManage = auth.can("device_types.manage");
+
+  const loadParentOptions = React.useCallback(async () => {
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+    try {
+      const res = await apiFetch<DeviceTypesPayload>(`/api/${tenantSlug}/app/repairbuddy/device-types?limit=200`);
+      setParentOptions(Array.isArray(res.device_types) ? res.device_types : []);
+    } catch {
+      setParentOptions([]);
+    }
+  }, [tenantSlug]);
 
   const load = React.useCallback(async () => {
     try {
@@ -56,8 +88,19 @@ export default function TenantDeviceTypesPage() {
         throw new Error("Business is missing.");
       }
 
-      const res = await apiFetch<{ device_types: ApiDeviceType[] }>(`/api/${tenantSlug}/app/repairbuddy/device-types`);
+      const qs = new URLSearchParams();
+      if (query.trim().length > 0) qs.set("q", query.trim());
+      qs.set("page", String(pageIndex + 1));
+      qs.set("per_page", String(pageSize));
+      if (sort?.id && sort?.dir) {
+        qs.set("sort", sort.id);
+        qs.set("dir", sort.dir);
+      }
+
+      const res = await apiFetch<DeviceTypesPayload>(`/api/${tenantSlug}/app/repairbuddy/device-types?${qs.toString()}`);
       setTypes(Array.isArray(res.device_types) ? res.device_types : []);
+      setTotalRows(typeof res.meta?.total === "number" ? res.meta.total : 0);
+      setPageSize(typeof res.meta?.per_page === "number" ? res.meta.per_page : pageSize);
     } catch (e) {
       if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
         const next = `/app/${tenantSlug}/device-types`;
@@ -69,52 +112,25 @@ export default function TenantDeviceTypesPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, tenantSlug]);
+  }, [pageIndex, pageSize, query, router, sort?.dir, sort?.id, tenantSlug]);
 
   React.useEffect(() => {
-    let alive = true;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        setStatus(null);
-
-        if (typeof tenantSlug !== "string" || tenantSlug.length === 0) {
-          throw new Error("Business is missing.");
-        }
-
-        const res = await apiFetch<{ device_types: ApiDeviceType[] }>(`/api/${tenantSlug}/app/repairbuddy/device-types`);
-        if (!alive) return;
-        setTypes(Array.isArray(res.device_types) ? res.device_types : []);
-      } catch (e) {
-        if (!alive) return;
-
-        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
-          const next = `/app/${tenantSlug}/device-types`;
-          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
-          return;
-        }
-
-        setError(e instanceof Error ? e.message : "Failed to load device types.");
-      } finally {
-        if (!alive) return;
-        setLoading(false);
-      }
-    }
-
     void load();
+  }, [load]);
 
-    return () => {
-      alive = false;
-    };
-  }, [router, tenantSlug]);
+  React.useEffect(() => {
+    if (!editOpen) return;
+    void loadParentOptions();
+  }, [editOpen, loadParentOptions]);
 
   function openCreate() {
     if (!canManage) return;
     setEditId(null);
     setEditName("");
+    setEditParentId(null);
+    setEditDescription("");
     setEditIsActive(true);
+    setImageFile(null);
     setEditOpen(true);
     setError(null);
     setStatus(null);
@@ -124,7 +140,10 @@ export default function TenantDeviceTypesPage() {
     if (!canManage) return;
     setEditId(row.id);
     setEditName(row.name);
+    setEditParentId(typeof row.parent_id === "number" ? row.parent_id : null);
+    setEditDescription(typeof row.description === "string" ? row.description : "");
     setEditIsActive(Boolean(row.is_active));
+    setImageFile(null);
     setEditOpen(true);
     setError(null);
     setStatus(null);
@@ -157,27 +176,81 @@ export default function TenantDeviceTypesPage() {
         return;
       }
 
+      const payload = {
+        name,
+        parent_id: editParentId,
+        description: editDescription.trim().length > 0 ? editDescription.trim() : null,
+        is_active: editIsActive,
+      };
+
+      let saved: ApiDeviceType | null = null;
+
       if (editId) {
-        await apiFetch<{ device_type: ApiDeviceType }>(`/api/${tenantSlug}/app/repairbuddy/device-types/${editId}`, {
+        const res = await apiFetch<{ device_type: ApiDeviceType }>(`/api/${tenantSlug}/app/repairbuddy/device-types/${editId}`, {
           method: "PATCH",
-          body: { name, is_active: editIsActive },
+          body: payload,
         });
+        saved = res.device_type ?? null;
         setStatus("Device type updated.");
       } else {
-        await apiFetch<{ device_type: ApiDeviceType }>(`/api/${tenantSlug}/app/repairbuddy/device-types`, {
+        const res = await apiFetch<{ device_type: ApiDeviceType }>(`/api/${tenantSlug}/app/repairbuddy/device-types`, {
           method: "POST",
-          body: { name, is_active: editIsActive },
+          body: payload,
         });
+        saved = res.device_type ?? null;
         setStatus("Device type created.");
       }
 
+      const typeId = saved?.id ?? editId;
+
+      if (typeId && imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        await apiFetch<{ device_type: ApiDeviceType }>(`/api/${tenantSlug}/app/repairbuddy/device-types/${typeId}/image`, {
+          method: "POST",
+          body: formData,
+        });
+      }
+
       setEditOpen(false);
+      setPageIndex(0);
       await load();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
         setError(editId ? "Failed to update device type." : "Failed to create device type.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRemoveImage() {
+    if (busy) return;
+    if (!editId) return;
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+    if (!canManage) return;
+
+    setBusy(true);
+    setError(null);
+    setStatus(null);
+
+    try {
+      await apiFetch<{ device_type: ApiDeviceType }>(`/api/${tenantSlug}/app/repairbuddy/device-types/${editId}/image`, {
+        method: "DELETE",
+      });
+
+      setStatus("Image removed.");
+      setImageFile(null);
+
+      setPageIndex(0);
+      await load();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to remove image.");
       }
     } finally {
       setBusy(false);
@@ -208,6 +281,7 @@ export default function TenantDeviceTypesPage() {
             method: "DELETE",
           });
           setStatus("Device type deleted.");
+          setPageIndex(0);
           await load();
         } catch (err) {
           if (err instanceof ApiError) {
@@ -222,24 +296,22 @@ export default function TenantDeviceTypesPage() {
     });
   }
 
-  const filtered = React.useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return types;
-    return types.filter((t) => `${t.id} ${t.name}`.toLowerCase().includes(needle));
-  }, [query, types]);
+  const pageRows = types;
 
-  const totalRows = filtered.length;
-  const pageRows = React.useMemo(() => {
-    const start = pageIndex * pageSize;
-    const end = start + pageSize;
-    return filtered.slice(start, end);
-  }, [filtered, pageIndex, pageSize]);
+  const parentSelectOptions = React.useMemo(() => {
+    const excludeId = editId ?? null;
+    return parentOptions
+      .filter((t) => (excludeId ? t.id !== excludeId : true))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [editId, parentOptions]);
 
   const columns = React.useMemo<Array<DataTableColumn<ApiDeviceType>>>(
     () => [
       {
         id: "name",
         header: "Device type",
+        sortId: "name",
         cell: (row) => (
           <div className="min-w-0">
             <div className="truncate font-semibold text-[var(--rb-text)]">{row.name}</div>
@@ -247,6 +319,13 @@ export default function TenantDeviceTypesPage() {
           </div>
         ),
         className: "min-w-[260px]",
+      },
+      {
+        id: "active",
+        header: "Active",
+        sortId: "is_active",
+        className: "whitespace-nowrap",
+        cell: (row) => <div className="text-sm text-zinc-700">{row.is_active ? "Yes" : "No"}</div>,
       },
       {
         id: "actions",
@@ -358,6 +437,65 @@ export default function TenantDeviceTypesPage() {
               />
             </div>
 
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="device_type_parent">
+                Parent device type
+              </label>
+              <select
+                id="device_type_parent"
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={editParentId ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (!raw) {
+                    setEditParentId(null);
+                    return;
+                  }
+                  const n = Number(raw);
+                  setEditParentId(Number.isFinite(n) ? n : null);
+                }}
+                disabled={busy}
+              >
+                <option value="">(none)</option>
+                {parentSelectOptions.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="device_type_description">
+                Description
+              </label>
+              <textarea
+                id="device_type_description"
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={4}
+                disabled={busy}
+              />
+            </div>
+
+            <ImagePickerWithPreview
+              label="Image"
+              file={imageFile}
+              existingUrl={editId ? types.find((t) => t.id === editId)?.image_url ?? null : null}
+              disabled={busy}
+              onFileChange={(next) => {
+                setError(null);
+                setStatus(null);
+                setImageFile(next);
+              }}
+              onRemoveExisting={editId ? () => void onRemoveImage() : undefined}
+              onError={(message) => {
+                setError(message);
+                setStatus(null);
+              }}
+            />
+
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -377,7 +515,7 @@ export default function TenantDeviceTypesPage() {
           title="Device Types"
           description="Type taxonomy for devices (laptop, desktop, phone, etc.)."
           actions={
-            <Button variant="outline" size="sm" onClick={openCreate} disabled={!canManage || loading || busy}>
+            <Button variant="primary" size="sm" onClick={openCreate} disabled={!canManage || loading || busy}>
               New device type
             </Button>
           }
@@ -413,6 +551,11 @@ export default function TenantDeviceTypesPage() {
                     setPageIndex(0);
                   },
                   totalRows,
+                  sort,
+                  onSortChange: (next) => {
+                    setSort(next);
+                    setPageIndex(0);
+                  },
                 }}
               />
             </CardContent>
