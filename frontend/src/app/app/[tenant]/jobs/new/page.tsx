@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Select, { type MultiValue } from "react-select";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -38,6 +39,11 @@ type ApiTechnician = {
   email: string;
 };
 
+type TechnicianOption = {
+  value: number;
+  label: string;
+};
+
 type ApiCustomerDevice = {
   id: number;
   customer_id: number;
@@ -69,7 +75,7 @@ export default function NewJobPage() {
   const [deliveryDate, setDeliveryDate] = useState<string>("");
   const [nextServiceDate, setNextServiceDate] = useState<string>("");
   const [caseDetail, setCaseDetail] = useState<string>("");
-  const [assignedTechnicianId, setAssignedTechnicianId] = useState<number | null>(null);
+  const [assignedTechnicianIds, setAssignedTechnicianIds] = useState<number[]>([]);
   const [attachCustomerDeviceId, setAttachCustomerDeviceId] = useState<number | null>(null);
 
   const [statuses, setStatuses] = useState<ApiJobStatus[]>([]);
@@ -104,7 +110,9 @@ export default function NewJobPage() {
         setPaymentStatuses(nextPayment);
 
         try {
-          const techniciansRes = await apiFetch<{ users: ApiTechnician[] }>(`/api/${tenantSlug}/app/technicians?per_page=200`);
+          const techniciansRes = await apiFetch<{ users: ApiTechnician[] }>(
+            `/api/${tenantSlug}/app/technicians?per_page=100&sort=name&dir=asc`,
+          );
           if (!alive) return;
           setTechnicians(Array.isArray(techniciansRes.users) ? techniciansRes.users : []);
         } catch {
@@ -160,6 +168,19 @@ export default function NewJobPage() {
   const sortedTechnicians = useMemo(() => {
     return technicians.slice().sort((a, b) => `${a.name}`.localeCompare(`${b.name}`));
   }, [technicians]);
+
+  const technicianOptions = useMemo<TechnicianOption[]>(() => {
+    return sortedTechnicians.map((t) => ({
+      value: t.id,
+      label: t.email ? `${t.name} (${t.email})` : t.name,
+    }));
+  }, [sortedTechnicians]);
+
+  const selectedTechnicianOptions = useMemo<TechnicianOption[]>(() => {
+    if (assignedTechnicianIds.length === 0) return [];
+    const set = new Set(assignedTechnicianIds);
+    return technicianOptions.filter((o) => set.has(o.value));
+  }, [assignedTechnicianIds, technicianOptions]);
 
   useEffect(() => {
     let alive = true;
@@ -219,7 +240,8 @@ export default function NewJobPage() {
           delivery_date: deliveryDate.trim() !== "" ? deliveryDate : null,
           next_service_date: nextServiceEnabled && nextServiceDate.trim() !== "" ? nextServiceDate : null,
           case_detail: caseDetail.trim() !== "" ? caseDetail.trim() : null,
-          assigned_technician_id: typeof assignedTechnicianId === "number" ? assignedTechnicianId : null,
+          assigned_technician_id: assignedTechnicianIds.length > 0 ? assignedTechnicianIds[0] : null,
+          assigned_technician_ids: assignedTechnicianIds,
         },
       });
 
@@ -326,29 +348,44 @@ export default function NewJobPage() {
                 </select>
               </FormRow>
 
-              <FormRow label="Assigned technician" fieldId="job_technician">
-                <select
-                  id="job_technician"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                  value={typeof assignedTechnicianId === "number" ? String(assignedTechnicianId) : ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw) {
-                      setAssignedTechnicianId(null);
-                      return;
-                    }
-                    const n = Number(raw);
-                    setAssignedTechnicianId(Number.isFinite(n) ? n : null);
+              <FormRow
+                label="Assigned technicians"
+                fieldId="job_technicians"
+                description={
+                  sortedTechnicians.length > 0
+                    ? `Selected: ${assignedTechnicianIds.length}`
+                    : "No technicians available"
+                }
+              >
+                <Select
+                  inputId="job_technicians"
+                  instanceId="job_technicians"
+                  isMulti
+                  isSearchable
+                  isClearable
+                  options={technicianOptions}
+                  value={selectedTechnicianOptions}
+                  onChange={(values: MultiValue<TechnicianOption>) => {
+                    const nextIds = values.map((v) => v.value);
+                    setAssignedTechnicianIds(nextIds);
                   }}
-                  disabled={disabled || sortedTechnicians.length === 0}
-                >
-                  <option value="">{sortedTechnicians.length > 0 ? "—" : "No technicians available"}</option>
-                  {sortedTechnicians.map((t) => (
-                    <option key={t.id} value={String(t.id)}>
-                      {t.name} {t.email ? `(${t.email})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  isDisabled={disabled || technicianOptions.length === 0}
+                  placeholder={technicianOptions.length > 0 ? "Select technicians..." : "No technicians available"}
+                  classNamePrefix="rb-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderRadius: "var(--rb-radius-sm)",
+                      borderColor: "#d4d4d8",
+                      minHeight: 40,
+                      boxShadow: "none",
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 50,
+                    }),
+                  }}
+                />
               </FormRow>
 
               <FormRow label="Status" fieldId="job_status" required>

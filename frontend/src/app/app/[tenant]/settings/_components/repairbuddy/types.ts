@@ -13,7 +13,6 @@ export type RepairBuddyGeneralSettings = {
   gdprLinkLabel: string;
   gdprLinkUrl: string;
   defaultCountry: string;
-  disablePartsUseWooProducts: boolean;
   disableStatusCheckBySerial: boolean;
 };
 

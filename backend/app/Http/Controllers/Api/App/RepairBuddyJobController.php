@@ -25,7 +25,7 @@ class RepairBuddyJobController extends Controller
         $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 100;
 
         $query = RepairBuddyJob::query()
-            ->with(['customer'])
+            ->with(['customer', 'technicians'])
             ->orderBy('id', 'desc');
 
         if ($q !== '') {
@@ -52,7 +52,7 @@ class RepairBuddyJobController extends Controller
         }
 
         $job = RepairBuddyJob::query()
-            ->with(['customer'])
+            ->with(['customer', 'technicians'])
             ->whereKey((int) $jobId)
             ->first();
 
@@ -81,6 +81,8 @@ class RepairBuddyJobController extends Controller
             'next_service_date' => ['sometimes', 'nullable', 'date'],
             'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
+            'assigned_technician_ids' => ['sometimes', 'array'],
+            'assigned_technician_ids.*' => ['integer'],
         ]);
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
@@ -115,6 +117,30 @@ class RepairBuddyJobController extends Controller
             }
         }
 
+        $assignedTechnicianIds = [];
+        if (array_key_exists('assigned_technician_ids', $validated) && is_array($validated['assigned_technician_ids'])) {
+            $assignedTechnicianIds = array_values(array_unique(array_map('intval', $validated['assigned_technician_ids'])));
+        }
+
+        if (count($assignedTechnicianIds) > 0) {
+            $validTechnicianIds = User::query()
+                ->where('tenant_id', $this->tenantId())
+                ->where('is_admin', false)
+                ->whereIn('id', $assignedTechnicianIds)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            sort($assignedTechnicianIds);
+            sort($validTechnicianIds);
+
+            if ($assignedTechnicianIds !== $validTechnicianIds) {
+                return response()->json([
+                    'message' => 'Assigned technicians are invalid.',
+                ], 422);
+            }
+        }
+
         $caseNumberExists = RepairBuddyJob::query()->where('case_number', $caseNumber)->exists();
         if ($caseNumberExists) {
             return response()->json([
@@ -122,7 +148,7 @@ class RepairBuddyJobController extends Controller
             ], 422);
         }
 
-        $job = DB::transaction(function () use ($caseNumber, $request, $statusSlug, $validated, $assignedTechnicianId) {
+        $job = DB::transaction(function () use ($caseNumber, $request, $statusSlug, $validated, $assignedTechnicianId, $assignedTechnicianIds) {
             $job = RepairBuddyJob::query()->create([
                 'case_number' => $caseNumber,
                 'title' => $validated['title'],
@@ -139,6 +165,10 @@ class RepairBuddyJobController extends Controller
                 'assigned_technician_id' => $assignedTechnicianId,
             ]);
 
+            if (count($assignedTechnicianIds) > 0) {
+                $job->technicians()->sync($assignedTechnicianIds);
+            }
+
             RepairBuddyEvent::query()->create([
                 'actor_user_id' => $request->user()?->id,
                 'entity_type' => 'job',
@@ -153,6 +183,8 @@ class RepairBuddyJobController extends Controller
 
             return $job;
         });
+
+        $job->load(['customer', 'technicians']);
 
         return response()->json([
             'job' => $this->serializeJob($job, includeTimeline: true),
@@ -186,6 +218,8 @@ class RepairBuddyJobController extends Controller
             'next_service_date' => ['sometimes', 'nullable', 'date'],
             'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
+            'assigned_technician_ids' => ['sometimes', 'array'],
+            'assigned_technician_ids.*' => ['integer'],
         ]);
 
         if (array_key_exists('assigned_technician_id', $validated) && is_numeric($validated['assigned_technician_id'])) {
@@ -212,6 +246,31 @@ class RepairBuddyJobController extends Controller
             }
         }
 
+        if (array_key_exists('assigned_technician_ids', $validated) && is_array($validated['assigned_technician_ids'])) {
+            $assignedTechnicianIds = array_values(array_unique(array_map('intval', $validated['assigned_technician_ids'])));
+
+            if (count($assignedTechnicianIds) > 0) {
+                $validTechnicianIds = User::query()
+                    ->where('tenant_id', $this->tenantId())
+                    ->where('is_admin', false)
+                    ->whereIn('id', $assignedTechnicianIds)
+                    ->pluck('id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                sort($assignedTechnicianIds);
+                sort($validTechnicianIds);
+
+                if ($assignedTechnicianIds !== $validTechnicianIds) {
+                    return response()->json([
+                        'message' => 'Assigned technicians are invalid.',
+                    ], 422);
+                }
+            }
+
+            $job->technicians()->sync($assignedTechnicianIds);
+        }
+
         $job->forceFill([
             'title' => array_key_exists('title', $validated) ? $validated['title'] : $job->title,
             'status_slug' => array_key_exists('status_slug', $validated) ? ($validated['status_slug'] ?: null) : $job->status_slug,
@@ -226,7 +285,7 @@ class RepairBuddyJobController extends Controller
         ])->save();
 
         return response()->json([
-            'job' => $this->serializeJob($job->fresh()),
+            'job' => $this->serializeJob($job->fresh()->load(['technicians'])),
         ]);
     }
 
@@ -269,6 +328,7 @@ class RepairBuddyJobController extends Controller
     private function serializeJob(RepairBuddyJob $job, bool $includeTimeline = false): array
     {
         $customer = $job->customer;
+        $technicians = $job->relationLoaded('technicians') ? $job->technicians : null;
         if ($customer instanceof User && (int) $customer->tenant_id !== (int) $this->tenantId()) {
             $customer = null;
         }
@@ -373,6 +433,10 @@ class RepairBuddyJobController extends Controller
             'next_service_date' => $job->next_service_date,
             'case_detail' => $job->case_detail,
             'assigned_technician_id' => $job->assigned_technician_id,
+            'assigned_technician_ids' => $technicians ? $technicians->map(fn (User $u) => $u->id)->values() : [],
+            'assigned_technicians' => $technicians
+                ? $technicians->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])->values()
+                : [],
             'customer' => $customer instanceof User ? [
                 'id' => $customer->id,
                 'name' => $customer->name,

@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenantAndBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class RepairBuddyJob extends Model
 {
@@ -60,5 +61,11 @@ class RepairBuddyJob extends Model
     public function assignedTechnician(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_technician_id');
+    }
+
+    public function technicians(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'rb_job_technicians', 'job_id', 'technician_user_id')
+            ->withTimestamps();
     }
 }

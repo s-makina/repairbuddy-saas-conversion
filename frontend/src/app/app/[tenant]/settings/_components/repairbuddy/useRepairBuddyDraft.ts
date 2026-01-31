@@ -5,7 +5,7 @@ import { defaultRepairBuddyDraft } from "@/app/app/[tenant]/settings/_components
 import type { RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
 import { ApiError } from "@/lib/api";
 import { getRepairBuddySettings, updateRepairBuddySettings } from "@/lib/repairbuddy-settings";
-import { getSetup } from "@/lib/setup";
+import { getSetup, updateSetup } from "@/lib/setup";
 import type { Tenant } from "@/lib/types";
 
 export const savingDisabledReason = "";
@@ -24,7 +24,14 @@ function formatTenantAddress(tenant: Tenant): string {
 }
 
 function applyTenantIdentityToDraft(draft: RepairBuddySettingsDraft, tenant: Tenant): RepairBuddySettingsDraft {
-  const logoUrl = typeof tenant.logo_url === "string" ? tenant.logo_url : "";
+  const setupState = (tenant.setup_state ?? {}) as Record<string, unknown>;
+  const logoUrlFromState = (setupState.identity as Record<string, unknown> | undefined)?.logo_url;
+  const logoUrl =
+    typeof tenant.logo_url === "string"
+      ? tenant.logo_url
+      : typeof logoUrlFromState === "string"
+        ? logoUrlFromState
+        : "";
   const billingCountry = typeof tenant.billing_country === "string" ? tenant.billing_country.trim().toUpperCase() : "";
 
   return {
@@ -108,12 +115,39 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
     setError(null);
     try {
       const setupRes = await getSetup(String(tenantSlug));
-      const nextDraft = applyTenantIdentityToDraft(draft, setupRes.tenant);
-      setTenant(setupRes.tenant);
 
-      const res = await updateRepairBuddySettings(String(tenantSlug), nextDraft);
+      const nextCountry = draft.general.defaultCountry.trim().toUpperCase();
+      const addressInput = draft.general.businessAddress.trim();
+      const trailingCountry = nextCountry ? new RegExp(`,\\s*${nextCountry}$`, "i") : null;
+      const addressLine1 = trailingCountry ? addressInput.replace(trailingCountry, "").trim() : addressInput;
+
+      const existingAddr = (setupRes.tenant.billing_address_json ?? {}) as Record<string, unknown>;
+      const nextAddr = addressLine1 ? { ...existingAddr, line1: addressLine1 } : null;
+
+      const state = (setupRes.tenant.setup_state ?? {}) as Record<string, unknown>;
+      const identity = (state.identity ?? {}) as Record<string, unknown>;
+      const nextState: Record<string, unknown> = {
+        ...state,
+        identity: {
+          ...identity,
+          logo_url: draft.general.logoUrl,
+        },
+      };
+
+      const setupUpdateRes = await updateSetup(String(tenantSlug), {
+        name: draft.general.businessName,
+        contact_email: draft.general.email || null,
+        contact_phone: draft.general.businessPhone || null,
+        billing_country: nextCountry || null,
+        billing_address_json: nextAddr,
+        setup_state: nextState,
+      });
+
+      setTenant(setupUpdateRes.tenant);
+
+      const res = await updateRepairBuddySettings(String(tenantSlug), draft);
       if (res.settings) {
-        setDraft(applyTenantIdentityToDraft(res.settings, setupRes.tenant));
+        setDraft(applyTenantIdentityToDraft(res.settings, setupUpdateRes.tenant));
       }
     } catch (e) {
       if (e instanceof ApiError) {

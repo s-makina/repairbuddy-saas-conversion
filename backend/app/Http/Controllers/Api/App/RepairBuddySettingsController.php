@@ -54,7 +54,6 @@ class RepairBuddySettingsController extends Controller
             'settings.general.gdprAcceptanceText' => ['sometimes', 'nullable', 'string', 'max:4096'],
             'settings.general.gdprLinkLabel' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.general.gdprLinkUrl' => ['sometimes', 'nullable', 'string', 'max:2048'],
-            'settings.general.disablePartsUseWooProducts' => ['sometimes', 'boolean'],
             'settings.general.disableStatusCheckBySerial' => ['sometimes', 'boolean'],
         ]);
 

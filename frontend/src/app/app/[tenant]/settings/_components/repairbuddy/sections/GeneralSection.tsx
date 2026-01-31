@@ -19,23 +19,23 @@ export function GeneralSection({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
           <label className="text-sm font-medium">Business name</label>
-          <Input value={g.businessName} disabled />
+          <Input value={g.businessName} onChange={(e) => updateGeneral({ businessName: e.target.value })} />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Business phone</label>
-          <Input value={g.businessPhone} disabled placeholder="+1 555 123 4567" />
+          <Input value={g.businessPhone} onChange={(e) => updateGeneral({ businessPhone: e.target.value })} placeholder="+1 555 123 4567" />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Email</label>
-          <Input value={g.email} disabled type="email" placeholder="support@company.com" />
+          <Input value={g.email} onChange={(e) => updateGeneral({ email: e.target.value })} type="email" placeholder="support@company.com" />
         </div>
         <div className="sm:col-span-2 space-y-1">
           <label className="text-sm font-medium">Business address</label>
-          <Input value={g.businessAddress} disabled placeholder="Street, City, Region" />
+          <Input value={g.businessAddress} onChange={(e) => updateGeneral({ businessAddress: e.target.value })} placeholder="Street, City, Region" />
         </div>
         <div className="sm:col-span-2 space-y-1">
           <label className="text-sm font-medium">Logo URL</label>
-          <Input value={g.logoUrl} disabled placeholder="https://..." />
+          <Input value={g.logoUrl} onChange={(e) => updateGeneral({ logoUrl: e.target.value })} placeholder="https://..." />
         </div>
 
         <div className="space-y-1">
@@ -52,22 +52,37 @@ export function GeneralSection({
           />
         </div>
 
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={g.emailCustomer} onChange={(e) => updateGeneral({ emailCustomer: e.target.checked })} />
-          Email customer
-        </label>
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={g.attachPdf} onChange={(e) => updateGeneral({ attachPdf: e.target.checked })} />
-          Attach PDF
-        </label>
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={g.nextServiceDateEnabled}
-            onChange={(e) => updateGeneral({ nextServiceDateEnabled: e.target.checked })}
-          />
-          Next service date toggle
-        </label>
+        <div className="sm:col-span-2 space-y-1">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              className="mt-0.5"
+              type="checkbox"
+              checked={g.emailCustomer}
+              onChange={(e) => updateGeneral({ emailCustomer: e.target.checked })}
+            />
+            <span className="font-medium">Email customer</span>
+          </label>
+          <div className="pl-6 text-xs text-zinc-500">Send customer updates by email by default.</div>
+        </div>
+        <div className="sm:col-span-2 space-y-1">
+          <label className="flex items-start gap-2 text-sm">
+            <input className="mt-0.5" type="checkbox" checked={g.attachPdf} onChange={(e) => updateGeneral({ attachPdf: e.target.checked })} />
+            <span className="font-medium">Attach PDF</span>
+          </label>
+          <div className="pl-6 text-xs text-zinc-500">Attach a PDF copy to outgoing customer emails.</div>
+        </div>
+        <div className="sm:col-span-2 space-y-1">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              className="mt-0.5"
+              type="checkbox"
+              checked={g.nextServiceDateEnabled}
+              onChange={(e) => updateGeneral({ nextServiceDateEnabled: e.target.checked })}
+            />
+            <span className="font-medium">Next service date</span>
+          </label>
+          <div className="pl-6 text-xs text-zinc-500">Enable tracking a next service date on jobs and documents.</div>
+        </div>
 
         <div className="sm:col-span-2 space-y-1">
           <label className="text-sm font-medium">GDPR acceptance text</label>
@@ -88,25 +103,21 @@ export function GeneralSection({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Default country</label>
-          <Input value={g.defaultCountry} disabled placeholder="US" />
+          <Input value={g.defaultCountry} onChange={(e) => updateGeneral({ defaultCountry: e.target.value })} placeholder="US" />
         </div>
 
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={g.disablePartsUseWooProducts}
-            onChange={(e) => updateGeneral({ disablePartsUseWooProducts: e.target.checked })}
-          />
-          Disable parts and use Woo products
-        </label>
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={g.disableStatusCheckBySerial}
-            onChange={(e) => updateGeneral({ disableStatusCheckBySerial: e.target.checked })}
-          />
-          Disable status check by serial
-        </label>
+        <div className="sm:col-span-2 space-y-1">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              className="mt-0.5"
+              type="checkbox"
+              checked={g.disableStatusCheckBySerial}
+              onChange={(e) => updateGeneral({ disableStatusCheckBySerial: e.target.checked })}
+            />
+            <span className="font-medium">Disable status check by serial</span>
+          </label>
+          <div className="pl-6 text-xs text-zinc-500">Hide serial-based status lookup to reduce customer self-service options.</div>
+        </div>
       </div>
     </SectionShell>
   );

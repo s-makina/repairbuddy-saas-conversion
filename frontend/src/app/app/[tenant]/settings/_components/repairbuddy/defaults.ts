@@ -16,7 +16,6 @@ export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
     gdprLinkLabel: "Privacy policy",
     gdprLinkUrl: "",
     defaultCountry: "US",
-    disablePartsUseWooProducts: false,
     disableStatusCheckBySerial: false,
   },
   currency: {
