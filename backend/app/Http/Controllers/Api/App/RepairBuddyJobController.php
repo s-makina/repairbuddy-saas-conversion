@@ -13,9 +13,13 @@ use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
 use App\Models\User;
+use App\Notifications\OneTimePasswordNotification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class RepairBuddyJobController extends Controller
 {
@@ -76,15 +80,18 @@ class RepairBuddyJobController extends Controller
     {
         $validated = $request->validate([
             'case_number' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
+            'plugin_parity' => ['sometimes', 'boolean'],
+            'plugin_device_post_id' => ['sometimes', 'nullable', 'integer'],
+            'plugin_device_id_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'pickup_date' => ['sometimes', 'nullable', 'date'],
-            'delivery_date' => ['sometimes', 'nullable', 'date'],
+            'delivery_date' => ['sometimes', 'nullable', 'date', 'required_if:plugin_parity,true'],
             'next_service_date' => ['sometimes', 'nullable', 'date'],
-            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000', 'required_if:plugin_parity,true'],
             'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
             'assigned_technician_ids' => ['sometimes', 'array'],
             'assigned_technician_ids.*' => ['integer'],
@@ -92,11 +99,24 @@ class RepairBuddyJobController extends Controller
             'job_devices.*.customer_device_id' => ['required', 'integer'],
             'job_devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
             'job_devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+
+            'customer_create' => ['sometimes', 'array'],
+            'customer_create.name' => ['required_with:customer_create', 'string', 'max:255'],
+            'customer_create.email' => ['required_with:customer_create', 'email', 'max:255'],
+            'customer_create.phone' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'customer_create.company' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'customer_create.tax_id' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'customer_create.address_line1' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'customer_create.address_line2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'customer_create.address_city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'customer_create.address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'customer_create.address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'customer_create.address_country' => ['sometimes', 'nullable', 'string', 'size:2'],
         ]);
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
             ? $validated['status_slug']
-            : 'new_quote';
+            : 'new';
 
         $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
         if (! $statusExists) {
@@ -107,6 +127,44 @@ class RepairBuddyJobController extends Controller
 
         $requestedCaseNumber = is_string($validated['case_number'] ?? null) ? trim((string) $validated['case_number']) : '';
         $caseNumber = $requestedCaseNumber !== '' ? $requestedCaseNumber : $this->generateCaseNumber();
+
+        $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
+        if ($title === '') {
+            $title = $caseNumber;
+        }
+
+        $customerId = array_key_exists('customer_id', $validated) && is_numeric($validated['customer_id'])
+            ? (int) $validated['customer_id']
+            : null;
+
+        $pluginDevicePostId = array_key_exists('plugin_device_post_id', $validated) && is_numeric($validated['plugin_device_post_id'])
+            ? (int) $validated['plugin_device_post_id']
+            : null;
+        $pluginDeviceIdText = array_key_exists('plugin_device_id_text', $validated) && is_string($validated['plugin_device_id_text'])
+            ? trim((string) $validated['plugin_device_id_text'])
+            : null;
+
+        $shouldCreateCustomer = array_key_exists('customer_create', $validated) && is_array($validated['customer_create']);
+
+        $pluginParity = (bool) ($validated['plugin_parity'] ?? false);
+
+        if ($pluginParity && ! $pluginDevicePostId) {
+            return response()->json([
+                'message' => 'Device is required.',
+            ], 422);
+        }
+
+        if (! $customerId && ! $shouldCreateCustomer) {
+            return response()->json([
+                'message' => 'Customer is required.',
+            ], 422);
+        }
+
+        if ($pluginDevicePostId && ! $customerId && ! $shouldCreateCustomer) {
+            return response()->json([
+                'message' => 'Customer is required to attach devices.',
+            ], 422);
+        }
 
         $assignedTechnicianId = array_key_exists('assigned_technician_id', $validated) && is_numeric($validated['assigned_technician_id'])
             ? (int) $validated['assigned_technician_id']
@@ -156,29 +214,18 @@ class RepairBuddyJobController extends Controller
         }
 
         if (count($jobDevicesPayload) > 0) {
-            if (! array_key_exists('customer_id', $validated) || ! is_numeric($validated['customer_id'])) {
+            if (! $customerId && ! $shouldCreateCustomer) {
                 return response()->json([
                     'message' => 'Customer is required to attach devices.',
                 ], 422);
             }
 
-            $customerId = (int) $validated['customer_id'];
+            // Defer validation until after customer_create is processed
             $deviceIds = collect($jobDevicesPayload)
                 ->map(fn ($d) => (int) ($d['customer_device_id'] ?? 0))
                 ->filter(fn ($id) => $id > 0)
                 ->values()
                 ->all();
-
-            $customerDevices = RepairBuddyCustomerDevice::query()
-                ->where('customer_id', $customerId)
-                ->whereIn('id', $deviceIds)
-                ->get();
-
-            if (count($customerDevices) !== count($deviceIds)) {
-                return response()->json([
-                    'message' => 'Customer device is invalid.',
-                ], 422);
-            }
         }
 
         if (count($assignedTechnicianIds) > 0) {
@@ -210,14 +257,70 @@ class RepairBuddyJobController extends Controller
         $tenantId = $this->tenantId();
         $branchId = $this->branchId();
 
-        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload) {
+        $createdCustomer = null;
+        $createdCustomerOneTimePassword = null;
+
+        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $title) {
+            if ($shouldCreateCustomer) {
+                $cc = $validated['customer_create'];
+
+                $email = trim((string) ($cc['email'] ?? ''));
+                if ($email === '') {
+                    throw ValidationException::withMessages([
+                        'customer_create.email' => ['Email is required.'],
+                    ]);
+                }
+
+                $emailExists = User::query()->where('email', $email)->exists();
+                if ($emailExists) {
+                    throw ValidationException::withMessages([
+                        'customer_create.email' => ['Email is already in use.'],
+                    ]);
+                }
+
+                $oneTimePassword = Str::password(16);
+                $oneTimePasswordExpiresAt = now()->addMinutes(60 * 24);
+
+                $customer = User::query()->create([
+                    'tenant_id' => $tenantId,
+                    'is_admin' => false,
+                    'role' => 'customer',
+                    'role_id' => null,
+                    'status' => 'active',
+
+                    'name' => trim((string) ($cc['name'] ?? '')),
+                    'email' => $email,
+                    'phone' => array_key_exists('phone', $cc) && is_string($cc['phone']) ? trim((string) $cc['phone']) : null,
+                    'company' => array_key_exists('company', $cc) && is_string($cc['company']) ? trim((string) $cc['company']) : null,
+                    'tax_id' => array_key_exists('tax_id', $cc) && is_string($cc['tax_id']) ? trim((string) $cc['tax_id']) : null,
+                    'address_line1' => array_key_exists('address_line1', $cc) && is_string($cc['address_line1']) ? trim((string) $cc['address_line1']) : null,
+                    'address_line2' => array_key_exists('address_line2', $cc) && is_string($cc['address_line2']) ? trim((string) $cc['address_line2']) : null,
+                    'address_city' => array_key_exists('address_city', $cc) && is_string($cc['address_city']) ? trim((string) $cc['address_city']) : null,
+                    'address_state' => array_key_exists('address_state', $cc) && is_string($cc['address_state']) ? trim((string) $cc['address_state']) : null,
+                    'address_postal_code' => array_key_exists('address_postal_code', $cc) && is_string($cc['address_postal_code']) ? trim((string) $cc['address_postal_code']) : null,
+                    'address_country' => array_key_exists('address_country', $cc) && is_string($cc['address_country']) ? strtoupper(trim((string) $cc['address_country'])) : null,
+
+                    'password' => Hash::make(Str::random(72)),
+                    'must_change_password' => true,
+                    'one_time_password_hash' => Hash::make($oneTimePassword),
+                    'one_time_password_expires_at' => $oneTimePasswordExpiresAt,
+                    'one_time_password_used_at' => null,
+                    'email_verified_at' => now(),
+                ]);
+
+                $customerId = (int) $customer->id;
+
+                $createdCustomer = $customer;
+                $createdCustomerOneTimePassword = $oneTimePassword;
+            }
+
             $job = RepairBuddyJob::query()->create([
                 'case_number' => $caseNumber,
-                'title' => $validated['title'],
+                'title' => $title,
                 'status_slug' => $statusSlug,
                 'payment_status_slug' => $validated['payment_status_slug'] ?? null,
                 'priority' => $validated['priority'] ?? null,
-                'customer_id' => $validated['customer_id'] ?? null,
+                'customer_id' => $customerId,
                 'created_by' => $request->user()?->id,
                 'opened_at' => now(),
                 'pickup_date' => $validated['pickup_date'] ?? null,
@@ -225,6 +328,8 @@ class RepairBuddyJobController extends Controller
                 'next_service_date' => $validated['next_service_date'] ?? null,
                 'case_detail' => $validated['case_detail'] ?? null,
                 'assigned_technician_id' => $assignedTechnicianId,
+                'plugin_device_post_id' => $pluginDevicePostId,
+                'plugin_device_id_text' => $pluginDeviceIdText,
             ]);
 
             if (count($assignedTechnicianIds) > 0) {
@@ -325,6 +430,18 @@ class RepairBuddyJobController extends Controller
 
             return $job;
         });
+
+        if ($createdCustomer instanceof User && is_string($createdCustomerOneTimePassword) && $createdCustomerOneTimePassword !== '') {
+            try {
+                $createdCustomer->notify(new OneTimePasswordNotification($createdCustomerOneTimePassword, 60 * 24));
+            } catch (\Throwable $e) {
+                Log::error('customer.onetime_password_notification_failed', [
+                    'user_id' => $createdCustomer->id,
+                    'tenant_id' => $tenantId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         $job->load(['customer', 'technicians']);
 
@@ -443,36 +560,23 @@ class RepairBuddyJobController extends Controller
     {
         $branch = $this->branch();
 
-        $prefix = is_string($branch->rb_case_prefix) ? trim($branch->rb_case_prefix) : '';
-        $digits = is_numeric($branch->rb_case_digits) ? (int) $branch->rb_case_digits : 6;
-        $digits = max(1, min(12, $digits));
-
-        $issuedNumber = DB::transaction(function () {
-            $counter = RepairBuddyCaseCounter::query()->lockForUpdate()->first();
-
-            if (! $counter) {
-                $counter = RepairBuddyCaseCounter::query()->create([
-                    'next_number' => 1,
-                ]);
-                $counter = RepairBuddyCaseCounter::query()->lockForUpdate()->first();
-            }
-
-            $n = (int) ($counter->next_number ?? 1);
-
-            $counter->forceFill([
-                'next_number' => $n + 1,
-            ])->save();
-
-            return $n;
-        });
-
-        $numberPart = str_pad((string) $issuedNumber, $digits, '0', STR_PAD_LEFT);
-
+        $prefix = is_string($branch->rb_case_prefix) ? trim((string) $branch->rb_case_prefix) : '';
         if ($prefix === '') {
-            return $numberPart;
+            $prefix = 'WC_';
         }
 
-        return $prefix.'-'.$numberPart;
+        $length = is_numeric($branch->rb_case_digits) ? (int) $branch->rb_case_digits : 6;
+        $length = max(1, min(32, $length));
+
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+
+        $randomString = '';
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[random_int(0, $charactersLength - 1)];
+        }
+
+        return $prefix.$randomString.time();
     }
 
     private function serializeJob(RepairBuddyJob $job, bool $includeTimeline = false): array
@@ -573,6 +677,8 @@ class RepairBuddyJobController extends Controller
         return [
             'id' => $job->id,
             'case_number' => $job->case_number,
+            'plugin_device_post_id' => $job->plugin_device_post_id,
+            'plugin_device_id_text' => $job->plugin_device_id_text,
             'title' => $job->title,
             'status' => $job->status_slug,
             'payment_status' => $job->payment_status_slug,

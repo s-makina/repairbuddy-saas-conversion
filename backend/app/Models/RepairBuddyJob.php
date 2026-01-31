@@ -19,6 +19,8 @@ class RepairBuddyJob extends Model
         'tenant_id',
         'branch_id',
         'case_number',
+        'plugin_device_post_id',
+        'plugin_device_id_text',
         'title',
         'status_slug',
         'payment_status_slug',
@@ -45,6 +47,7 @@ class RepairBuddyJob extends Model
             'delivery_date' => 'date',
             'next_service_date' => 'date',
             'assigned_technician_id' => 'integer',
+            'plugin_device_post_id' => 'integer',
         ];
     }
 

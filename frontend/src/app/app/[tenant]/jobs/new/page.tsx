@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Select, { type MultiValue } from "react-select";
 import AsyncSelect from "react-select/async";
 import { RequireAuth } from "@/components/RequireAuth";
+import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +14,11 @@ import { FormRow } from "@/components/ui/FormRow";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { getRepairBuddySettings } from "@/lib/repairbuddy-settings";
+
+type ApiDevice = {
+  id: number;
+  model: string;
+};
 
 type ApiJobStatus = {
   id: number;
@@ -35,6 +41,11 @@ type ApiClient = {
 };
 
 type CustomerOption = {
+  value: number;
+  label: string;
+};
+
+type DeviceOption = {
   value: number;
   label: string;
 };
@@ -74,6 +85,7 @@ type ApiJob = {
 };
 
 export default function NewJobPage() {
+  const auth = useAuth();
   const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
@@ -89,6 +101,22 @@ export default function NewJobPage() {
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [customerOption, setCustomerOption] = useState<CustomerOption | null>(null);
 
+  const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
+  const [customerCreateName, setCustomerCreateName] = useState("");
+  const [customerCreateEmail, setCustomerCreateEmail] = useState("");
+  const [customerCreatePhone, setCustomerCreatePhone] = useState("");
+  const [customerCreateCompany, setCustomerCreateCompany] = useState("");
+  const [customerCreateAddressLine1, setCustomerCreateAddressLine1] = useState("");
+  const [customerCreateAddressLine2, setCustomerCreateAddressLine2] = useState("");
+  const [customerCreateAddressCity, setCustomerCreateAddressCity] = useState("");
+  const [customerCreateAddressState, setCustomerCreateAddressState] = useState("");
+  const [customerCreateAddressPostalCode, setCustomerCreateAddressPostalCode] = useState("");
+  const [customerCreateAddressCountry, setCustomerCreateAddressCountry] = useState("");
+
+  const [deviceId, setDeviceId] = useState<number | null>(null);
+  const [deviceOption, setDeviceOption] = useState<DeviceOption | null>(null);
+  const [deviceIdText, setDeviceIdText] = useState<string>("");
+
   const [caseNumber, setCaseNumber] = useState<string>("");
   const [pickupDate, setPickupDate] = useState<string>("");
   const [deliveryDate, setDeliveryDate] = useState<string>("");
@@ -96,6 +124,7 @@ export default function NewJobPage() {
   const [caseDetail, setCaseDetail] = useState<string>("");
   const [assignedTechnicianIds, setAssignedTechnicianIds] = useState<number[]>([]);
   const [jobDevices, setJobDevices] = useState<JobDeviceDraft[]>([]);
+  const [customerDevicesError, setCustomerDevicesError] = useState<string | null>(null);
 
   const [statuses, setStatuses] = useState<ApiJobStatus[]>([]);
   const [paymentStatuses, setPaymentStatuses] = useState<ApiPaymentStatus[]>([]);
@@ -104,6 +133,7 @@ export default function NewJobPage() {
   const [technicians, setTechnicians] = useState<ApiTechnician[]>([]);
   const [customerDevices, setCustomerDevices] = useState<ApiCustomerDevice[]>([]);
   const [nextServiceEnabled, setNextServiceEnabled] = useState(false);
+  const [devices, setDevices] = useState<ApiDevice[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -129,6 +159,17 @@ export default function NewJobPage() {
         setPaymentStatuses(nextPayment);
 
         try {
+          const devicesRes = await apiFetch<{ devices: ApiDevice[] }>(
+            `/api/${tenantSlug}/app/repairbuddy/devices?limit=200&for_booking=true`,
+          );
+          if (!alive) return;
+          setDevices(Array.isArray(devicesRes.devices) ? devicesRes.devices : []);
+        } catch {
+          if (!alive) return;
+          setDevices([]);
+        }
+
+        try {
           const techniciansRes = await apiFetch<{ users: ApiTechnician[] }>(
             `/api/${tenantSlug}/app/technicians?per_page=100&sort=name&dir=asc`,
           );
@@ -148,7 +189,8 @@ export default function NewJobPage() {
           setNextServiceEnabled(false);
         }
 
-        setStatusSlug(nextStatuses.length > 0 ? nextStatuses[0].slug : "");
+        const preferredStatus = nextStatuses.find((s) => s.slug === "new")?.slug;
+        setStatusSlug(preferredStatus ?? (nextStatuses.length > 0 ? nextStatuses[0].slug : ""));
         setPaymentStatusSlug("");
 
         try {
@@ -167,6 +209,7 @@ export default function NewJobPage() {
         setClients([]);
         setTechnicians([]);
         setNextServiceEnabled(false);
+        setDevices([]);
       } finally {
         if (!alive) return;
         setLoadingLookups(false);
@@ -180,6 +223,29 @@ export default function NewJobPage() {
     };
   }, [tenantSlug]);
 
+  const loadDeviceOptions = async (inputValue: string): Promise<DeviceOption[]> => {
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return [];
+
+    try {
+      const qs = new URLSearchParams();
+      qs.set("limit", "50");
+      qs.set("for_booking", "true");
+      const q = inputValue.trim();
+      if (q) qs.set("q", q);
+
+      const res = await apiFetch<{ devices: ApiDevice[] }>(
+        `/api/${tenantSlug}/app/repairbuddy/devices?${qs.toString()}`,
+      );
+      const list = Array.isArray(res.devices) ? res.devices : [];
+      return list.map((d) => ({
+        value: d.id,
+        label: d.model,
+      }));
+    } catch {
+      return [];
+    }
+  };
+
   const sortedClients = useMemo(() => {
     return clients.slice().sort((a, b) => `${a.name}`.localeCompare(`${b.name}`));
   }, [clients]);
@@ -190,6 +256,16 @@ export default function NewJobPage() {
       label: c.email ? `${c.name} (${c.email})` : c.name,
     }));
   }, [sortedClients]);
+
+  const deviceOptions = useMemo<DeviceOption[]>(() => {
+    return devices
+      .slice()
+      .sort((a, b) => `${a.model}`.localeCompare(`${b.model}`))
+      .map((d) => ({
+        value: d.id,
+        label: d.model,
+      }));
+  }, [devices]);
 
   const sortedTechnicians = useMemo(() => {
     return technicians.slice().sort((a, b) => `${a.name}`.localeCompare(`${b.name}`));
@@ -226,6 +302,14 @@ export default function NewJobPage() {
       if (typeof customerId !== "number") {
         setCustomerDevices([]);
         setJobDevices([]);
+        setCustomerDevicesError(null);
+        return;
+      }
+
+      if (!auth.can("customer_devices.view")) {
+        setCustomerDevices([]);
+        setJobDevices([]);
+        setCustomerDevicesError("You do not have permission to view customer devices.");
         return;
       }
 
@@ -235,18 +319,19 @@ export default function NewJobPage() {
         );
         if (!alive) return;
         setCustomerDevices(Array.isArray(res.customer_devices) ? res.customer_devices : []);
+        setCustomerDevicesError(null);
       } catch {
         if (!alive) return;
         setCustomerDevices([]);
+        setCustomerDevicesError("Failed to load customer devices.");
       }
     }
 
     void loadCustomerDevices();
-
     return () => {
       alive = false;
     };
-  }, [customerId, tenantSlug]);
+  }, [auth, customerId, tenantSlug]);
 
   const loadCustomerOptions = async (inputValue: string): Promise<CustomerOption[]> => {
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return [];
@@ -271,6 +356,7 @@ export default function NewJobPage() {
   const loadCustomerDeviceOptions = async (inputValue: string): Promise<CustomerDeviceOption[]> => {
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return [];
     if (typeof customerId !== "number") return [];
+    if (!auth.can("customer_devices.view")) return [];
 
     try {
       const qs = new URLSearchParams();
@@ -305,21 +391,68 @@ export default function NewJobPage() {
     setError(null);
 
     try {
-      const trimmedTitle = title.trim();
-      if (trimmedTitle.length === 0) {
-        setError("Title is required.");
+      if (typeof deviceId !== "number") {
+        setError("Device is required.");
         return;
       }
+
+      const shouldCreateCustomer = customerMode === "new";
+      if (!shouldCreateCustomer && typeof customerId !== "number") {
+        setError("Customer is required.");
+        return;
+      }
+
+      if (shouldCreateCustomer) {
+        if (customerCreateName.trim() === "") {
+          setError("Customer name is required.");
+          return;
+        }
+        if (customerCreateEmail.trim() === "") {
+          setError("Customer email is required.");
+          return;
+        }
+      }
+
+      if (deliveryDate.trim() === "") {
+        setError("Delivery date is required.");
+        return;
+      }
+
+      if (caseDetail.trim() === "") {
+        setError("Job details are required.");
+        return;
+      }
+
+      const trimmedTitle = title.trim();
 
       const res = await apiFetch<{ job: ApiJob }>(`/api/${tenantSlug}/app/repairbuddy/jobs`, {
         method: "POST",
         body: {
+          plugin_parity: true,
+          plugin_device_post_id: deviceId,
+          plugin_device_id_text: deviceIdText.trim() !== "" ? deviceIdText.trim() : null,
           case_number: caseNumber.trim() !== "" ? caseNumber.trim() : null,
-          title: trimmedTitle,
+          title: trimmedTitle !== "" ? trimmedTitle : null,
           status_slug: statusSlug.trim() !== "" ? statusSlug : null,
           payment_status_slug: paymentStatusSlug.trim() !== "" ? paymentStatusSlug : null,
           priority: priority.trim() !== "" ? priority.trim() : null,
-          customer_id: typeof customerId === "number" ? customerId : null,
+          customer_id: !shouldCreateCustomer && typeof customerId === "number" ? customerId : null,
+          customer_create:
+            shouldCreateCustomer
+              ? {
+                  name: customerCreateName.trim(),
+                  email: customerCreateEmail.trim(),
+                  phone: customerCreatePhone.trim() !== "" ? customerCreatePhone.trim() : null,
+                  company: customerCreateCompany.trim() !== "" ? customerCreateCompany.trim() : null,
+                  address_line1: customerCreateAddressLine1.trim() !== "" ? customerCreateAddressLine1.trim() : null,
+                  address_line2: customerCreateAddressLine2.trim() !== "" ? customerCreateAddressLine2.trim() : null,
+                  address_city: customerCreateAddressCity.trim() !== "" ? customerCreateAddressCity.trim() : null,
+                  address_state: customerCreateAddressState.trim() !== "" ? customerCreateAddressState.trim() : null,
+                  address_postal_code:
+                    customerCreateAddressPostalCode.trim() !== "" ? customerCreateAddressPostalCode.trim() : null,
+                  address_country: customerCreateAddressCountry.trim() !== "" ? customerCreateAddressCountry.trim() : null,
+                }
+              : null,
           pickup_date: pickupDate.trim() !== "" ? pickupDate : null,
           delivery_date: deliveryDate.trim() !== "" ? deliveryDate : null,
           next_service_date: nextServiceEnabled && nextServiceDate.trim() !== "" ? nextServiceDate : null,
@@ -389,38 +522,23 @@ export default function NewJobPage() {
         <Card className="shadow-none">
           <CardContent className="pt-5">
             <form id="rb_job_new_form" className="space-y-4" onSubmit={onSubmit}>
-              <FormRow label="Title" fieldId="job_title" required>
-                <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
-              </FormRow>
-
-              <FormRow label="Case number" fieldId="job_case_number" description="Leave blank to auto-generate.">
-                <Input
-                  id="job_case_number"
-                  value={caseNumber}
-                  onChange={(e) => setCaseNumber(e.target.value)}
-                  disabled={disabled}
-                  placeholder="(auto)"
-                />
-              </FormRow>
-
-              <FormRow label="Customer" fieldId="job_customer">
+              <FormRow label="Device" fieldId="job_device" required>
                 <AsyncSelect
-                  inputId="job_customer"
-                  instanceId="job_customer"
+                  inputId="job_device"
+                  instanceId="job_device"
                   cacheOptions
-                  defaultOptions={clientOptions}
-                  loadOptions={loadCustomerOptions}
+                  defaultOptions={deviceOptions}
+                  loadOptions={loadDeviceOptions}
                   isClearable
                   isSearchable
-                  value={customerOption}
+                  value={deviceOption}
                   onChange={(opt) => {
-                    const next = (opt as CustomerOption | null) ?? null;
-                    setCustomerOption(next);
-                    setCustomerId(typeof next?.value === "number" ? next.value : null);
-                    setJobDevices([]);
+                    const next = (opt as DeviceOption | null) ?? null;
+                    setDeviceOption(next);
+                    setDeviceId(typeof next?.value === "number" ? next.value : null);
                   }}
                   isDisabled={disabled}
-                  placeholder="Search customers..."
+                  placeholder="Search devices..."
                   classNamePrefix="rb-select"
                   styles={{
                     control: (base) => ({
@@ -436,6 +554,171 @@ export default function NewJobPage() {
                     }),
                   }}
                 />
+              </FormRow>
+
+              <FormRow label="Device ID / IMEI" fieldId="job_device_id_text">
+                <Input
+                  id="job_device_id_text"
+                  value={deviceIdText}
+                  onChange={(e) => setDeviceIdText(e.target.value)}
+                  disabled={disabled}
+                  placeholder="Enter device ID / IMEI"
+                />
+              </FormRow>
+
+              <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
+                <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
+              </FormRow>
+
+              <FormRow label="Case number" fieldId="job_case_number" description="Leave blank to auto-generate.">
+                <Input
+                  id="job_case_number"
+                  value={caseNumber}
+                  onChange={(e) => setCaseNumber(e.target.value)}
+                  disabled={disabled}
+                  placeholder="(auto)"
+                />
+              </FormRow>
+
+              <FormRow label="Customer" fieldId="job_customer" required>
+                <div className="space-y-3">
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                      <input
+                        type="radio"
+                        name="customer_mode"
+                        value="existing"
+                        checked={customerMode === "existing"}
+                        onChange={() => setCustomerMode("existing")}
+                        disabled={disabled}
+                      />
+                      Existing
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                      <input
+                        type="radio"
+                        name="customer_mode"
+                        value="new"
+                        checked={customerMode === "new"}
+                        onChange={() => {
+                          setCustomerMode("new");
+                          setCustomerOption(null);
+                          setCustomerId(null);
+                          setJobDevices([]);
+                        }}
+                        disabled={disabled}
+                      />
+                      New
+                    </label>
+                  </div>
+
+                  {customerMode === "existing" ? (
+                    <AsyncSelect
+                      inputId="job_customer"
+                      instanceId="job_customer"
+                      cacheOptions
+                      defaultOptions={clientOptions}
+                      loadOptions={loadCustomerOptions}
+                      isClearable
+                      isSearchable
+                      value={customerOption}
+                      onChange={(opt) => {
+                        const next = (opt as CustomerOption | null) ?? null;
+                        setCustomerOption(next);
+                        setCustomerId(typeof next?.value === "number" ? next.value : null);
+                        setJobDevices([]);
+                      }}
+                      isDisabled={disabled}
+                      placeholder="Search customers..."
+                      classNamePrefix="rb-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          borderRadius: "var(--rb-radius-sm)",
+                          borderColor: "#d4d4d8",
+                          minHeight: 40,
+                          boxShadow: "none",
+                        }),
+                        menu: (base) => ({
+                          ...base,
+                          zIndex: 50,
+                        }),
+                      }}
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Name</div>
+                        <Input value={customerCreateName} onChange={(e) => setCustomerCreateName(e.target.value)} disabled={disabled} />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Email</div>
+                        <Input
+                          value={customerCreateEmail}
+                          onChange={(e) => setCustomerCreateEmail(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Phone</div>
+                        <Input value={customerCreatePhone} onChange={(e) => setCustomerCreatePhone(e.target.value)} disabled={disabled} />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Company</div>
+                        <Input value={customerCreateCompany} onChange={(e) => setCustomerCreateCompany(e.target.value)} disabled={disabled} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="mb-1 text-xs text-zinc-600">Address line 1</div>
+                        <Input
+                          value={customerCreateAddressLine1}
+                          onChange={(e) => setCustomerCreateAddressLine1(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="mb-1 text-xs text-zinc-600">Address line 2</div>
+                        <Input
+                          value={customerCreateAddressLine2}
+                          onChange={(e) => setCustomerCreateAddressLine2(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">City</div>
+                        <Input
+                          value={customerCreateAddressCity}
+                          onChange={(e) => setCustomerCreateAddressCity(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">State</div>
+                        <Input
+                          value={customerCreateAddressState}
+                          onChange={(e) => setCustomerCreateAddressState(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Postal code</div>
+                        <Input
+                          value={customerCreateAddressPostalCode}
+                          onChange={(e) => setCustomerCreateAddressPostalCode(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Country (2-letter)</div>
+                        <Input
+                          value={customerCreateAddressCountry}
+                          onChange={(e) => setCustomerCreateAddressCountry(e.target.value)}
+                          disabled={disabled}
+                          placeholder="US"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </FormRow>
 
               <FormRow
@@ -560,6 +843,7 @@ export default function NewJobPage() {
               </FormRow>
 
               <FormRow label="Customer devices" fieldId="job_devices" description="Optional. Requires selecting a customer.">
+                {customerDevicesError ? <div className="mb-2 text-sm text-red-600">{customerDevicesError}</div> : null}
                 <AsyncSelect
                   inputId="job_devices"
                   instanceId="job_devices"
