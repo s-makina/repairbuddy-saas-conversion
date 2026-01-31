@@ -540,7 +540,7 @@ export default function TenantDevicesPage() {
           <Card className="shadow-none">
             <CardContent className="pt-5">
               <DataTable
-                title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
+                // title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
                 data={pageRows}
                 loading={loading}
                 emptyMessage="No devices."

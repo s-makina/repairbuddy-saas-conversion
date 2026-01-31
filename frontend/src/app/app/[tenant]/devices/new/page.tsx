@@ -56,7 +56,7 @@ export default function NewDevicePage() {
   const [isOther, setIsOther] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
-  const [variationsText, setVariationsText] = useState("");
+  const [variationRows, setVariationRows] = useState<string[]>([""]);
 
   useEffect(() => {
     let alive = true;
@@ -167,8 +167,7 @@ export default function NewDevicePage() {
         return;
       }
 
-      const variations = variationsText
-        .split(",")
+      const variations = variationRows
         .map((v) => v.trim())
         .filter((v) => v.length > 0);
 
@@ -307,7 +306,7 @@ export default function NewDevicePage() {
                     }
                     const n = Number(raw);
                     setParentId(Number.isFinite(n) ? n : null);
-                    setVariationsText("");
+                    setVariationRows([""]);
                   }}
                   disabled={disabled}
                 >
@@ -323,16 +322,54 @@ export default function NewDevicePage() {
               {parentId === null ? (
                 <FormRow
                   label="Variations"
-                  fieldId="device_variations"
-                  description='Comma-separated. Example: "Black, 64GB, Silver". Each entry becomes a child device.'
+                  fieldId="device_variations_0"
+                  description='Each entry becomes a child device. Example: "Black", "64GB", "Silver".'
                 >
-                  <textarea
-                    id="device_variations"
-                    className="w-full min-h-[96px] rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                    value={variationsText}
-                    onChange={(e) => setVariationsText(e.target.value)}
-                    disabled={disabled}
-                  />
+                  <div className="space-y-2">
+                    {variationRows.map((value, index) => {
+                      const id = `device_variations_${index}`;
+                      return (
+                        <div key={id} className="flex items-center gap-2">
+                          <Input
+                            id={id}
+                            value={value}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setVariationRows((prev) => prev.map((v, i) => (i === index ? next : v)));
+                            }}
+                            disabled={disabled}
+                          />
+                          {variationRows.length > 1 ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setVariationRows((prev) => prev.filter((_, i) => i !== index));
+                              }}
+                              disabled={disabled}
+                            >
+                              Remove
+                            </Button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setVariationRows((prev) => [...prev, ""]);
+                        }}
+                        disabled={disabled}
+                      >
+                        Add variation
+                      </Button>
+                    </div>
+                  </div>
                 </FormRow>
               ) : null}
 
