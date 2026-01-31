@@ -18,10 +18,6 @@ export function GeneralSection({
     <SectionShell title="General" description="Business identity, case numbering and customer communication defaults.">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
-          <label className="text-sm font-medium">Menu name</label>
-          <Input value={g.menuName} onChange={(e) => updateGeneral({ menuName: e.target.value })} />
-        </div>
-        <div className="space-y-1">
           <label className="text-sm font-medium">Business name</label>
           <Input value={g.businessName} onChange={(e) => updateGeneral({ businessName: e.target.value })} />
         </div>

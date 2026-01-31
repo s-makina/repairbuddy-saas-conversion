@@ -223,30 +223,28 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->whereNumber('tenant')
         ->whereNumber('invoice')
         ->middleware('permission:admin.billing.write');
-    Route::get('/businesses/{tenant}/invoices/{invoice}/pdf', [\App\Http\Controllers\Api\Admin\BillingController::class, 'invoicesDownloadPdf'])
-        ->whereNumber('tenant')
-        ->whereNumber('invoice')
-        ->middleware('permission:admin.billing.read');
 });
 
- Route::prefix('{business}')
+Route::prefix('{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant'])
     ->group(function () {
-        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'password.change', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce', 'onboarding.gate'])->group(function () {
-            Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);
+        Route::prefix('app')
+            ->middleware(['auth:sanctum', 'impersonation', 'verified', 'password.change', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce', 'onboarding.gate'])
+            ->group(function () {
+                Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);
 
-            Route::get('/billing/plans', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'plans']);
-            Route::post('/billing/subscribe', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'subscribe']);
-            Route::get('/billing/checkout', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'checkout']);
-            Route::post('/billing/checkout/confirm', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'confirmCheckout']);
+                Route::get('/billing/plans', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'plans']);
+                Route::post('/billing/subscribe', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'subscribe']);
+                Route::get('/billing/checkout', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'checkout']);
+                Route::post('/billing/checkout/confirm', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'confirmCheckout']);
 
-            Route::get('/security-status', [\App\Http\Controllers\Api\App\SecurityStatusController::class, 'show']);
+                Route::get('/security-status', [\App\Http\Controllers\Api\App\SecurityStatusController::class, 'show']);
 
-            Route::get('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'show'])
-                ->middleware('permission:security.manage');
-            Route::put('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'update'])
-                ->middleware(['throttle:auth', 'permission:security.manage']);
+                Route::get('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'show'])
+                    ->middleware('permission:security.manage');
+                Route::put('/security-settings', [\App\Http\Controllers\Api\App\TenantSecuritySettingsController::class, 'update'])
+                    ->middleware(['throttle:auth', 'permission:security.manage']);
 
             Route::post('/security/force-logout', [\App\Http\Controllers\Api\App\TenantSecurityActionsController::class, 'forceLogout'])
                 ->middleware(['throttle:auth', 'permission:security.manage']);
@@ -342,6 +340,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                 });
 
                 Route::prefix('repairbuddy')->group(function () {
+                    Route::get('/settings', [\App\Http\Controllers\Api\App\RepairBuddySettingsController::class, 'show'])
+                        ->middleware('permission:settings.manage');
+                    Route::patch('/settings', [\App\Http\Controllers\Api\App\RepairBuddySettingsController::class, 'update'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage']);
+
                     Route::get('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'index'])
                         ->middleware('permission:device_types.view');
                     Route::post('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'store'])

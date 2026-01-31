@@ -2,7 +2,6 @@ import type { RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_comp
 
 export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
   general: {
-    menuName: "RepairBuddy",
     businessName: "",
     businessPhone: "",
     businessAddress: "",

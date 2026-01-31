@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
+import { formatMoney } from "@/lib/money";
 
 type JobStatusKey = string;
 
@@ -16,10 +17,20 @@ type ApiJob = {
   case_number: string;
   title: string;
   status: JobStatusKey;
+  payment_status?: string | null;
+  priority?: string | null;
+  customer?: { id: number; name: string; email: string; phone: string | null; company: string | null } | null;
+  totals?: { currency: string; subtotal_cents: number; tax_cents: number; total_cents: number } | null;
   updated_at: string;
 };
 
 type ApiJobStatus = {
+  id: number;
+  slug: string;
+  label: string;
+};
+
+type ApiPaymentStatus = {
   id: number;
   slug: string;
   label: string;
@@ -33,6 +44,14 @@ function statusBadgeVariant(status: JobStatusKey): "default" | "info" | "success
   return "default";
 }
 
+function paymentBadgeVariant(status: string | null | undefined): "default" | "info" | "success" | "warning" | "danger" {
+  if (!status) return "default";
+  if (status === "paid") return "success";
+  if (status === "partial") return "warning";
+  if (status === "unpaid" || status === "due") return "danger";
+  return "default";
+}
+
 export default function TenantJobsPage() {
   const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
@@ -43,6 +62,7 @@ export default function TenantJobsPage() {
   const [jobs, setJobs] = React.useState<ApiJob[]>([]);
   const [q, setQ] = React.useState<string>("");
   const [statusLabels, setStatusLabels] = React.useState<Record<string, string>>({});
+  const [paymentStatusLabels, setPaymentStatusLabels] = React.useState<Record<string, string>>({});
 
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
@@ -59,9 +79,10 @@ export default function TenantJobsPage() {
           throw new Error("Business is missing.");
         }
 
-        const [jobsRes, statusesRes] = await Promise.all([
+        const [jobsRes, statusesRes, paymentStatusesRes] = await Promise.all([
           apiFetch<{ jobs: ApiJob[] }>(`/api/${tenantSlug}/app/repairbuddy/jobs`),
           apiFetch<{ job_statuses: ApiJobStatus[] }>(`/api/${tenantSlug}/app/repairbuddy/job-statuses`),
+          apiFetch<{ payment_statuses: ApiPaymentStatus[] }>(`/api/${tenantSlug}/app/repairbuddy/payment-statuses`),
         ]);
         if (!alive) return;
 
@@ -72,6 +93,12 @@ export default function TenantJobsPage() {
           next[s.slug] = s.label;
         }
         setStatusLabels(next);
+
+        const nextPayment: Record<string, string> = {};
+        for (const s of Array.isArray(paymentStatusesRes.payment_statuses) ? paymentStatusesRes.payment_statuses : []) {
+          nextPayment[s.slug] = s.label;
+        }
+        setPaymentStatusLabels(nextPayment);
       } catch (e) {
         if (!alive) return;
         if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
@@ -124,10 +151,31 @@ export default function TenantJobsPage() {
         className: "max-w-[220px]",
       },
       {
+        id: "customer",
+        header: "Customer",
+        cell: (row) => (
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{row.customer?.name ?? "—"}</div>
+            <div className="truncate text-xs text-zinc-600">{row.customer?.email ?? ""}</div>
+          </div>
+        ),
+        className: "min-w-[220px] max-w-[320px]",
+      },
+      {
         id: "title",
         header: "Title",
         cell: (row) => <div className="text-sm text-zinc-700">{row.title}</div>,
         className: "min-w-[240px]",
+      },
+      {
+        id: "payment",
+        header: "Payment",
+        cell: (row) => (
+          <Badge variant={paymentBadgeVariant(row.payment_status)}>
+            {row.payment_status ? paymentStatusLabels[row.payment_status] ?? row.payment_status.replace(/_/g, " ") : "—"}
+          </Badge>
+        ),
+        className: "whitespace-nowrap",
       },
       {
         id: "status",
@@ -140,13 +188,29 @@ export default function TenantJobsPage() {
         className: "whitespace-nowrap",
       },
       {
+        id: "priority",
+        header: "Priority",
+        cell: (row) => <div className="text-sm text-zinc-600">{row.priority ? row.priority.replace(/_/g, " ") : "—"}</div>,
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "total",
+        header: "Total",
+        cell: (row) => (
+          <div className="text-sm text-zinc-700">
+            {formatMoney({ amountCents: row.totals?.total_cents, currency: row.totals?.currency })}
+          </div>
+        ),
+        className: "whitespace-nowrap",
+      },
+      {
         id: "updated",
         header: "Updated",
         cell: (row) => <div className="text-sm text-zinc-600">{new Date(row.updated_at).toLocaleString()}</div>,
         className: "whitespace-nowrap",
       },
     ],
-    [statusLabels],
+    [paymentStatusLabels, statusLabels],
   );
 
   return (
@@ -154,7 +218,14 @@ export default function TenantJobsPage() {
       title="Jobs"
       description="Track, update, and communicate on repair jobs."
       actions={
-        <Button disabled variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+            router.push(`/app/${tenantSlug}/jobs/new`);
+          }}
+        >
           New job
         </Button>
       }

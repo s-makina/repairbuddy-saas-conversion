@@ -8,6 +8,7 @@ use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +24,9 @@ class RepairBuddyJobController extends Controller
         $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
         $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 100;
 
-        $query = RepairBuddyJob::query()->orderBy('id', 'desc');
+        $query = RepairBuddyJob::query()
+            ->with(['customer'])
+            ->orderBy('id', 'desc');
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
@@ -48,7 +51,10 @@ class RepairBuddyJobController extends Controller
             ], 404);
         }
 
-        $job = RepairBuddyJob::query()->whereKey((int) $jobId)->first();
+        $job = RepairBuddyJob::query()
+            ->with(['customer'])
+            ->whereKey((int) $jobId)
+            ->first();
 
         if (! $job) {
             return response()->json([
@@ -200,6 +206,11 @@ class RepairBuddyJobController extends Controller
 
     private function serializeJob(RepairBuddyJob $job, bool $includeTimeline = false): array
     {
+        $customer = $job->customer;
+        if ($customer instanceof User && (int) $customer->tenant_id !== (int) $this->tenantId()) {
+            $customer = null;
+        }
+
         $timeline = [];
         if ($includeTimeline) {
             $events = RepairBuddyEvent::query()
@@ -295,6 +306,13 @@ class RepairBuddyJobController extends Controller
             'payment_status' => $job->payment_status_slug,
             'priority' => $job->priority,
             'customer_id' => $job->customer_id,
+            'customer' => $customer instanceof User ? [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
+                'company' => $customer->company,
+            ] : null,
             'created_at' => $job->created_at,
             'updated_at' => $job->updated_at,
             'timeline' => $timeline,

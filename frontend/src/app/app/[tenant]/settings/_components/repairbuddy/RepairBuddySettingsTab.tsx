@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { repairBuddyNav } from "@/app/app/[tenant]/settings/_components/repairbuddy/repairBuddyNav";
@@ -28,7 +29,8 @@ import { TimeLogsSection } from "@/app/app/[tenant]/settings/_components/repairb
 
 export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
   const searchParams = useSearchParams();
-  const { draft, updateSection, setDraft, isMock, savingDisabledReason } = useRepairBuddyDraft();
+  const { draft, updateSection, setDraft, isMock, savingDisabledReason, loading, saving, error, save } = useRepairBuddyDraft(tenantSlug);
+  const [status, setStatus] = useState<string | null>(null);
 
   const selectedKey = useMemo(() => {
     const sectionParam = searchParams.get("section");
@@ -89,11 +91,33 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
     }
   }, [draft, isMock, selectedKey, setDraft, updateSection]);
 
+  async function onSave() {
+    setStatus(null);
+    try {
+      await save();
+      setStatus("Saved.");
+    } catch {
+      return;
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* <Alert variant="warning" title="Mock screens">
         Saving is not available yet.
       </Alert> */}
+
+      {error ? (
+        <Alert variant="danger" title="Could not load or save business settings">
+          {error}
+        </Alert>
+      ) : null}
+
+      {status ? (
+        <Alert variant="success" title="Success">
+          {status}
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
         <Card>
@@ -130,9 +154,11 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
               <div>
                 <div className="text-sm font-semibold text-[var(--rb-text)]">{selectedItem?.label ?? "Business Settings"}</div>
                 <div className="mt-1 text-xs text-zinc-500">Business: {tenantSlug}</div>
-                <div className="mt-2 text-xs text-zinc-500">
-                  Editing is allowed for UX testing, but saving will be added later. ({savingDisabledReason})
-                </div>
+                {savingDisabledReason ? (
+                  <div className="mt-2 text-xs text-zinc-500">{savingDisabledReason}</div>
+                ) : loading ? (
+                  <div className="mt-2 text-xs text-zinc-500">Loading...</div>
+                ) : null}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/t/${tenantSlug}/portal`}>Preview portal</Link>
@@ -151,8 +177,8 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
                   </Button>
                 </div>
               </div>
-              <Button disabled variant="outline">
-                Save
+              <Button variant="outline" onClick={() => void onSave()} disabled={Boolean(savingDisabledReason) || loading || saving}>
+                {saving ? "Saving..." : "Save"}
               </Button>
             </div>
           </div>

@@ -1,5 +1,4 @@
 export type RepairBuddyGeneralSettings = {
-  menuName: string;
   businessName: string;
   businessPhone: string;
   businessAddress: string;
