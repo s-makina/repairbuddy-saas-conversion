@@ -26,6 +26,11 @@ class RepairBuddyJob extends Model
         'created_by',
         'opened_at',
         'closed_at',
+        'pickup_date',
+        'delivery_date',
+        'next_service_date',
+        'case_detail',
+        'assigned_technician_id',
     ];
 
     protected function casts(): array
@@ -35,6 +40,10 @@ class RepairBuddyJob extends Model
             'created_by' => 'integer',
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
+            'pickup_date' => 'date',
+            'delivery_date' => 'date',
+            'next_service_date' => 'date',
+            'assigned_technician_id' => 'integer',
         ];
     }
 
@@ -46,5 +55,10 @@ class RepairBuddyJob extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function assignedTechnician(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_technician_id');
     }
 }

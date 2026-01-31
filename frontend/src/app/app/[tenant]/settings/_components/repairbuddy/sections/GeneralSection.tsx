@@ -19,23 +19,23 @@ export function GeneralSection({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
           <label className="text-sm font-medium">Business name</label>
-          <Input value={g.businessName} onChange={(e) => updateGeneral({ businessName: e.target.value })} />
+          <Input value={g.businessName} disabled />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Business phone</label>
-          <Input value={g.businessPhone} onChange={(e) => updateGeneral({ businessPhone: e.target.value })} placeholder="+1 555 123 4567" />
+          <Input value={g.businessPhone} disabled placeholder="+1 555 123 4567" />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Email</label>
-          <Input value={g.email} onChange={(e) => updateGeneral({ email: e.target.value })} type="email" placeholder="support@company.com" />
+          <Input value={g.email} disabled type="email" placeholder="support@company.com" />
         </div>
         <div className="sm:col-span-2 space-y-1">
           <label className="text-sm font-medium">Business address</label>
-          <Input value={g.businessAddress} onChange={(e) => updateGeneral({ businessAddress: e.target.value })} placeholder="Street, City, Region" />
+          <Input value={g.businessAddress} disabled placeholder="Street, City, Region" />
         </div>
         <div className="sm:col-span-2 space-y-1">
           <label className="text-sm font-medium">Logo URL</label>
-          <Input value={g.logoUrl} onChange={(e) => updateGeneral({ logoUrl: e.target.value })} placeholder="https://..." />
+          <Input value={g.logoUrl} disabled placeholder="https://..." />
         </div>
 
         <div className="space-y-1">
@@ -88,7 +88,7 @@ export function GeneralSection({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Default country</label>
-          <Input value={g.defaultCountry} onChange={(e) => updateGeneral({ defaultCountry: e.target.value.toUpperCase().slice(0, 2) })} placeholder="US" />
+          <Input value={g.defaultCountry} disabled placeholder="US" />
         </div>
 
         <label className="sm:col-span-2 flex items-center gap-2 text-sm">

@@ -70,11 +70,17 @@ class RepairBuddyJobController extends Controller
     public function store(Request $request, string $business)
     {
         $validated = $request->validate([
+            'case_number' => ['sometimes', 'nullable', 'string', 'max:64'],
             'title' => ['required', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
+            'pickup_date' => ['sometimes', 'nullable', 'date'],
+            'delivery_date' => ['sometimes', 'nullable', 'date'],
+            'next_service_date' => ['sometimes', 'nullable', 'date'],
+            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
         ]);
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
@@ -88,9 +94,35 @@ class RepairBuddyJobController extends Controller
             ], 422);
         }
 
-        $caseNumber = $this->generateCaseNumber();
+        $requestedCaseNumber = is_string($validated['case_number'] ?? null) ? trim((string) $validated['case_number']) : '';
+        $caseNumber = $requestedCaseNumber !== '' ? $requestedCaseNumber : $this->generateCaseNumber();
 
-        $job = DB::transaction(function () use ($caseNumber, $request, $statusSlug, $validated) {
+        $assignedTechnicianId = array_key_exists('assigned_technician_id', $validated) && is_numeric($validated['assigned_technician_id'])
+            ? (int) $validated['assigned_technician_id']
+            : null;
+
+        if ($assignedTechnicianId) {
+            $technicianExists = User::query()
+                ->where('tenant_id', $this->tenantId())
+                ->where('is_admin', false)
+                ->whereKey($assignedTechnicianId)
+                ->exists();
+
+            if (! $technicianExists) {
+                return response()->json([
+                    'message' => 'Assigned technician is invalid.',
+                ], 422);
+            }
+        }
+
+        $caseNumberExists = RepairBuddyJob::query()->where('case_number', $caseNumber)->exists();
+        if ($caseNumberExists) {
+            return response()->json([
+                'message' => 'Case number is already in use.',
+            ], 422);
+        }
+
+        $job = DB::transaction(function () use ($caseNumber, $request, $statusSlug, $validated, $assignedTechnicianId) {
             $job = RepairBuddyJob::query()->create([
                 'case_number' => $caseNumber,
                 'title' => $validated['title'],
@@ -100,6 +132,11 @@ class RepairBuddyJobController extends Controller
                 'customer_id' => $validated['customer_id'] ?? null,
                 'created_by' => $request->user()?->id,
                 'opened_at' => now(),
+                'pickup_date' => $validated['pickup_date'] ?? null,
+                'delivery_date' => $validated['delivery_date'] ?? null,
+                'next_service_date' => $validated['next_service_date'] ?? null,
+                'case_detail' => $validated['case_detail'] ?? null,
+                'assigned_technician_id' => $assignedTechnicianId,
             ]);
 
             RepairBuddyEvent::query()->create([
@@ -144,7 +181,27 @@ class RepairBuddyJobController extends Controller
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
+            'pickup_date' => ['sometimes', 'nullable', 'date'],
+            'delivery_date' => ['sometimes', 'nullable', 'date'],
+            'next_service_date' => ['sometimes', 'nullable', 'date'],
+            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
         ]);
+
+        if (array_key_exists('assigned_technician_id', $validated) && is_numeric($validated['assigned_technician_id'])) {
+            $assignedTechnicianId = (int) $validated['assigned_technician_id'];
+            $technicianExists = User::query()
+                ->where('tenant_id', $this->tenantId())
+                ->where('is_admin', false)
+                ->whereKey($assignedTechnicianId)
+                ->exists();
+
+            if (! $technicianExists) {
+                return response()->json([
+                    'message' => 'Assigned technician is invalid.',
+                ], 422);
+            }
+        }
 
         if (array_key_exists('status_slug', $validated) && is_string($validated['status_slug']) && $validated['status_slug'] !== '') {
             $statusExists = RepairBuddyJobStatus::query()->where('slug', $validated['status_slug'])->exists();
@@ -161,6 +218,11 @@ class RepairBuddyJobController extends Controller
             'payment_status_slug' => array_key_exists('payment_status_slug', $validated) ? $validated['payment_status_slug'] : $job->payment_status_slug,
             'priority' => array_key_exists('priority', $validated) ? $validated['priority'] : $job->priority,
             'customer_id' => array_key_exists('customer_id', $validated) ? $validated['customer_id'] : $job->customer_id,
+            'pickup_date' => array_key_exists('pickup_date', $validated) ? $validated['pickup_date'] : $job->pickup_date,
+            'delivery_date' => array_key_exists('delivery_date', $validated) ? $validated['delivery_date'] : $job->delivery_date,
+            'next_service_date' => array_key_exists('next_service_date', $validated) ? $validated['next_service_date'] : $job->next_service_date,
+            'case_detail' => array_key_exists('case_detail', $validated) ? $validated['case_detail'] : $job->case_detail,
+            'assigned_technician_id' => array_key_exists('assigned_technician_id', $validated) ? $validated['assigned_technician_id'] : $job->assigned_technician_id,
         ])->save();
 
         return response()->json([
@@ -306,6 +368,11 @@ class RepairBuddyJobController extends Controller
             'payment_status' => $job->payment_status_slug,
             'priority' => $job->priority,
             'customer_id' => $job->customer_id,
+            'pickup_date' => $job->pickup_date,
+            'delivery_date' => $job->delivery_date,
+            'next_service_date' => $job->next_service_date,
+            'case_detail' => $job->case_detail,
+            'assigned_technician_id' => $job->assigned_technician_id,
             'customer' => $customer instanceof User ? [
                 'id' => $customer->id,
                 'name' => $customer->name,
