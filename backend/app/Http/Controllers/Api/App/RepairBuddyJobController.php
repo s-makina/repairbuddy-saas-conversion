@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCaseCounter;
+use App\Models\RepairBuddyCustomerDevice;
+use App\Models\RepairBuddyCustomerDeviceFieldValue;
 use App\Models\RepairBuddyEvent;
+use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyJob;
+use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 
 class RepairBuddyJobController extends Controller
@@ -83,6 +88,10 @@ class RepairBuddyJobController extends Controller
             'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
             'assigned_technician_ids' => ['sometimes', 'array'],
             'assigned_technician_ids.*' => ['integer'],
+            'job_devices' => ['sometimes', 'array'],
+            'job_devices.*.customer_device_id' => ['required', 'integer'],
+            'job_devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'job_devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
         ]);
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
@@ -122,6 +131,56 @@ class RepairBuddyJobController extends Controller
             $assignedTechnicianIds = array_values(array_unique(array_map('intval', $validated['assigned_technician_ids'])));
         }
 
+        $jobDevicesPayload = [];
+        if (array_key_exists('job_devices', $validated) && is_array($validated['job_devices'])) {
+            foreach ($validated['job_devices'] as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                if (! array_key_exists('customer_device_id', $item) || ! is_numeric($item['customer_device_id'])) {
+                    continue;
+                }
+
+                $jobDevicesPayload[] = [
+                    'customer_device_id' => (int) $item['customer_device_id'],
+                    'serial' => array_key_exists('serial', $item) && is_string($item['serial']) ? trim((string) $item['serial']) : null,
+                    'notes' => array_key_exists('notes', $item) && is_string($item['notes']) ? trim((string) $item['notes']) : null,
+                ];
+            }
+
+            $jobDevicesPayload = collect($jobDevicesPayload)
+                ->unique('customer_device_id')
+                ->values()
+                ->all();
+        }
+
+        if (count($jobDevicesPayload) > 0) {
+            if (! array_key_exists('customer_id', $validated) || ! is_numeric($validated['customer_id'])) {
+                return response()->json([
+                    'message' => 'Customer is required to attach devices.',
+                ], 422);
+            }
+
+            $customerId = (int) $validated['customer_id'];
+            $deviceIds = collect($jobDevicesPayload)
+                ->map(fn ($d) => (int) ($d['customer_device_id'] ?? 0))
+                ->filter(fn ($id) => $id > 0)
+                ->values()
+                ->all();
+
+            $customerDevices = RepairBuddyCustomerDevice::query()
+                ->where('customer_id', $customerId)
+                ->whereIn('id', $deviceIds)
+                ->get();
+
+            if (count($customerDevices) !== count($deviceIds)) {
+                return response()->json([
+                    'message' => 'Customer device is invalid.',
+                ], 422);
+            }
+        }
+
         if (count($assignedTechnicianIds) > 0) {
             $validTechnicianIds = User::query()
                 ->where('tenant_id', $this->tenantId())
@@ -148,7 +207,10 @@ class RepairBuddyJobController extends Controller
             ], 422);
         }
 
-        $job = DB::transaction(function () use ($caseNumber, $request, $statusSlug, $validated, $assignedTechnicianId, $assignedTechnicianIds) {
+        $tenantId = $this->tenantId();
+        $branchId = $this->branchId();
+
+        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload) {
             $job = RepairBuddyJob::query()->create([
                 'case_number' => $caseNumber,
                 'title' => $validated['title'],
@@ -166,7 +228,87 @@ class RepairBuddyJobController extends Controller
             ]);
 
             if (count($assignedTechnicianIds) > 0) {
-                $job->technicians()->sync($assignedTechnicianIds);
+                $sync = [];
+                foreach ($assignedTechnicianIds as $id) {
+                    $sync[$id] = [
+                        'tenant_id' => $tenantId,
+                        'branch_id' => $branchId,
+                    ];
+                }
+
+                $job->technicians()->sync($sync);
+            }
+
+            if (count($jobDevicesPayload) > 0) {
+                $deviceIds = collect($jobDevicesPayload)
+                    ->map(fn ($d) => (int) ($d['customer_device_id'] ?? 0))
+                    ->filter(fn ($id) => $id > 0)
+                    ->values()
+                    ->all();
+
+                $customerDevices = RepairBuddyCustomerDevice::query()
+                    ->where('customer_id', (int) $job->customer_id)
+                    ->whereIn('id', $deviceIds)
+                    ->get()
+                    ->keyBy('id');
+
+                if (count($customerDevices) !== count($deviceIds)) {
+                    throw ValidationException::withMessages([
+                        'job_devices' => ['Customer device is invalid.'],
+                    ]);
+                }
+
+                $definitions = RepairBuddyDeviceFieldDefinition::query()
+                    ->where('is_active', true)
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($jobDevicesPayload as $entry) {
+                    $customerDeviceId = (int) $entry['customer_device_id'];
+                    $cd = $customerDevices->get($customerDeviceId);
+                    if (! $cd) {
+                        continue;
+                    }
+
+                    $values = RepairBuddyCustomerDeviceFieldValue::query()
+                        ->where('customer_device_id', $cd->id)
+                        ->get()
+                        ->keyBy('field_definition_id');
+
+                    $extraFieldsSnapshot = [];
+                    foreach ($definitions as $def) {
+                        $value = $values->get($def->id);
+                        if (! $value) {
+                            continue;
+                        }
+                        $rawText = is_string($value->value_text) ? trim((string) $value->value_text) : '';
+                        if ($rawText === '') {
+                            continue;
+                        }
+                        $extraFieldsSnapshot[] = [
+                            'key' => $def->key,
+                            'label' => $def->label,
+                            'type' => $def->type,
+                            'show_in_booking' => (bool) $def->show_in_booking,
+                            'show_in_invoice' => (bool) $def->show_in_invoice,
+                            'show_in_portal' => (bool) $def->show_in_portal,
+                            'value_text' => $rawText,
+                        ];
+                    }
+
+                    $serialOverride = is_string($entry['serial'] ?? null) ? trim((string) $entry['serial']) : '';
+                    $notesOverride = is_string($entry['notes'] ?? null) ? trim((string) $entry['notes']) : '';
+
+                    RepairBuddyJobDevice::query()->create([
+                        'job_id' => $job->id,
+                        'customer_device_id' => $cd->id,
+                        'label_snapshot' => $cd->label,
+                        'serial_snapshot' => $serialOverride !== '' ? $serialOverride : $cd->serial,
+                        'pin_snapshot' => $cd->pin,
+                        'notes_snapshot' => $notesOverride !== '' ? $notesOverride : $cd->notes,
+                        'extra_fields_snapshot_json' => $extraFieldsSnapshot,
+                    ]);
+                }
             }
 
             RepairBuddyEvent::query()->create([
@@ -268,7 +410,15 @@ class RepairBuddyJobController extends Controller
                 }
             }
 
-            $job->technicians()->sync($assignedTechnicianIds);
+            $sync = [];
+            foreach ($assignedTechnicianIds as $id) {
+                $sync[$id] = [
+                    'tenant_id' => $this->tenantId(),
+                    'branch_id' => $this->branchId(),
+                ];
+            }
+
+            $job->technicians()->sync($sync);
         }
 
         $job->forceFill([

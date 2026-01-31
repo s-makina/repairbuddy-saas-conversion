@@ -66,6 +66,7 @@ class RepairBuddyJob extends Model
     public function technicians(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'rb_job_technicians', 'job_id', 'technician_user_id')
+            ->withPivot(['tenant_id', 'branch_id'])
             ->withTimestamps();
     }
 }

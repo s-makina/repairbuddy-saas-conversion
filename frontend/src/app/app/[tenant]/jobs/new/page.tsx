@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Select, { type MultiValue } from "react-select";
+import AsyncSelect from "react-select/async";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -33,6 +34,11 @@ type ApiClient = {
   company: string | null;
 };
 
+type CustomerOption = {
+  value: number;
+  label: string;
+};
+
 type ApiTechnician = {
   id: number;
   name: string;
@@ -49,6 +55,18 @@ type ApiCustomerDevice = {
   customer_id: number;
   label: string;
   serial: string | null;
+};
+
+type CustomerDeviceOption = {
+  value: number;
+  label: string;
+};
+
+type JobDeviceDraft = {
+  customer_device_id: number;
+  option: CustomerDeviceOption;
+  serial: string;
+  notes: string;
 };
 
 type ApiJob = {
@@ -69,6 +87,7 @@ export default function NewJobPage() {
   const [paymentStatusSlug, setPaymentStatusSlug] = useState<string>("");
   const [priority, setPriority] = useState<string>("");
   const [customerId, setCustomerId] = useState<number | null>(null);
+  const [customerOption, setCustomerOption] = useState<CustomerOption | null>(null);
 
   const [caseNumber, setCaseNumber] = useState<string>("");
   const [pickupDate, setPickupDate] = useState<string>("");
@@ -76,7 +95,7 @@ export default function NewJobPage() {
   const [nextServiceDate, setNextServiceDate] = useState<string>("");
   const [caseDetail, setCaseDetail] = useState<string>("");
   const [assignedTechnicianIds, setAssignedTechnicianIds] = useState<number[]>([]);
-  const [attachCustomerDeviceId, setAttachCustomerDeviceId] = useState<number | null>(null);
+  const [jobDevices, setJobDevices] = useState<JobDeviceDraft[]>([]);
 
   const [statuses, setStatuses] = useState<ApiJobStatus[]>([]);
   const [paymentStatuses, setPaymentStatuses] = useState<ApiPaymentStatus[]>([]);
@@ -165,6 +184,13 @@ export default function NewJobPage() {
     return clients.slice().sort((a, b) => `${a.name}`.localeCompare(`${b.name}`));
   }, [clients]);
 
+  const clientOptions = useMemo<CustomerOption[]>(() => {
+    return sortedClients.map((c) => ({
+      value: c.id,
+      label: c.email ? `${c.name} (${c.email})` : c.name,
+    }));
+  }, [sortedClients]);
+
   const sortedTechnicians = useMemo(() => {
     return technicians.slice().sort((a, b) => `${a.name}`.localeCompare(`${b.name}`));
   }, [technicians]);
@@ -182,6 +208,16 @@ export default function NewJobPage() {
     return technicianOptions.filter((o) => set.has(o.value));
   }, [assignedTechnicianIds, technicianOptions]);
 
+  const customerDeviceOptions = useMemo<CustomerDeviceOption[]>(() => {
+    return customerDevices
+      .slice()
+      .sort((a, b) => `${a.label}`.localeCompare(`${b.label}`))
+      .map((d) => ({
+        value: d.id,
+        label: d.serial ? `${d.label} (Serial: ${d.serial})` : d.label,
+      }));
+  }, [customerDevices]);
+
   useEffect(() => {
     let alive = true;
 
@@ -189,7 +225,7 @@ export default function NewJobPage() {
       if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
       if (typeof customerId !== "number") {
         setCustomerDevices([]);
-        setAttachCustomerDeviceId(null);
+        setJobDevices([]);
         return;
       }
 
@@ -211,6 +247,54 @@ export default function NewJobPage() {
       alive = false;
     };
   }, [customerId, tenantSlug]);
+
+  const loadCustomerOptions = async (inputValue: string): Promise<CustomerOption[]> => {
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return [];
+
+    try {
+      const qs = new URLSearchParams();
+      qs.set("limit", "50");
+      const q = inputValue.trim();
+      if (q) qs.set("query", q);
+
+      const res = await apiFetch<{ clients: ApiClient[] }>(`/api/${tenantSlug}/app/clients?${qs.toString()}`);
+      const list = Array.isArray(res.clients) ? res.clients : [];
+      return list.map((c) => ({
+        value: c.id,
+        label: c.email ? `${c.name} (${c.email})` : c.name,
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  const loadCustomerDeviceOptions = async (inputValue: string): Promise<CustomerDeviceOption[]> => {
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return [];
+    if (typeof customerId !== "number") return [];
+
+    try {
+      const qs = new URLSearchParams();
+      qs.set("customer_id", String(customerId));
+      qs.set("limit", "50");
+      const q = inputValue.trim();
+      if (q) qs.set("q", q);
+
+      const res = await apiFetch<{ customer_devices: ApiCustomerDevice[] }>(
+        `/api/${tenantSlug}/app/repairbuddy/customer-devices?${qs.toString()}`,
+      );
+
+      const list = Array.isArray(res.customer_devices) ? res.customer_devices : [];
+      return list
+        .slice()
+        .sort((a, b) => `${a.label}`.localeCompare(`${b.label}`))
+        .map((d) => ({
+          value: d.id,
+          label: d.serial ? `${d.label} (Serial: ${d.serial})` : d.label,
+        }));
+    } catch {
+      return [];
+    }
+  };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -242,6 +326,14 @@ export default function NewJobPage() {
           case_detail: caseDetail.trim() !== "" ? caseDetail.trim() : null,
           assigned_technician_id: assignedTechnicianIds.length > 0 ? assignedTechnicianIds[0] : null,
           assigned_technician_ids: assignedTechnicianIds,
+          job_devices:
+            jobDevices.length > 0
+              ? jobDevices.map((d) => ({
+                  customer_device_id: d.customer_device_id,
+                  serial: d.serial.trim() !== "" ? d.serial.trim() : null,
+                  notes: d.notes.trim() !== "" ? d.notes.trim() : null,
+                }))
+              : [],
         },
       });
 
@@ -249,16 +341,6 @@ export default function NewJobPage() {
 
       const nextId = res.job?.id;
       if (typeof nextId === "number") {
-        if (typeof attachCustomerDeviceId === "number" && typeof customerId === "number") {
-          try {
-            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/devices`, {
-              method: "POST",
-              body: { customer_device_id: attachCustomerDeviceId },
-            });
-          } catch {
-            // Best-effort: job is created, device attach can be done on the job detail page.
-          }
-        }
         router.replace(`/app/${tenantSlug}/jobs/${nextId}`);
       } else {
         router.replace(`/app/${tenantSlug}/jobs`);
@@ -322,30 +404,38 @@ export default function NewJobPage() {
               </FormRow>
 
               <FormRow label="Customer" fieldId="job_customer">
-                <select
-                  id="job_customer"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                  value={typeof customerId === "number" ? String(customerId) : ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw) {
-                      setCustomerId(null);
-                      setAttachCustomerDeviceId(null);
-                      return;
-                    }
-                    const n = Number(raw);
-                    setCustomerId(Number.isFinite(n) ? n : null);
-                    setAttachCustomerDeviceId(null);
+                <AsyncSelect
+                  inputId="job_customer"
+                  instanceId="job_customer"
+                  cacheOptions
+                  defaultOptions={clientOptions}
+                  loadOptions={loadCustomerOptions}
+                  isClearable
+                  isSearchable
+                  value={customerOption}
+                  onChange={(opt) => {
+                    const next = (opt as CustomerOption | null) ?? null;
+                    setCustomerOption(next);
+                    setCustomerId(typeof next?.value === "number" ? next.value : null);
+                    setJobDevices([]);
                   }}
-                  disabled={disabled || sortedClients.length === 0}
-                >
-                  <option value="">{sortedClients.length > 0 ? "—" : "No clients available"}</option>
-                  {sortedClients.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name} {c.email ? `(${c.email})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  isDisabled={disabled}
+                  placeholder="Search customers..."
+                  classNamePrefix="rb-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderRadius: "var(--rb-radius-sm)",
+                      borderColor: "#d4d4d8",
+                      minHeight: 40,
+                      boxShadow: "none",
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 50,
+                    }),
+                  }}
+                />
               </FormRow>
 
               <FormRow
@@ -469,32 +559,103 @@ export default function NewJobPage() {
                 />
               </FormRow>
 
-              <FormRow label="Attach customer device" fieldId="job_attach_device" description="Optional. Requires selecting a customer.">
-                <select
-                  id="job_attach_device"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                  value={typeof attachCustomerDeviceId === "number" ? String(attachCustomerDeviceId) : ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw) {
-                      setAttachCustomerDeviceId(null);
-                      return;
-                    }
-                    const n = Number(raw);
-                    setAttachCustomerDeviceId(Number.isFinite(n) ? n : null);
+              <FormRow label="Customer devices" fieldId="job_devices" description="Optional. Requires selecting a customer.">
+                <AsyncSelect
+                  inputId="job_devices"
+                  instanceId="job_devices"
+                  cacheOptions
+                  defaultOptions={customerDeviceOptions}
+                  loadOptions={loadCustomerDeviceOptions}
+                  isClearable
+                  isSearchable
+                  isMulti
+                  value={jobDevices.map((d) => d.option)}
+                  onChange={(opts) => {
+                    const nextOptions = (Array.isArray(opts) ? (opts as CustomerDeviceOption[]) : [])
+                      .filter((o) => o && typeof o.value === "number")
+                      .map((o) => ({ value: o.value, label: o.label }));
+
+                    setJobDevices((prev) => {
+                      const prevById = new Map(prev.map((d) => [d.customer_device_id, d] as const));
+                      return nextOptions.map((o) => {
+                        const existing = prevById.get(o.value);
+                        if (existing) {
+                          return { ...existing, option: o };
+                        }
+                        return {
+                          customer_device_id: o.value,
+                          option: o,
+                          serial: "",
+                          notes: "",
+                        };
+                      });
+                    });
                   }}
-                  disabled={disabled || typeof customerId !== "number" || customerDevices.length === 0}
-                >
-                  <option value="">{typeof customerId !== "number" ? "Select a customer first" : customerDevices.length > 0 ? "—" : "No devices available"}</option>
-                  {customerDevices
-                    .slice()
-                    .sort((a, b) => `${a.label}`.localeCompare(`${b.label}`))
-                    .map((d) => (
-                      <option key={d.id} value={String(d.id)}>
-                        {d.label} {d.serial ? `(Serial: ${d.serial})` : ""}
-                      </option>
+                  isDisabled={disabled || typeof customerId !== "number"}
+                  placeholder={typeof customerId !== "number" ? "Select a customer first" : "Search devices..."}
+                  classNamePrefix="rb-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderRadius: "var(--rb-radius-sm)",
+                      borderColor: "#d4d4d8",
+                      minHeight: 40,
+                      boxShadow: "none",
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 50,
+                    }),
+                  }}
+                />
+
+                {jobDevices.length > 0 ? (
+                  <div className="mt-3 space-y-3">
+                    {jobDevices.map((d) => (
+                      <div key={d.customer_device_id} className="rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white p-3">
+                        <div className="text-sm font-medium text-[var(--rb-text)]">{d.option.label}</div>
+
+                        <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <div>
+                            <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
+                            <Input
+                              value={d.serial}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setJobDevices((prev) =>
+                                  prev.map((x) =>
+                                    x.customer_device_id === d.customer_device_id ? { ...x, serial: v } : x,
+                                  ),
+                                );
+                              }}
+                              disabled={disabled}
+                              placeholder="Enter device ID / IMEI"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="mb-1 text-xs text-zinc-600">Note</div>
+                            <textarea
+                              value={d.notes}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setJobDevices((prev) =>
+                                  prev.map((x) =>
+                                    x.customer_device_id === d.customer_device_id ? { ...x, notes: v } : x,
+                                  ),
+                                );
+                              }}
+                              disabled={disabled}
+                              rows={2}
+                              placeholder="Add a note for this device"
+                              className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                </select>
+                  </div>
+                ) : null}
               </FormRow>
             </form>
           </CardContent>
