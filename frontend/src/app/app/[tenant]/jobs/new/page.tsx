@@ -50,6 +50,14 @@ type DeviceOption = {
   label: string;
 };
 
+type NewJobDeviceDraft = {
+  device_id: number;
+  option: DeviceOption;
+  serial: string;
+  pin: string;
+  notes: string;
+};
+
 type ApiTechnician = {
   id: number;
   name: string;
@@ -117,11 +125,21 @@ export default function NewJobPage() {
   const [deviceOption, setDeviceOption] = useState<DeviceOption | null>(null);
   const [deviceIdText, setDeviceIdText] = useState<string>("");
 
+  const [deviceAddId, setDeviceAddId] = useState<number | null>(null);
+  const [deviceAddOption, setDeviceAddOption] = useState<DeviceOption | null>(null);
+  const [deviceAddSerial, setDeviceAddSerial] = useState<string>("");
+
+  const [jobDevicesAdmin, setJobDevicesAdmin] = useState<NewJobDeviceDraft[]>([]);
+
   const [caseNumber, setCaseNumber] = useState<string>("");
   const [pickupDate, setPickupDate] = useState<string>("");
   const [deliveryDate, setDeliveryDate] = useState<string>("");
   const [nextServiceDate, setNextServiceDate] = useState<string>("");
   const [caseDetail, setCaseDetail] = useState<string>("");
+
+  const [orderNote, setOrderNote] = useState("");
+  const [jobFile, setJobFile] = useState<File | null>(null);
+
   const [assignedTechnicianIds, setAssignedTechnicianIds] = useState<number[]>([]);
   const [jobDevices, setJobDevices] = useState<JobDeviceDraft[]>([]);
   const [customerDevicesError, setCustomerDevicesError] = useState<string | null>(null);
@@ -189,7 +207,8 @@ export default function NewJobPage() {
           setNextServiceEnabled(false);
         }
 
-        const preferredStatus = nextStatuses.find((s) => s.slug === "new")?.slug;
+        const preferredStatus =
+          nextStatuses.find((s) => s.slug === "neworder")?.slug ?? nextStatuses.find((s) => s.slug === "new")?.slug;
         setStatusSlug(preferredStatus ?? (nextStatuses.length > 0 ? nextStatuses[0].slug : ""));
         setPaymentStatusSlug("");
 
@@ -391,16 +410,7 @@ export default function NewJobPage() {
     setError(null);
 
     try {
-      if (typeof deviceId !== "number") {
-        setError("Device is required.");
-        return;
-      }
-
       const shouldCreateCustomer = customerMode === "new";
-      if (!shouldCreateCustomer && typeof customerId !== "number") {
-        setError("Customer is required.");
-        return;
-      }
 
       if (shouldCreateCustomer) {
         if (customerCreateName.trim() === "") {
@@ -413,61 +423,67 @@ export default function NewJobPage() {
         }
       }
 
-      if (deliveryDate.trim() === "") {
-        setError("Delivery date is required.");
-        return;
-      }
-
-      if (caseDetail.trim() === "") {
-        setError("Job details are required.");
-        return;
-      }
-
       const trimmedTitle = title.trim();
+
+      const payload = {
+        devices:
+          jobDevicesAdmin.length > 0
+            ? jobDevicesAdmin.map((d) => ({
+                device_id: d.device_id,
+                serial: d.serial.trim() !== "" ? d.serial.trim() : null,
+                pin: d.pin.trim() !== "" ? d.pin.trim() : null,
+                notes: d.notes.trim() !== "" ? d.notes.trim() : null,
+              }))
+            : [],
+        case_number: caseNumber.trim() !== "" ? caseNumber.trim() : null,
+        title: trimmedTitle !== "" ? trimmedTitle : null,
+        status_slug: statusSlug.trim() !== "" ? statusSlug : null,
+        payment_status_slug: paymentStatusSlug.trim() !== "" ? paymentStatusSlug : null,
+        priority: priority.trim() !== "" ? priority.trim() : null,
+        customer_id: !shouldCreateCustomer && typeof customerId === "number" ? customerId : null,
+        customer_create:
+          shouldCreateCustomer
+            ? {
+                name: customerCreateName.trim(),
+                email: customerCreateEmail.trim(),
+                phone: customerCreatePhone.trim() !== "" ? customerCreatePhone.trim() : null,
+                company: customerCreateCompany.trim() !== "" ? customerCreateCompany.trim() : null,
+                address_line1: customerCreateAddressLine1.trim() !== "" ? customerCreateAddressLine1.trim() : null,
+                address_line2: customerCreateAddressLine2.trim() !== "" ? customerCreateAddressLine2.trim() : null,
+                address_city: customerCreateAddressCity.trim() !== "" ? customerCreateAddressCity.trim() : null,
+                address_state: customerCreateAddressState.trim() !== "" ? customerCreateAddressState.trim() : null,
+                address_postal_code:
+                  customerCreateAddressPostalCode.trim() !== "" ? customerCreateAddressPostalCode.trim() : null,
+                address_country: customerCreateAddressCountry.trim() !== "" ? customerCreateAddressCountry.trim() : null,
+              }
+            : null,
+        pickup_date: pickupDate.trim() !== "" ? pickupDate : null,
+        delivery_date: deliveryDate.trim() !== "" ? deliveryDate : null,
+        next_service_date: nextServiceEnabled && nextServiceDate.trim() !== "" ? nextServiceDate : null,
+        case_detail: caseDetail.trim() !== "" ? caseDetail.trim() : null,
+        assigned_technician_id: assignedTechnicianIds.length > 0 ? assignedTechnicianIds[0] : null,
+        assigned_technician_ids: assignedTechnicianIds,
+        job_devices:
+          jobDevices.length > 0
+            ? jobDevices.map((d) => ({
+                customer_device_id: d.customer_device_id,
+                serial: d.serial.trim() !== "" ? d.serial.trim() : null,
+                notes: d.notes.trim() !== "" ? d.notes.trim() : null,
+              }))
+            : [],
+
+        wc_order_note: orderNote.trim() !== "" ? orderNote.trim() : null,
+      };
+
+      const form = new FormData();
+      form.append("payload_json", JSON.stringify(payload));
+      if (jobFile) {
+        form.append("job_file", jobFile);
+      }
 
       const res = await apiFetch<{ job: ApiJob }>(`/api/${tenantSlug}/app/repairbuddy/jobs`, {
         method: "POST",
-        body: {
-          plugin_parity: true,
-          plugin_device_post_id: deviceId,
-          plugin_device_id_text: deviceIdText.trim() !== "" ? deviceIdText.trim() : null,
-          case_number: caseNumber.trim() !== "" ? caseNumber.trim() : null,
-          title: trimmedTitle !== "" ? trimmedTitle : null,
-          status_slug: statusSlug.trim() !== "" ? statusSlug : null,
-          payment_status_slug: paymentStatusSlug.trim() !== "" ? paymentStatusSlug : null,
-          priority: priority.trim() !== "" ? priority.trim() : null,
-          customer_id: !shouldCreateCustomer && typeof customerId === "number" ? customerId : null,
-          customer_create:
-            shouldCreateCustomer
-              ? {
-                  name: customerCreateName.trim(),
-                  email: customerCreateEmail.trim(),
-                  phone: customerCreatePhone.trim() !== "" ? customerCreatePhone.trim() : null,
-                  company: customerCreateCompany.trim() !== "" ? customerCreateCompany.trim() : null,
-                  address_line1: customerCreateAddressLine1.trim() !== "" ? customerCreateAddressLine1.trim() : null,
-                  address_line2: customerCreateAddressLine2.trim() !== "" ? customerCreateAddressLine2.trim() : null,
-                  address_city: customerCreateAddressCity.trim() !== "" ? customerCreateAddressCity.trim() : null,
-                  address_state: customerCreateAddressState.trim() !== "" ? customerCreateAddressState.trim() : null,
-                  address_postal_code:
-                    customerCreateAddressPostalCode.trim() !== "" ? customerCreateAddressPostalCode.trim() : null,
-                  address_country: customerCreateAddressCountry.trim() !== "" ? customerCreateAddressCountry.trim() : null,
-                }
-              : null,
-          pickup_date: pickupDate.trim() !== "" ? pickupDate : null,
-          delivery_date: deliveryDate.trim() !== "" ? deliveryDate : null,
-          next_service_date: nextServiceEnabled && nextServiceDate.trim() !== "" ? nextServiceDate : null,
-          case_detail: caseDetail.trim() !== "" ? caseDetail.trim() : null,
-          assigned_technician_id: assignedTechnicianIds.length > 0 ? assignedTechnicianIds[0] : null,
-          assigned_technician_ids: assignedTechnicianIds,
-          job_devices:
-            jobDevices.length > 0
-              ? jobDevices.map((d) => ({
-                  customer_device_id: d.customer_device_id,
-                  serial: d.serial.trim() !== "" ? d.serial.trim() : null,
-                  notes: d.notes.trim() !== "" ? d.notes.trim() : null,
-                }))
-              : [],
-        },
+        body: form,
       });
 
       notify.success("Job created.");
@@ -522,49 +538,139 @@ export default function NewJobPage() {
         <Card className="shadow-none">
           <CardContent className="pt-5">
             <form id="rb_job_new_form" className="space-y-4" onSubmit={onSubmit}>
-              <FormRow label="Device" fieldId="job_device" required>
-                <AsyncSelect
-                  inputId="job_device"
-                  instanceId="job_device"
-                  cacheOptions
-                  defaultOptions={deviceOptions}
-                  loadOptions={loadDeviceOptions}
-                  isClearable
-                  isSearchable
-                  value={deviceOption}
-                  onChange={(opt) => {
-                    const next = (opt as DeviceOption | null) ?? null;
-                    setDeviceOption(next);
-                    setDeviceId(typeof next?.value === "number" ? next.value : null);
-                  }}
-                  isDisabled={disabled}
-                  placeholder="Search devices..."
-                  classNamePrefix="rb-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      borderRadius: "var(--rb-radius-sm)",
-                      borderColor: "#d4d4d8",
-                      minHeight: 40,
-                      boxShadow: "none",
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 50,
-                    }),
-                  }}
-                />
-              </FormRow>
+              <div className="rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white p-3">
+                <div className="mb-2 text-sm font-medium text-[var(--rb-text)]">Job devices (admin-style)</div>
 
-              <FormRow label="Device ID / IMEI" fieldId="job_device_id_text">
-                <Input
-                  id="job_device_id_text"
-                  value={deviceIdText}
-                  onChange={(e) => setDeviceIdText(e.target.value)}
-                  disabled={disabled}
-                  placeholder="Enter device ID / IMEI"
-                />
-              </FormRow>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                  <div className="md:col-span-2">
+                    <div className="mb-1 text-xs text-zinc-600">Device model</div>
+                    <AsyncSelect
+                      inputId="job_device_add"
+                      instanceId="job_device_add"
+                      cacheOptions
+                      defaultOptions={deviceOptions}
+                      loadOptions={loadDeviceOptions}
+                      isClearable
+                      isSearchable
+                      value={deviceAddOption}
+                      onChange={(opt) => {
+                        const next = (opt as DeviceOption | null) ?? null;
+                        setDeviceAddOption(next);
+                        setDeviceAddId(typeof next?.value === "number" ? next.value : null);
+                      }}
+                      isDisabled={disabled}
+                      placeholder="Search devices..."
+                      classNamePrefix="rb-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          borderRadius: "var(--rb-radius-sm)",
+                          borderColor: "#d4d4d8",
+                          minHeight: 40,
+                          boxShadow: "none",
+                        }),
+                        menu: (base) => ({
+                          ...base,
+                          zIndex: 50,
+                        }),
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-1 text-xs text-zinc-600">ID/IMEI</div>
+                    <Input value={deviceAddSerial} onChange={(e) => setDeviceAddSerial(e.target.value)} disabled={disabled} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={disabled || typeof deviceAddId !== "number" || !deviceAddOption}
+                      onClick={() => {
+                        if (typeof deviceAddId !== "number" || !deviceAddOption) return;
+
+                        const next: NewJobDeviceDraft = {
+                          device_id: deviceAddId,
+                          option: deviceAddOption,
+                          serial: deviceAddSerial,
+                          pin: "",
+                          notes: "",
+                        };
+
+                        setJobDevicesAdmin((prev) => {
+                          const combined = [...prev, next];
+                          return combined;
+                        });
+
+                        setDeviceAddId(null);
+                        setDeviceAddOption(null);
+                        setDeviceAddSerial("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {jobDevicesAdmin.length > 0 ? (
+                  <div className="mt-3 space-y-3">
+                    {jobDevicesAdmin.map((d, idx) => (
+                      <div key={`${d.device_id}-${idx}`} className="rounded-[var(--rb-radius-sm)] border border-zinc-200 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-sm font-medium text-[var(--rb-text)]">{d.option.label}</div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx))}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <div>
+                            <div className="mb-1 text-xs text-zinc-600">ID/IMEI</div>
+                            <Input
+                              value={d.serial}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, serial: v } : x)));
+                              }}
+                              disabled={disabled}
+                            />
+                          </div>
+                          <div>
+                            <div className="mb-1 text-xs text-zinc-600">Pin</div>
+                            <Input
+                              value={d.pin}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, pin: v } : x)));
+                              }}
+                              disabled={disabled}
+                            />
+                          </div>
+                          <div>
+                            <div className="mb-1 text-xs text-zinc-600">Note</div>
+                            <Input
+                              value={d.notes}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: v } : x)));
+                              }}
+                              disabled={disabled}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-3 text-sm text-zinc-600">No devices added.</div>
+                )}
+              </div>
 
               <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
                 <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
@@ -580,7 +686,7 @@ export default function NewJobPage() {
                 />
               </FormRow>
 
-              <FormRow label="Customer" fieldId="job_customer" required>
+              <FormRow label="Customer" fieldId="job_customer">
                 <div className="space-y-3">
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
@@ -839,6 +945,30 @@ export default function NewJobPage() {
                   rows={4}
                   placeholder="Enter details about job."
                   className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                />
+              </FormRow>
+
+              <FormRow label="Order note" fieldId="job_order_note" description="Visible to customer.">
+                <textarea
+                  id="job_order_note"
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
+                  disabled={disabled}
+                  rows={3}
+                  placeholder="Add a note for the customer..."
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                />
+              </FormRow>
+
+              <FormRow label="File attachment" fieldId="job_file" description="Optional. Upload a single file.">
+                <Input
+                  id="job_file"
+                  type="file"
+                  disabled={disabled}
+                  onChange={(e) => {
+                    const next = e.target.files?.[0] ?? null;
+                    setJobFile(next);
+                  }}
                 />
               </FormRow>
 

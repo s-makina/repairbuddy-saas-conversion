@@ -6,19 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCaseCounter;
 use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyCustomerDeviceFieldValue;
+use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyJob;
+use App\Models\RepairBuddyJobAttachment;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
 use App\Models\User;
 use App\Notifications\OneTimePasswordNotification;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RepairBuddyJobController extends Controller
@@ -78,6 +82,17 @@ class RepairBuddyJobController extends Controller
 
     public function store(Request $request, string $business)
     {
+        // Support JSON bodies and multipart bodies (FormData) by allowing a JSON payload wrapper.
+        if (is_string($request->input('payload_json')) && trim((string) $request->input('payload_json')) !== '') {
+            $decoded = json_decode((string) $request->input('payload_json'), true);
+            if (! is_array($decoded)) {
+                return response()->json([
+                    'message' => 'Invalid payload_json.',
+                ], 422);
+            }
+            $request->merge($decoded);
+        }
+
         $validated = $request->validate([
             'case_number' => ['sometimes', 'nullable', 'string', 'max:64'],
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -85,20 +100,27 @@ class RepairBuddyJobController extends Controller
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
-            'plugin_parity' => ['sometimes', 'boolean'],
             'plugin_device_post_id' => ['sometimes', 'nullable', 'integer'],
             'plugin_device_id_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'pickup_date' => ['sometimes', 'nullable', 'date'],
-            'delivery_date' => ['sometimes', 'nullable', 'date', 'required_if:plugin_parity,true'],
+            'delivery_date' => ['sometimes', 'nullable', 'date'],
             'next_service_date' => ['sometimes', 'nullable', 'date'],
-            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000', 'required_if:plugin_parity,true'],
+            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'assigned_technician_id' => ['sometimes', 'nullable', 'integer'],
             'assigned_technician_ids' => ['sometimes', 'array'],
             'assigned_technician_ids.*' => ['integer'],
             'job_devices' => ['sometimes', 'array'],
             'job_devices.*.customer_device_id' => ['required', 'integer'],
             'job_devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'job_devices.*.pin' => ['sometimes', 'nullable', 'string', 'max:255'],
             'job_devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+
+            // Plugin WP-admin parity: multiple devices added as an array of catalog devices.
+            'devices' => ['sometimes', 'array'],
+            'devices.*.device_id' => ['required', 'integer'],
+            'devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'devices.*.pin' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
 
             'customer_create' => ['sometimes', 'array'],
             'customer_create.name' => ['required_with:customer_create', 'string', 'max:255'],
@@ -112,14 +134,28 @@ class RepairBuddyJobController extends Controller
             'customer_create.address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'customer_create.address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
             'customer_create.address_country' => ['sometimes', 'nullable', 'string', 'size:2'],
+
+            // Plugin parity fields (stored as public-facing history/events + attachment storage).
+            'wc_order_note' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'wc_job_file' => ['sometimes', 'nullable', 'integer'],
         ]);
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
             ? $validated['status_slug']
-            : 'new';
+            : 'neworder';
 
         $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
+        if (! $statusExists && $statusSlug === 'neworder') {
+            $statusSlug = 'new';
+            $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
+        }
+
         if (! $statusExists) {
+            $statusSlug = RepairBuddyJobStatus::query()->orderBy('id')->value('slug');
+            $statusSlug = is_string($statusSlug) && $statusSlug !== '' ? $statusSlug : null;
+        }
+
+        if (! is_string($statusSlug) || $statusSlug === '') {
             return response()->json([
                 'message' => 'Job status is invalid.',
             ], 422);
@@ -144,27 +180,33 @@ class RepairBuddyJobController extends Controller
             ? trim((string) $validated['plugin_device_id_text'])
             : null;
 
+        $devicesPayload = [];
+        if (array_key_exists('devices', $validated) && is_array($validated['devices'])) {
+            foreach ($validated['devices'] as $entry) {
+                if (! is_array($entry)) {
+                    continue;
+                }
+
+                if (! array_key_exists('device_id', $entry) || ! is_numeric($entry['device_id'])) {
+                    continue;
+                }
+
+                $devicesPayload[] = [
+                    'device_id' => (int) $entry['device_id'],
+                    'serial' => array_key_exists('serial', $entry) && is_string($entry['serial']) ? trim((string) $entry['serial']) : null,
+                    'pin' => array_key_exists('pin', $entry) && is_string($entry['pin']) ? trim((string) $entry['pin']) : null,
+                    'notes' => array_key_exists('notes', $entry) && is_string($entry['notes']) ? trim((string) $entry['notes']) : null,
+                ];
+            }
+
+            $devicesPayload = collect($devicesPayload)
+                ->values()
+                ->all();
+        }
+
         $shouldCreateCustomer = array_key_exists('customer_create', $validated) && is_array($validated['customer_create']);
 
-        $pluginParity = (bool) ($validated['plugin_parity'] ?? false);
-
-        if ($pluginParity && ! $pluginDevicePostId) {
-            return response()->json([
-                'message' => 'Device is required.',
-            ], 422);
-        }
-
-        if (! $customerId && ! $shouldCreateCustomer) {
-            return response()->json([
-                'message' => 'Customer is required.',
-            ], 422);
-        }
-
-        if ($pluginDevicePostId && ! $customerId && ! $shouldCreateCustomer) {
-            return response()->json([
-                'message' => 'Customer is required to attach devices.',
-            ], 422);
-        }
+        // Admin create-job parity: customer/device/details are optional at creation time.
 
         $assignedTechnicianId = array_key_exists('assigned_technician_id', $validated) && is_numeric($validated['assigned_technician_id'])
             ? (int) $validated['assigned_technician_id']
@@ -203,6 +245,7 @@ class RepairBuddyJobController extends Controller
                 $jobDevicesPayload[] = [
                     'customer_device_id' => (int) $item['customer_device_id'],
                     'serial' => array_key_exists('serial', $item) && is_string($item['serial']) ? trim((string) $item['serial']) : null,
+                    'pin' => array_key_exists('pin', $item) && is_string($item['pin']) ? trim((string) $item['pin']) : null,
                     'notes' => array_key_exists('notes', $item) && is_string($item['notes']) ? trim((string) $item['notes']) : null,
                 ];
             }
@@ -213,7 +256,7 @@ class RepairBuddyJobController extends Controller
                 ->all();
         }
 
-        if (count($jobDevicesPayload) > 0) {
+        if (count($jobDevicesPayload) > 0 || count($devicesPayload) > 0) {
             if (! $customerId && ! $shouldCreateCustomer) {
                 return response()->json([
                     'message' => 'Customer is required to attach devices.',
@@ -260,7 +303,7 @@ class RepairBuddyJobController extends Controller
         $createdCustomer = null;
         $createdCustomerOneTimePassword = null;
 
-        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $title) {
+        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $devicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $title) {
             if ($shouldCreateCustomer) {
                 $cc = $validated['customer_create'];
 
@@ -332,6 +375,19 @@ class RepairBuddyJobController extends Controller
                 'plugin_device_id_text' => $pluginDeviceIdText,
             ]);
 
+            // If the legacy single-device fields are empty, set them from the first device entry
+            // (helps keep older UI/reporting in sync while we support true multi-device).
+            if ((! $pluginDevicePostId || $pluginDevicePostId <= 0) && count($devicesPayload) > 0) {
+                $first = $devicesPayload[0];
+                $firstDeviceId = is_numeric($first['device_id'] ?? null) ? (int) $first['device_id'] : null;
+                $firstSerial = is_string($first['serial'] ?? null) ? trim((string) $first['serial']) : '';
+
+                $job->forceFill([
+                    'plugin_device_post_id' => $firstDeviceId,
+                    'plugin_device_id_text' => $firstSerial !== '' ? $firstSerial : null,
+                ])->save();
+            }
+
             if (count($assignedTechnicianIds) > 0) {
                 $sync = [];
                 foreach ($assignedTechnicianIds as $id) {
@@ -402,6 +458,7 @@ class RepairBuddyJobController extends Controller
                     }
 
                     $serialOverride = is_string($entry['serial'] ?? null) ? trim((string) $entry['serial']) : '';
+                    $pinOverride = is_string($entry['pin'] ?? null) ? trim((string) $entry['pin']) : '';
                     $notesOverride = is_string($entry['notes'] ?? null) ? trim((string) $entry['notes']) : '';
 
                     RepairBuddyJobDevice::query()->create([
@@ -409,9 +466,67 @@ class RepairBuddyJobController extends Controller
                         'customer_device_id' => $cd->id,
                         'label_snapshot' => $cd->label,
                         'serial_snapshot' => $serialOverride !== '' ? $serialOverride : $cd->serial,
-                        'pin_snapshot' => $cd->pin,
+                        'pin_snapshot' => $pinOverride !== '' ? $pinOverride : $cd->pin,
                         'notes_snapshot' => $notesOverride !== '' ? $notesOverride : $cd->notes,
                         'extra_fields_snapshot_json' => $extraFieldsSnapshot,
+                    ]);
+                }
+            }
+
+            // Admin parity: allow adding multiple devices based on the catalog device list.
+            // We create rb_customer_devices entries (per customer) and attach them to the job.
+            if (count($devicesPayload) > 0) {
+                if (! $job->customer_id) {
+                    throw ValidationException::withMessages([
+                        'devices' => ['Customer is required to attach devices.'],
+                    ]);
+                }
+
+                $deviceIds = collect($devicesPayload)
+                    ->map(fn ($d) => (int) ($d['device_id'] ?? 0))
+                    ->filter(fn ($id) => $id > 0)
+                    ->values()
+                    ->all();
+
+                $devices = RepairBuddyDevice::query()
+                    ->whereIn('id', $deviceIds)
+                    ->get()
+                    ->keyBy('id');
+
+                if (count($devices) !== count(array_unique($deviceIds))) {
+                    throw ValidationException::withMessages([
+                        'devices' => ['Device is invalid.'],
+                    ]);
+                }
+
+                foreach ($devicesPayload as $entry) {
+                    $deviceId = (int) ($entry['device_id'] ?? 0);
+                    $device = $devices->get($deviceId);
+                    if (! $device) {
+                        continue;
+                    }
+
+                    $serial = is_string($entry['serial'] ?? null) ? trim((string) $entry['serial']) : '';
+                    $pin = is_string($entry['pin'] ?? null) ? trim((string) $entry['pin']) : '';
+                    $notes = is_string($entry['notes'] ?? null) ? trim((string) $entry['notes']) : '';
+
+                    $customerDevice = RepairBuddyCustomerDevice::query()->create([
+                        'customer_id' => (int) $job->customer_id,
+                        'device_id' => $device->id,
+                        'label' => $device->model,
+                        'serial' => $serial !== '' ? $serial : null,
+                        'pin' => $pin !== '' ? $pin : null,
+                        'notes' => $notes !== '' ? $notes : null,
+                    ]);
+
+                    RepairBuddyJobDevice::query()->create([
+                        'job_id' => $job->id,
+                        'customer_device_id' => $customerDevice->id,
+                        'label_snapshot' => $customerDevice->label,
+                        'serial_snapshot' => $customerDevice->serial,
+                        'pin_snapshot' => $customerDevice->pin,
+                        'notes_snapshot' => $customerDevice->notes,
+                        'extra_fields_snapshot_json' => [],
                     ]);
                 }
             }
@@ -427,6 +542,54 @@ class RepairBuddyJobController extends Controller
                     'case_number' => $job->case_number,
                 ],
             ]);
+
+            $orderNote = is_string($validated['wc_order_note'] ?? null) ? trim((string) $validated['wc_order_note']) : '';
+            if ($orderNote !== '') {
+                RepairBuddyEvent::query()->create([
+                    'actor_user_id' => $request->user()?->id,
+                    'entity_type' => 'job',
+                    'entity_id' => $job->id,
+                    'visibility' => 'public',
+                    'event_type' => 'order.note',
+                    'payload_json' => [
+                        'title' => 'Order note',
+                        'message' => $orderNote,
+                    ],
+                ]);
+            }
+
+            $uploaded = $request->file('job_file');
+            if ($uploaded instanceof UploadedFile) {
+                $disk = 'public';
+                $path = $uploaded->store('rb/jobs/'.$job->id.'/attachments', $disk);
+                $url = Storage::disk($disk)->url($path);
+
+                $attachment = RepairBuddyJobAttachment::query()->create([
+                    'job_id' => $job->id,
+                    'uploader_user_id' => $request->user()?->id,
+                    'visibility' => 'public',
+                    'original_filename' => $uploaded->getClientOriginalName(),
+                    'mime_type' => $uploaded->getClientMimeType(),
+                    'size_bytes' => $uploaded->getSize() ?? 0,
+                    'storage_disk' => $disk,
+                    'storage_path' => $path,
+                    'url' => $url,
+                ]);
+
+                RepairBuddyEvent::query()->create([
+                    'actor_user_id' => $request->user()?->id,
+                    'entity_type' => 'job',
+                    'entity_id' => $job->id,
+                    'visibility' => 'public',
+                    'event_type' => 'job.attachment',
+                    'payload_json' => [
+                        'title' => 'File attachment',
+                        'attachment_id' => $attachment->id,
+                        'url' => $url,
+                        'filename' => $attachment->original_filename,
+                    ],
+                ]);
+            }
 
             return $job;
         });
@@ -619,6 +782,20 @@ class RepairBuddyJobController extends Controller
             })->all();
         }
 
+        $attachments = RepairBuddyJobAttachment::query()
+            ->where('job_id', $job->id)
+            ->orderBy('id', 'asc')
+            ->limit(200)
+            ->get();
+
+        $publicEvents = RepairBuddyEvent::query()
+            ->where('entity_type', 'job')
+            ->where('entity_id', $job->id)
+            ->where('visibility', 'public')
+            ->orderBy('created_at', 'asc')
+            ->limit(500)
+            ->get();
+
         $items = RepairBuddyJobItem::query()
             ->where('job_id', $job->id)
             ->with('tax')
@@ -710,8 +887,30 @@ class RepairBuddyJobController extends Controller
                 'tax_cents' => $taxCents,
                 'total_cents' => $subtotalCents + $taxCents,
             ],
-            'messages' => [],
-            'attachments' => [],
+            'messages' => $publicEvents->map(function (RepairBuddyEvent $e) {
+                $payload = is_array($e->payload_json) ? $e->payload_json : [];
+                $message = is_string($payload['message'] ?? null) ? $payload['message'] : null;
+
+                return [
+                    'id' => (string) $e->id,
+                    'author' => $e->actor_user_id ? 'staff' : 'customer',
+                    'body' => $message ?? '',
+                    'created_at' => $e->created_at,
+                ];
+            })->filter(function (array $row) {
+                return is_string($row['body']) && trim($row['body']) !== '';
+            })->values()->all(),
+            'attachments' => $attachments->map(function (RepairBuddyJobAttachment $a) {
+                return [
+                    'id' => (string) $a->id,
+                    'job_id' => (string) $a->job_id,
+                    'filename' => $a->original_filename,
+                    'mime_type' => $a->mime_type,
+                    'size_bytes' => (int) $a->size_bytes,
+                    'url' => $a->url,
+                    'created_at' => $a->created_at,
+                ];
+            })->values()->all(),
         ];
     }
 }
