@@ -52,7 +52,6 @@ export default function NewPartPage() {
   const [stockCode, setStockCode] = useState("");
 
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("EUR");
   const [taxId, setTaxId] = useState<number | null>(null);
 
   const [warranty, setWarranty] = useState("");
@@ -60,7 +59,6 @@ export default function NewPartPage() {
   const [coreFeatures, setCoreFeatures] = useState("");
 
   const [installationCharges, setInstallationCharges] = useState("");
-  const [installationCurrency, setInstallationCurrency] = useState("EUR");
   const [installationMessage, setInstallationMessage] = useState("");
 
   const [stock, setStock] = useState("");
@@ -120,10 +118,8 @@ export default function NewPartPage() {
       }
 
       const priceText = price.trim();
-      const resolvedCurrency = currency.trim().toUpperCase();
 
       let priceAmountCents: number | null = null;
-      let priceCurrency: string | null = null;
 
       if (priceText.length > 0) {
         const parsed = Number(priceText);
@@ -132,14 +128,11 @@ export default function NewPartPage() {
           return;
         }
         priceAmountCents = Math.round(parsed * 100);
-        priceCurrency = resolvedCurrency.length > 0 ? resolvedCurrency : null;
       }
 
       const installationText = installationCharges.trim();
-      const resolvedInstallationCurrency = installationCurrency.trim().toUpperCase();
 
       let installationAmountCents: number | null = null;
-      let installationCurrencyValue: string | null = null;
 
       if (installationText.length > 0) {
         const parsed = Number(installationText);
@@ -148,7 +141,6 @@ export default function NewPartPage() {
           return;
         }
         installationAmountCents = Math.round(parsed * 100);
-        installationCurrencyValue = resolvedInstallationCurrency.length > 0 ? resolvedInstallationCurrency : null;
       }
 
       const stockText = stock.trim();
@@ -170,13 +162,11 @@ export default function NewPartPage() {
         manufacturing_code: manufacturingCode.trim() !== "" ? manufacturingCode.trim() : null,
         stock_code: stockCode.trim() !== "" ? stockCode.trim() : null,
         price_amount_cents: priceAmountCents,
-        price_currency: priceCurrency,
         tax_id: taxId,
         warranty: warranty.trim() !== "" ? warranty.trim() : null,
         core_features: coreFeatures.trim() !== "" ? coreFeatures.trim() : null,
         capacity: capacity.trim() !== "" ? capacity.trim() : null,
         installation_charges_amount_cents: installationAmountCents,
-        installation_charges_currency: installationCurrencyValue,
         installation_message: installationMessage.trim() !== "" ? installationMessage.trim() : null,
         stock: stockValue,
         is_active: isActive,
@@ -310,20 +300,7 @@ export default function NewPartPage() {
               </FormRow>
 
               <FormRow label="Price" fieldId="part_price">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="sm:col-span-2">
-                    <Input
-                      id="part_price"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      disabled={disabled}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <div>
-                    <Input id="part_currency" value={currency} onChange={(e) => setCurrency(e.target.value)} disabled={disabled} />
-                  </div>
-                </div>
+                <Input id="part_price" value={price} onChange={(e) => setPrice(e.target.value)} disabled={disabled} inputMode="decimal" />
               </FormRow>
 
               <FormRow label="Tax" fieldId="part_tax">
@@ -373,25 +350,13 @@ export default function NewPartPage() {
               </FormRow>
 
               <FormRow label="Installation charges" fieldId="part_installation_charges">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="sm:col-span-2">
-                    <Input
-                      id="part_installation_charges"
-                      value={installationCharges}
-                      onChange={(e) => setInstallationCharges(e.target.value)}
-                      disabled={disabled}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      id="part_installation_currency"
-                      value={installationCurrency}
-                      onChange={(e) => setInstallationCurrency(e.target.value)}
-                      disabled={disabled}
-                    />
-                  </div>
-                </div>
+                <Input
+                  id="part_installation_charges"
+                  value={installationCharges}
+                  onChange={(e) => setInstallationCharges(e.target.value)}
+                  disabled={disabled}
+                  inputMode="decimal"
+                />
               </FormRow>
 
               <FormRow label="Installation message" fieldId="part_installation_message">

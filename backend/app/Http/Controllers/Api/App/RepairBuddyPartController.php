@@ -10,6 +10,7 @@ use App\Models\RepairBuddyPartPriceOverride;
 use App\Models\RepairBuddyPartType;
 use App\Models\RepairBuddyPartVariant;
 use App\Models\RepairBuddyTax;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 
 class RepairBuddyPartController extends Controller
@@ -154,6 +155,41 @@ class RepairBuddyPartController extends Controller
             'is_active' => ['sometimes', 'nullable', 'boolean'],
         ]);
 
+        $priceCurrency = array_key_exists('price_currency', $validated) && is_string($validated['price_currency']) && $validated['price_currency'] !== ''
+            ? strtoupper((string) $validated['price_currency'])
+            : null;
+
+        $hasPriceAmount = array_key_exists('price_amount_cents', $validated) && is_numeric($validated['price_amount_cents']);
+        if ($hasPriceAmount && ($priceCurrency === null || $priceCurrency === '')) {
+            $tenantCurrency = TenantContext::tenant()?->currency;
+            if (is_string($tenantCurrency) && $tenantCurrency !== '') {
+                $priceCurrency = strtoupper($tenantCurrency);
+            } else {
+                return response()->json([
+                    'message' => 'Tenant currency is not configured.',
+                ], 422);
+            }
+        }
+
+        $installationCurrency = array_key_exists('installation_charges_currency', $validated)
+            && is_string($validated['installation_charges_currency'])
+            && $validated['installation_charges_currency'] !== ''
+            ? strtoupper((string) $validated['installation_charges_currency'])
+            : null;
+
+        $hasInstallationAmount = array_key_exists('installation_charges_amount_cents', $validated)
+            && is_numeric($validated['installation_charges_amount_cents']);
+        if ($hasInstallationAmount && ($installationCurrency === null || $installationCurrency === '')) {
+            $tenantCurrency = TenantContext::tenant()?->currency;
+            if (is_string($tenantCurrency) && $tenantCurrency !== '') {
+                $installationCurrency = strtoupper($tenantCurrency);
+            } else {
+                return response()->json([
+                    'message' => 'Tenant currency is not configured.',
+                ], 422);
+            }
+        }
+
         if (is_numeric($validated['part_type_id'] ?? null)) {
             $typeId = (int) $validated['part_type_id'];
             if (! RepairBuddyPartType::query()->whereKey($typeId)->exists()) {
@@ -190,17 +226,13 @@ class RepairBuddyPartController extends Controller
             'manufacturing_code' => $validated['manufacturing_code'] ?? null,
             'stock_code' => $validated['stock_code'] ?? null,
             'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? $validated['price_amount_cents'] : null,
-            'price_currency' => array_key_exists('price_currency', $validated) && is_string($validated['price_currency']) && $validated['price_currency'] !== ''
-                ? strtoupper((string) $validated['price_currency'])
-                : null,
+            'price_currency' => $priceCurrency,
             'tax_id' => $taxId,
             'warranty' => $validated['warranty'] ?? null,
             'core_features' => $validated['core_features'] ?? null,
             'capacity' => $validated['capacity'] ?? null,
             'installation_charges_amount_cents' => array_key_exists('installation_charges_amount_cents', $validated) ? $validated['installation_charges_amount_cents'] : null,
-            'installation_charges_currency' => array_key_exists('installation_charges_currency', $validated) && is_string($validated['installation_charges_currency']) && $validated['installation_charges_currency'] !== ''
-                ? strtoupper((string) $validated['installation_charges_currency'])
-                : null,
+            'installation_charges_currency' => $installationCurrency,
             'installation_message' => $validated['installation_message'] ?? null,
             'stock' => array_key_exists('stock', $validated) ? $validated['stock'] : null,
             'is_active' => array_key_exists('is_active', $validated) ? (bool) $validated['is_active'] : true,
@@ -275,6 +307,44 @@ class RepairBuddyPartController extends Controller
             }
         }
 
+        $priceAmountCentsNext = array_key_exists('price_amount_cents', $validated) ? ($validated['price_amount_cents'] ?? null) : $part->price_amount_cents;
+        $priceCurrencyNext = $part->price_currency;
+
+        if (array_key_exists('price_currency', $validated)) {
+            $priceCurrencyNext = is_string($validated['price_currency']) && $validated['price_currency'] !== ''
+                ? strtoupper((string) $validated['price_currency'])
+                : null;
+        } elseif ($priceAmountCentsNext !== null && (! is_string($priceCurrencyNext) || $priceCurrencyNext === '')) {
+            $tenantCurrency = TenantContext::tenant()?->currency;
+            if (is_string($tenantCurrency) && $tenantCurrency !== '') {
+                $priceCurrencyNext = strtoupper($tenantCurrency);
+            } else {
+                return response()->json([
+                    'message' => 'Tenant currency is not configured.',
+                ], 422);
+            }
+        }
+
+        $installationAmountCentsNext = array_key_exists('installation_charges_amount_cents', $validated)
+            ? ($validated['installation_charges_amount_cents'] ?? null)
+            : $part->installation_charges_amount_cents;
+        $installationCurrencyNext = $part->installation_charges_currency;
+
+        if (array_key_exists('installation_charges_currency', $validated)) {
+            $installationCurrencyNext = is_string($validated['installation_charges_currency']) && $validated['installation_charges_currency'] !== ''
+                ? strtoupper((string) $validated['installation_charges_currency'])
+                : null;
+        } elseif ($installationAmountCentsNext !== null && (! is_string($installationCurrencyNext) || $installationCurrencyNext === '')) {
+            $tenantCurrency = TenantContext::tenant()?->currency;
+            if (is_string($tenantCurrency) && $tenantCurrency !== '') {
+                $installationCurrencyNext = strtoupper($tenantCurrency);
+            } else {
+                return response()->json([
+                    'message' => 'Tenant currency is not configured.',
+                ], 422);
+            }
+        }
+
         $part->forceFill([
             'name' => trim((string) $validated['name']),
             'sku' => array_key_exists('sku', $validated) ? ($validated['sku'] ?? null) : $part->sku,
@@ -282,18 +352,14 @@ class RepairBuddyPartController extends Controller
             'part_brand_id' => array_key_exists('part_brand_id', $validated) ? ($validated['part_brand_id'] ?? null) : $part->part_brand_id,
             'manufacturing_code' => array_key_exists('manufacturing_code', $validated) ? ($validated['manufacturing_code'] ?? null) : $part->manufacturing_code,
             'stock_code' => array_key_exists('stock_code', $validated) ? ($validated['stock_code'] ?? null) : $part->stock_code,
-            'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? ($validated['price_amount_cents'] ?? null) : $part->price_amount_cents,
-            'price_currency' => array_key_exists('price_currency', $validated)
-                ? (is_string($validated['price_currency']) && $validated['price_currency'] !== '' ? strtoupper((string) $validated['price_currency']) : null)
-                : $part->price_currency,
+            'price_amount_cents' => $priceAmountCentsNext,
+            'price_currency' => $priceCurrencyNext,
             'tax_id' => array_key_exists('tax_id', $validated) ? $taxId : $part->tax_id,
             'warranty' => array_key_exists('warranty', $validated) ? ($validated['warranty'] ?? null) : $part->warranty,
             'core_features' => array_key_exists('core_features', $validated) ? ($validated['core_features'] ?? null) : $part->core_features,
             'capacity' => array_key_exists('capacity', $validated) ? ($validated['capacity'] ?? null) : $part->capacity,
-            'installation_charges_amount_cents' => array_key_exists('installation_charges_amount_cents', $validated) ? ($validated['installation_charges_amount_cents'] ?? null) : $part->installation_charges_amount_cents,
-            'installation_charges_currency' => array_key_exists('installation_charges_currency', $validated)
-                ? (is_string($validated['installation_charges_currency']) && $validated['installation_charges_currency'] !== '' ? strtoupper((string) $validated['installation_charges_currency']) : null)
-                : $part->installation_charges_currency,
+            'installation_charges_amount_cents' => $installationAmountCentsNext,
+            'installation_charges_currency' => $installationCurrencyNext,
             'installation_message' => array_key_exists('installation_message', $validated) ? ($validated['installation_message'] ?? null) : $part->installation_message,
             'stock' => array_key_exists('stock', $validated) ? ($validated['stock'] ?? null) : $part->stock,
             'is_active' => array_key_exists('is_active', $validated) ? (bool) $validated['is_active'] : $part->is_active,

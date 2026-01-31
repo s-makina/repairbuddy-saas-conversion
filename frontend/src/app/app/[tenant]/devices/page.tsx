@@ -108,21 +108,6 @@ export default function TenantDevicesPage() {
     void load();
   }, [load]);
 
-  function openCreate() {
-    if (!canManage) return;
-    setEditId(null);
-    setEditModel("");
-    setEditTypeId(types.length > 0 ? types[0].id : null);
-    setEditBrandId(brands.length > 0 ? brands[0].id : null);
-    setEditParentId(null);
-    setEditDisableInBooking(false);
-    setEditIsOther(false);
-    setEditIsActive(true);
-    setEditOpen(true);
-    setError(null);
-    setStatus(null);
-  }
-
   function openEdit(row: ApiDevice) {
     if (!canManage) return;
     setEditId(row.id);
@@ -392,7 +377,7 @@ export default function TenantDevicesPage() {
             if (busy) return;
             setEditOpen(false);
           }}
-          title={editId ? "Edit device" : "New device"}
+          title="Edit device"
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setEditOpen(false)} disabled={busy}>
@@ -533,7 +518,16 @@ export default function TenantDevicesPage() {
           title="Devices"
           description="Supported device models for your repair catalog."
           actions={
-            <Button variant="primary" size="sm" onClick={openCreate} disabled={!canManage || loading || busy}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (!canManage) return;
+                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                router.push(`/app/${tenantSlug}/devices/new`);
+              }}
+              disabled={!canManage || loading || busy}
+            >
               New device
             </Button>
           }
