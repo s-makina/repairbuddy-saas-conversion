@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenantAndBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class RepairBuddyDeviceBrand extends Model
 {
@@ -13,6 +14,10 @@ class RepairBuddyDeviceBrand extends Model
     use BelongsToTenantAndBranch;
 
     protected $table = 'rb_device_brands';
+
+    protected $appends = [
+        'image_url',
+    ];
 
     protected $fillable = [
         'tenant_id',
@@ -32,5 +37,14 @@ class RepairBuddyDeviceBrand extends Model
     public function devices(): HasMany
     {
         return $this->hasMany(RepairBuddyDevice::class, 'device_brand_id');
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (! is_string($this->image_path) || $this->image_path === '') {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->image_path);
     }
 }

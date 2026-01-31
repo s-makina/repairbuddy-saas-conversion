@@ -511,6 +511,8 @@ export function DashboardShell({
             { label: "Device Brands", href: tenantSlug ? `/app/${tenantSlug}/device-brands` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_brands.view") },
             { label: "Device Types", href: tenantSlug ? `/app/${tenantSlug}/device-types` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_types.view") },
             { label: "Parts", href: tenantSlug ? `/app/${tenantSlug}/parts` : "/app", icon: "parts", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
+            { label: "Part Brands", href: tenantSlug ? `/app/${tenantSlug}/part-brands` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
+            { label: "Part Types", href: tenantSlug ? `/app/${tenantSlug}/part-types` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
           ],
         },
         {

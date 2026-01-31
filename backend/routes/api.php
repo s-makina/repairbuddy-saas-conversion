@@ -365,7 +365,23 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::get('/device-brands', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'index'])
                         ->middleware('permission:device_brands.view');
                     Route::post('/device-brands', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'store'])
-                        ->middleware('permission:device_brands.view');
+                        ->middleware('permission:device_brands.manage');
+
+                    Route::patch('/device-brands/{brandId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'update'])
+                        ->middleware('permission:device_brands.manage')
+                        ->whereNumber('brandId');
+
+                    Route::post('/device-brands/{brandId}/image', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'uploadImage'])
+                        ->middleware('permission:device_brands.manage')
+                        ->whereNumber('brandId');
+
+                    Route::delete('/device-brands/{brandId}/image', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'deleteImage'])
+                        ->middleware('permission:device_brands.manage')
+                        ->whereNumber('brandId');
+
+                    Route::delete('/device-brands/{brandId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceBrandController::class, 'destroy'])
+                        ->middleware('permission:device_brands.manage')
+                        ->whereNumber('brandId');
 
                     Route::get('/devices', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'index'])
                         ->middleware('permission:devices.view');
@@ -375,17 +391,57 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::get('/part-types', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'index'])
                         ->middleware('permission:parts.view');
                     Route::post('/part-types', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'store'])
-                        ->middleware('permission:parts.view');
+                        ->middleware('permission:parts.manage');
+
+                    Route::patch('/part-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'update'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('typeId');
+
+                    Route::post('/part-types/{typeId}/image', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'uploadImage'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('typeId');
+
+                    Route::delete('/part-types/{typeId}/image', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'deleteImage'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('typeId');
+
+                    Route::delete('/part-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'destroy'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('typeId');
 
                     Route::get('/part-brands', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'index'])
                         ->middleware('permission:parts.view');
                     Route::post('/part-brands', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'store'])
-                        ->middleware('permission:parts.view');
+                        ->middleware('permission:parts.manage');
+
+                    Route::patch('/part-brands/{brandId}', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'update'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('brandId');
+
+                    Route::post('/part-brands/{brandId}/image', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'uploadImage'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('brandId');
+
+                    Route::delete('/part-brands/{brandId}/image', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'deleteImage'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('brandId');
+
+                    Route::delete('/part-brands/{brandId}', [\App\Http\Controllers\Api\App\RepairBuddyPartBrandController::class, 'destroy'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('brandId');
 
                     Route::get('/parts', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'index'])
                         ->middleware('permission:parts.view');
                     Route::post('/parts', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'store'])
-                        ->middleware('permission:parts.view');
+                        ->middleware('permission:parts.manage');
+
+                    Route::patch('/parts/{partId}', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'update'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('partId');
+
+                    Route::delete('/parts/{partId}', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'destroy'])
+                        ->middleware('permission:parts.manage')
+                        ->whereNumber('partId');
 
                     Route::post('/parts/resolve-price', [\App\Http\Controllers\Api\App\RepairBuddyPartController::class, 'resolvePrice'])
                         ->middleware('permission:parts.view');
@@ -393,23 +449,23 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::get('/part-variants', [\App\Http\Controllers\Api\App\RepairBuddyPartVariantController::class, 'index'])
                         ->middleware('permission:parts.view');
                     Route::post('/part-variants', [\App\Http\Controllers\Api\App\RepairBuddyPartVariantController::class, 'store'])
-                        ->middleware('permission:parts.view');
+                        ->middleware('permission:parts.manage');
                     Route::patch('/part-variants/{variantId}', [\App\Http\Controllers\Api\App\RepairBuddyPartVariantController::class, 'update'])
-                        ->middleware('permission:parts.view')
+                        ->middleware('permission:parts.manage')
                         ->whereNumber('variantId');
                     Route::delete('/part-variants/{variantId}', [\App\Http\Controllers\Api\App\RepairBuddyPartVariantController::class, 'destroy'])
-                        ->middleware('permission:parts.view')
+                        ->middleware('permission:parts.manage')
                         ->whereNumber('variantId');
 
                     Route::get('/part-price-overrides', [\App\Http\Controllers\Api\App\RepairBuddyPartPriceOverrideController::class, 'index'])
                         ->middleware('permission:parts.view');
                     Route::post('/part-price-overrides', [\App\Http\Controllers\Api\App\RepairBuddyPartPriceOverrideController::class, 'store'])
-                        ->middleware('permission:parts.view');
+                        ->middleware('permission:parts.manage');
                     Route::patch('/part-price-overrides/{overrideId}', [\App\Http\Controllers\Api\App\RepairBuddyPartPriceOverrideController::class, 'update'])
-                        ->middleware('permission:parts.view')
+                        ->middleware('permission:parts.manage')
                         ->whereNumber('overrideId');
                     Route::delete('/part-price-overrides/{overrideId}', [\App\Http\Controllers\Api\App\RepairBuddyPartPriceOverrideController::class, 'destroy'])
-                        ->middleware('permission:parts.view')
+                        ->middleware('permission:parts.manage')
                         ->whereNumber('overrideId');
                 });
 

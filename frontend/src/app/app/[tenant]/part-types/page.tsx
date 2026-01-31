@@ -14,15 +14,16 @@ import { Modal } from "@/components/ui/Modal";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 
-type ApiDeviceBrand = {
+type ApiPartType = {
   id: number;
   name: string;
+  description: string | null;
   image_url: string | null;
   is_active: boolean;
 };
 
-type DeviceBrandsPayload = {
-  device_brands: ApiDeviceBrand[];
+type PartTypesPayload = {
+  part_types: ApiPartType[];
   meta?: {
     current_page: number;
     per_page: number;
@@ -31,7 +32,7 @@ type DeviceBrandsPayload = {
   };
 };
 
-export default function TenantDeviceBrandsPage() {
+export default function TenantPartTypesPage() {
   const auth = useAuth();
   const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
@@ -41,12 +42,14 @@ export default function TenantDeviceBrandsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [brands, setBrands] = React.useState<ApiDeviceBrand[]>([]);
+  const [types, setTypes] = React.useState<ApiPartType[]>([]);
 
   const [editOpen, setEditOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<number | null>(null);
   const [editName, setEditName] = React.useState("");
+  const [editDescription, setEditDescription] = React.useState("");
   const [editIsActive, setEditIsActive] = React.useState(true);
+
   const [editExistingImageUrl, setEditExistingImageUrl] = React.useState<string | null>(null);
   const [imageFile, setImageFile] = React.useState<File | null>(null);
 
@@ -58,11 +61,10 @@ export default function TenantDeviceBrandsPage() {
   const [query, setQuery] = React.useState("");
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
-
   const [totalRows, setTotalRows] = React.useState(0);
   const [sort, setSort] = React.useState<{ id: string; dir: "asc" | "desc" } | null>(null);
 
-  const canManage = auth.can("device_brands.manage");
+  const canManage = auth.can("parts.manage");
 
   const load = React.useCallback(async () => {
     try {
@@ -82,18 +84,17 @@ export default function TenantDeviceBrandsPage() {
         qs.set("dir", sort.dir);
       }
 
-      const res = await apiFetch<DeviceBrandsPayload>(`/api/${tenantSlug}/app/repairbuddy/device-brands?${qs.toString()}`);
-      setBrands(Array.isArray(res.device_brands) ? res.device_brands : []);
+      const res = await apiFetch<PartTypesPayload>(`/api/${tenantSlug}/app/repairbuddy/part-types?${qs.toString()}`);
+      setTypes(Array.isArray(res.part_types) ? res.part_types : []);
       setTotalRows(typeof res.meta?.total === "number" ? res.meta.total : 0);
       setPageSize(typeof res.meta?.per_page === "number" ? res.meta.per_page : pageSize);
     } catch (e) {
       if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.length > 0) {
-        const next = `/app/${tenantSlug}/device-brands`;
+        const next = `/app/${tenantSlug}/part-types`;
         router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
         return;
       }
-
-      setError(e instanceof Error ? e.message : "Failed to load device brands.");
+      setError(e instanceof Error ? e.message : "Failed to load part types.");
     } finally {
       setLoading(false);
     }
@@ -103,10 +104,41 @@ export default function TenantDeviceBrandsPage() {
     void load();
   }, [load]);
 
+  const onRemoveImage = React.useCallback(async () => {
+    if (busy) return;
+    if (!editId) return;
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+    if (!canManage) return;
+
+    setBusy(true);
+    setError(null);
+    setStatus(null);
+
+    try {
+      const res = await apiFetch<{ part_type: ApiPartType }>(`/api/${tenantSlug}/app/repairbuddy/part-types/${editId}/image`, {
+        method: "DELETE",
+      });
+      setEditExistingImageUrl(res.part_type?.image_url ?? null);
+      setStatus("Image removed.");
+      setImageFile(null);
+      setPageIndex(0);
+      await load();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to remove image.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, canManage, editId, load, tenantSlug]);
+
   function openCreate() {
     if (!canManage) return;
     setEditId(null);
     setEditName("");
+    setEditDescription("");
     setEditIsActive(true);
     setEditExistingImageUrl(null);
     setImageFile(null);
@@ -115,10 +147,11 @@ export default function TenantDeviceBrandsPage() {
     setStatus(null);
   }
 
-  function openEdit(row: ApiDeviceBrand) {
+  function openEdit(row: ApiPartType) {
     if (!canManage) return;
     setEditId(row.id);
     setEditName(row.name);
+    setEditDescription(row.description ?? "");
     setEditIsActive(Boolean(row.is_active));
     setEditExistingImageUrl(row.image_url ?? null);
     setImageFile(null);
@@ -154,39 +187,37 @@ export default function TenantDeviceBrandsPage() {
         return;
       }
 
-      const payload = {
-        name,
-        is_active: editIsActive,
-      };
+      const payload = { name, is_active: editIsActive };
+      const payloadWithDesc = { ...payload, description: editDescription.trim().length > 0 ? editDescription.trim() : null };
 
-      let saved: ApiDeviceBrand | null = null;
+      let saved: ApiPartType | null = null;
 
       if (editId) {
-        const res = await apiFetch<{ device_brand: ApiDeviceBrand }>(`/api/${tenantSlug}/app/repairbuddy/device-brands/${editId}`, {
+        const res = await apiFetch<{ part_type: ApiPartType }>(`/api/${tenantSlug}/app/repairbuddy/part-types/${editId}`, {
           method: "PATCH",
-          body: payload,
+          body: payloadWithDesc,
         });
-        saved = res.device_brand ?? null;
-        setStatus("Device brand updated.");
+        saved = res.part_type ?? null;
+        setStatus("Part type updated.");
       } else {
-        const res = await apiFetch<{ device_brand: ApiDeviceBrand }>(`/api/${tenantSlug}/app/repairbuddy/device-brands`, {
+        const res = await apiFetch<{ part_type: ApiPartType }>(`/api/${tenantSlug}/app/repairbuddy/part-types`, {
           method: "POST",
-          body: payload,
+          body: payloadWithDesc,
         });
-        saved = res.device_brand ?? null;
-        setStatus("Device brand created.");
+        saved = res.part_type ?? null;
+        setStatus("Part type created.");
       }
 
-      const brandId = saved?.id ?? editId;
+      const typeId = saved?.id ?? editId;
 
-      if (brandId && imageFile) {
+      if (typeId && imageFile) {
         const formData = new FormData();
         formData.append("image", imageFile);
-        const imgRes = await apiFetch<{ device_brand: ApiDeviceBrand }>(`/api/${tenantSlug}/app/repairbuddy/device-brands/${brandId}/image`, {
+        const imgRes = await apiFetch<{ part_type: ApiPartType }>(`/api/${tenantSlug}/app/repairbuddy/part-types/${typeId}/image`, {
           method: "POST",
           body: formData,
         });
-        setEditExistingImageUrl(imgRes.device_brand?.image_url ?? null);
+        setEditExistingImageUrl(imgRes.part_type?.image_url ?? null);
       }
 
       setEditOpen(false);
@@ -196,44 +227,14 @@ export default function TenantDeviceBrandsPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError(editId ? "Failed to update device brand." : "Failed to create device brand.");
+        setError(editId ? "Failed to update part type." : "Failed to create part type.");
       }
     } finally {
       setBusy(false);
     }
   }
 
-  async function onRemoveImage() {
-    if (busy) return;
-    if (!editId) return;
-    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-    if (!canManage) return;
-
-    setBusy(true);
-    setError(null);
-    setStatus(null);
-
-    try {
-      const res = await apiFetch<{ device_brand: ApiDeviceBrand }>(`/api/${tenantSlug}/app/repairbuddy/device-brands/${editId}/image`, {
-        method: "DELETE",
-      });
-      setEditExistingImageUrl(res.device_brand?.image_url ?? null);
-      setStatus("Image removed.");
-      setImageFile(null);
-      setPageIndex(0);
-      await load();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to remove image.");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onDelete(row: ApiDeviceBrand) {
+  async function onDelete(row: ApiPartType) {
     if (busy) return;
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
     if (!canManage) {
@@ -242,7 +243,7 @@ export default function TenantDeviceBrandsPage() {
     }
 
     openConfirm({
-      title: "Delete device brand",
+      title: "Delete part type",
       message: (
         <div>
           Delete <span className="font-semibold">{row.name}</span>?
@@ -253,17 +254,17 @@ export default function TenantDeviceBrandsPage() {
         setError(null);
         setStatus(null);
         try {
-          await apiFetch<{ message: string }>(`/api/${tenantSlug}/app/repairbuddy/device-brands/${row.id}`, {
+          await apiFetch<{ message: string }>(`/api/${tenantSlug}/app/repairbuddy/part-types/${row.id}`, {
             method: "DELETE",
           });
-          setStatus("Device brand deleted.");
+          setStatus("Part type deleted.");
           setPageIndex(0);
           await load();
         } catch (err) {
           if (err instanceof ApiError) {
             setError(err.message);
           } else {
-            setError("Failed to delete device brand.");
+            setError("Failed to delete part type.");
           }
         } finally {
           setBusy(false);
@@ -272,13 +273,11 @@ export default function TenantDeviceBrandsPage() {
     });
   }
 
-  const pageRows = brands;
-
-  const columns = React.useMemo<Array<DataTableColumn<ApiDeviceBrand>>>(
+  const columns = React.useMemo<Array<DataTableColumn<ApiPartType>>>(
     () => [
       {
         id: "name",
-        header: "Brand",
+        header: "Part type",
         sortId: "name",
         cell: (row) => (
           <div className="min-w-0">
@@ -294,6 +293,18 @@ export default function TenantDeviceBrandsPage() {
         sortId: "is_active",
         className: "whitespace-nowrap",
         cell: (row) => <div className="text-sm text-zinc-700">{row.is_active ? "Yes" : "No"}</div>,
+      },
+      {
+        id: "description",
+        header: "Description",
+        cell: (row) => <div className="text-sm text-zinc-700">{row.description ?? "—"}</div>,
+        className: "min-w-[320px]",
+      },
+      {
+        id: "image",
+        header: "Image",
+        cell: (row) => <div className="text-sm text-zinc-700">{row.image_url ? "Yes" : "—"}</div>,
+        className: "whitespace-nowrap",
       },
       {
         id: "actions",
@@ -344,7 +355,7 @@ export default function TenantDeviceBrandsPage() {
   );
 
   return (
-    <RequireAuth requiredPermission="device_brands.view">
+    <RequireAuth requiredPermission="parts.view">
       <div className="space-y-4">
         <ConfirmDialog
           open={confirmOpen}
@@ -374,30 +385,44 @@ export default function TenantDeviceBrandsPage() {
             if (busy) return;
             setEditOpen(false);
           }}
-          title={editId ? "Edit device brand" : "New device brand"}
+          title={editId ? "Edit part type" : "New part type"}
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setEditOpen(false)} disabled={busy}>
                 Cancel
               </Button>
-              <Button disabled={busy} type="submit" form="rb_device_brand_form">
+              <Button disabled={busy} type="submit" form="rb_part_type_form">
                 {busy ? "Saving..." : "Save"}
               </Button>
             </div>
           }
         >
-          <form id="rb_device_brand_form" className="space-y-3" onSubmit={onSave}>
+          <form id="rb_part_type_form" className="space-y-3" onSubmit={onSave}>
             <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="device_brand_name">
+              <label className="text-sm font-medium" htmlFor="part_type_name">
                 Name
               </label>
               <input
-                id="device_brand_name"
+                id="part_type_name"
                 className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 required
                 disabled={busy}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="part_type_description">
+                Description
+              </label>
+              <textarea
+                id="part_type_description"
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                disabled={busy}
+                rows={3}
               />
             </div>
 
@@ -429,30 +454,30 @@ export default function TenantDeviceBrandsPage() {
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
         <ListPageShell
-          title="Device Brands"
-          description="Brand taxonomy for devices."
+          title="Part Types"
+          description="Categories for parts (battery, screen, charger, etc.)."
           actions={
             <Button variant="primary" size="sm" onClick={openCreate} disabled={!canManage || loading || busy}>
-              New brand
+              New part type
             </Button>
           }
           loading={loading}
           error={null}
-          empty={!loading && !error && brands.length === 0}
-          emptyTitle="No brands"
-          emptyDescription="Add brands to organize your devices."
+          empty={!loading && !error && types.length === 0}
+          emptyTitle="No part types"
+          emptyDescription="Add part types to organize your inventory."
         >
           <Card className="shadow-none">
             <CardContent className="pt-5">
               <DataTable
-                title={typeof tenantSlug === "string" ? `Device Brands · ${tenantSlug}` : "Device Brands"}
-                data={pageRows}
+                title={typeof tenantSlug === "string" ? `Part Types · ${tenantSlug}` : "Part Types"}
+                data={types}
                 loading={loading}
-                emptyMessage="No brands."
+                emptyMessage="No part types."
                 columns={columns}
                 getRowId={(row) => row.id}
                 search={{
-                  placeholder: "Search brands...",
+                  placeholder: "Search part types...",
                 }}
                 server={{
                   query,

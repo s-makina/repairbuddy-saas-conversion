@@ -31,9 +31,11 @@ class Permissions
 
             'devices.view',
             'device_brands.view',
+            'device_brands.manage',
             'device_types.view',
             'device_types.manage',
             'parts.view',
+            'parts.manage',
 
             'payments.view',
             'reports.view',
@@ -132,9 +134,11 @@ class Permissions
                 'services.view',
                 'devices.view',
                 'device_brands.view',
+                'device_brands.manage',
                 'device_types.view',
                 'device_types.manage',
                 'parts.view',
+                'parts.manage',
                 'payments.view',
                 'reports.view',
                 'expenses.view',

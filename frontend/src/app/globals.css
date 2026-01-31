@@ -43,6 +43,26 @@ body {
   font-family: var(--font-sans);
 }
 
+input[type="checkbox"] {
+  height: 1rem;
+  width: 1rem;
+  accent-color: var(--rb-orange);
+}
+
+input[type="checkbox"]:not(:disabled) {
+  cursor: pointer;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--rb-orange), transparent 50%);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
  .fc {
    --fc-border-color: var(--rb-border);
    --fc-page-bg-color: transparent;
