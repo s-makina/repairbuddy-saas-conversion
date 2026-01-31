@@ -31,7 +31,7 @@ type LoginVerificationRequiredPayload = {
 type LoginPayload = AuthPayload | LoginOtpRequiredPayload | LoginVerificationRequiredPayload;
 
 export type LoginResult =
-  | { status: "ok" }
+  | { status: "ok"; must_change_password: boolean }
   | { status: "otp_required"; otp_login_token: string }
   | { status: "verification_required" };
 
@@ -59,7 +59,7 @@ type AuthContextValue = {
   can: (permission: string) => boolean;
   refresh: () => Promise<void>;
   login: (email: string, password: string) => Promise<LoginResult>;
-  loginOtp: (otpLoginToken: string, code: string) => Promise<void>;
+  loginOtp: (otpLoginToken: string, code: string) => Promise<{ must_change_password: boolean }>;
   register: (input: {
     name: string;
     email: string;
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(payload.user);
       setTenant(payload.tenant);
       setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
-      return { status: "ok" };
+      return { status: "ok", must_change_password: Boolean(payload.user?.must_change_password) };
     }
 
     if ("otp_required" in payload && payload.otp_required) {
@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { status: "verification_required" };
   }, []);
 
-  const loginOtp = useCallback(async (otpLoginToken: string, code: string) => {
+  const loginOtp = useCallback(async (otpLoginToken: string, code: string): Promise<{ must_change_password: boolean }> => {
     const payload = await apiFetch<AuthPayload>("/api/auth/login/otp", {
       method: "POST",
       body: { otp_login_token: otpLoginToken, code },
@@ -204,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(payload.user);
     setTenant(payload.tenant);
     setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
+    return { must_change_password: Boolean(payload.user?.must_change_password) };
   }, []);
 
   const register = useCallback(async (input: {

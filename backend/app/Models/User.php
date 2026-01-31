@@ -40,6 +40,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'address_postal_code',
         'address_country',
         'password',
+        'must_change_password',
         'one_time_password_hash',
         'one_time_password_expires_at',
         'one_time_password_used_at',
@@ -79,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'is_admin' => 'boolean',
             'otp_enabled' => 'boolean',
             'otp_confirmed_at' => 'datetime',
+            'must_change_password' => 'boolean',
             'one_time_password_expires_at' => 'datetime',
             'one_time_password_used_at' => 'datetime',
         ];

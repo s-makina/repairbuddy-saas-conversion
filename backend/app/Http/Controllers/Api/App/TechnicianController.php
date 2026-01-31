@@ -152,6 +152,7 @@ class TechnicianController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make(Str::random(72)),
+            'must_change_password' => true,
             'one_time_password_hash' => Hash::make($oneTimePassword),
             'one_time_password_expires_at' => $oneTimePasswordExpiresAt,
             'one_time_password_used_at' => null,

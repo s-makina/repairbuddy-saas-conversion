@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'mfa.enforce' => \App\Http\Middleware\EnforceTenantMfa::class,
             'tenant.session' => \App\Http\Middleware\EnforceTenantSessionPolicy::class,
             'onboarding.gate' => \App\Http\Middleware\EnforceOnboardingGate::class,
+            'password.change' => \App\Http\Middleware\EnforcePasswordChange::class,
             'verified' => \App\Http\Middleware\EnsureEmailVerifiedJson::class,
             'impersonation' => \App\Http\Middleware\ApplyImpersonation::class,
             'impersonation.audit' => \App\Http\Middleware\AuditImpersonatedWrites::class,

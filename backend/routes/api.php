@@ -46,6 +46,7 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
         Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('impersonation');
+        Route::post('/password/change', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware('impersonation');
 
         Route::middleware('verified')->group(function () {
             Route::post('/otp/setup', [\App\Http\Controllers\Api\AuthController::class, 'otpSetup'])
@@ -232,7 +233,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant'])
     ->group(function () {
-        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce', 'onboarding.gate'])->group(function () {
+        Route::prefix('app')->middleware(['auth:sanctum', 'impersonation', 'verified', 'password.change', 'impersonation.audit', 'tenant.member', 'tenant.session', 'mfa.enforce', 'onboarding.gate'])->group(function () {
             Route::get('/gate', [\App\Http\Controllers\Api\App\GateController::class, 'show']);
 
             Route::get('/billing/plans', [\App\Http\Controllers\Api\App\BillingOnboardingController::class, 'plans']);

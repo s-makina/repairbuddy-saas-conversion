@@ -74,15 +74,23 @@ function LoginPageInner() {
 
     try {
       if (otpLoginToken) {
-        await auth.loginOtp(otpLoginToken, otpCode);
-        router.replace(next || "/");
+        const otpRes = await auth.loginOtp(otpLoginToken, otpCode);
+        if (otpRes.must_change_password) {
+          router.replace(`/set-password?next=${encodeURIComponent(next || "/")}`);
+        } else {
+          router.replace(next || "/");
+        }
         return;
       }
 
       const res = await auth.login(email, password);
 
       if (res.status === "ok") {
-        router.replace(next || "/");
+        if (res.must_change_password) {
+          router.replace(`/set-password?next=${encodeURIComponent(next || "/")}`);
+        } else {
+          router.replace(next || "/");
+        }
         return;
       }
 

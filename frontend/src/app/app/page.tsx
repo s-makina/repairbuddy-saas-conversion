@@ -20,6 +20,11 @@ export default function AppIndexPage() {
       return;
     }
 
+    if (auth.user?.must_change_password) {
+      router.replace("/set-password");
+      return;
+    }
+
     if (auth.isAdmin) {
       router.replace("/admin");
       return;

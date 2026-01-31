@@ -20,6 +20,9 @@ export function RequireAuth({
   const router = useRouter();
   const pathname = usePathname();
 
+  const setPasswordPath = "/set-password";
+  const isOnSetPassword = pathname === setPasswordPath || pathname.startsWith(`${setPasswordPath}/`);
+
   const tenantSlug = auth.tenant?.slug ?? null;
   const setupPath = tenantSlug ? `/${tenantSlug}/setup` : null;
   const isOnSetupPath = setupPath ? (pathname === setupPath || pathname.startsWith(`${setupPath}/`)) : false;
@@ -34,6 +37,11 @@ export function RequireAuth({
 
     if (!auth.isAuthenticated) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    if (auth.user?.must_change_password && !isOnSetPassword) {
+      router.replace(`${setPasswordPath}?next=${encodeURIComponent(pathname)}`);
       return;
     }
 
@@ -86,6 +94,18 @@ export function RequireAuth({
         })
         .catch((err) => {
           if (err instanceof ApiError && err.status === 428) {
+            const code =
+              err.data && typeof err.data === "object" && "code" in (err.data as Record<string, unknown>)
+                ? String((err.data as Record<string, unknown>).code)
+                : null;
+
+            if (code === "password_change_required") {
+              if (!isOnSetPassword) {
+                router.replace(`${setPasswordPath}?next=${encodeURIComponent(pathname)}`);
+              }
+              return;
+            }
+
             if (!isOnBranchSelect && branchSelectPath) {
               router.replace(`${branchSelectPath}?next=${encodeURIComponent(pathname)}`);
             }

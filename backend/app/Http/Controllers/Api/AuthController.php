@@ -375,6 +375,7 @@ class AuthController extends Controller
                 'one_time_password_used_at' => now(),
                 'one_time_password_hash' => null,
                 'one_time_password_expires_at' => null,
+                'must_change_password' => true,
             ])->save();
 
             $this->logAuthEvent($request, 'login_one_time_password_used', $user, $user->email, $user->tenant);
@@ -595,6 +596,51 @@ class AuthController extends Controller
         ]);
     }
 
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $session = $request->attributes->get('impersonation_session');
+        if ($session) {
+            return response()->json([
+                'message' => 'Password changes are not allowed during impersonation.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'password' => [
+                'required',
+                'string',
+                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
+                'confirmed',
+            ],
+        ]);
+
+        $tokenId = $user->currentAccessToken()?->id;
+        $tokenId = is_numeric($tokenId) ? (int) $tokenId : null;
+
+        $user->forceFill([
+            'password' => Hash::make((string) $validated['password']),
+            'must_change_password' => false,
+        ])->save();
+
+        if ($tokenId) {
+            $user->tokens()->where('id', '!=', $tokenId)->delete();
+        }
+
+        $this->logAuthEvent($request, 'password_changed', $user, $user->email, $user->tenant);
+
+        return response()->json([
+            'status' => 'ok',
+        ]);
+    }
+
     public function resetPassword(Request $request)
     {
         $validated = $request->validate([
@@ -620,6 +666,10 @@ class AuthController extends Controller
             function (User $user, string $password) {
                 $user->forceFill([
                     'password' => Hash::make($password),
+                    'must_change_password' => false,
+                    'one_time_password_hash' => null,
+                    'one_time_password_expires_at' => null,
+                    'one_time_password_used_at' => null,
                 ])->save();
 
                 $user->tokens()->delete();

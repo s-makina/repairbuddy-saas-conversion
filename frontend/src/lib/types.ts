@@ -102,6 +102,7 @@ export interface User {
   role_model?: Role | null;
   status?: UserStatus | null;
   is_admin: boolean;
+  must_change_password?: boolean;
   branches?: Branch[];
   otp_enabled?: boolean;
   otp_confirmed_at?: string | null;
