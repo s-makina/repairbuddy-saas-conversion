@@ -106,7 +106,6 @@ export default function TenantUsersPage() {
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [newRoleId, setNewRoleId] = useState<number | null>(null);
   const [newShopQuery, setNewShopQuery] = useState<string>("");
   const [newShopSelected, setNewShopSelected] = useState<Record<number, boolean>>({});
@@ -316,7 +315,6 @@ export default function TenantUsersPage() {
             name: newName,
             email: newEmail,
             role_id: newRoleId,
-            ...(newPassword.trim().length > 0 ? { password: newPassword } : {}),
           },
         });
 
@@ -332,17 +330,15 @@ export default function TenantUsersPage() {
           body: {
             name: newName,
             email: newEmail,
-            password: newPassword,
             role_id: newRoleId,
             branch_ids: selectedBranchIds,
           },
         });
-        notify.success("User created.");
+        notify.success("User created. One-time password emailed.");
       }
 
       setNewName("");
       setNewEmail("");
-      setNewPassword("");
       setNewShopQuery("");
       setNewShopSelected({});
       setEditingUserId(null);
@@ -392,7 +388,6 @@ export default function TenantUsersPage() {
     setEditingUserId(user.id);
     setNewName(user.name ?? "");
     setNewEmail(user.email ?? "");
-    setNewPassword("");
     setNewRoleId(user.role_id ?? null);
     setNewShopSelected(map);
     setNewShopQuery("");
@@ -469,18 +464,9 @@ export default function TenantUsersPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-sm font-medium" htmlFor="user_password">
-                            Password
-                          </label>
-                          <input
-                            id="user_password"
-                            className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            type="password"
-                            autoComplete="new-password"
-                            required={!editingUserId}
-                          />
+                          <div className="text-sm text-zinc-600">
+                            A one-time password will be generated and emailed to the user.
+                          </div>
                         </div>
 
                         <div className="space-y-1">
@@ -525,7 +511,6 @@ export default function TenantUsersPage() {
                                   setEditingUserId(null);
                                   setNewName("");
                                   setNewEmail("");
-                                  setNewPassword("");
                                   setNewShopQuery("");
                                   setNewShopSelected({});
                                 }}

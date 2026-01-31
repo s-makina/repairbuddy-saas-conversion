@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\OneTimePasswordNotification;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class TechnicianController extends Controller
@@ -107,11 +110,6 @@ class TechnicianController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => [
-                'required',
-                'string',
-                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
-            ],
             'branch_ids' => ['required', 'array', 'min:1'],
             'branch_ids.*' => ['integer'],
         ]);
@@ -147,10 +145,16 @@ class TechnicianController extends Controller
             ], 422);
         }
 
+        $oneTimePassword = Str::password(16);
+        $oneTimePasswordExpiresAt = now()->addMinutes(60 * 24);
+
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make(Str::random(72)),
+            'one_time_password_hash' => Hash::make($oneTimePassword),
+            'one_time_password_expires_at' => $oneTimePasswordExpiresAt,
+            'one_time_password_used_at' => null,
             'tenant_id' => $tenantId,
             'role_id' => $roleId,
             'role' => null,
@@ -165,6 +169,16 @@ class TechnicianController extends Controller
         }
 
         $user->branches()->sync($sync);
+
+        try {
+            $user->notify(new OneTimePasswordNotification($oneTimePassword, 60 * 24));
+        } catch (\Throwable $e) {
+            Log::error('technician.onetime_password_notification_failed', [
+                'user_id' => $user->id,
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'user' => $user->load(['roleModel', 'branches:id,code,name,is_active']),

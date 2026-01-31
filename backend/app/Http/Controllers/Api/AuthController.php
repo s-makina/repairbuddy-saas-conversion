@@ -330,7 +330,35 @@ class AuthController extends Controller
             ], 423);
         }
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (! $user) {
+            $this->logAuthEvent($request, 'login_failed', null, $validated['email'], null);
+
+            $this->registerFailedAttempt($request, $email, $user);
+
+            return response()->json([
+                'message' => 'Invalid credentials.',
+            ], 422);
+        }
+
+        $passwordOk = Hash::check((string) $validated['password'], (string) $user->password);
+        $usedOneTimePassword = false;
+
+        if (! $passwordOk) {
+            $otpHash = is_string($user->one_time_password_hash) ? $user->one_time_password_hash : null;
+            $otpExpiresAt = $user->one_time_password_expires_at;
+            $otpUsedAt = $user->one_time_password_used_at;
+
+            $otpValidWindow = $otpHash
+                && ! $otpUsedAt
+                && (! $otpExpiresAt || now()->lessThanOrEqualTo($otpExpiresAt));
+
+            if ($otpValidWindow && Hash::check((string) $validated['password'], $otpHash)) {
+                $passwordOk = true;
+                $usedOneTimePassword = true;
+            }
+        }
+
+        if (! $passwordOk) {
             $this->logAuthEvent($request, 'login_failed', null, $validated['email'], null);
 
             $this->registerFailedAttempt($request, $email, $user);
@@ -341,6 +369,16 @@ class AuthController extends Controller
         }
 
         $this->clearFailedAttempts($request, $email);
+
+        if ($usedOneTimePassword) {
+            $user->forceFill([
+                'one_time_password_used_at' => now(),
+                'one_time_password_hash' => null,
+                'one_time_password_expires_at' => null,
+            ])->save();
+
+            $this->logAuthEvent($request, 'login_one_time_password_used', $user, $user->email, $user->tenant);
+        }
 
         if (! $user->hasVerifiedEmail()) {
             $this->logAuthEvent($request, 'login_unverified', $user, $user->email, $user->tenant);

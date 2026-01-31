@@ -19,6 +19,7 @@ type ApiJobDevice = {
   label: string;
   serial: string | null;
   notes: string | null;
+  extra_fields?: Array<{ key: string; label: string; type: string; value_text: string }> | null;
 };
 
 function portalSessionKey(tenantSlug: string) {
@@ -106,6 +107,7 @@ export default function PortalDevicesPage() {
       label: d.label,
       serial: d.serial ?? "—",
       notes: d.notes ?? "",
+      extraFields: Array.isArray(d.extra_fields) ? d.extra_fields : [],
     }));
   }, [jobDevices]);
 
@@ -151,6 +153,19 @@ export default function PortalDevicesPage() {
                     <Badge variant="default">{d.id}</Badge>
                   </div>
                   {d.notes ? <div className="mt-2 text-sm text-zinc-700">{d.notes}</div> : null}
+                  {d.extraFields.length > 0 ? (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Extra details</div>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {d.extraFields.map((f) => (
+                          <div key={f.key} className="min-w-0">
+                            <div className="truncate text-xs text-zinc-500">{f.label}</div>
+                            <div className="truncate text-sm text-zinc-700">{f.value_text}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             ))}

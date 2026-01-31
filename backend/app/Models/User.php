@@ -40,6 +40,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'address_postal_code',
         'address_country',
         'password',
+        'one_time_password_hash',
+        'one_time_password_expires_at',
+        'one_time_password_used_at',
         'tenant_id',
         'role',
         'role_id',
@@ -60,6 +63,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'password',
         'remember_token',
         'otp_secret',
+        'one_time_password_hash',
     ];
 
     /**
@@ -75,6 +79,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'is_admin' => 'boolean',
             'otp_enabled' => 'boolean',
             'otp_confirmed_at' => 'datetime',
+            'one_time_password_expires_at' => 'datetime',
+            'one_time_password_used_at' => 'datetime',
         ];
     }
 

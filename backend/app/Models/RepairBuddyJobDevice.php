@@ -23,6 +23,7 @@ class RepairBuddyJobDevice extends Model
         'serial_snapshot',
         'pin_snapshot',
         'notes_snapshot',
+        'extra_fields_snapshot_json',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class RepairBuddyJobDevice extends Model
         return [
             'job_id' => 'integer',
             'customer_device_id' => 'integer',
+            'extra_fields_snapshot_json' => 'array',
         ];
     }
 

@@ -33,12 +33,20 @@ class RepairBuddyPortalJobDevicesController extends Controller
 
         return response()->json([
             'devices' => $items->map(function (RepairBuddyJobDevice $jd) {
+                $extra = null;
+                if (is_array($jd->extra_fields_snapshot_json)) {
+                    $extra = array_values(array_filter($jd->extra_fields_snapshot_json, function ($row) {
+                        return is_array($row) && array_key_exists('show_in_portal', $row) ? (bool) $row['show_in_portal'] : false;
+                    }));
+                }
+
                 return [
                     'id' => $jd->id,
                     'customer_device_id' => $jd->customer_device_id,
                     'label' => $jd->label_snapshot,
                     'serial' => $jd->serial_snapshot,
                     'notes' => $jd->notes_snapshot,
+                    'extra_fields' => $extra,
                 ];
             }),
         ]);

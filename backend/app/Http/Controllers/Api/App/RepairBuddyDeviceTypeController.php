@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyPartPriceOverride;
+use App\Models\RepairBuddyServicePriceOverride;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -288,9 +289,14 @@ class RepairBuddyDeviceTypeController extends Controller
             ->where('scope_ref_id', $type->id)
             ->exists();
 
+        $inUseByServiceOverrides = RepairBuddyServicePriceOverride::query()
+            ->where('scope_type', 'type')
+            ->where('scope_ref_id', $type->id)
+            ->exists();
+
         $inUseAsParent = RepairBuddyDeviceType::query()->where('parent_id', $type->id)->exists();
 
-        if ($inUseByDevices || $inUseByOverrides || $inUseAsParent) {
+        if ($inUseByDevices || $inUseByOverrides || $inUseByServiceOverrides || $inUseAsParent) {
             return response()->json([
                 'message' => 'Device type is in use and cannot be deleted.',
                 'code' => 'in_use',

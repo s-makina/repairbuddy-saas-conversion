@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\App;
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyPartPriceOverride;
+use App\Models\RepairBuddyServicePriceOverride;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -225,7 +227,17 @@ class RepairBuddyDeviceBrandController extends Controller
 
         $inUseByDevices = RepairBuddyDevice::query()->where('device_brand_id', $brand->id)->exists();
 
-        if ($inUseByDevices) {
+        $inUseByPartOverrides = RepairBuddyPartPriceOverride::query()
+            ->where('scope_type', 'brand')
+            ->where('scope_ref_id', $brand->id)
+            ->exists();
+
+        $inUseByServiceOverrides = RepairBuddyServicePriceOverride::query()
+            ->where('scope_type', 'brand')
+            ->where('scope_ref_id', $brand->id)
+            ->exists();
+
+        if ($inUseByDevices || $inUseByPartOverrides || $inUseByServiceOverrides) {
             return response()->json([
                 'message' => 'Device brand is in use and cannot be deleted.',
                 'code' => 'in_use',

@@ -386,7 +386,19 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                     Route::get('/devices', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'index'])
                         ->middleware('permission:devices.view');
                     Route::post('/devices', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'store'])
-                        ->middleware('permission:devices.view');
+                        ->middleware('permission:devices.manage');
+
+                    Route::patch('/devices/{deviceId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'update'])
+                        ->middleware('permission:devices.manage')
+                        ->whereNumber('deviceId');
+
+                    Route::delete('/devices/{deviceId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'destroy'])
+                        ->middleware('permission:devices.manage')
+                        ->whereNumber('deviceId');
+
+                    Route::post('/devices/{deviceId}/variations', [\App\Http\Controllers\Api\App\RepairBuddyDeviceController::class, 'createVariations'])
+                        ->middleware('permission:devices.manage')
+                        ->whereNumber('deviceId');
 
                     Route::get('/part-types', [\App\Http\Controllers\Api\App\RepairBuddyPartTypeController::class, 'index'])
                         ->middleware('permission:parts.view');
@@ -480,6 +492,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                         ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
 
                     Route::get('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'index']);
+                    Route::post('/services/resolve-price', [\App\Http\Controllers\Api\App\RepairBuddyServicePricingController::class, 'resolvePrice']);
 
                     Route::get('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'index']);
                     Route::post('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'store']);
@@ -504,9 +517,39 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
                         ->whereNumber('jobDeviceId');
                 });
 
+                Route::prefix('repairbuddy')->middleware('permission:settings.manage')->group(function () {
+                    Route::get('/device-field-definitions', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'index']);
+                    Route::post('/device-field-definitions', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'store']);
+                    Route::patch('/device-field-definitions/{definitionId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'update'])
+                        ->whereNumber('definitionId');
+                    Route::delete('/device-field-definitions/{definitionId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'destroy'])
+                        ->whereNumber('definitionId');
+
+                    Route::get('/service-price-overrides', [\App\Http\Controllers\Api\App\RepairBuddyServicePriceOverrideController::class, 'index']);
+                    Route::post('/service-price-overrides', [\App\Http\Controllers\Api\App\RepairBuddyServicePriceOverrideController::class, 'store']);
+                    Route::patch('/service-price-overrides/{overrideId}', [\App\Http\Controllers\Api\App\RepairBuddyServicePriceOverrideController::class, 'update'])
+                        ->whereNumber('overrideId');
+                    Route::delete('/service-price-overrides/{overrideId}', [\App\Http\Controllers\Api\App\RepairBuddyServicePriceOverrideController::class, 'destroy'])
+                        ->whereNumber('overrideId');
+                });
+
                 Route::prefix('repairbuddy')->middleware('permission:customer_devices.view')->group(function () {
                     Route::get('/customer-devices', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'index']);
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:customer_devices.manage')->group(function () {
                     Route::post('/customer-devices', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'store']);
+
+                    Route::patch('/customer-devices/{customerDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'update'])
+                        ->whereNumber('customerDeviceId');
+
+                    Route::delete('/customer-devices/{customerDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'destroy'])
+                        ->whereNumber('customerDeviceId');
+
+                    Route::get('/customer-devices/{customerDeviceId}/extra-fields', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceExtraFieldsController::class, 'index'])
+                        ->whereNumber('customerDeviceId');
+                    Route::put('/customer-devices/{customerDeviceId}/extra-fields', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceExtraFieldsController::class, 'update'])
+                        ->whereNumber('customerDeviceId');
                 });
             });
         });

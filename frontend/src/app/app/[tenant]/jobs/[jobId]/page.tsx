@@ -23,6 +23,13 @@ type ApiJob = {
   messages: Array<{ id: string; author: string; body: string; created_at: string }>;
 };
 
+type ApiJobDeviceExtraField = {
+  key: string;
+  label: string;
+  type: string;
+  value_text: string;
+};
+
 type ApiJobDevice = {
   id: number;
   job_id: number;
@@ -30,6 +37,7 @@ type ApiJobDevice = {
   label: string;
   serial: string | null;
   notes: string | null;
+  extra_fields?: ApiJobDeviceExtraField[] | null;
   created_at: string;
 };
 
@@ -404,6 +412,19 @@ export default function TenantJobDetailPage() {
                               <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{d.label}</div>
                               <div className="mt-1 text-xs text-zinc-500">Serial: {d.serial ?? "—"}</div>
                               {d.notes ? <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{d.notes}</div> : null}
+                              {Array.isArray(d.extra_fields) && d.extra_fields.length > 0 ? (
+                                <div className="mt-3">
+                                  <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Extra fields</div>
+                                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                    {d.extra_fields.map((f) => (
+                                      <div key={f.key} className="min-w-0">
+                                        <div className="truncate text-xs text-zinc-500">{f.label}</div>
+                                        <div className="truncate text-sm text-zinc-700">{f.value_text}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : null}
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="default">{d.customer_device_id}</Badge>

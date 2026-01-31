@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCustomerDevice;
+use App\Models\RepairBuddyCustomerDeviceFieldValue;
+use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
 use Illuminate\Http\Request;
@@ -41,6 +43,7 @@ class RepairBuddyJobDeviceController extends Controller
                     'label' => $jd->label_snapshot,
                     'serial' => $jd->serial_snapshot,
                     'notes' => $jd->notes_snapshot,
+                    'extra_fields' => is_array($jd->extra_fields_snapshot_json) ? $jd->extra_fields_snapshot_json : null,
                     'created_at' => $jd->created_at,
                 ];
             }),
@@ -99,9 +102,41 @@ class RepairBuddyJobDeviceController extends Controller
                     'label' => $existing->label_snapshot,
                     'serial' => $existing->serial_snapshot,
                     'notes' => $existing->notes_snapshot,
+                    'extra_fields' => is_array($existing->extra_fields_snapshot_json) ? $existing->extra_fields_snapshot_json : null,
                     'created_at' => $existing->created_at,
                 ],
             ], 200);
+        }
+
+        $definitions = RepairBuddyDeviceFieldDefinition::query()
+            ->where('is_active', true)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $values = RepairBuddyCustomerDeviceFieldValue::query()
+            ->where('customer_device_id', $cd->id)
+            ->get()
+            ->keyBy('field_definition_id');
+
+        $extraFieldsSnapshot = [];
+        foreach ($definitions as $def) {
+            $value = $values->get($def->id);
+            if (! $value) {
+                continue;
+            }
+            $rawText = is_string($value->value_text) ? trim((string) $value->value_text) : '';
+            if ($rawText === '') {
+                continue;
+            }
+            $extraFieldsSnapshot[] = [
+                'key' => $def->key,
+                'label' => $def->label,
+                'type' => $def->type,
+                'show_in_booking' => (bool) $def->show_in_booking,
+                'show_in_invoice' => (bool) $def->show_in_invoice,
+                'show_in_portal' => (bool) $def->show_in_portal,
+                'value_text' => $rawText,
+            ];
         }
 
         $jd = RepairBuddyJobDevice::query()->create([
@@ -111,6 +146,7 @@ class RepairBuddyJobDeviceController extends Controller
             'serial_snapshot' => $cd->serial,
             'pin_snapshot' => $cd->pin,
             'notes_snapshot' => $cd->notes,
+            'extra_fields_snapshot_json' => $extraFieldsSnapshot,
         ]);
 
         return response()->json([
@@ -121,6 +157,7 @@ class RepairBuddyJobDeviceController extends Controller
                 'label' => $jd->label_snapshot,
                 'serial' => $jd->serial_snapshot,
                 'notes' => $jd->notes_snapshot,
+                'extra_fields' => is_array($jd->extra_fields_snapshot_json) ? $jd->extra_fields_snapshot_json : null,
                 'created_at' => $jd->created_at,
             ],
         ], 201);

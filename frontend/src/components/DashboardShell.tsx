@@ -502,6 +502,7 @@ export function DashboardShell({
             { label: "Jobs", href: tenantSlug ? `/app/${tenantSlug}/jobs` : "/app", icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
             { label: "Estimates", href: tenantSlug ? `/app/${tenantSlug}/estimates` : "/app", icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
             { label: "Services", href: tenantSlug ? `/app/${tenantSlug}/services` : "/app", icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
+            { label: "Service Price Overrides", href: tenantSlug ? `/app/${tenantSlug}/service-price-overrides` : "/app", icon: "services", show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage") },
           ],
         },
         {
@@ -510,6 +511,7 @@ export function DashboardShell({
             { label: "Devices", href: tenantSlug ? `/app/${tenantSlug}/devices` : "/app", icon: "devices", show: Boolean(tenantBaseHref) && auth.can("devices.view") },
             { label: "Device Brands", href: tenantSlug ? `/app/${tenantSlug}/device-brands` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_brands.view") },
             { label: "Device Types", href: tenantSlug ? `/app/${tenantSlug}/device-types` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("device_types.view") },
+            { label: "Device Fields", href: tenantSlug ? `/app/${tenantSlug}/device-field-definitions` : "/app", icon: "tags", show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage") },
             { label: "Parts", href: tenantSlug ? `/app/${tenantSlug}/parts` : "/app", icon: "parts", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
             { label: "Part Brands", href: tenantSlug ? `/app/${tenantSlug}/part-brands` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("parts.view") },
             { label: "Part Types", href: tenantSlug ? `/app/${tenantSlug}/part-types` : "/app", icon: "tags", show: Boolean(tenantBaseHref) && auth.can("parts.view") },

@@ -46,7 +46,6 @@ export default function TenantTechniciansPage() {
   const [createBusy, setCreateBusy] = React.useState(false);
   const [newName, setNewName] = React.useState("");
   const [newEmail, setNewEmail] = React.useState("");
-  const [newPassword, setNewPassword] = React.useState("");
   const [branches, setBranches] = React.useState<Branch[]>([]);
   const [newShopQuery, setNewShopQuery] = React.useState<string>("");
   const [newShopSelected, setNewShopSelected] = React.useState<Record<number, boolean>>({});
@@ -222,7 +221,6 @@ export default function TenantTechniciansPage() {
         body: {
           name: newName,
           email: newEmail,
-          password: newPassword,
           branch_ids: selectedBranchIds,
         },
       });
@@ -231,7 +229,6 @@ export default function TenantTechniciansPage() {
       setCreateOpen(false);
       setNewName("");
       setNewEmail("");
-      setNewPassword("");
       setNewShopQuery("");
       setNewShopSelected({});
       setPageIndex(0);
@@ -379,19 +376,9 @@ export default function TenantTechniciansPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="tech_password">
-                Password
-              </label>
-              <input
-                id="tech_password"
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                type="password"
-                autoComplete="new-password"
-                required
-                disabled={createBusy}
-              />
+              <div className="text-sm text-zinc-600">
+                A one-time password will be generated and emailed to the technician.
+              </div>
             </div>
 
             <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">

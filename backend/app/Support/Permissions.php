@@ -30,6 +30,7 @@ class Permissions
             'services.view',
 
             'devices.view',
+            'devices.manage',
             'device_brands.view',
             'device_brands.manage',
             'device_types.view',
@@ -44,6 +45,7 @@ class Permissions
 
             'clients.view',
             'customer_devices.view',
+            'customer_devices.manage',
             'technicians.view',
             'managers.view',
 
@@ -133,6 +135,7 @@ class Permissions
                 'estimates.view',
                 'services.view',
                 'devices.view',
+                'devices.manage',
                 'device_brands.view',
                 'device_brands.manage',
                 'device_types.view',
@@ -145,6 +148,7 @@ class Permissions
                 'expense_categories.view',
                 'clients.view',
                 'customer_devices.view',
+                'customer_devices.manage',
                 'technicians.view',
                 'managers.view',
                 'job_reviews.view',
