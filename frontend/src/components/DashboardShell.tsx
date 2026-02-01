@@ -502,6 +502,7 @@ export function DashboardShell({
             { label: "Jobs", href: tenantSlug ? `/app/${tenantSlug}/jobs` : "/app", icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
             { label: "Estimates", href: tenantSlug ? `/app/${tenantSlug}/estimates` : "/app", icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
             { label: "Services", href: tenantSlug ? `/app/${tenantSlug}/services` : "/app", icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
+            { label: "Service Types", href: tenantSlug ? `/app/${tenantSlug}/service-types` : "/app", icon: "services", show: Boolean(tenantBaseHref) && auth.can("service_types.view") },
             { label: "Service Price Overrides", href: tenantSlug ? `/app/${tenantSlug}/service-price-overrides` : "/app", icon: "services", show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage") },
           ],
         },

@@ -499,9 +499,6 @@ Route::prefix('{business}')
                         ->middleware(['throttle:auth', 'permission:settings.manage'])
                         ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
 
-                    Route::get('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'index']);
-                    Route::post('/services/resolve-price', [\App\Http\Controllers\Api\App\RepairBuddyServicePricingController::class, 'resolvePrice']);
-
                     Route::get('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'index']);
                     Route::post('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'store']);
 
@@ -523,6 +520,27 @@ Route::prefix('{business}')
                     Route::delete('/jobs/{jobId}/devices/{jobDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyJobDeviceController::class, 'destroy'])
                         ->whereNumber('jobId')
                         ->whereNumber('jobDeviceId');
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:services.view')->group(function () {
+                    Route::get('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'index']);
+                    Route::post('/services/resolve-price', [\App\Http\Controllers\Api\App\RepairBuddyServicePricingController::class, 'resolvePrice']);
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:service_types.view')->group(function () {
+                    Route::get('/service-types', [\App\Http\Controllers\Api\App\RepairBuddyServiceTypeController::class, 'index']);
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:services.manage')->group(function () {
+                    Route::post('/services', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'store']);
+                    Route::patch('/services/{serviceId}', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'update'])->whereNumber('serviceId');
+                    Route::delete('/services/{serviceId}', [\App\Http\Controllers\Api\App\RepairBuddyServiceController::class, 'destroy'])->whereNumber('serviceId');
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:service_types.manage')->group(function () {
+                    Route::post('/service-types', [\App\Http\Controllers\Api\App\RepairBuddyServiceTypeController::class, 'store']);
+                    Route::patch('/service-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyServiceTypeController::class, 'update'])->whereNumber('typeId');
+                    Route::delete('/service-types/{typeId}', [\App\Http\Controllers\Api\App\RepairBuddyServiceTypeController::class, 'destroy'])->whereNumber('typeId');
                 });
 
                 Route::prefix('repairbuddy')->middleware('permission:settings.manage')->group(function () {

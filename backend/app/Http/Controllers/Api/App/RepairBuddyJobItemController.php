@@ -7,7 +7,10 @@ use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyCustomerDevice;
+use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyPart;
+use App\Models\RepairBuddyPartPriceOverride;
+use App\Models\RepairBuddyPartVariant;
 use App\Models\RepairBuddyService;
 use App\Models\RepairBuddyServicePriceOverride;
 use App\Models\RepairBuddyTax;
@@ -76,6 +79,9 @@ class RepairBuddyJobItemController extends Controller
         $resolvedName = $name;
         $resolvedUnitPriceCents = $unitPriceCents;
 
+        $meta = is_array($validated['meta'] ?? null) ? $validated['meta'] : null;
+        $metaDeviceId = is_array($meta) && array_key_exists('device_id', $meta) && is_numeric($meta['device_id']) ? (int) $meta['device_id'] : null;
+
         if ($itemType === 'service') {
             if (! $refId) {
                 return response()->json([
@@ -96,20 +102,31 @@ class RepairBuddyJobItemController extends Controller
                 $contextBrandId = null;
                 $contextTypeId = null;
 
-                $latestJobDevice = RepairBuddyJobDevice::query()
-                    ->where('job_id', $job->id)
-                    ->orderByDesc('id')
-                    ->first();
+                if ($metaDeviceId) {
+                    $device = RepairBuddyDevice::query()->whereKey($metaDeviceId)->first();
+                    if ($device) {
+                        $contextDeviceId = (int) $device->id;
+                        $contextBrandId = is_numeric($device->device_brand_id) ? (int) $device->device_brand_id : null;
+                        $contextTypeId = is_numeric($device->device_type_id) ? (int) $device->device_type_id : null;
+                    }
+                }
 
-                if ($latestJobDevice) {
-                    $customerDevice = RepairBuddyCustomerDevice::query()->whereKey((int) $latestJobDevice->customer_device_id)->first();
-                    if ($customerDevice && is_numeric($customerDevice->device_id)) {
-                        $deviceId = (int) $customerDevice->device_id;
-                        $device = \App\Models\RepairBuddyDevice::query()->whereKey($deviceId)->first();
-                        if ($device) {
-                            $contextDeviceId = (int) $device->id;
-                            $contextBrandId = is_numeric($device->device_brand_id) ? (int) $device->device_brand_id : null;
-                            $contextTypeId = is_numeric($device->device_type_id) ? (int) $device->device_type_id : null;
+                if (! $contextDeviceId) {
+                    $latestJobDevice = RepairBuddyJobDevice::query()
+                        ->where('job_id', $job->id)
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if ($latestJobDevice) {
+                        $customerDevice = RepairBuddyCustomerDevice::query()->whereKey((int) $latestJobDevice->customer_device_id)->first();
+                        if ($customerDevice && is_numeric($customerDevice->device_id)) {
+                            $deviceId = (int) $customerDevice->device_id;
+                            $device = RepairBuddyDevice::query()->whereKey($deviceId)->first();
+                            if ($device) {
+                                $contextDeviceId = (int) $device->id;
+                                $contextBrandId = is_numeric($device->device_brand_id) ? (int) $device->device_brand_id : null;
+                                $contextTypeId = is_numeric($device->device_type_id) ? (int) $device->device_type_id : null;
+                            }
                         }
                     }
                 }
@@ -154,6 +171,10 @@ class RepairBuddyJobItemController extends Controller
                     $taxId = (int) $override->tax_id;
                 }
 
+                if (! $taxId && is_numeric($service->tax_id)) {
+                    $taxId = (int) $service->tax_id;
+                }
+
                 if (! $currencyFromRequest) {
                     $resolvedCurrency = $override && is_string($override->price_currency) && $override->price_currency !== ''
                         ? (string) $override->price_currency
@@ -181,8 +202,92 @@ class RepairBuddyJobItemController extends Controller
             }
 
             $resolvedName = $resolvedName !== '' ? $resolvedName : (string) $part->name;
+
+            $variantId = is_array($meta) && array_key_exists('part_variant_id', $meta) && is_numeric($meta['part_variant_id'])
+                ? (int) $meta['part_variant_id']
+                : null;
+
+            $variant = null;
+            if ($variantId) {
+                $variant = RepairBuddyPartVariant::query()->whereKey($variantId)->first();
+                if (! $variant || (int) $variant->part_id !== (int) $part->id) {
+                    return response()->json([
+                        'message' => 'Part variant is invalid.',
+                    ], 422);
+                }
+            }
+
+            $contextDeviceId = null;
+            $contextBrandId = null;
+            $contextTypeId = null;
+
+            if ($metaDeviceId) {
+                $device = RepairBuddyDevice::query()->whereKey($metaDeviceId)->first();
+                if ($device) {
+                    $contextDeviceId = (int) $device->id;
+                    $contextBrandId = is_numeric($device->device_brand_id) ? (int) $device->device_brand_id : null;
+                    $contextTypeId = is_numeric($device->device_type_id) ? (int) $device->device_type_id : null;
+                }
+            }
+
+            $override = null;
+            if ($contextDeviceId) {
+                $override = RepairBuddyPartPriceOverride::query()
+                    ->where('part_id', $part->id)
+                    ->where('part_variant_id', $variantId)
+                    ->where('scope_type', 'device')
+                    ->where('scope_ref_id', $contextDeviceId)
+                    ->where('is_active', true)
+                    ->orderByDesc('id')
+                    ->first();
+            }
+
+            if (! $override && $contextBrandId) {
+                $override = RepairBuddyPartPriceOverride::query()
+                    ->where('part_id', $part->id)
+                    ->where('part_variant_id', $variantId)
+                    ->where('scope_type', 'brand')
+                    ->where('scope_ref_id', $contextBrandId)
+                    ->where('is_active', true)
+                    ->orderByDesc('id')
+                    ->first();
+            }
+
+            if (! $override && $contextTypeId) {
+                $override = RepairBuddyPartPriceOverride::query()
+                    ->where('part_id', $part->id)
+                    ->where('part_variant_id', $variantId)
+                    ->where('scope_type', 'type')
+                    ->where('scope_ref_id', $contextTypeId)
+                    ->where('is_active', true)
+                    ->orderByDesc('id')
+                    ->first();
+            }
+
+            $base = $variant ?: $part;
+
             if ($resolvedUnitPriceCents === null) {
-                $resolvedUnitPriceCents = is_numeric($part->price_amount_cents) ? (int) $part->price_amount_cents : null;
+                $resolvedUnitPriceCents = $override && is_numeric($override->price_amount_cents)
+                    ? (int) $override->price_amount_cents
+                    : (is_numeric($base->price_amount_cents) ? (int) $base->price_amount_cents : null);
+            }
+
+            if (! $taxId) {
+                if ($override && is_numeric($override->tax_id)) {
+                    $taxId = (int) $override->tax_id;
+                } elseif (is_numeric($base->tax_id)) {
+                    $taxId = (int) $base->tax_id;
+                }
+            }
+
+            if (! $currencyFromRequest) {
+                $resolvedCurrency = $override && is_string($override->price_currency) && $override->price_currency !== ''
+                    ? (string) $override->price_currency
+                    : (is_string($base->price_currency) && $base->price_currency !== '' ? (string) $base->price_currency : null);
+
+                if ($resolvedCurrency && strlen($resolvedCurrency) === 3) {
+                    $currency = strtoupper($resolvedCurrency);
+                }
             }
         }
 

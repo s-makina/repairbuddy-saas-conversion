@@ -93,6 +93,73 @@ type ApiJob = {
   id: number;
 };
 
+type ExtraJobFieldVisibility = "internal" | "customer";
+
+type ExtraJobFieldDraft = {
+  id: string;
+  datetime: string;
+  label: string;
+  data: string;
+  description: string;
+  visibility: ExtraJobFieldVisibility;
+  file: File | null;
+};
+
+type PartDraft = {
+  id: number;
+  name: string;
+  code: string;
+  capacity: string;
+};
+
+type PartOption = {
+  value: number;
+  label: string;
+  code: string;
+  capacity: string;
+};
+
+type JobPartLineDraft = {
+  id: string;
+  part_id: number;
+  part: PartDraft;
+  device_id: number | null;
+  qty: string;
+  price: string;
+};
+
+type ApiPart = {
+  id: number;
+  name: string;
+  manufacturing_code: string | null;
+  capacity: string | null;
+};
+
+type ServiceDraft = {
+  id: number;
+  name: string;
+};
+
+type ServiceOption = {
+  value: number;
+  label: string;
+};
+
+type JobServiceLineDraft = {
+  id: string;
+  service_id: number;
+  service: ServiceDraft;
+  device_id: number | null;
+  qty: string;
+  price: string;
+};
+
+type ApiService = {
+  id: number;
+  name: string;
+  base_price: { currency: string; amount_cents: number } | null;
+};
+
 export default function NewJobPage() {
   const auth = useAuth();
   const router = useRouter();
@@ -114,7 +181,7 @@ export default function NewJobPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const [title, setTitle] = useState("");
   const [statusSlug, setStatusSlug] = useState<string>("");
@@ -152,6 +219,48 @@ export default function NewJobPage() {
   const [assignedTechnicianIds, setAssignedTechnicianIds] = useState<number[]>([]);
   const [jobDevices, setJobDevices] = useState<JobDeviceDraft[]>([]);
   const [customerDevicesError, setCustomerDevicesError] = useState<string | null>(null);
+
+  const [extraFields, setExtraFields] = useState<ExtraJobFieldDraft[]>([]);
+  const [extraFieldModalOpen, setExtraFieldModalOpen] = useState(false);
+  const [extraFieldError, setExtraFieldError] = useState<string | null>(null);
+  const [extraFieldDatetime, setExtraFieldDatetime] = useState<string>("");
+  const [extraFieldLabel, setExtraFieldLabel] = useState<string>("");
+  const [extraFieldData, setExtraFieldData] = useState<string>("");
+  const [extraFieldDescription, setExtraFieldDescription] = useState<string>("");
+  const [extraFieldVisibility, setExtraFieldVisibility] = useState<ExtraJobFieldVisibility>("internal");
+  const [extraFieldFile, setExtraFieldFile] = useState<File | null>(null);
+
+  const [partsCatalog, setPartsCatalog] = useState<PartDraft[]>([]);
+  const [servicesCatalog, setServicesCatalog] = useState<ServiceDraft[]>([]);
+  const [createPartModalOpen, setCreatePartModalOpen] = useState(false);
+  const [createPartError, setCreatePartError] = useState<string | null>(null);
+  const [createPartName, setCreatePartName] = useState("");
+  const [createPartCode, setCreatePartCode] = useState("");
+  const [createPartCapacity, setCreatePartCapacity] = useState("");
+
+  const [createServiceModalOpen, setCreateServiceModalOpen] = useState(false);
+  const [createServiceError, setCreateServiceError] = useState<string | null>(null);
+  const [createServiceName, setCreateServiceName] = useState("");
+  const [createServiceBasePrice, setCreateServiceBasePrice] = useState("");
+
+  const [partPickerModalOpen, setPartPickerModalOpen] = useState(false);
+
+  const [servicePickerModalOpen, setServicePickerModalOpen] = useState(false);
+
+  const [partPickerPart, setPartPickerPart] = useState<PartOption | null>(null);
+  const [partPickerDevice, setPartPickerDevice] = useState<DeviceOption | null>(null);
+  const [partPickerQty, setPartPickerQty] = useState<string>("1");
+  const [partPickerPrice, setPartPickerPrice] = useState<string>("");
+  const [partPickerError, setPartPickerError] = useState<string | null>(null);
+
+  const [servicePickerService, setServicePickerService] = useState<ServiceOption | null>(null);
+  const [servicePickerDevice, setServicePickerDevice] = useState<DeviceOption | null>(null);
+  const [servicePickerQty, setServicePickerQty] = useState<string>("1");
+  const [servicePickerPrice, setServicePickerPrice] = useState<string>("");
+  const [servicePickerError, setServicePickerError] = useState<string | null>(null);
+
+  const [jobParts, setJobParts] = useState<JobPartLineDraft[]>([]);
+  const [jobServices, setJobServices] = useState<JobServiceLineDraft[]>([]);
 
   const [statuses, setStatuses] = useState<ApiJobStatus[]>([]);
   const [paymentStatuses, setPaymentStatuses] = useState<ApiPaymentStatus[]>([]);
@@ -236,6 +345,39 @@ export default function NewJobPage() {
           if (!alive) return;
           setClients([]);
         }
+
+        try {
+          const partsRes = await apiFetch<{ parts: ApiPart[] }>(`/api/${tenantSlug}/app/repairbuddy/parts?limit=200`);
+          if (!alive) return;
+
+          const list = Array.isArray(partsRes.parts) ? partsRes.parts : [];
+          setPartsCatalog(
+            list.map((p) => ({
+              id: p.id,
+              name: p.name,
+              code: p.manufacturing_code ?? "",
+              capacity: p.capacity ?? "",
+            })),
+          );
+        } catch {
+          if (!alive) return;
+          setPartsCatalog([]);
+        }
+
+        try {
+          const servicesRes = await apiFetch<{ services: ApiService[] }>(`/api/${tenantSlug}/app/repairbuddy/services?limit=200`);
+          if (!alive) return;
+          const list = Array.isArray(servicesRes.services) ? servicesRes.services : [];
+          setServicesCatalog(
+            list.map((s) => ({
+              id: s.id,
+              name: s.name,
+            })),
+          );
+        } catch {
+          if (!alive) return;
+          setServicesCatalog([]);
+        }
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load form data.");
@@ -245,6 +387,8 @@ export default function NewJobPage() {
         setTechnicians([]);
         setNextServiceEnabled(false);
         setDevices([]);
+        setPartsCatalog([]);
+        setServicesCatalog([]);
       } finally {
         if (!alive) return;
         setLoadingLookups(false);
@@ -305,6 +449,38 @@ export default function NewJobPage() {
         label: d.model,
       }));
   }, [devices]);
+
+  const selectedJobDeviceOptions = useMemo(() => {
+    const opts = jobDevicesAdmin
+      .map((d) => d.option)
+      .filter((x): x is DeviceOption => Boolean(x) && typeof x?.value === "number");
+
+    const uniq = new Map<number, DeviceOption>();
+    for (const o of opts) uniq.set(o.value, o);
+    return Array.from(uniq.values());
+  }, [jobDevicesAdmin]);
+
+  const partOptions = useMemo<PartOption[]>(() => {
+    return partsCatalog
+      .slice()
+      .sort((a, b) => `${a.name}`.localeCompare(`${b.name}`))
+      .map((p) => ({
+        value: p.id,
+        label: p.name,
+        code: p.code,
+        capacity: p.capacity,
+      }));
+  }, [partsCatalog]);
+
+  const serviceOptions = useMemo<ServiceOption[]>(() => {
+    return servicesCatalog
+      .slice()
+      .sort((a, b) => `${a.name}`.localeCompare(`${b.name}`))
+      .map((s) => ({
+        value: s.id,
+        label: s.name,
+      }));
+  }, [servicesCatalog]);
 
   const sortedTechnicians = useMemo(() => {
     return technicians.slice().sort((a, b) => `${a.name}`.localeCompare(`${b.name}`));
@@ -436,6 +612,11 @@ export default function NewJobPage() {
       return;
     }
 
+    if (step === 2) {
+      setStep(3);
+      return;
+    }
+
     setError(null);
     setBusy(true);
 
@@ -518,12 +699,60 @@ export default function NewJobPage() {
         body: form,
       });
 
-      notify.success("Job created.");
-
       const nextId = res.job?.id;
       if (typeof nextId === "number") {
+        try {
+          for (const line of jobServices) {
+            const qtyNum = Math.round(Number(line.qty));
+            const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
+
+            const rawPrice = line.price.trim();
+            const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
+            const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
+
+            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/items`, {
+              method: "POST",
+              body: {
+                item_type: "service",
+                ref_id: line.service_id,
+                qty,
+                ...(typeof unitPriceAmountCents === "number" ? { unit_price_amount_cents: unitPriceAmountCents } : {}),
+                meta: {
+                  ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
+                },
+              },
+            });
+          }
+
+          for (const line of jobParts) {
+            const qtyNum = Math.round(Number(line.qty));
+            const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
+
+            const rawPrice = line.price.trim();
+            const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
+            const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
+
+            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/items`, {
+              method: "POST",
+              body: {
+                item_type: "part",
+                ref_id: line.part_id,
+                qty,
+                ...(typeof unitPriceAmountCents === "number" ? { unit_price_amount_cents: unitPriceAmountCents } : {}),
+                meta: {
+                  ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
+                },
+              },
+            });
+          }
+        } catch (err) {
+          notify.error(err instanceof ApiError ? err.message : "Job created, but failed to attach items.");
+        }
+
+        notify.success("Job created.");
         router.replace(`/app/${tenantSlug}/jobs/${nextId}`);
       } else {
+        notify.success("Job created.");
         router.replace(`/app/${tenantSlug}/jobs`);
       }
     } catch (e) {
@@ -540,8 +769,9 @@ export default function NewJobPage() {
   const disabled = busy || loadingLookups;
   const isStep1 = step === 1;
   const isStep2 = step === 2;
-  const stepIndex = step === 1 ? 0 : 1;
-  const progress = stepIndex;
+  const isStep3 = step === 3;
+  const stepIndex = step === 1 ? 0 : step === 2 ? 1 : 2;
+  const progress = stepIndex / 2;
 
   return (
     <RequireAuth requiredPermission="jobs.view">
@@ -667,6 +897,676 @@ export default function NewJobPage() {
           </div>
         </Modal>
 
+      <Modal
+        open={servicePickerModalOpen}
+        title="Add service"
+        onClose={() => {
+          setServicePickerError(null);
+          setServicePickerModalOpen(false);
+        }}
+        className="max-w-3xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setServicePickerError(null);
+                setServicePickerModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={disabled}
+              onClick={() => {
+                if (!servicePickerService) {
+                  setServicePickerError("Please select a service.");
+                  return;
+                }
+                if (!servicePickerDevice) {
+                  setServicePickerError("Please select a device.");
+                  return;
+                }
+
+                const service = servicesCatalog.find((s) => s.id === servicePickerService.value);
+                if (!service) {
+                  setServicePickerError("Selected service not found.");
+                  return;
+                }
+
+                const anyCrypto = globalThis.crypto as any;
+                const id =
+                  typeof anyCrypto?.randomUUID === "function"
+                    ? anyCrypto.randomUUID()
+                    : `js-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+                setJobServices((prev) => [
+                  {
+                    id,
+                    service_id: service.id,
+                    service,
+                    device_id: servicePickerDevice.value,
+                    qty: servicePickerQty,
+                    price: servicePickerPrice,
+                  },
+                  ...prev,
+                ]);
+
+                setServicePickerError(null);
+                setServicePickerQty("1");
+                setServicePickerPrice("");
+                setServicePickerModalOpen(false);
+              }}
+            >
+              Add
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {servicePickerError ? <div className="text-sm text-red-600">{servicePickerError}</div> : null}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Service</div>
+              <Select
+                instanceId="job_service_select"
+                inputId="job_service_select"
+                isSearchable
+                isClearable
+                options={serviceOptions}
+                value={servicePickerService}
+                onChange={(opt) => {
+                  setServicePickerError(null);
+                  setServicePickerService((opt as ServiceOption | null) ?? null);
+                }}
+                isDisabled={disabled}
+                placeholder={serviceOptions.length > 0 ? "Search services..." : "No services yet"}
+                classNamePrefix="rb-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: "var(--rb-radius-sm)",
+                    borderColor: "#d4d4d8",
+                    minHeight: 40,
+                    boxShadow: "none",
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 50,
+                  }),
+                }}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Device</div>
+              <Select
+                instanceId="job_service_device_select"
+                inputId="job_service_device_select"
+                isSearchable
+                isClearable
+                options={selectedJobDeviceOptions}
+                value={servicePickerDevice}
+                onChange={(opt) => {
+                  setServicePickerError(null);
+                  setServicePickerDevice((opt as DeviceOption | null) ?? null);
+                }}
+                isDisabled={disabled}
+                placeholder={selectedJobDeviceOptions.length > 0 ? "Select device..." : "No devices selected"}
+                classNamePrefix="rb-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: "var(--rb-radius-sm)",
+                    borderColor: "#d4d4d8",
+                    minHeight: 40,
+                    boxShadow: "none",
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 50,
+                  }),
+                }}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Qty</div>
+              <Input
+                type="number"
+                min={0}
+                value={servicePickerQty}
+                disabled={disabled}
+                onChange={(e) => {
+                  setServicePickerError(null);
+                  setServicePickerQty(e.target.value);
+                }}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Price (optional override)</div>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={servicePickerPrice}
+                disabled={disabled}
+                onChange={(e) => {
+                  setServicePickerError(null);
+                  setServicePickerPrice(e.target.value);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={partPickerModalOpen}
+        title="Add part"
+        onClose={() => {
+          setPartPickerError(null);
+          setPartPickerModalOpen(false);
+        }}
+        className="max-w-3xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setPartPickerError(null);
+                setPartPickerModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={disabled}
+              onClick={() => {
+                if (!partPickerPart) {
+                  setPartPickerError("Please select a part.");
+                  return;
+                }
+                if (!partPickerDevice) {
+                  setPartPickerError("Please select a device.");
+                  return;
+                }
+
+                const part = partsCatalog.find((p) => p.id === partPickerPart.value);
+                if (!part) {
+                  setPartPickerError("Selected part not found.");
+                  return;
+                }
+
+                const anyCrypto = globalThis.crypto as any;
+                const id =
+                  typeof anyCrypto?.randomUUID === "function"
+                    ? anyCrypto.randomUUID()
+                    : `jp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+                setJobParts((prev) => [
+                  {
+                    id,
+                    part_id: part.id,
+                    part,
+                    device_id: partPickerDevice.value,
+                    qty: partPickerQty,
+                    price: partPickerPrice,
+                  },
+                  ...prev,
+                ]);
+
+                setPartPickerError(null);
+                setPartPickerQty("1");
+                setPartPickerPrice("");
+                setPartPickerModalOpen(false);
+              }}
+            >
+              Add
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {partPickerError ? <div className="text-sm text-red-600">{partPickerError}</div> : null}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Select part</div>
+              <Select
+                instanceId="job_part_select"
+                isSearchable
+                isClearable
+                options={partOptions}
+                value={partPickerPart}
+                onChange={(opt) => {
+                  setPartPickerError(null);
+                  setPartPickerPart((opt as PartOption | null) ?? null);
+                }}
+                isDisabled={disabled}
+                placeholder={partOptions.length > 0 ? "Search parts..." : "No parts yet"}
+                classNamePrefix="rb-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: "var(--rb-radius-sm)",
+                    borderColor: "#d4d4d8",
+                    minHeight: 40,
+                    boxShadow: "none",
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 50,
+                  }),
+                }}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Device</div>
+              <Select
+                instanceId="job_part_device"
+                isSearchable
+                isClearable
+                options={selectedJobDeviceOptions}
+                value={partPickerDevice}
+                onChange={(opt) => {
+                  setPartPickerError(null);
+                  setPartPickerDevice((opt as DeviceOption | null) ?? null);
+                }}
+                isDisabled={disabled}
+                placeholder={selectedJobDeviceOptions.length > 0 ? "Select device..." : "No devices selected"}
+                classNamePrefix="rb-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: "var(--rb-radius-sm)",
+                    borderColor: "#d4d4d8",
+                    minHeight: 40,
+                    boxShadow: "none",
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 50,
+                  }),
+                }}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Qty</div>
+              <Input
+                type="number"
+                min={0}
+                value={partPickerQty}
+                disabled={disabled}
+                onChange={(e) => {
+                  setPartPickerError(null);
+                  setPartPickerQty(e.target.value);
+                }}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Price</div>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={partPickerPrice}
+                disabled={disabled}
+                onChange={(e) => {
+                  setPartPickerError(null);
+                  setPartPickerPrice(e.target.value);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={createServiceModalOpen}
+        title="Create new service"
+        onClose={() => {
+          setCreateServiceError(null);
+          setCreateServiceModalOpen(false);
+        }}
+        className="max-w-2xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreateServiceError(null);
+                setCreateServiceModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={disabled}
+              onClick={async () => {
+                if (busy) return;
+                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+
+                const name = createServiceName.trim();
+                if (name.length === 0) {
+                  setCreateServiceError("Service name is required.");
+                  return;
+                }
+
+                const rawPrice = createServiceBasePrice.trim();
+                const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
+                const basePriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : null;
+                if (rawPrice.length > 0 && basePriceAmountCents === null) {
+                  setCreateServiceError("Base price is invalid.");
+                  return;
+                }
+
+                setBusy(true);
+                setCreateServiceError(null);
+
+                try {
+                  const res = await apiFetch<{ service: { id: number; name: string } }>(`/api/${tenantSlug}/app/repairbuddy/services`, {
+                    method: "POST",
+                    body: {
+                      name,
+                      ...(typeof basePriceAmountCents === "number" ? { base_price_amount_cents: basePriceAmountCents } : {}),
+                    },
+                  });
+
+                  const service = res.service;
+                  if (!service || typeof service.id !== "number") {
+                    setCreateServiceError("Failed to create service.");
+                    return;
+                  }
+
+                  const draft: ServiceDraft = { id: service.id, name: service.name };
+                  setServicesCatalog((prev) => [draft, ...prev.filter((s) => s.id !== draft.id)]);
+                  setServicePickerService({ value: draft.id, label: draft.name });
+
+                  setCreateServiceName("");
+                  setCreateServiceBasePrice("");
+                  setCreateServiceModalOpen(false);
+                  notify.success("Service created.");
+                } catch (err) {
+                  if (err instanceof ApiError) {
+                    setCreateServiceError(err.message);
+                  } else {
+                    setCreateServiceError("Failed to create service.");
+                  }
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {createServiceError ? <div className="text-sm text-red-600">{createServiceError}</div> : null}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Name</div>
+              <Input value={createServiceName} onChange={(e) => setCreateServiceName(e.target.value)} disabled={disabled} />
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Base price</div>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={createServiceBasePrice}
+                onChange={(e) => setCreateServiceBasePrice(e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={createPartModalOpen}
+        title="Create new part"
+        onClose={() => {
+          setCreatePartError(null);
+          setCreatePartModalOpen(false);
+        }}
+        className="max-w-2xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreatePartError(null);
+                setCreatePartModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={disabled}
+              onClick={async () => {
+                if (busy) return;
+                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+
+                const name = createPartName.trim();
+                if (name.length === 0) {
+                  setCreatePartError("Part name is required.");
+                  return;
+                }
+
+                setBusy(true);
+                setCreatePartError(null);
+
+                try {
+                  const res = await apiFetch<{ part: { id: number; name: string; manufacturing_code: string | null; capacity: string | null } }>(
+                    `/api/${tenantSlug}/app/repairbuddy/parts`,
+                    {
+                      method: "POST",
+                      body: {
+                        name,
+                        manufacturing_code: createPartCode.trim() !== "" ? createPartCode.trim() : null,
+                        capacity: createPartCapacity.trim() !== "" ? createPartCapacity.trim() : null,
+                      },
+                    },
+                  );
+
+                  const part = res.part;
+                  if (!part || typeof part.id !== "number") {
+                    setCreatePartError("Failed to create part.");
+                    return;
+                  }
+
+                  const draft: PartDraft = {
+                    id: part.id,
+                    name: part.name,
+                    code: part.manufacturing_code ?? "",
+                    capacity: part.capacity ?? "",
+                  };
+
+                  setPartsCatalog((prev) => [draft, ...prev.filter((p) => p.id !== draft.id)]);
+                  setPartPickerPart({ value: draft.id, label: draft.name, code: draft.code, capacity: draft.capacity });
+
+                  setCreatePartName("");
+                  setCreatePartCode("");
+                  setCreatePartCapacity("");
+                  setCreatePartModalOpen(false);
+                  notify.success("Part created.");
+                } catch (err) {
+                  if (err instanceof ApiError) {
+                    setCreatePartError(err.message);
+                  } else {
+                    setCreatePartError("Failed to create part.");
+                  }
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {createPartError ? <div className="text-sm text-red-600">{createPartError}</div> : null}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Name</div>
+              <Input value={createPartName} onChange={(e) => setCreatePartName(e.target.value)} />
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Code</div>
+              <Input value={createPartCode} onChange={(e) => setCreatePartCode(e.target.value)} />
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Capacity</div>
+              <Input value={createPartCapacity} onChange={(e) => setCreatePartCapacity(e.target.value)} />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={extraFieldModalOpen}
+        title="Add extra field"
+        onClose={() => {
+          setExtraFieldError(null);
+          setExtraFieldModalOpen(false);
+        }}
+        className="max-w-3xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setExtraFieldError(null);
+                setExtraFieldModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const label = extraFieldLabel.trim();
+                const data = extraFieldData.trim();
+                if (label === "") {
+                  setExtraFieldError("Field label is required.");
+                  return;
+                }
+                if (data === "") {
+                  setExtraFieldError("Field data is required.");
+                  return;
+                }
+
+                setExtraFields((prev) => [
+                  ...prev,
+                  {
+                    id: String(Date.now()),
+                    datetime: extraFieldDatetime,
+                    label,
+                    data,
+                    description: extraFieldDescription.trim(),
+                    visibility: extraFieldVisibility,
+                    file: extraFieldFile,
+                  },
+                ]);
+
+                setExtraFieldError(null);
+                setExtraFieldDatetime("");
+                setExtraFieldLabel("");
+                setExtraFieldData("");
+                setExtraFieldDescription("");
+                setExtraFieldVisibility("internal");
+                setExtraFieldFile(null);
+                setExtraFieldModalOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {extraFieldError ? <div className="text-sm text-red-600">{extraFieldError}</div> : null}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Date & time</div>
+              <Input type="datetime-local" value={extraFieldDatetime} onChange={(e) => setExtraFieldDatetime(e.target.value)} />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Visibility</div>
+              <select
+                className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                value={extraFieldVisibility}
+                onChange={(e) => setExtraFieldVisibility(e.target.value as ExtraJobFieldVisibility)}
+              >
+                <option value="internal">Internal</option>
+                <option value="customer">Customer</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Field label</div>
+              <Input value={extraFieldLabel} onChange={(e) => setExtraFieldLabel(e.target.value)} />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Field data</div>
+              <textarea
+                value={extraFieldData}
+                onChange={(e) => setExtraFieldData(e.target.value)}
+                rows={3}
+                className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">Field description</div>
+              <textarea
+                value={extraFieldDescription}
+                onChange={(e) => setExtraFieldDescription(e.target.value)}
+                rows={2}
+                className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-1 text-xs text-zinc-600">File</div>
+              <Input
+                type="file"
+                onChange={(e) => {
+                  const next = e.target.files?.[0] ?? null;
+                  setExtraFieldFile(next);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
         <Modal
           open={technicianCreateOpen}
           title="Add technician"
@@ -741,7 +1641,7 @@ export default function NewJobPage() {
                 </div>
 
                 <nav aria-label="Job steps" className="space-y-1">
-                  {[1, 2].map((s, idx) => {
+                  {[1, 2, 3].map((s, idx) => {
                     const isCurrent = s === step;
                     const isCompleted = idx < stepIndex;
                     const isAvailable = idx <= stepIndex;
@@ -754,7 +1654,7 @@ export default function NewJobPage() {
                         onClick={() => {
                           if (!isAvailable) return;
                           setError(null);
-                          setStep(s as 1 | 2);
+                          setStep(s as 1 | 2 | 3);
                         }}
                         className={
                           "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
@@ -795,12 +1695,14 @@ export default function NewJobPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-[var(--rb-text)]">
-                              {s === 1 ? "Customer & devices" : "Job details"}
+                              {s === 1 ? "Customer & devices" : s === 2 ? "Job Items and services" : "Job details"}
                             </div>
                             <div className="mt-0.5 line-clamp-2 text-xs text-zinc-600">
                               {s === 1
                                 ? "Case, dates, customer, technician, description, devices."
-                                : "Status, payment, priority, attachments, customer devices."}
+                                : s === 2
+                                  ? "Attach extra fields and files for this job."
+                                  : "Status, payment, priority, attachments, customer devices."}
                             </div>
                           </div>
                         </div>
@@ -815,18 +1717,22 @@ export default function NewJobPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-base">{isStep1 ? "Customer & devices" : "Job details"}</CardTitle>
+                    <CardTitle className="text-base">
+                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Job details"}
+                    </CardTitle>
                     <CardDescription>
                       {isStep1
                         ? "Enter the customer, technician, description and devices."
-                        : "Finalize status, priority, attachments and other details."}
+                        : isStep2
+                          ? "Attach extra fields and files for the job."
+                          : "Finalize status, priority, attachments and other details."}
                     </CardDescription>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-zinc-500">Step {stepIndex + 1} of 2</div>
+                    <div className="text-xs text-zinc-500">Step {stepIndex + 1} of 3</div>
                     <div className="mt-2 flex items-center justify-end gap-2">
                       <div className="flex items-center gap-1" aria-label="Progress">
-                        {[0, 1].map((i) => {
+                        {[0, 1, 2].map((i) => {
                           const isDone = i < stepIndex;
                           const isNow = i === stepIndex;
                           return (
@@ -1171,6 +2077,255 @@ export default function NewJobPage() {
                       </div>
                     </FormRow>
                   </div>
+                ) : isStep2 ? (
+                  <div className="space-y-5">
+                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Services</div>
+                          <div className="mt-1 text-xs text-zinc-600">Add services for each selected device and adjust quantities/prices.</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              setServicePickerError(null);
+                              if (!servicePickerDevice && selectedJobDeviceOptions.length > 0) {
+                                setServicePickerDevice(selectedJobDeviceOptions[0]);
+                              }
+                              setServicePickerModalOpen(true);
+                            }}
+                          >
+                            Add service
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              setCreateServiceError(null);
+                              setCreateServiceModalOpen(true);
+                            }}
+                          >
+                            Create new service
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {jobServices.length > 0 ? (
+                      <div className="space-y-2">
+                        {jobServices.map((line) => {
+                          const deviceLabel =
+                            typeof line.device_id === "number"
+                              ? selectedJobDeviceOptions.find((o) => o.value === line.device_id)?.label ?? `Device #${line.device_id}`
+                              : "—";
+
+                          const qtyNum = Number(line.qty);
+                          const priceNum = Number(line.price);
+                          const total = (Number.isFinite(qtyNum) ? qtyNum : 0) * (Number.isFinite(priceNum) ? priceNum : 0);
+
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.service.name}</div>
+                                <div className="mt-1 text-xs text-zinc-600">
+                                  {deviceLabel}
+                                  <span className="mx-2">•</span>
+                                  Qty: {line.qty || "0"}
+                                  <span className="mx-2">•</span>
+                                  Price: {line.price || "0"}
+                                  <span className="mx-2">•</span>
+                                  Total: {Number.isFinite(total) ? total.toFixed(2) : "0.00"}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={disabled}
+                                  onClick={() => setJobServices((prev) => prev.filter((x) => x.id !== line.id))}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-zinc-600">No services added yet.</div>
+                    )}
+
+                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Parts</div>
+                          <div className="mt-1 text-xs text-zinc-600">Add parts for each selected device and adjust quantities/prices.</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              setPartPickerError(null);
+                              if (!partPickerDevice && selectedJobDeviceOptions.length > 0) {
+                                setPartPickerDevice(selectedJobDeviceOptions[0]);
+                              }
+                              setPartPickerModalOpen(true);
+                            }}
+                          >
+                            Add part
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              setCreatePartError(null);
+                              setCreatePartModalOpen(true);
+                            }}
+                          >
+                            Create new part
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {jobParts.length > 0 ? (
+                      <div className="space-y-2">
+                        {jobParts.map((line) => {
+                          const deviceLabel =
+                            typeof line.device_id === "number"
+                              ? selectedJobDeviceOptions.find((o) => o.value === line.device_id)?.label ?? `Device #${line.device_id}`
+                              : "—";
+
+                          const qtyNum = Number(line.qty);
+                          const priceNum = Number(line.price);
+                          const total = (Number.isFinite(qtyNum) ? qtyNum : 0) * (Number.isFinite(priceNum) ? priceNum : 0);
+
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.part.name}</div>
+                                <div className="mt-1 text-xs text-zinc-600">
+                                  {deviceLabel}
+                                  <span className="mx-2">•</span>
+                                  Qty: {line.qty || "0"}
+                                  <span className="mx-2">•</span>
+                                  Price: {line.price || "0"}
+                                  <span className="mx-2">•</span>
+                                  Total: {Number.isFinite(total) ? total.toFixed(2) : "0.00"}
+                                </div>
+                                {line.part.code || line.part.capacity ? (
+                                  <div className="mt-1 text-xs text-zinc-500">
+                                    {line.part.code ? `Code: ${line.part.code}` : null}
+                                    {line.part.code && line.part.capacity ? <span className="mx-2">•</span> : null}
+                                    {line.part.capacity ? `Capacity: ${line.part.capacity}` : null}
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={disabled}
+                                  onClick={() => setJobParts((prev) => prev.filter((x) => x.id !== line.id))}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-zinc-600">No parts added yet.</div>
+                    )}
+
+                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Attach Fields & Files</div>
+                          <div className="mt-1 text-xs text-zinc-600">Add extra fields and optionally attach a file.</div>
+                        </div>
+                        <div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              setExtraFieldError(null);
+                              setExtraFieldModalOpen(true);
+                            }}
+                          >
+                            Add extra field
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {extraFields.length > 0 ? (
+                      <div className="space-y-2">
+                        {extraFields.map((f) => (
+                          <div
+                            key={f.id}
+                            className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{f.label}</div>
+                              <div className="mt-1 text-xs text-zinc-600">
+                                {f.datetime ? f.datetime : "—"}
+                                <span className="mx-2">•</span>
+                                {f.visibility}
+                                {f.file ? (
+                                  <>
+                                    <span className="mx-2">•</span>
+                                    {f.file.name}
+                                  </>
+                                ) : null}
+                              </div>
+                              {f.description ? <div className="mt-1 text-xs text-zinc-500">{f.description}</div> : null}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={disabled}
+                                onClick={() => {
+                                  setExtraFields((prev) => prev.filter((x) => x.id !== f.id));
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-zinc-600">No extra fields added yet.</div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-5">
                     <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
@@ -1358,7 +2513,9 @@ export default function NewJobPage() {
                   <Button
                     variant="ghost"
                     disabled={disabled || isStep1}
-                    onClick={() => setStep(1)}
+                    onClick={() => {
+                      setStep((prev) => (prev === 3 ? 2 : 1));
+                    }}
                     type="button"
                   >
                     <span className="inline-flex items-center gap-2">
@@ -1380,13 +2537,20 @@ export default function NewJobPage() {
 
                   <div className="flex items-center gap-3">
                     <div className="hidden sm:block text-xs text-zinc-500">
-                      {isStep1 ? "Customer & devices" : "Job details"}
+                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Job details"}
                       <span className="mx-2">•</span>
                       {Math.round(progress * 100)}%
                     </div>
 
-                    {isStep1 ? (
-                      <Button variant="primary" disabled={disabled} onClick={() => setStep(2)} type="button">
+                    {!isStep3 ? (
+                      <Button
+                        variant="primary"
+                        disabled={disabled}
+                        onClick={() => {
+                          setStep((prev) => (prev === 1 ? 2 : 3));
+                        }}
+                        type="button"
+                      >
                         <span className="inline-flex items-center gap-2">
                           Next
                           <svg

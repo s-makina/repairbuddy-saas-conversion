@@ -82,7 +82,7 @@ class RepairBuddyServicePricingController extends Controller
 
         $resolvedTaxId = $override && is_numeric($override->tax_id)
             ? (int) $override->tax_id
-            : null;
+            : (is_numeric($service->tax_id) ? (int) $service->tax_id : null);
 
         $resolvedPrice = null;
         if ($resolvedPriceCents !== null && $resolvedCurrency !== null && $resolvedCurrency !== '') {
