@@ -134,7 +134,7 @@ class RepairBuddyJobAdminCreateParityTest extends TestCase
         ];
     }
 
-    public function test_admin_style_create_job_allows_minimal_payload_and_defaults_to_neworder(): void
+    public function test_admin_style_create_job_allows_minimal_payload_and_defaults_to_new(): void
     {
         $tenant = $this->createTenantWithActiveSubscription();
         $branchId = $this->createBranchForTenant($tenant);
@@ -157,7 +157,7 @@ class RepairBuddyJobAdminCreateParityTest extends TestCase
             ->postJson('/api/'.$tenant->slug.'/app/repairbuddy/jobs', []);
 
         $res->assertStatus(201);
-        $res->assertJsonPath('job.status', 'neworder');
+        $res->assertJsonPath('job.status', 'new');
 
         $jobId = $res->json('job.id');
         $this->assertIsInt($jobId);
@@ -165,7 +165,7 @@ class RepairBuddyJobAdminCreateParityTest extends TestCase
             'id' => $jobId,
             'tenant_id' => $tenant->id,
             'branch_id' => $branchId,
-            'status_slug' => 'neworder',
+            'status_slug' => 'new',
         ]);
     }
 

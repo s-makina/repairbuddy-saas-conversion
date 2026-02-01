@@ -142,11 +142,11 @@ class RepairBuddyJobController extends Controller
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
             ? $validated['status_slug']
-            : 'neworder';
+            : 'new';
 
         $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
-        if (! $statusExists && $statusSlug === 'neworder') {
-            $statusSlug = 'new';
+        if (! $statusExists && $statusSlug === 'new') {
+            $statusSlug = 'neworder';
             $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
         }
 
@@ -722,13 +722,30 @@ class RepairBuddyJobController extends Controller
     private function generateCaseNumber(): string
     {
         $branch = $this->branch();
+        $tenant = $this->tenant();
 
-        $prefix = is_string($branch->rb_case_prefix) ? trim((string) $branch->rb_case_prefix) : '';
-        if ($prefix === '') {
-            $prefix = 'WC_';
+        $settings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');
+        if (! is_array($settings)) {
+            $settings = [];
         }
 
-        $length = is_numeric($branch->rb_case_digits) ? (int) $branch->rb_case_digits : 6;
+        $general = [];
+        if (array_key_exists('general', $settings) && is_array($settings['general'])) {
+            $general = $settings['general'];
+        }
+
+        $prefix = is_string($general['caseNumberPrefix'] ?? null) ? trim((string) $general['caseNumberPrefix']) : '';
+        if ($prefix === '') {
+            $prefix = is_string($branch->rb_case_prefix) ? trim((string) $branch->rb_case_prefix) : '';
+        }
+        if ($prefix === '') {
+            $prefix = 'RB';
+        }
+
+        $length = is_numeric($general['caseNumberLength'] ?? null) ? (int) $general['caseNumberLength'] : 0;
+        if ($length <= 0) {
+            $length = is_numeric($branch->rb_case_digits) ? (int) $branch->rb_case_digits : 6;
+        }
         $length = max(1, min(32, $length));
 
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

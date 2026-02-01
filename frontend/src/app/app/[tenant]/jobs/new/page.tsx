@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Select, { type MultiValue } from "react-select";
+import Select from "react-select";
 import AsyncSelect from "react-select/async";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FormRow } from "@/components/ui/FormRow";
+import { Modal } from "@/components/ui/Modal";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { getRepairBuddySettings } from "@/lib/repairbuddy-settings";
@@ -51,8 +52,8 @@ type DeviceOption = {
 };
 
 type NewJobDeviceDraft = {
-  device_id: number;
-  option: DeviceOption;
+  device_id: number | null;
+  option: DeviceOption | null;
   serial: string;
   pin: string;
   notes: string;
@@ -98,9 +99,22 @@ export default function NewJobPage() {
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
+  const defaultCaseNumber = useMemo(() => {
+    const now = new Date();
+    const yyyy = String(now.getFullYear());
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const min = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `RB-${yyyy}${mm}${dd}-${hh}${min}${ss}`;
+  }, []);
+
   const [loadingLookups, setLoadingLookups] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [step, setStep] = useState<1 | 2>(1);
 
   const [title, setTitle] = useState("");
   const [statusSlug, setStatusSlug] = useState<string>("");
@@ -121,13 +135,8 @@ export default function NewJobPage() {
   const [customerCreateAddressPostalCode, setCustomerCreateAddressPostalCode] = useState("");
   const [customerCreateAddressCountry, setCustomerCreateAddressCountry] = useState("");
 
-  const [deviceId, setDeviceId] = useState<number | null>(null);
-  const [deviceOption, setDeviceOption] = useState<DeviceOption | null>(null);
-  const [deviceIdText, setDeviceIdText] = useState<string>("");
-
-  const [deviceAddId, setDeviceAddId] = useState<number | null>(null);
-  const [deviceAddOption, setDeviceAddOption] = useState<DeviceOption | null>(null);
-  const [deviceAddSerial, setDeviceAddSerial] = useState<string>("");
+  const [customerCreateOpen, setCustomerCreateOpen] = useState(false);
+  const [customerCreateError, setCustomerCreateError] = useState<string | null>(null);
 
   const [jobDevicesAdmin, setJobDevicesAdmin] = useState<NewJobDeviceDraft[]>([]);
 
@@ -152,6 +161,13 @@ export default function NewJobPage() {
   const [customerDevices, setCustomerDevices] = useState<ApiCustomerDevice[]>([]);
   const [nextServiceEnabled, setNextServiceEnabled] = useState(false);
   const [devices, setDevices] = useState<ApiDevice[]>([]);
+
+  const [technicianCreateOpen, setTechnicianCreateOpen] = useState(false);
+  const [technicianCreateError, setTechnicianCreateError] = useState<string | null>(null);
+  const [technicianCreateName, setTechnicianCreateName] = useState("");
+  const [technicianCreateEmail, setTechnicianCreateEmail] = useState("");
+  const [technicianOption, setTechnicianOption] = useState<TechnicianOption | null>(null);
+  const [technicianMode, setTechnicianMode] = useState<"existing" | "new">("existing");
 
   useEffect(() => {
     let alive = true;
@@ -178,7 +194,7 @@ export default function NewJobPage() {
 
         try {
           const devicesRes = await apiFetch<{ devices: ApiDevice[] }>(
-            `/api/${tenantSlug}/app/repairbuddy/devices?limit=200&for_booking=true`,
+            `/api/${tenantSlug}/app/repairbuddy/devices?limit=5000&for_booking=true`,
           );
           if (!alive) return;
           setDevices(Array.isArray(devicesRes.devices) ? devicesRes.devices : []);
@@ -208,7 +224,7 @@ export default function NewJobPage() {
         }
 
         const preferredStatus =
-          nextStatuses.find((s) => s.slug === "neworder")?.slug ?? nextStatuses.find((s) => s.slug === "new")?.slug;
+          nextStatuses.find((s) => s.slug === "new")?.slug ?? nextStatuses.find((s) => s.slug === "neworder")?.slug;
         setStatusSlug(preferredStatus ?? (nextStatuses.length > 0 ? nextStatuses[0].slug : ""));
         setPaymentStatusSlug("");
 
@@ -241,6 +257,10 @@ export default function NewJobPage() {
       alive = false;
     };
   }, [tenantSlug]);
+
+  useEffect(() => {
+    setCaseNumber((prev) => (prev.trim() === "" ? defaultCaseNumber : prev));
+  }, [defaultCaseNumber]);
 
   const loadDeviceOptions = async (inputValue: string): Promise<DeviceOption[]> => {
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return [];
@@ -302,6 +322,11 @@ export default function NewJobPage() {
     const set = new Set(assignedTechnicianIds);
     return technicianOptions.filter((o) => set.has(o.value));
   }, [assignedTechnicianIds, technicianOptions]);
+
+  const selectedTechnicianOption = useMemo<TechnicianOption | null>(() => {
+    if (technicianMode === "new") return technicianOption;
+    return selectedTechnicianOptions.length > 0 ? selectedTechnicianOptions[0] : null;
+  }, [selectedTechnicianOptions, technicianMode, technicianOption]);
 
   const customerDeviceOptions = useMemo<CustomerDeviceOption[]>(() => {
     return customerDevices
@@ -406,8 +431,13 @@ export default function NewJobPage() {
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
     if (busy) return;
 
-    setBusy(true);
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+
     setError(null);
+    setBusy(true);
 
     try {
       const shouldCreateCustomer = customerMode === "new";
@@ -428,8 +458,10 @@ export default function NewJobPage() {
       const payload = {
         devices:
           jobDevicesAdmin.length > 0
-            ? jobDevicesAdmin.map((d) => ({
-                device_id: d.device_id,
+            ? jobDevicesAdmin
+                .filter((d) => typeof d.device_id === "number")
+                .map((d) => ({
+                device_id: d.device_id as number,
                 serial: d.serial.trim() !== "" ? d.serial.trim() : null,
                 pin: d.pin.trim() !== "" ? d.pin.trim() : null,
                 notes: d.notes.trim() !== "" ? d.notes.trim() : null,
@@ -506,6 +538,8 @@ export default function NewJobPage() {
   }
 
   const disabled = busy || loadingLookups;
+  const isStep1 = step === 1;
+  const isStep2 = step === 2;
 
   return (
     <RequireAuth requiredPermission="jobs.view">
@@ -526,112 +560,446 @@ export default function NewJobPage() {
               >
                 Cancel
               </Button>
-              <Button variant="primary" size="sm" type="submit" form="rb_job_new_form" disabled={disabled}>
-                {busy ? "Saving..." : "Save"}
-              </Button>
+              {isStep2 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setStep(1);
+                  }}
+                >
+                  Back
+                </Button>
+              ) : null}
+              {isStep1 ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setStep(2);
+                  }}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button variant="primary" size="sm" type="submit" form="rb_job_new_form" disabled={disabled}>
+                  {busy ? "Saving..." : "Save"}
+                </Button>
+              )}
             </>
           }
         />
 
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <form id="rb_job_new_form" className="space-y-4" onSubmit={onSubmit}>
-              <div className="rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white p-3">
-                <div className="mb-2 text-sm font-medium text-[var(--rb-text)]">Job devices (admin-style)</div>
+        <Modal
+          open={customerCreateOpen}
+          title="Add customer"
+          onClose={() => {
+            setCustomerCreateError(null);
+            setCustomerCreateOpen(false);
+          }}
+          className="max-w-3xl"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCustomerCreateError(null);
+                  setCustomerCreateOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const name = customerCreateName.trim();
+                  const email = customerCreateEmail.trim();
+                  if (name === "") {
+                    setCustomerCreateError("Customer name is required.");
+                    return;
+                  }
+                  if (email === "") {
+                    setCustomerCreateError("Customer email is required.");
+                    return;
+                  }
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                  <div className="md:col-span-2">
-                    <div className="mb-1 text-xs text-zinc-600">Device model</div>
-                    <AsyncSelect
-                      inputId="job_device_add"
-                      instanceId="job_device_add"
-                      cacheOptions
-                      defaultOptions={deviceOptions}
-                      loadOptions={loadDeviceOptions}
-                      isClearable
-                      isSearchable
-                      value={deviceAddOption}
-                      onChange={(opt) => {
-                        const next = (opt as DeviceOption | null) ?? null;
-                        setDeviceAddOption(next);
-                        setDeviceAddId(typeof next?.value === "number" ? next.value : null);
-                      }}
-                      isDisabled={disabled}
-                      placeholder="Search devices..."
-                      classNamePrefix="rb-select"
-                      styles={{
-                        control: (base) => ({
-                          ...base,
-                          borderRadius: "var(--rb-radius-sm)",
-                          borderColor: "#d4d4d8",
-                          minHeight: 40,
-                          boxShadow: "none",
-                        }),
-                        menu: (base) => ({
-                          ...base,
-                          zIndex: 50,
-                        }),
-                      }}
+                  setCustomerCreateError(null);
+
+                  setCustomerMode("new");
+                  setCustomerId(null);
+                  setCustomerOption({ value: -1, label: `${name} (${email})` });
+                  setJobDevices([]);
+
+                  setCustomerCreateOpen(false);
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {customerCreateError ? <div className="text-sm text-red-600">{customerCreateError}</div> : null}
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Name</div>
+                <Input value={customerCreateName} onChange={(e) => setCustomerCreateName(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Email</div>
+                <Input value={customerCreateEmail} onChange={(e) => setCustomerCreateEmail(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Phone</div>
+                <Input value={customerCreatePhone} onChange={(e) => setCustomerCreatePhone(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Company</div>
+                <Input value={customerCreateCompany} onChange={(e) => setCustomerCreateCompany(e.target.value)} />
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="mb-1 text-xs text-zinc-600">Address line 1</div>
+                <Input value={customerCreateAddressLine1} onChange={(e) => setCustomerCreateAddressLine1(e.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <div className="mb-1 text-xs text-zinc-600">Address line 2</div>
+                <Input value={customerCreateAddressLine2} onChange={(e) => setCustomerCreateAddressLine2(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">City</div>
+                <Input value={customerCreateAddressCity} onChange={(e) => setCustomerCreateAddressCity(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">State</div>
+                <Input value={customerCreateAddressState} onChange={(e) => setCustomerCreateAddressState(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Postal code</div>
+                <Input
+                  value={customerCreateAddressPostalCode}
+                  onChange={(e) => setCustomerCreateAddressPostalCode(e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Country (2-letter)</div>
+                <Input value={customerCreateAddressCountry} onChange={(e) => setCustomerCreateAddressCountry(e.target.value)} placeholder="US" />
+              </div>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          open={technicianCreateOpen}
+          title="Add technician"
+          onClose={() => {
+            setTechnicianCreateError(null);
+            setTechnicianCreateOpen(false);
+          }}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTechnicianCreateError(null);
+                  setTechnicianCreateOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const name = technicianCreateName.trim();
+                  const email = technicianCreateEmail.trim();
+                  if (name === "") {
+                    setTechnicianCreateError("Technician name is required.");
+                    return;
+                  }
+                  if (email === "") {
+                    setTechnicianCreateError("Technician email is required.");
+                    return;
+                  }
+
+                  setTechnicianCreateError(null);
+                  setTechnicianMode("new");
+                  setTechnicianOption({ value: -1, label: `${name} (${email})` });
+                  setAssignedTechnicianIds([]);
+                  setTechnicianCreateOpen(false);
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {technicianCreateError ? <div className="text-sm text-red-600">{technicianCreateError}</div> : null}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Name</div>
+                <Input value={technicianCreateName} onChange={(e) => setTechnicianCreateName(e.target.value)} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-zinc-600">Email</div>
+                <Input value={technicianCreateEmail} onChange={(e) => setTechnicianCreateEmail(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </Modal>
+
+        <form id="rb_job_new_form" className="space-y-6" onSubmit={onSubmit}>
+          <div className="flex items-center justify-between rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white px-4 py-3">
+            <div className="text-sm font-medium text-[var(--rb-text)]">Step {step} of 2</div>
+            <div className="text-sm text-zinc-600">
+              {isStep1 ? "Customer & devices" : "Job details"}
+            </div>
+          </div>
+
+          {isStep1 ? (
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <div className="space-y-5">
+                  <FormRow label="Case number" fieldId="job_case_number">
+                    <Input
+                      id="job_case_number"
+                      value={caseNumber}
+                      onChange={(e) => setCaseNumber(e.target.value)}
+                      disabled={disabled}
                     />
+                  </FormRow>
+
+                <FormRow label="Dates" fieldId="job_dates">
+                  <div
+                    className={
+                      nextServiceEnabled
+                        ? "grid grid-cols-1 gap-3 md:grid-cols-3"
+                        : "grid grid-cols-1 gap-3 md:grid-cols-2"
+                    }
+                  >
+                    <div>
+                      <div className="mb-1 text-xs text-zinc-600">Pickup date</div>
+                      <Input
+                        id="job_pickup_date"
+                        type="date"
+                        value={pickupDate}
+                        onChange={(e) => setPickupDate(e.target.value)}
+                        disabled={disabled}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="mb-1 text-xs text-zinc-600">Delivery date</div>
+                      <Input
+                        id="job_delivery_date"
+                        type="date"
+                        value={deliveryDate}
+                        onChange={(e) => setDeliveryDate(e.target.value)}
+                        disabled={disabled}
+                      />
+                    </div>
+
+                    {nextServiceEnabled ? (
+                      <div>
+                        <div className="mb-1 text-xs text-zinc-600">Next service date</div>
+                        <Input
+                          id="job_next_service_date"
+                          type="date"
+                          value={nextServiceDate}
+                          onChange={(e) => setNextServiceDate(e.target.value)}
+                          disabled={disabled}
+                        />
+                      </div>
+                    ) : null}
                   </div>
-                  <div>
-                    <div className="mb-1 text-xs text-zinc-600">ID/IMEI</div>
-                    <Input value={deviceAddSerial} onChange={(e) => setDeviceAddSerial(e.target.value)} disabled={disabled} />
-                  </div>
-                  <div className="flex items-end">
+                </FormRow>
+
+              <FormRow label="Customer" fieldId="job_customer">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <AsyncSelect
+                        inputId="job_customer"
+                        instanceId="job_customer"
+                        cacheOptions
+                        defaultOptions={clientOptions}
+                        loadOptions={loadCustomerOptions}
+                        isClearable
+                        isSearchable
+                        value={customerOption}
+                        onChange={(opt) => {
+                          const next = (opt as CustomerOption | null) ?? null;
+                          setCustomerMode("existing");
+                          setCustomerOption(next);
+                          setCustomerId(typeof next?.value === "number" && next.value > 0 ? next.value : null);
+                          setJobDevices([]);
+                        }}
+                        isDisabled={disabled}
+                        placeholder="Search customers..."
+                        classNamePrefix="rb-select"
+                        styles={{
+                          control: (base) => ({
+                            ...base,
+                            borderRadius: "var(--rb-radius-sm)",
+                            borderColor: "#d4d4d8",
+                            minHeight: 40,
+                            boxShadow: "none",
+                          }),
+                          menu: (base) => ({
+                            ...base,
+                            zIndex: 50,
+                          }),
+                        }}
+                      />
+                    </div>
+
                     <Button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={disabled || typeof deviceAddId !== "number" || !deviceAddOption}
+                      variant="primary"
+                      size="md"
+                      className="w-10 px-0"
+                      disabled={disabled}
                       onClick={() => {
-                        if (typeof deviceAddId !== "number" || !deviceAddOption) return;
-
-                        const next: NewJobDeviceDraft = {
-                          device_id: deviceAddId,
-                          option: deviceAddOption,
-                          serial: deviceAddSerial,
-                          pin: "",
-                          notes: "",
-                        };
-
-                        setJobDevicesAdmin((prev) => {
-                          const combined = [...prev, next];
-                          return combined;
-                        });
-
-                        setDeviceAddId(null);
-                        setDeviceAddOption(null);
-                        setDeviceAddSerial("");
+                        setCustomerCreateError(null);
+                        setCustomerCreateOpen(true);
                       }}
                     >
-                      Add
+                      +
                     </Button>
                   </div>
+
+                  {customerMode === "new" ? (
+                    <div className="text-xs text-zinc-600">This job will create a new customer.</div>
+                  ) : null}
                 </div>
+              </FormRow>
 
-                {jobDevicesAdmin.length > 0 ? (
-                  <div className="mt-3 space-y-3">
-                    {jobDevicesAdmin.map((d, idx) => (
-                      <div key={`${d.device_id}-${idx}`} className="rounded-[var(--rb-radius-sm)] border border-zinc-200 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="text-sm font-medium text-[var(--rb-text)]">{d.option.label}</div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={disabled}
-                            onClick={() => setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx))}
-                          >
-                            Remove
-                          </Button>
-                        </div>
+              <FormRow label="Technician" fieldId="job_technician">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Select
+                        inputId="job_technician"
+                        instanceId="job_technician"
+                        isSearchable
+                        isClearable
+                        options={technicianOptions}
+                        value={selectedTechnicianOption}
+                        onChange={(opt) => {
+                          const next = (opt as TechnicianOption | null) ?? null;
+                          setTechnicianMode("existing");
+                          setTechnicianOption(null);
+                          setAssignedTechnicianIds(typeof next?.value === "number" && next.value > 0 ? [next.value] : []);
+                        }}
+                        isDisabled={disabled || technicianOptions.length === 0}
+                        placeholder={technicianOptions.length > 0 ? "Select technician..." : "No technicians available"}
+                        classNamePrefix="rb-select"
+                        styles={{
+                          control: (base) => ({
+                            ...base,
+                            borderRadius: "var(--rb-radius-sm)",
+                            borderColor: "#d4d4d8",
+                            minHeight: 40,
+                            boxShadow: "none",
+                          }),
+                          menu: (base) => ({
+                            ...base,
+                            zIndex: 50,
+                          }),
+                        }}
+                      />
+                    </div>
 
-                        <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="md"
+                      className="w-10 px-0"
+                      disabled={disabled}
+                      onClick={() => {
+                        setTechnicianCreateError(null);
+                        setTechnicianCreateOpen(true);
+                      }}
+                    >
+                      +
+                    </Button>
+                  </div>
+
+                  {technicianMode === "new" ? (
+                    <div className="text-xs text-zinc-600">This job will create a new technician.</div>
+                  ) : null}
+                </div>
+              </FormRow>
+
+              <FormRow label="Job description" fieldId="job_case_detail">
+                <textarea
+                  id="job_case_detail"
+                  value={caseDetail}
+                  onChange={(e) => setCaseDetail(e.target.value)}
+                  disabled={disabled}
+                  rows={4}
+                  placeholder="Enter job description."
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                />
+              </FormRow>
+
+              <FormRow label="Add devices to this job" fieldId="job_devices_admin">
+                <div className="space-y-4">
+                  <div className="rounded-[var(--rb-radius-sm)] border border-dashed border-zinc-300 bg-white p-3">
+                    <div className="grid grid-cols-1 gap-3">
+                      {jobDevicesAdmin.map((d, idx) => (
+                        <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_1fr_auto] md:items-end">
                           <div>
-                            <div className="mb-1 text-xs text-zinc-600">ID/IMEI</div>
+                            <div className="mb-1 text-xs text-zinc-600">Device</div>
+                            <AsyncSelect
+                              inputId={`job_device_${idx}`}
+                              instanceId={`job_device_${idx}`}
+                              cacheOptions
+                              defaultOptions={deviceOptions}
+                              loadOptions={loadDeviceOptions}
+                              isClearable
+                              isSearchable
+                              value={d.option}
+                              onChange={(opt) => {
+                                const next = (opt as DeviceOption | null) ?? null;
+                                setJobDevicesAdmin((prev) =>
+                                  prev.map((x, i) =>
+                                    i === idx
+                                      ? {
+                                          ...x,
+                                          option: next,
+                                          device_id: typeof next?.value === "number" ? next.value : null,
+                                        }
+                                      : x,
+                                  ),
+                                );
+                              }}
+                              isDisabled={disabled}
+                              placeholder="Search devices..."
+                              classNamePrefix="rb-select"
+                              styles={{
+                                control: (base) => ({
+                                  ...base,
+                                  borderRadius: "var(--rb-radius-sm)",
+                                  borderColor: "#d4d4d8",
+                                  minHeight: 40,
+                                  boxShadow: "none",
+                                }),
+                                menu: (base) => ({
+                                  ...base,
+                                  zIndex: 50,
+                                }),
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
                             <Input
                               value={d.serial}
                               onChange={(e) => {
@@ -641,19 +1009,9 @@ export default function NewJobPage() {
                               disabled={disabled}
                             />
                           </div>
+
                           <div>
-                            <div className="mb-1 text-xs text-zinc-600">Pin</div>
-                            <Input
-                              value={d.pin}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, pin: v } : x)));
-                              }}
-                              disabled={disabled}
-                            />
-                          </div>
-                          <div>
-                            <div className="mb-1 text-xs text-zinc-600">Note</div>
+                            <div className="mb-1 text-xs text-zinc-600">Device note</div>
                             <Input
                               value={d.notes}
                               onChange={(e) => {
@@ -663,225 +1021,93 @@ export default function NewJobPage() {
                               disabled={disabled}
                             />
                           </div>
+
+                          <div className="flex md:justify-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="md"
+                              className="h-10 w-10 px-0"
+                              disabled={disabled}
+                              onClick={() => setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx))}
+                              aria-label="Remove device"
+                              title="Remove device"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="M6 6l1 16h10l1-16" />
+                                <path d="M10 11v6" />
+                                <path d="M14 11v6" />
+                              </svg>
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-3 text-sm text-zinc-600">No devices added.</div>
-                )}
-              </div>
-
-              <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
-                <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
-              </FormRow>
-
-              <FormRow label="Case number" fieldId="job_case_number" description="Leave blank to auto-generate.">
-                <Input
-                  id="job_case_number"
-                  value={caseNumber}
-                  onChange={(e) => setCaseNumber(e.target.value)}
-                  disabled={disabled}
-                  placeholder="(auto)"
-                />
-              </FormRow>
-
-              <FormRow label="Customer" fieldId="job_customer">
-                <div className="space-y-3">
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
-                      <input
-                        type="radio"
-                        name="customer_mode"
-                        value="existing"
-                        checked={customerMode === "existing"}
-                        onChange={() => setCustomerMode("existing")}
-                        disabled={disabled}
-                      />
-                      Existing
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
-                      <input
-                        type="radio"
-                        name="customer_mode"
-                        value="new"
-                        checked={customerMode === "new"}
-                        onChange={() => {
-                          setCustomerMode("new");
-                          setCustomerOption(null);
-                          setCustomerId(null);
-                          setJobDevices([]);
-                        }}
-                        disabled={disabled}
-                      />
-                      New
-                    </label>
-                  </div>
-
-                  {customerMode === "existing" ? (
-                    <AsyncSelect
-                      inputId="job_customer"
-                      instanceId="job_customer"
-                      cacheOptions
-                      defaultOptions={clientOptions}
-                      loadOptions={loadCustomerOptions}
-                      isClearable
-                      isSearchable
-                      value={customerOption}
-                      onChange={(opt) => {
-                        const next = (opt as CustomerOption | null) ?? null;
-                        setCustomerOption(next);
-                        setCustomerId(typeof next?.value === "number" ? next.value : null);
-                        setJobDevices([]);
-                      }}
-                      isDisabled={disabled}
-                      placeholder="Search customers..."
-                      classNamePrefix="rb-select"
-                      styles={{
-                        control: (base) => ({
-                          ...base,
-                          borderRadius: "var(--rb-radius-sm)",
-                          borderColor: "#d4d4d8",
-                          minHeight: 40,
-                          boxShadow: "none",
-                        }),
-                        menu: (base) => ({
-                          ...base,
-                          zIndex: 50,
-                        }),
-                      }}
-                    />
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Name</div>
-                        <Input value={customerCreateName} onChange={(e) => setCustomerCreateName(e.target.value)} disabled={disabled} />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Email</div>
-                        <Input
-                          value={customerCreateEmail}
-                          onChange={(e) => setCustomerCreateEmail(e.target.value)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Phone</div>
-                        <Input value={customerCreatePhone} onChange={(e) => setCustomerCreatePhone(e.target.value)} disabled={disabled} />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Company</div>
-                        <Input value={customerCreateCompany} onChange={(e) => setCustomerCreateCompany(e.target.value)} disabled={disabled} />
-                      </div>
-                      <div className="md:col-span-2">
-                        <div className="mb-1 text-xs text-zinc-600">Address line 1</div>
-                        <Input
-                          value={customerCreateAddressLine1}
-                          onChange={(e) => setCustomerCreateAddressLine1(e.target.value)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <div className="mb-1 text-xs text-zinc-600">Address line 2</div>
-                        <Input
-                          value={customerCreateAddressLine2}
-                          onChange={(e) => setCustomerCreateAddressLine2(e.target.value)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">City</div>
-                        <Input
-                          value={customerCreateAddressCity}
-                          onChange={(e) => setCustomerCreateAddressCity(e.target.value)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">State</div>
-                        <Input
-                          value={customerCreateAddressState}
-                          onChange={(e) => setCustomerCreateAddressState(e.target.value)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Postal code</div>
-                        <Input
-                          value={customerCreateAddressPostalCode}
-                          onChange={(e) => setCustomerCreateAddressPostalCode(e.target.value)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Country (2-letter)</div>
-                        <Input
-                          value={customerCreateAddressCountry}
-                          onChange={(e) => setCustomerCreateAddressCountry(e.target.value)}
-                          disabled={disabled}
-                          placeholder="US"
-                        />
-                      </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={disabled}
+                      onClick={() => {
+                        setJobDevicesAdmin((prev) => [
+                          ...prev,
+                          {
+                            device_id: null,
+                            option: null,
+                            serial: "",
+                            pin: "",
+                            notes: "",
+                          },
+                        ]);
+                      }}
+                    >
+                      Add device
+                    </Button>
+                  </div>
                 </div>
               </FormRow>
+              </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
-              <FormRow
-                label="Assigned technicians"
-                fieldId="job_technicians"
-                description={
-                  sortedTechnicians.length > 0
-                    ? `Selected: ${assignedTechnicianIds.length}`
-                    : "No technicians available"
-                }
-              >
-                <Select
-                  inputId="job_technicians"
-                  instanceId="job_technicians"
-                  isMulti
-                  isSearchable
-                  isClearable
-                  options={technicianOptions}
-                  value={selectedTechnicianOptions}
-                  onChange={(values: MultiValue<TechnicianOption>) => {
-                    const nextIds = values.map((v) => v.value);
-                    setAssignedTechnicianIds(nextIds);
-                  }}
-                  isDisabled={disabled || technicianOptions.length === 0}
-                  placeholder={technicianOptions.length > 0 ? "Select technicians..." : "No technicians available"}
-                  classNamePrefix="rb-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      borderRadius: "var(--rb-radius-sm)",
-                      borderColor: "#d4d4d8",
-                      minHeight: 40,
-                      boxShadow: "none",
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 50,
-                    }),
-                  }}
-                />
-              </FormRow>
+          {isStep2 ? (
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <div className="space-y-5">
+                  <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
+                    <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
+                  </FormRow>
 
-              <FormRow label="Status" fieldId="job_status" required>
-                <select
-                  id="job_status"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                  value={statusSlug}
-                  onChange={(e) => setStatusSlug(e.target.value)}
-                  disabled={disabled || statuses.length === 0}
-                >
-                  {statuses.map((s) => (
-                    <option key={s.slug} value={s.slug}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </FormRow>
+                  <FormRow label="Status" fieldId="job_status" required>
+                    <select
+                      id="job_status"
+                      className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                      value={statusSlug}
+                      onChange={(e) => setStatusSlug(e.target.value)}
+                      disabled={disabled || statuses.length === 0}
+                    >
+                      {statuses.map((s) => (
+                        <option key={s.slug} value={s.slug}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormRow>
 
               <FormRow label="Payment status" fieldId="job_payment">
                 <select
@@ -914,38 +1140,6 @@ export default function NewJobPage() {
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
                 </select>
-              </FormRow>
-
-              <FormRow label="Pickup date" fieldId="job_pickup_date">
-                <Input id="job_pickup_date" type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} disabled={disabled} />
-              </FormRow>
-
-              <FormRow label="Delivery date" fieldId="job_delivery_date">
-                <Input id="job_delivery_date" type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} disabled={disabled} />
-              </FormRow>
-
-              {nextServiceEnabled ? (
-                <FormRow label="Next service date" fieldId="job_next_service_date">
-                  <Input
-                    id="job_next_service_date"
-                    type="date"
-                    value={nextServiceDate}
-                    onChange={(e) => setNextServiceDate(e.target.value)}
-                    disabled={disabled}
-                  />
-                </FormRow>
-              ) : null}
-
-              <FormRow label="Job details" fieldId="job_case_detail">
-                <textarea
-                  id="job_case_detail"
-                  value={caseDetail}
-                  onChange={(e) => setCaseDetail(e.target.value)}
-                  disabled={disabled}
-                  rows={4}
-                  placeholder="Enter details about job."
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                />
               </FormRow>
 
               <FormRow label="Order note" fieldId="job_order_note" description="Visible to customer.">
@@ -1071,9 +1265,47 @@ export default function NewJobPage() {
                   </div>
                 ) : null}
               </FormRow>
-            </form>
-          </CardContent>
-        </Card>
+              </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <div className="flex items-center justify-between">
+            <div>
+              {isStep2 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={disabled}
+                  onClick={() => {
+                    setStep(1);
+                  }}
+                >
+                  Back
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isStep1 ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={disabled}
+                  onClick={() => {
+                    setStep(2);
+                  }}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button type="submit" variant="primary" disabled={disabled}>
+                  {busy ? "Saving..." : "Save"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </form>
       </div>
     </RequireAuth>
   );
