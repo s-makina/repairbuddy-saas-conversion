@@ -7,7 +7,7 @@ import AsyncSelect from "react-select/async";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FormRow } from "@/components/ui/FormRow";
@@ -540,6 +540,8 @@ export default function NewJobPage() {
   const disabled = busy || loadingLookups;
   const isStep1 = step === 1;
   const isStep2 = step === 2;
+  const stepIndex = step === 1 ? 0 : 1;
+  const progress = stepIndex;
 
   return (
     <RequireAuth requiredPermission="jobs.view">
@@ -560,36 +562,6 @@ export default function NewJobPage() {
               >
                 Cancel
               </Button>
-              {isStep2 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    setStep(1);
-                  }}
-                >
-                  Back
-                </Button>
-              ) : null}
-              {isStep1 ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    setStep(2);
-                  }}
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button variant="primary" size="sm" type="submit" form="rb_job_new_form" disabled={disabled}>
-                  {busy ? "Saving..." : "Save"}
-                </Button>
-              )}
             </>
           }
         />
@@ -754,233 +726,211 @@ export default function NewJobPage() {
         </Modal>
 
         <form id="rb_job_new_form" className="space-y-6" onSubmit={onSubmit}>
-          <div className="flex items-center justify-between rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white px-4 py-3">
-            <div className="text-sm font-medium text-[var(--rb-text)]">Step {step} of 2</div>
-            <div className="text-sm text-zinc-600">
-              {isStep1 ? "Customer & devices" : "Job details"}
-            </div>
-          </div>
-
-          {isStep1 ? (
-            <Card className="shadow-none">
-              <CardContent className="pt-5">
-                <div className="space-y-5">
-                  <FormRow label="Case number" fieldId="job_case_number">
-                    <Input
-                      id="job_case_number"
-                      value={caseNumber}
-                      onChange={(e) => setCaseNumber(e.target.value)}
-                      disabled={disabled}
-                    />
-                  </FormRow>
-
-                <FormRow label="Dates" fieldId="job_dates">
+          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+            <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Job steps</CardTitle>
+                <CardDescription>Complete the steps to create the job.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--rb-border)]">
                   <div
-                    className={
-                      nextServiceEnabled
-                        ? "grid grid-cols-1 gap-3 md:grid-cols-3"
-                        : "grid grid-cols-1 gap-3 md:grid-cols-2"
-                    }
-                  >
-                    <div>
-                      <div className="mb-1 text-xs text-zinc-600">Pickup date</div>
-                      <Input
-                        id="job_pickup_date"
-                        type="date"
-                        value={pickupDate}
-                        onChange={(e) => setPickupDate(e.target.value)}
-                        disabled={disabled}
-                      />
-                    </div>
+                    className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </div>
 
-                    <div>
-                      <div className="mb-1 text-xs text-zinc-600">Delivery date</div>
-                      <Input
-                        id="job_delivery_date"
-                        type="date"
-                        value={deliveryDate}
-                        onChange={(e) => setDeliveryDate(e.target.value)}
-                        disabled={disabled}
-                      />
-                    </div>
+                <nav aria-label="Job steps" className="space-y-1">
+                  {[1, 2].map((s, idx) => {
+                    const isCurrent = s === step;
+                    const isCompleted = idx < stepIndex;
+                    const isAvailable = idx <= stepIndex;
 
-                    {nextServiceEnabled ? (
-                      <div>
-                        <div className="mb-1 text-xs text-zinc-600">Next service date</div>
-                        <Input
-                          id="job_next_service_date"
-                          type="date"
-                          value={nextServiceDate}
-                          onChange={(e) => setNextServiceDate(e.target.value)}
-                          disabled={disabled}
-                        />
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        disabled={!isAvailable || disabled}
+                        onClick={() => {
+                          if (!isAvailable) return;
+                          setError(null);
+                          setStep(s as 1 | 2);
+                        }}
+                        className={
+                          "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
+                          (isCurrent
+                            ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
+                            : isCompleted
+                              ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
+                              : "border-[var(--rb-border)] bg-white opacity-60")
+                        }
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
+                              (isCurrent
+                                ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
+                                : isCompleted
+                                  ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
+                                  : "border-[var(--rb-border)] bg-white text-zinc-600")
+                            }
+                          >
+                            {isCompleted ? (
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            ) : (
+                              idx + 1
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">
+                              {s === 1 ? "Customer & devices" : "Job details"}
+                            </div>
+                            <div className="mt-0.5 line-clamp-2 text-xs text-zinc-600">
+                              {s === 1
+                                ? "Case, dates, customer, technician, description, devices."
+                                : "Status, payment, priority, attachments, customer devices."}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-none flex flex-col">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-base">{isStep1 ? "Customer & devices" : "Job details"}</CardTitle>
+                    <CardDescription>
+                      {isStep1
+                        ? "Enter the customer, technician, description and devices."
+                        : "Finalize status, priority, attachments and other details."}
+                    </CardDescription>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-zinc-500">Step {stepIndex + 1} of 2</div>
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <div className="flex items-center gap-1" aria-label="Progress">
+                        {[0, 1].map((i) => {
+                          const isDone = i < stepIndex;
+                          const isNow = i === stepIndex;
+                          return (
+                            <span
+                              key={i}
+                              className={
+                                "h-1.5 w-5 rounded-full transition " +
+                                (isNow
+                                  ? "bg-[var(--rb-blue)]"
+                                  : isDone
+                                    ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
+                                    : "bg-[var(--rb-border)]")
+                              }
+                            />
+                          );
+                        })}
                       </div>
-                    ) : null}
-                  </div>
-                </FormRow>
-
-              <FormRow label="Customer" fieldId="job_customer">
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <AsyncSelect
-                        inputId="job_customer"
-                        instanceId="job_customer"
-                        cacheOptions
-                        defaultOptions={clientOptions}
-                        loadOptions={loadCustomerOptions}
-                        isClearable
-                        isSearchable
-                        value={customerOption}
-                        onChange={(opt) => {
-                          const next = (opt as CustomerOption | null) ?? null;
-                          setCustomerMode("existing");
-                          setCustomerOption(next);
-                          setCustomerId(typeof next?.value === "number" && next.value > 0 ? next.value : null);
-                          setJobDevices([]);
-                        }}
-                        isDisabled={disabled}
-                        placeholder="Search customers..."
-                        classNamePrefix="rb-select"
-                        styles={{
-                          control: (base) => ({
-                            ...base,
-                            borderRadius: "var(--rb-radius-sm)",
-                            borderColor: "#d4d4d8",
-                            minHeight: 40,
-                            boxShadow: "none",
-                          }),
-                          menu: (base) => ({
-                            ...base,
-                            zIndex: 50,
-                          }),
-                        }}
-                      />
+                      <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
+                        {Math.round(progress * 100)}%
+                      </div>
                     </div>
-
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="md"
-                      className="w-10 px-0"
-                      disabled={disabled}
-                      onClick={() => {
-                        setCustomerCreateError(null);
-                        setCustomerCreateOpen(true);
-                      }}
-                    >
-                      +
-                    </Button>
                   </div>
-
-                  {customerMode === "new" ? (
-                    <div className="text-xs text-zinc-600">This job will create a new customer.</div>
-                  ) : null}
                 </div>
-              </FormRow>
+              </CardHeader>
 
-              <FormRow label="Technician" fieldId="job_technician">
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <Select
-                        inputId="job_technician"
-                        instanceId="job_technician"
-                        isSearchable
-                        isClearable
-                        options={technicianOptions}
-                        value={selectedTechnicianOption}
-                        onChange={(opt) => {
-                          const next = (opt as TechnicianOption | null) ?? null;
-                          setTechnicianMode("existing");
-                          setTechnicianOption(null);
-                          setAssignedTechnicianIds(typeof next?.value === "number" && next.value > 0 ? [next.value] : []);
-                        }}
-                        isDisabled={disabled || technicianOptions.length === 0}
-                        placeholder={technicianOptions.length > 0 ? "Select technician..." : "No technicians available"}
-                        classNamePrefix="rb-select"
-                        styles={{
-                          control: (base) => ({
-                            ...base,
-                            borderRadius: "var(--rb-radius-sm)",
-                            borderColor: "#d4d4d8",
-                            minHeight: 40,
-                            boxShadow: "none",
-                          }),
-                          menu: (base) => ({
-                            ...base,
-                            zIndex: 50,
-                          }),
-                        }}
+              <CardContent className="flex-1 space-y-6">
+                {isStep1 ? (
+                  <div className="space-y-5">
+                    <FormRow label="Case number" fieldId="job_case_number">
+                      <Input
+                        id="job_case_number"
+                        value={caseNumber}
+                        onChange={(e) => setCaseNumber(e.target.value)}
+                        disabled={disabled}
                       />
-                    </div>
+                    </FormRow>
 
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="md"
-                      className="w-10 px-0"
-                      disabled={disabled}
-                      onClick={() => {
-                        setTechnicianCreateError(null);
-                        setTechnicianCreateOpen(true);
-                      }}
-                    >
-                      +
-                    </Button>
-                  </div>
+                    <FormRow label="Dates" fieldId="job_dates">
+                      <div
+                        className={
+                          nextServiceEnabled
+                            ? "grid grid-cols-1 gap-3 md:grid-cols-3"
+                            : "grid grid-cols-1 gap-3 md:grid-cols-2"
+                        }
+                      >
+                        <div>
+                          <div className="mb-1 text-xs text-zinc-600">Pickup date</div>
+                          <Input
+                            id="job_pickup_date"
+                            type="date"
+                            value={pickupDate}
+                            onChange={(e) => setPickupDate(e.target.value)}
+                            disabled={disabled}
+                          />
+                        </div>
 
-                  {technicianMode === "new" ? (
-                    <div className="text-xs text-zinc-600">This job will create a new technician.</div>
-                  ) : null}
-                </div>
-              </FormRow>
+                        <div>
+                          <div className="mb-1 text-xs text-zinc-600">Delivery date</div>
+                          <Input
+                            id="job_delivery_date"
+                            type="date"
+                            value={deliveryDate}
+                            onChange={(e) => setDeliveryDate(e.target.value)}
+                            disabled={disabled}
+                          />
+                        </div>
 
-              <FormRow label="Job description" fieldId="job_case_detail">
-                <textarea
-                  id="job_case_detail"
-                  value={caseDetail}
-                  onChange={(e) => setCaseDetail(e.target.value)}
-                  disabled={disabled}
-                  rows={4}
-                  placeholder="Enter job description."
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                />
-              </FormRow>
-
-              <FormRow label="Add devices to this job" fieldId="job_devices_admin">
-                <div className="space-y-4">
-                  <div className="rounded-[var(--rb-radius-sm)] border border-dashed border-zinc-300 bg-white p-3">
-                    <div className="grid grid-cols-1 gap-3">
-                      {jobDevicesAdmin.map((d, idx) => (
-                        <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_1fr_auto] md:items-end">
+                        {nextServiceEnabled ? (
                           <div>
-                            <div className="mb-1 text-xs text-zinc-600">Device</div>
+                            <div className="mb-1 text-xs text-zinc-600">Next service date</div>
+                            <Input
+                              id="job_next_service_date"
+                              type="date"
+                              value={nextServiceDate}
+                              onChange={(e) => setNextServiceDate(e.target.value)}
+                              disabled={disabled}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    </FormRow>
+
+                    <FormRow label="Customer" fieldId="job_customer">
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
                             <AsyncSelect
-                              inputId={`job_device_${idx}`}
-                              instanceId={`job_device_${idx}`}
+                              inputId="job_customer"
+                              instanceId="job_customer"
                               cacheOptions
-                              defaultOptions={deviceOptions}
-                              loadOptions={loadDeviceOptions}
+                              defaultOptions={clientOptions}
+                              loadOptions={loadCustomerOptions}
                               isClearable
                               isSearchable
-                              value={d.option}
+                              value={customerOption}
                               onChange={(opt) => {
-                                const next = (opt as DeviceOption | null) ?? null;
-                                setJobDevicesAdmin((prev) =>
-                                  prev.map((x, i) =>
-                                    i === idx
-                                      ? {
-                                          ...x,
-                                          option: next,
-                                          device_id: typeof next?.value === "number" ? next.value : null,
-                                        }
-                                      : x,
-                                  ),
-                                );
+                                const next = (opt as CustomerOption | null) ?? null;
+                                setCustomerMode("existing");
+                                setCustomerOption(next);
+                                setCustomerId(typeof next?.value === "number" && next.value > 0 ? next.value : null);
+                                setJobDevices([]);
                               }}
                               isDisabled={disabled}
-                              placeholder="Search devices..."
+                              placeholder="Search customers..."
                               classNamePrefix="rb-select"
                               styles={{
                                 control: (base) => ({
@@ -998,312 +948,470 @@ export default function NewJobPage() {
                             />
                           </div>
 
-                          <div>
-                            <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
-                            <Input
-                              value={d.serial}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, serial: v } : x)));
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="md"
+                            className="w-10 px-0"
+                            disabled={disabled}
+                            onClick={() => {
+                              setCustomerCreateError(null);
+                              setCustomerCreateOpen(true);
+                            }}
+                          >
+                            +
+                          </Button>
+                        </div>
+
+                        {customerMode === "new" ? (
+                          <div className="text-xs text-zinc-600">This job will create a new customer.</div>
+                        ) : null}
+                      </div>
+                    </FormRow>
+
+                    <FormRow label="Technician" fieldId="job_technician">
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <Select
+                              inputId="job_technician"
+                              instanceId="job_technician"
+                              isSearchable
+                              isClearable
+                              options={technicianOptions}
+                              value={selectedTechnicianOption}
+                              onChange={(opt) => {
+                                const next = (opt as TechnicianOption | null) ?? null;
+                                setTechnicianMode("existing");
+                                setTechnicianOption(null);
+                                setAssignedTechnicianIds(typeof next?.value === "number" && next.value > 0 ? [next.value] : []);
                               }}
-                              disabled={disabled}
+                              isDisabled={disabled || technicianOptions.length === 0}
+                              placeholder={technicianOptions.length > 0 ? "Select technician..." : "No technicians available"}
+                              classNamePrefix="rb-select"
+                              styles={{
+                                control: (base) => ({
+                                  ...base,
+                                  borderRadius: "var(--rb-radius-sm)",
+                                  borderColor: "#d4d4d8",
+                                  minHeight: 40,
+                                  boxShadow: "none",
+                                }),
+                                menu: (base) => ({
+                                  ...base,
+                                  zIndex: 50,
+                                }),
+                              }}
                             />
                           </div>
 
-                          <div>
-                            <div className="mb-1 text-xs text-zinc-600">Device note</div>
-                            <Input
-                              value={d.notes}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: v } : x)));
-                              }}
-                              disabled={disabled}
-                            />
-                          </div>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="md"
+                            className="w-10 px-0"
+                            disabled={disabled}
+                            onClick={() => {
+                              setTechnicianCreateError(null);
+                              setTechnicianCreateOpen(true);
+                            }}
+                          >
+                            +
+                          </Button>
+                        </div>
 
-                          <div className="flex md:justify-end">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="md"
-                              className="h-10 w-10 px-0"
-                              disabled={disabled}
-                              onClick={() => setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx))}
-                              aria-label="Remove device"
-                              title="Remove device"
-                            >
-                              <svg
-                                viewBox="0 0 24 24"
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="M6 6l1 16h10l1-16" />
-                                <path d="M10 11v6" />
-                                <path d="M14 11v6" />
-                              </svg>
-                            </Button>
+                        {technicianMode === "new" ? (
+                          <div className="text-xs text-zinc-600">This job will create a new technician.</div>
+                        ) : null}
+                      </div>
+                    </FormRow>
+
+                    <FormRow label="Job description" fieldId="job_case_detail">
+                      <textarea
+                        id="job_case_detail"
+                        value={caseDetail}
+                        onChange={(e) => setCaseDetail(e.target.value)}
+                        disabled={disabled}
+                        rows={4}
+                        placeholder="Enter job description."
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                      />
+                    </FormRow>
+
+                    <FormRow label="Add devices to this job" fieldId="job_devices_admin">
+                      <div className="space-y-4">
+                        <div className="rounded-[var(--rb-radius-sm)] border border-dashed border-zinc-300 bg-white p-3">
+                          <div className="grid grid-cols-1 gap-3">
+                            {jobDevicesAdmin.map((d, idx) => (
+                              <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_1fr_auto] md:items-end">
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Device</div>
+                                  <AsyncSelect
+                                    inputId={`job_device_${idx}`}
+                                    instanceId={`job_device_${idx}`}
+                                    cacheOptions
+                                    defaultOptions={deviceOptions}
+                                    loadOptions={loadDeviceOptions}
+                                    isClearable
+                                    isSearchable
+                                    value={d.option}
+                                    onChange={(opt) => {
+                                      const next = (opt as DeviceOption | null) ?? null;
+                                      setJobDevicesAdmin((prev) =>
+                                        prev.map((x, i) =>
+                                          i === idx
+                                            ? {
+                                                ...x,
+                                                option: next,
+                                                device_id: typeof next?.value === "number" ? next.value : null,
+                                              }
+                                            : x,
+                                        ),
+                                      );
+                                    }}
+                                    isDisabled={disabled}
+                                    placeholder="Search devices..."
+                                    classNamePrefix="rb-select"
+                                    styles={{
+                                      control: (base) => ({
+                                        ...base,
+                                        borderRadius: "var(--rb-radius-sm)",
+                                        borderColor: "#d4d4d8",
+                                        minHeight: 40,
+                                        boxShadow: "none",
+                                      }),
+                                      menu: (base) => ({
+                                        ...base,
+                                        zIndex: 50,
+                                      }),
+                                    }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
+                                  <Input
+                                    value={d.serial}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, serial: v } : x)));
+                                    }}
+                                    disabled={disabled}
+                                  />
+                                </div>
+
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Device note</div>
+                                  <Input
+                                    value={d.notes}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: v } : x)));
+                                    }}
+                                    disabled={disabled}
+                                  />
+                                </div>
+
+                                <div className="flex md:justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="md"
+                                    className="h-10 w-10 px-0"
+                                    disabled={disabled}
+                                    onClick={() => setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx))}
+                                    aria-label="Remove device"
+                                    title="Remove device"
+                                  >
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      className="h-4 w-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      aria-hidden="true"
+                                    >
+                                      <path d="M3 6h18" />
+                                      <path d="M8 6V4h8v2" />
+                                      <path d="M6 6l1 16h10l1-16" />
+                                      <path d="M10 11v6" />
+                                      <path d="M14 11v6" />
+                                    </svg>
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={disabled}
-                      onClick={() => {
-                        setJobDevicesAdmin((prev) => [
-                          ...prev,
-                          {
-                            device_id: null,
-                            option: null,
-                            serial: "",
-                            pin: "",
-                            notes: "",
-                          },
-                        ]);
-                      }}
-                    >
-                      Add device
-                    </Button>
-                  </div>
-                </div>
-              </FormRow>
-              </div>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {isStep2 ? (
-            <Card className="shadow-none">
-              <CardContent className="pt-5">
-                <div className="space-y-5">
-                  <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
-                    <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
-                  </FormRow>
-
-                  <FormRow label="Status" fieldId="job_status" required>
-                    <select
-                      id="job_status"
-                      className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                      value={statusSlug}
-                      onChange={(e) => setStatusSlug(e.target.value)}
-                      disabled={disabled || statuses.length === 0}
-                    >
-                      {statuses.map((s) => (
-                        <option key={s.slug} value={s.slug}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FormRow>
-
-              <FormRow label="Payment status" fieldId="job_payment">
-                <select
-                  id="job_payment"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                  value={paymentStatusSlug}
-                  onChange={(e) => setPaymentStatusSlug(e.target.value)}
-                  disabled={disabled || paymentStatuses.length === 0}
-                >
-                  <option value="">—</option>
-                  {paymentStatuses.map((s) => (
-                    <option key={s.slug} value={s.slug}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </FormRow>
-
-              <FormRow label="Priority" fieldId="job_priority">
-                <select
-                  id="job_priority"
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  disabled={disabled}
-                >
-                  <option value="">—</option>
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </FormRow>
-
-              <FormRow label="Order note" fieldId="job_order_note" description="Visible to customer.">
-                <textarea
-                  id="job_order_note"
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  disabled={disabled}
-                  rows={3}
-                  placeholder="Add a note for the customer..."
-                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                />
-              </FormRow>
-
-              <FormRow label="File attachment" fieldId="job_file" description="Optional. Upload a single file.">
-                <Input
-                  id="job_file"
-                  type="file"
-                  disabled={disabled}
-                  onChange={(e) => {
-                    const next = e.target.files?.[0] ?? null;
-                    setJobFile(next);
-                  }}
-                />
-              </FormRow>
-
-              <FormRow label="Customer devices" fieldId="job_devices" description="Optional. Requires selecting a customer.">
-                {customerDevicesError ? <div className="mb-2 text-sm text-red-600">{customerDevicesError}</div> : null}
-                <AsyncSelect
-                  inputId="job_devices"
-                  instanceId="job_devices"
-                  cacheOptions
-                  defaultOptions={customerDeviceOptions}
-                  loadOptions={loadCustomerDeviceOptions}
-                  isClearable
-                  isSearchable
-                  isMulti
-                  value={jobDevices.map((d) => d.option)}
-                  onChange={(opts) => {
-                    const nextOptions = (Array.isArray(opts) ? (opts as CustomerDeviceOption[]) : [])
-                      .filter((o) => o && typeof o.value === "number")
-                      .map((o) => ({ value: o.value, label: o.label }));
-
-                    setJobDevices((prev) => {
-                      const prevById = new Map(prev.map((d) => [d.customer_device_id, d] as const));
-                      return nextOptions.map((o) => {
-                        const existing = prevById.get(o.value);
-                        if (existing) {
-                          return { ...existing, option: o };
-                        }
-                        return {
-                          customer_device_id: o.value,
-                          option: o,
-                          serial: "",
-                          notes: "",
-                        };
-                      });
-                    });
-                  }}
-                  isDisabled={disabled || typeof customerId !== "number"}
-                  placeholder={typeof customerId !== "number" ? "Select a customer first" : "Search devices..."}
-                  classNamePrefix="rb-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      borderRadius: "var(--rb-radius-sm)",
-                      borderColor: "#d4d4d8",
-                      minHeight: 40,
-                      boxShadow: "none",
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 50,
-                    }),
-                  }}
-                />
-
-                {jobDevices.length > 0 ? (
-                  <div className="mt-3 space-y-3">
-                    {jobDevices.map((d) => (
-                      <div key={d.customer_device_id} className="rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white p-3">
-                        <div className="text-sm font-medium text-[var(--rb-text)]">{d.option.label}</div>
-
-                        <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <div>
-                            <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
-                            <Input
-                              value={d.serial}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setJobDevices((prev) =>
-                                  prev.map((x) =>
-                                    x.customer_device_id === d.customer_device_id ? { ...x, serial: v } : x,
-                                  ),
-                                );
-                              }}
-                              disabled={disabled}
-                              placeholder="Enter device ID / IMEI"
-                            />
-                          </div>
-
-                          <div>
-                            <div className="mb-1 text-xs text-zinc-600">Note</div>
-                            <textarea
-                              value={d.notes}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setJobDevices((prev) =>
-                                  prev.map((x) =>
-                                    x.customer_device_id === d.customer_device_id ? { ...x, notes: v } : x,
-                                  ),
-                                );
-                              }}
-                              disabled={disabled}
-                              rows={2}
-                              placeholder="Add a note for this device"
-                              className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                            />
-                          </div>
+                        <div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              setJobDevicesAdmin((prev) => [
+                                ...prev,
+                                {
+                                  device_id: null,
+                                  option: null,
+                                  serial: "",
+                                  pin: "",
+                                  notes: "",
+                                },
+                              ]);
+                            }}
+                          >
+                            Add device
+                          </Button>
                         </div>
                       </div>
-                    ))}
+                    </FormRow>
                   </div>
-                ) : null}
-              </FormRow>
-              </div>
+                ) : (
+                  <div className="space-y-5">
+                    <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
+                      <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
+                    </FormRow>
+
+                    <FormRow label="Status" fieldId="job_status" required>
+                      <select
+                        id="job_status"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                        value={statusSlug}
+                        onChange={(e) => setStatusSlug(e.target.value)}
+                        disabled={disabled || statuses.length === 0}
+                      >
+                        {statuses.map((s) => (
+                          <option key={s.slug} value={s.slug}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </FormRow>
+
+                    <FormRow label="Payment status" fieldId="job_payment">
+                      <select
+                        id="job_payment"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                        value={paymentStatusSlug}
+                        onChange={(e) => setPaymentStatusSlug(e.target.value)}
+                        disabled={disabled || paymentStatuses.length === 0}
+                      >
+                        <option value="">—</option>
+                        {paymentStatuses.map((s) => (
+                          <option key={s.slug} value={s.slug}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </FormRow>
+
+                    <FormRow label="Priority" fieldId="job_priority">
+                      <select
+                        id="job_priority"
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                        value={priority}
+                        onChange={(e) => setPriority(e.target.value)}
+                        disabled={disabled}
+                      >
+                        <option value="">—</option>
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </FormRow>
+
+                    <FormRow label="Order note" fieldId="job_order_note" description="Visible to customer.">
+                      <textarea
+                        id="job_order_note"
+                        value={orderNote}
+                        onChange={(e) => setOrderNote(e.target.value)}
+                        disabled={disabled}
+                        rows={3}
+                        placeholder="Add a note for the customer..."
+                        className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                      />
+                    </FormRow>
+
+                    <FormRow label="File attachment" fieldId="job_file" description="Optional. Upload a single file.">
+                      <Input
+                        id="job_file"
+                        type="file"
+                        disabled={disabled}
+                        onChange={(e) => {
+                          const next = e.target.files?.[0] ?? null;
+                          setJobFile(next);
+                        }}
+                      />
+                    </FormRow>
+
+                    <FormRow label="Customer devices" fieldId="job_devices" description="Optional. Requires selecting a customer.">
+                      {customerDevicesError ? <div className="mb-2 text-sm text-red-600">{customerDevicesError}</div> : null}
+                      <AsyncSelect
+                        inputId="job_devices"
+                        instanceId="job_devices"
+                        cacheOptions
+                        defaultOptions={customerDeviceOptions}
+                        loadOptions={loadCustomerDeviceOptions}
+                        isClearable
+                        isSearchable
+                        isMulti
+                        value={jobDevices.map((d) => d.option)}
+                        onChange={(opts) => {
+                          const nextOptions = (Array.isArray(opts) ? (opts as CustomerDeviceOption[]) : [])
+                            .filter((o) => o && typeof o.value === "number")
+                            .map((o) => ({ value: o.value, label: o.label }));
+
+                          setJobDevices((prev) => {
+                            const prevById = new Map(prev.map((d) => [d.customer_device_id, d] as const));
+                            return nextOptions.map((o) => {
+                              const existing = prevById.get(o.value);
+                              if (existing) {
+                                return { ...existing, option: o };
+                              }
+                              return {
+                                customer_device_id: o.value,
+                                option: o,
+                                serial: "",
+                                notes: "",
+                              };
+                            });
+                          });
+                        }}
+                        isDisabled={disabled || typeof customerId !== "number"}
+                        placeholder={typeof customerId !== "number" ? "Select a customer first" : "Search devices..."}
+                        classNamePrefix="rb-select"
+                        styles={{
+                          control: (base) => ({
+                            ...base,
+                            borderRadius: "var(--rb-radius-sm)",
+                            borderColor: "#d4d4d8",
+                            minHeight: 40,
+                            boxShadow: "none",
+                          }),
+                          menu: (base) => ({
+                            ...base,
+                            zIndex: 50,
+                          }),
+                        }}
+                      />
+
+                      {jobDevices.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          {jobDevices.map((d) => (
+                            <div key={d.customer_device_id} className="rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white p-3">
+                              <div className="text-sm font-medium text-[var(--rb-text)]">{d.option.label}</div>
+
+                              <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
+                                  <Input
+                                    value={d.serial}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobDevices((prev) =>
+                                        prev.map((x) =>
+                                          x.customer_device_id === d.customer_device_id ? { ...x, serial: v } : x,
+                                        ),
+                                      );
+                                    }}
+                                    disabled={disabled}
+                                    placeholder="Enter device ID / IMEI"
+                                  />
+                                </div>
+
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Note</div>
+                                  <textarea
+                                    value={d.notes}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobDevices((prev) =>
+                                        prev.map((x) =>
+                                          x.customer_device_id === d.customer_device_id ? { ...x, notes: v } : x,
+                                        ),
+                                      );
+                                    }}
+                                    disabled={disabled}
+                                    rows={2}
+                                    placeholder="Add a note for this device"
+                                    className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </FormRow>
+                  </div>
+                )}
               </CardContent>
+
+              <div className="sticky bottom-0 border-t border-[var(--rb-border)] bg-white/90 px-5 py-4 backdrop-blur">
+                <div className="flex items-center justify-between gap-4">
+                  <Button
+                    variant="ghost"
+                    disabled={disabled || isStep1}
+                    onClick={() => setStep(1)}
+                    type="button"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                      Back
+                    </span>
+                  </Button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:block text-xs text-zinc-500">
+                      {isStep1 ? "Customer & devices" : "Job details"}
+                      <span className="mx-2">•</span>
+                      {Math.round(progress * 100)}%
+                    </div>
+
+                    {isStep1 ? (
+                      <Button variant="primary" disabled={disabled} onClick={() => setStep(2)} type="button">
+                        <span className="inline-flex items-center gap-2">
+                          Next
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M9 18l6-6-6-6" />
+                          </svg>
+                        </span>
+                      </Button>
+                    ) : (
+                      <Button variant="primary" disabled={disabled} type="submit">
+                        {busy ? "Saving..." : "Save"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </Card>
-          ) : null}
-
-          <div className="flex items-center justify-between">
-            <div>
-              {isStep2 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={disabled}
-                  onClick={() => {
-                    setStep(1);
-                  }}
-                >
-                  Back
-                </Button>
-              ) : null}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {isStep1 ? (
-                <Button
-                  type="button"
-                  variant="primary"
-                  disabled={disabled}
-                  onClick={() => {
-                    setStep(2);
-                  }}
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button type="submit" variant="primary" disabled={disabled}>
-                  {busy ? "Saving..." : "Save"}
-                </Button>
-              )}
-            </div>
           </div>
         </form>
       </div>
