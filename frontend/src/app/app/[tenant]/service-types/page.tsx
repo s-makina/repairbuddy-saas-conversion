@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
-import { Modal } from "@/components/ui/Modal";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 
@@ -41,7 +40,6 @@ export default function TenantServiceTypesPage() {
   const [busy, setBusy] = React.useState(false);
   const [types, setTypes] = React.useState<ApiServiceType[]>([]);
 
-  const [editOpen, setEditOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<number | null>(null);
   const [editName, setEditName] = React.useState("");
   const [editIsActive, setEditIsActive] = React.useState(true);
@@ -98,21 +96,29 @@ export default function TenantServiceTypesPage() {
   }, [load]);
 
   function openCreate() {
-    if (!canManage) return;
+    console.log("openCreate "+canManage);
+    if (!canManage) {
+      setError("Forbidden.");
+      setStatus(null);
+      return;
+    }
+
     setEditId(null);
     setEditName("");
     setEditIsActive(true);
-    setEditOpen(true);
     setError(null);
     setStatus(null);
   }
 
   function openEdit(row: ApiServiceType) {
-    if (!canManage) return;
+    if (!canManage) {
+      setError("Forbidden.");
+      setStatus(null);
+      return;
+    }
     setEditId(row.id);
     setEditName(row.name);
     setEditIsActive(Boolean(row.is_active));
-    setEditOpen(true);
     setError(null);
     setStatus(null);
   }
@@ -160,7 +166,7 @@ export default function TenantServiceTypesPage() {
         setStatus("Service type created.");
       }
 
-      setEditOpen(false);
+      openCreate();
       setPageIndex(0);
       await load();
     } catch (err) {
@@ -221,7 +227,17 @@ export default function TenantServiceTypesPage() {
         header: "Type",
         cell: (row) => (
           <div className="min-w-0">
-            <div className="truncate font-semibold text-[var(--rb-text)]">{row.name}</div>
+            {canManage ? (
+              <button
+                type="button"
+                className="truncate text-left font-semibold text-[var(--rb-text)] hover:underline"
+                onClick={() => openEdit(row)}
+              >
+                {row.name}
+              </button>
+            ) : (
+              <div className="truncate font-semibold text-[var(--rb-text)]">{row.name}</div>
+            )}
             <div className="truncate text-xs text-zinc-600">{row.id}</div>
           </div>
         ),
@@ -291,86 +307,98 @@ export default function TenantServiceTypesPage() {
 
   return (
     <RequireAuth>
-      <ListPageShell
-        title="Service Types"
-        description="Organize your service catalog."
-        actions={
-          <Button onClick={openCreate} disabled={!canManage} variant="outline" size="sm">
-            New type
-          </Button>
-        }
-        loading={loading}
-        error={error}
-        empty={!loading && !error && types.length === 0}
-        emptyTitle="No service types"
-        emptyDescription="Add types to categorize services."
-      >
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <DataTable
-              title={typeof tenantSlug === "string" ? `Service Types · ${tenantSlug}` : "Service Types"}
-              data={types}
-              loading={loading}
-              emptyMessage="No service types."
-              columns={columns}
-              getRowId={(row) => row.id}
-              server={{
-                query,
-                onQueryChange: (value) => {
-                  setQuery(value);
-                  setPageIndex(0);
-                },
-                pageIndex,
-                onPageIndexChange: setPageIndex,
-                pageSize,
-                onPageSizeChange: (value) => {
-                  setPageSize(value);
-                  setPageIndex(0);
-                },
-                totalRows,
-                sort,
-                onSortChange: setSort,
-              }}
-            />
-          </CardContent>
-        </Card>
-
-        <Modal
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          title={editId ? "Edit service type" : "New service type"}
+      <>
+        <ListPageShell
+          title="Service Types"
+          description="Organize your service catalog."
+          actions={
+            <Button onClick={openCreate} disabled={busy} variant="primary" size="sm">
+              New type
+            </Button>
+          }
+          loading={loading}
+          error={error}
+          empty={false}
         >
-          <form className="space-y-4" onSubmit={onSave}>
-            <div className="space-y-2">
-              <div className="text-sm font-semibold text-[var(--rb-text)]">Name</div>
-              <input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g., Diagnostics"
-                className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-              />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <Card className="shadow-none">
+                <CardContent className="pt-5">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">
+                    {editId ? "Edit service type" : "New service type"}
+                  </div>
+
+                  <form className="mt-4 space-y-4" onSubmit={onSave}>
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-[var(--rb-text)]">Name</div>
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g., Diagnostics"
+                        className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                        disabled={busy || !canManage}
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={editIsActive}
+                        onChange={(e) => setEditIsActive(e.target.checked)}
+                        className="h-4 w-4"
+                        disabled={busy || !canManage}
+                      />
+                      Active
+                    </label>
+
+                    <div className="flex items-center justify-end gap-2">
+                      {editId ? (
+                        <Button type="button" variant="outline" onClick={openCreate} disabled={busy}>
+                          Cancel
+                        </Button>
+                      ) : null}
+                      <Button type="submit" disabled={busy || !canManage}>
+                        {editId ? "Save" : "Create"}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={editIsActive}
-                onChange={(e) => setEditIsActive(e.target.checked)}
-                className="h-4 w-4"
-              />
-              Active
-            </label>
-
-            <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={busy}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={busy}>
-                {editId ? "Save" : "Create"}
-              </Button>
+            <div className="lg:col-span-8">
+              <Card className="shadow-none">
+                <CardContent className="pt-5">
+                  <DataTable
+                    title={typeof tenantSlug === "string" ? `Service Types · ${tenantSlug}` : "Service Types"}
+                    data={types}
+                    loading={loading}
+                    emptyMessage="No service types."
+                    columns={columns}
+                    getRowId={(row) => row.id}
+                    server={{
+                      query,
+                      onQueryChange: (value) => {
+                        setQuery(value);
+                        setPageIndex(0);
+                      },
+                      pageIndex,
+                      onPageIndexChange: setPageIndex,
+                      pageSize,
+                      onPageSizeChange: (value) => {
+                        setPageSize(value);
+                        setPageIndex(0);
+                      },
+                      totalRows,
+                      sort,
+                      onSortChange: setSort,
+                    }}
+                  />
+                </CardContent>
+              </Card>
             </div>
-          </form>
-        </Modal>
+          </div>
+        </ListPageShell>
 
         <ConfirmDialog
           open={confirmOpen}
@@ -382,10 +410,8 @@ export default function TenantServiceTypesPage() {
           onConfirm={onConfirm}
         />
 
-        {status ? (
-          <div className="mt-4 text-sm text-emerald-700">{status}</div>
-        ) : null}
-      </ListPageShell>
+        {status ? <div className="mt-4 text-sm text-emerald-700">{status}</div> : null}
+      </>
     </RequireAuth>
   );
 }
