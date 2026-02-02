@@ -1,4 +1,105 @@
-# RepairBuddy SaaS Conversion Research (Work In Progress)
+# RepairBuddy SaaS (99smartx) — Monorepo
+
+This is a **work-in-progress conversion** of the RepairBuddy WordPress plugin (`computer-repair-shop`) into a **standalone multi-tenant SaaS**.
+
+## Repository structure
+
+- **`backend/`**
+  - Laravel 11 API (multi-tenant, auth, admin + tenant app APIs)
+- **`frontend/`**
+  - Next.js (App Router) web app (admin + tenant UI)
+- **`docs/`**
+  - Extracted/archived plugin source and research materials
+- **Project docs (root)**
+  - `TASK_README.md` (deep research / plugin parity notes)
+  - `MILESTONE_1_CHECKLIST.md` (foundation acceptance checklist)
+  - `MODULE_CATALOG.md` (feature/module mapping)
+  - `UI_UX_FOUNDATION.md` (UI conventions)
+  - `DEPLOYMENT_SHARED_HOSTING.md` (CPanel/shared hosting deployment)
+
+## Tech stack
+
+- **Backend**
+  - PHP **8.2+**, Laravel **11**
+  - Auth: **Laravel Sanctum** (token guard)
+  - PDF: `barryvdh/laravel-dompdf`
+  - Exports: `phpoffice/phpspreadsheet`
+  - Queue/Cache/Session: database-backed defaults
+- **Frontend**
+  - Next.js **16.1.x** (React **19**)
+  - Tailwind CSS **v4**
+
+## Multi-tenancy (high level)
+
+- **Tenant identifier**: typically a **path segment**.
+- API routes are shaped like:
+  - `/api/{tenant}/app/...` (tenant app)
+  - `/api/admin/...` (platform admin)
+- Tenancy config lives in `backend/config/tenancy.php` and is driven by:
+  - `TENANCY_RESOLUTION` (default: `path`)
+  - `TENANCY_ROUTE_PARAM` (default: `tenant`)
+  - `TENANCY_HEADER` (default: `X-Tenant`)
+
+## Local development
+
+### Prerequisites
+
+- PHP 8.2+
+- Composer
+- Node.js 20+
+- MySQL (XAMPP is fine)
+
+### 1) Backend (Laravel)
+
+From `backend/`:
+
+- Copy `.env.example` to `.env`
+- Configure DB settings (`DB_*`) and `FRONTEND_URL` (default `http://localhost:3000`)
+- Install + setup:
+  - `composer install`
+  - `php artisan key:generate`
+  - `php artisan migrate`
+  - `php artisan db:seed`
+- Run:
+  - `php artisan serve` (defaults to `http://localhost:8000`)
+
+Seeded defaults (see `backend/database/seeders/DatabaseSeeder.php`):
+
+- Demo tenant slug: `demo`
+- Super admin account is driven by `.env` (`SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`)
+
+### 2) Frontend (Next.js)
+
+From `frontend/`:
+
+- Create `.env.local` based on `.env.example`:
+  - `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+- Install + run:
+  - `npm install`
+  - `npm run dev`
+
+Notes:
+
+- The frontend reads the API base from `process.env.NEXT_PUBLIC_API_BASE_URL`.
+- If it is missing, `frontend/src/lib/config.ts` falls back to a hosted API URL.
+
+## Key URLs
+
+- **Frontend**: `http://localhost:3000`
+- **Backend health**: `http://localhost:8000/api/health`
+- **Example tenant UI**: `http://localhost:3000/app/demo`
+
+## Deployment
+
+For non-Docker shared hosting deployment guidance, see `DEPLOYMENT_SHARED_HOSTING.md`.
+
+## Research notes
+
+The sections below are the ongoing extraction notes from the original WordPress plugin, kept for parity tracking and planning.
+
+---
+
+## RepairBuddy SaaS Conversion Research (Work In Progress)
 
 This repository contains research and analysis for converting the **RepairBuddy** WordPress plugin (WordPress.org slug: `computer-repair-shop`) into a **standalone multi-tenant SaaS**.
 
