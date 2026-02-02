@@ -10,7 +10,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { ListPageShell } from "@/components/shells/ListPageShell";
-import { Modal } from "@/components/ui/Modal";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
@@ -52,7 +51,6 @@ export default function TenantServicesPage() {
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
 
-  const [editOpen, setEditOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<number | null>(null);
   const [editName, setEditName] = React.useState("");
   const [editDescription, setEditDescription] = React.useState("");
@@ -123,8 +121,7 @@ export default function TenantServicesPage() {
     setConfirmOpen(true);
   }
 
-  function openCreate() {
-    if (!canManage) return;
+  function resetForm() {
     setEditId(null);
     setEditName("");
     setEditDescription("");
@@ -136,7 +133,11 @@ export default function TenantServicesPage() {
     setEditLaptopRentalAvailable(false);
     setEditBasePrice("");
     setEditIsActive(true);
-    setEditOpen(true);
+  }
+
+  function openCreate() {
+    if (!canManage) return;
+    resetForm();
     setError(null);
     setStatus(null);
   }
@@ -154,7 +155,6 @@ export default function TenantServicesPage() {
     setEditLaptopRentalAvailable(Boolean(row.laptop_rental_available));
     setEditBasePrice(row.base_price ? String(row.base_price.amount_cents / 100) : "");
     setEditIsActive(Boolean(row.is_active));
-    setEditOpen(true);
     setError(null);
     setStatus(null);
   }
@@ -217,7 +217,7 @@ export default function TenantServicesPage() {
         }
       }
 
-      setEditOpen(false);
+      resetForm();
       setPageIndex(0);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -257,6 +257,9 @@ export default function TenantServicesPage() {
           setServices((prev) => prev.filter((x) => x.id !== row.id));
           setStatus("Service deleted.");
           setPageIndex(0);
+          if (editId === row.id) {
+            resetForm();
+          }
         } catch (err) {
           if (err instanceof ApiError) {
             setError(err.message);
@@ -294,13 +297,13 @@ export default function TenantServicesPage() {
             <div className="truncate text-xs text-zinc-600">{row.id}</div>
           </div>
         ),
-        className: "min-w-[260px]",
+        className: "min-w-[220px]",
       },
       {
         id: "desc",
         header: "Description",
         cell: (row) => <div className="text-sm text-zinc-700">{row.description ?? "—"}</div>,
-        className: "min-w-[320px]",
+        className: "min-w-[280px]",
       },
       {
         id: "price",
@@ -372,17 +375,15 @@ export default function TenantServicesPage() {
       <ListPageShell
         title="Services"
         description="Service catalog used for estimates and jobs."
-        actions={
-          <Button onClick={openCreate} disabled={!canManage} variant="outline" size="sm">
-            New service
-          </Button>
-        }
         filters={
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm font-semibold text-[var(--rb-text)]">Search</div>
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPageIndex(0);
+              }}
               placeholder="Search services..."
               className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm sm:max-w-[420px]"
             />
@@ -394,167 +395,191 @@ export default function TenantServicesPage() {
         emptyTitle="No services"
         emptyDescription="Add services to standardize pricing."
       >
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <DataTable
-              title={typeof tenantSlug === "string" ? `Services · ${tenantSlug}` : "Services"}
-              data={pageRows}
-              loading={loading}
-              emptyMessage="No services."
-              columns={columns}
-              getRowId={(row) => row.id}
-              server={{
-                query: q,
-                onQueryChange: (value) => {
-                  setQ(value);
-                  setPageIndex(0);
-                },
-                pageIndex,
-                onPageIndexChange: setPageIndex,
-                pageSize,
-                onPageSizeChange: (value) => {
-                  setPageSize(value);
-                  setPageIndex(0);
-                },
-                totalRows,
-              }}
-            />
-          </CardContent>
-        </Card>
-
-        <Modal open={editOpen} onClose={() => setEditOpen(false)} title={editId ? "Edit service" : "New service"}>
-          <form className="space-y-4" onSubmit={onSave}>
-            <div className="space-y-2">
-              <div className="text-sm font-semibold text-[var(--rb-text)]">Name</div>
-              <input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g., Screen replacement"
-                className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-sm font-semibold text-[var(--rb-text)]">Description</div>
-              <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows={3}
-                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Service type</div>
-                <select
-                  value={typeof editServiceTypeId === "number" ? String(editServiceTypeId) : ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setEditServiceTypeId(v ? Number(v) : null);
-                  }}
-                  className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-                >
-                  <option value="">—</option>
-                  {serviceTypes
-                    .filter((t) => Boolean(t.is_active) || (typeof editServiceTypeId === "number" && t.id === editServiceTypeId))
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                </select>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="shadow-none lg:col-span-1">
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{editId ? "Edit service" : "New service"}</div>
+                  <div className="mt-1 text-sm text-zinc-600">Create or update a service record.</div>
+                </div>
+                <Button variant="outline" size="sm" onClick={openCreate} disabled={!canManage || busy}>
+                  New
+                </Button>
               </div>
 
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Service code</div>
-                <input
-                  value={editServiceCode}
-                  onChange={(e) => setEditServiceCode(e.target.value)}
-                  className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Time required</div>
-                <input
-                  value={editTimeRequired}
-                  onChange={(e) => setEditTimeRequired(e.target.value)}
-                  placeholder="e.g., 30 min"
-                  className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Warranty</div>
-                <input
-                  value={editWarranty}
-                  onChange={(e) => setEditWarranty(e.target.value)}
-                  placeholder="e.g., 90 days"
-                  className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Base price</div>
-                <input
-                  value={editBasePrice}
-                  onChange={(e) => setEditBasePrice(e.target.value)}
-                  placeholder="e.g., 49.99"
-                  className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Status</div>
-                <label className="flex h-10 items-center gap-2 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm">
+              <form className="mt-5 space-y-4" onSubmit={onSave}>
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">Name</div>
                   <input
-                    type="checkbox"
-                    checked={editIsActive}
-                    onChange={(e) => setEditIsActive(e.target.checked)}
-                    className="h-4 w-4"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="e.g., Screen replacement"
+                    className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                    disabled={!canManage || busy}
                   />
-                  Active
-                </label>
-              </div>
-            </div>
+                </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editPickupAvailable}
-                  onChange={(e) => setEditPickupAvailable(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                Pick-up / delivery available
-              </label>
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">Description</div>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                    disabled={!canManage || busy}
+                  />
+                </div>
 
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editLaptopRentalAvailable}
-                  onChange={(e) => setEditLaptopRentalAvailable(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                Laptop rental available
-              </label>
-            </div>
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">Service type</div>
+                  <select
+                    value={typeof editServiceTypeId === "number" ? String(editServiceTypeId) : ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditServiceTypeId(v ? Number(v) : null);
+                    }}
+                    className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                    disabled={!canManage || busy}
+                  >
+                    <option value="">—</option>
+                    {serviceTypes
+                      .filter((t) => Boolean(t.is_active) || (typeof editServiceTypeId === "number" && t.id === editServiceTypeId))
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
 
-            <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={busy}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={busy}>
-                {editId ? "Save" : "Create"}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Service code</div>
+                    <input
+                      value={editServiceCode}
+                      onChange={(e) => setEditServiceCode(e.target.value)}
+                      className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                      disabled={!canManage || busy}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Base price</div>
+                    <input
+                      value={editBasePrice}
+                      onChange={(e) => setEditBasePrice(e.target.value)}
+                      placeholder="e.g., 49.99"
+                      className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                      disabled={!canManage || busy}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Time required</div>
+                    <input
+                      value={editTimeRequired}
+                      onChange={(e) => setEditTimeRequired(e.target.value)}
+                      placeholder="e.g., 30 min"
+                      className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                      disabled={!canManage || busy}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">Warranty</div>
+                    <input
+                      value={editWarranty}
+                      onChange={(e) => setEditWarranty(e.target.value)}
+                      placeholder="e.g., 90 days"
+                      className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
+                      disabled={!canManage || busy}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">Status</div>
+                  <label className="flex h-10 items-center gap-2 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editIsActive}
+                      onChange={(e) => setEditIsActive(e.target.checked)}
+                      className="h-4 w-4"
+                      disabled={!canManage || busy}
+                    />
+                    Active
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editPickupAvailable}
+                      onChange={(e) => setEditPickupAvailable(e.target.checked)}
+                      className="h-4 w-4"
+                      disabled={!canManage || busy}
+                    />
+                    Pick-up / delivery available
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editLaptopRentalAvailable}
+                      onChange={(e) => setEditLaptopRentalAvailable(e.target.checked)}
+                      className="h-4 w-4"
+                      disabled={!canManage || busy}
+                    />
+                    Laptop rental available
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={!canManage || busy}>
+                    Clear
+                  </Button>
+                  <Button type="submit" disabled={!canManage || busy}>
+                    {editId ? "Save" : "Create"}
+                  </Button>
+                </div>
+              </form>
+
+              {status ? <div className="mt-4 text-sm text-emerald-700">{status}</div> : null}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none lg:col-span-2">
+            <CardContent className="pt-5">
+              <DataTable
+                title={typeof tenantSlug === "string" ? `Services · ${tenantSlug}` : "Services"}
+                data={pageRows}
+                loading={loading}
+                emptyMessage="No services."
+                columns={columns}
+                getRowId={(row) => row.id}
+                server={{
+                  query: q,
+                  onQueryChange: (value) => {
+                    setQ(value);
+                    setPageIndex(0);
+                  },
+                  pageIndex,
+                  onPageIndexChange: setPageIndex,
+                  pageSize,
+                  onPageSizeChange: (value) => {
+                    setPageSize(value);
+                    setPageIndex(0);
+                  },
+                  totalRows,
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
         <ConfirmDialog
           open={confirmOpen}
@@ -565,8 +590,6 @@ export default function TenantServicesPage() {
           onCancel={() => setConfirmOpen(false)}
           onConfirm={onConfirm}
         />
-
-        {status ? <div className="mt-4 text-sm text-emerald-700">{status}</div> : null}
       </ListPageShell>
     </RequireAuth>
   );
