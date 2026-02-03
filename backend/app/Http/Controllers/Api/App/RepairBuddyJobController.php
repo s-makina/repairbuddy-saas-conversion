@@ -31,15 +31,68 @@ class RepairBuddyJobController extends Controller
     {
         $validated = $request->validate([
             'q' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:200'],
+            'status' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'payment_status' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'overdue' => ['sometimes', 'nullable', 'boolean'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'dir' => ['sometimes', 'nullable', 'string', 'in:asc,desc'],
+            'page' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
-        $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 100;
+        $status = is_string($validated['status'] ?? null) ? trim((string) $validated['status']) : '';
+        $paymentStatus = is_string($validated['payment_status'] ?? null) ? trim((string) $validated['payment_status']) : '';
+        $priority = is_string($validated['priority'] ?? null) ? trim((string) $validated['priority']) : '';
+        $overdue = array_key_exists('overdue', $validated) ? (bool) $validated['overdue'] : false;
+        $sort = is_string($validated['sort'] ?? null) ? trim((string) $validated['sort']) : '';
+        $dir = is_string($validated['dir'] ?? null) ? strtolower(trim((string) $validated['dir'])) : '';
+        $perPage = is_numeric($validated['per_page'] ?? null) ? (int) $validated['per_page'] : 10;
+        $perPage = max(1, min(100, $perPage));
+
+        $allowedSorts = [
+            'id' => 'rb_jobs.id',
+            'case_number' => 'rb_jobs.case_number',
+            'status' => 'rb_jobs.status_slug',
+            'payment_status' => 'rb_jobs.payment_status_slug',
+            'priority' => 'rb_jobs.priority',
+            'updated_at' => 'rb_jobs.updated_at',
+            'created_at' => 'rb_jobs.created_at',
+        ];
 
         $query = RepairBuddyJob::query()
-            ->with(['customer', 'technicians'])
-            ->orderBy('id', 'desc');
+            ->with(['customer', 'technicians', 'jobDevices'])
+            ->select('rb_jobs.*');
+
+        $closedStatuses = ['delivered', 'completed', 'cancelled'];
+
+        if ($status !== '' && $status !== 'all') {
+            if ($status === 'open') {
+                $query->whereNotIn('status_slug', $closedStatuses);
+            } else {
+                $query->where('status_slug', $status);
+            }
+        }
+
+        if ($paymentStatus !== '' && $paymentStatus !== 'all') {
+            if ($paymentStatus === 'needs_payment') {
+                $query->whereIn('payment_status_slug', ['unpaid', 'due', 'partial']);
+            } else {
+                $query->where('payment_status_slug', $paymentStatus);
+            }
+        }
+
+        if ($priority !== '' && $priority !== 'all') {
+            $query->where('priority', $priority);
+        }
+
+        if ($overdue) {
+            $query
+                ->whereNotIn('status_slug', $closedStatuses)
+                ->whereNotNull('delivery_date')
+                ->whereDate('delivery_date', '<', now()->toDateString());
+        }
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
@@ -55,10 +108,116 @@ class RepairBuddyJobController extends Controller
             });
         }
 
-        $jobs = $query->limit($limit)->get();
+        $sortCol = $allowedSorts[$sort] ?? null;
+        $sortDir = in_array($dir, ['asc', 'desc'], true) ? $dir : null;
+
+        if ($sortCol && $sortDir) {
+            $query->orderBy($sortCol, $sortDir);
+            $query->orderBy('rb_jobs.id', 'desc');
+        } else {
+            $query->orderBy('rb_jobs.id', 'desc');
+        }
+
+        $paginator = $query->paginate($perPage);
 
         return response()->json([
-            'jobs' => $jobs->map(fn (RepairBuddyJob $j) => $this->serializeJob($j, includeTimeline: false)),
+            'jobs' => collect($paginator->items())->map(fn (RepairBuddyJob $j) => $this->serializeJob($j, includeTimeline: false)),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
+    }
+
+    public function stats(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'payment_status' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
+        ]);
+
+        $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $paymentStatus = is_string($validated['payment_status'] ?? null) ? trim((string) $validated['payment_status']) : '';
+        $priority = is_string($validated['priority'] ?? null) ? trim((string) $validated['priority']) : '';
+
+        $closedStatuses = ['delivered', 'completed', 'cancelled'];
+
+        $applyFilters = function ($q2) use ($q, $paymentStatus, $priority) {
+            if ($paymentStatus !== '' && $paymentStatus !== 'all') {
+                if ($paymentStatus === 'needs_payment') {
+                    $q2->whereIn('payment_status_slug', ['unpaid', 'due', 'partial']);
+                } else {
+                    $q2->where('payment_status_slug', $paymentStatus);
+                }
+            }
+
+            if ($priority !== '' && $priority !== 'all') {
+                $q2->where('priority', $priority);
+            }
+
+            if ($q !== '') {
+                $q2->where(function ($sub) use ($q) {
+                    $sub->where('case_number', 'like', "%{$q}%")
+                        ->orWhere('title', 'like', "%{$q}%")
+                        ->orWhere('id', $q)
+                        ->orWhere('plugin_device_id_text', 'like', "%{$q}%")
+                        ->orWhereHas('jobDevices', function ($devices) use ($q) {
+                            $devices
+                                ->where('label_snapshot', 'like', "%{$q}%")
+                                ->orWhere('serial_snapshot', 'like', "%{$q}%");
+                        });
+                });
+            }
+
+            return $q2;
+        };
+
+        $total = (int) $applyFilters(RepairBuddyJob::query())->count();
+
+        $openCount = (int) $applyFilters(RepairBuddyJob::query())
+            ->whereNotIn('status_slug', $closedStatuses)
+            ->count();
+
+        $urgentCount = (int) $applyFilters(RepairBuddyJob::query())
+            ->whereNotIn('status_slug', $closedStatuses)
+            ->where('priority', 'urgent')
+            ->count();
+
+        $overdueCount = (int) $applyFilters(RepairBuddyJob::query())
+            ->whereNotIn('status_slug', $closedStatuses)
+            ->whereNotNull('delivery_date')
+            ->whereDate('delivery_date', '<', now()->toDateString())
+            ->count();
+
+        $paymentDueCount = (int) $applyFilters(RepairBuddyJob::query())
+            ->whereNotIn('status_slug', $closedStatuses)
+            ->whereIn('payment_status_slug', ['unpaid', 'due', 'partial'])
+            ->count();
+
+        $byStatusRaw = $applyFilters(RepairBuddyJob::query())
+            ->selectRaw('status_slug, COUNT(*) as cnt')
+            ->groupBy('status_slug')
+            ->get();
+
+        $byStatus = [];
+        foreach ($byStatusRaw as $row) {
+            $slug = is_string($row->status_slug ?? null) ? (string) $row->status_slug : '';
+            if ($slug === '') {
+                continue;
+            }
+            $byStatus[$slug] = (int) ($row->cnt ?? 0);
+        }
+
+        return response()->json([
+            'total' => (int) $total,
+            'open' => $openCount,
+            'urgent' => $urgentCount,
+            'overdue' => $overdueCount,
+            'payment_due' => $paymentDueCount,
+            'by_status' => $byStatus,
         ]);
     }
 
@@ -71,7 +230,7 @@ class RepairBuddyJobController extends Controller
         }
 
         $job = RepairBuddyJob::query()
-            ->with(['customer', 'technicians'])
+            ->with(['customer', 'technicians', 'jobDevices'])
             ->whereKey((int) $jobId)
             ->first();
 
@@ -612,7 +771,7 @@ class RepairBuddyJobController extends Controller
             }
         }
 
-        $job->load(['customer', 'technicians']);
+        $job->load(['customer', 'technicians', 'jobDevices']);
 
         return response()->json([
             'job' => $this->serializeJob($job, includeTimeline: true),
@@ -720,8 +879,10 @@ class RepairBuddyJobController extends Controller
             'assigned_technician_id' => array_key_exists('assigned_technician_id', $validated) ? $validated['assigned_technician_id'] : $job->assigned_technician_id,
         ])->save();
 
+        $job = $job->fresh()->load(['customer', 'technicians', 'jobDevices']);
+
         return response()->json([
-            'job' => $this->serializeJob($job->fresh()->load(['technicians'])),
+            'job' => $this->serializeJob($job),
         ]);
     }
 
@@ -769,6 +930,7 @@ class RepairBuddyJobController extends Controller
     {
         $customer = $job->customer;
         $technicians = $job->relationLoaded('technicians') ? $job->technicians : null;
+        $jobDevices = $job->relationLoaded('jobDevices') ? $job->jobDevices : null;
         if ($customer instanceof User && (int) $customer->tenant_id !== (int) $this->tenantId()) {
             $customer = null;
         }
@@ -892,6 +1054,17 @@ class RepairBuddyJobController extends Controller
             'assigned_technician_ids' => $technicians ? $technicians->map(fn (User $u) => $u->id)->values() : [],
             'assigned_technicians' => $technicians
                 ? $technicians->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])->values()
+                : [],
+            'job_devices' => $jobDevices
+                ? $jobDevices
+                    ->map(fn (RepairBuddyJobDevice $d) => [
+                        'id' => $d->id,
+                        'customer_device_id' => $d->customer_device_id,
+                        'label' => $d->label_snapshot,
+                        'serial' => $d->serial_snapshot,
+                    ])
+                    ->values()
+                    ->all()
                 : [],
             'customer' => $customer instanceof User ? [
                 'id' => $customer->id,

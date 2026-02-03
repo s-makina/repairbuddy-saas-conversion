@@ -514,6 +514,7 @@ Route::prefix('{business}')
 
                     Route::get('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'index']);
                     Route::post('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'store']);
+                    Route::get('/jobs/stats', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'stats']);
                     Route::get('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'show'])->whereNumber('jobId');
                     Route::patch('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'update'])->whereNumber('jobId');
 

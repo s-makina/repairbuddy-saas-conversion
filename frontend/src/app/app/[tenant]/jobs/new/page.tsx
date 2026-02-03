@@ -623,13 +623,15 @@ export default function NewJobPage() {
     if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
     if (busy) return;
 
-    if (step === 1) {
-      setStep(2);
+    const native = e.nativeEvent as SubmitEvent;
+    const submitter = native?.submitter as HTMLElement | null | undefined;
+    const submitterId = submitter?.getAttribute?.("id") ?? "";
+
+    if (step !== 3) {
       return;
     }
 
-    if (step === 2) {
-      setStep(3);
+    if (submitterId !== "rb_job_save") {
       return;
     }
 
@@ -847,6 +849,7 @@ export default function NewJobPage() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => {
                   setCustomerCreateError(null);
@@ -856,6 +859,7 @@ export default function NewJobPage() {
                 Cancel
               </Button>
               <Button
+                type="button"
                 onClick={() => {
                   const name = customerCreateName.trim();
                   const email = customerCreateEmail.trim();
@@ -1496,6 +1500,7 @@ export default function NewJobPage() {
         footer={
           <div className="flex items-center justify-end gap-2">
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 setExtraFieldError(null);
@@ -1505,6 +1510,7 @@ export default function NewJobPage() {
               Cancel
             </Button>
             <Button
+              type="button"
               onClick={() => {
                 const label = extraFieldLabel.trim();
                 const data = extraFieldData.trim();
@@ -1615,6 +1621,7 @@ export default function NewJobPage() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => {
                   setTechnicianCreateError(null);
@@ -1624,6 +1631,7 @@ export default function NewJobPage() {
                 Cancel
               </Button>
               <Button
+                type="button"
                 onClick={() => {
                   const name = technicianCreateName.trim();
                   const email = technicianCreateEmail.trim();
@@ -2589,7 +2597,7 @@ export default function NewJobPage() {
                         </span>
                       </Button>
                     ) : (
-                      <Button variant="primary" disabled={disabled} type="submit">
+                      <Button id="rb_job_save" variant="primary" disabled={disabled} type="submit">
                         {busy ? "Saving..." : "Save"}
                       </Button>
                     )}
