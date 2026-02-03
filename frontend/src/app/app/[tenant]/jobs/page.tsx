@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CreditCard, Download, Eye, Mail, MessageSquare, PiggyBank, Printer, Repeat2 } from "lucide-react";
+import { CreditCard, Download, Eye, Mail, MessageSquare, MoreHorizontal, PiggyBank, Printer, Repeat2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -383,13 +383,15 @@ export default function TenantJobsPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="px-2"
+                  aria-label="Actions"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     toggle();
                   }}
                 >
-                  Actions
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               )}
             >

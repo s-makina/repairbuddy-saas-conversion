@@ -8,7 +8,7 @@ export const repairBuddyNav: RepairBuddyNavItem[] = [
   { key: "general", label: "General" },
   { key: "currency", label: "Currency" },
   { key: "invoices-reports", label: "Invoices & Reports" },
-  { key: "job-statuses", label: "Job Statuses" },
+  { key: "job-statuses", label: "Statuses" },
   { key: "payments", label: "Payments" },
   { key: "reviews", label: "Reviews" },
   { key: "estimates", label: "Estimates" },

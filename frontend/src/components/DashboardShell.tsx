@@ -281,7 +281,7 @@ export function DashboardShell({
             },
             {
               label: "Statuses",
-              href: tenantSlug ? `/app/${tenantSlug}/statuses` : "/app",
+              href: tenantSlug ? `/app/${tenantSlug}/business-settings?section=job-statuses` : "/app",
               icon: "tags",
               show: auth.isAuthenticated && Boolean(tenantSlug) && auth.can("settings.manage") && auth.can("jobs.view"),
             },

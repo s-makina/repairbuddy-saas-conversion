@@ -55,6 +55,14 @@ class RepairBuddySettingsController extends Controller
             'settings.general.gdprLinkLabel' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.general.gdprLinkUrl' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'settings.general.disableStatusCheckBySerial' => ['sometimes', 'boolean'],
+
+            'settings.payments' => ['sometimes', 'array'],
+            'settings.payments.paymentMethods' => ['sometimes', 'array'],
+            'settings.payments.paymentMethods.cash' => ['sometimes', 'boolean'],
+            'settings.payments.paymentMethods.card' => ['sometimes', 'boolean'],
+            'settings.payments.paymentMethods.bankTransfer' => ['sometimes', 'boolean'],
+            'settings.payments.paymentMethods.paypal' => ['sometimes', 'boolean'],
+            'settings.payments.paymentMethods.other' => ['sometimes', 'boolean'],
         ]);
 
         $before = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');

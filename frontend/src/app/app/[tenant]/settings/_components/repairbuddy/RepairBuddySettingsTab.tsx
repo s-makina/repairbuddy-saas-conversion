@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Alert } from "@/components/ui/Alert";
@@ -32,6 +32,8 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
   const { draft, updateSection, setDraft, isMock, savingDisabledReason, loading, saving, error, save } = useRepairBuddyDraft(tenantSlug);
   const [status, setStatus] = useState<string | null>(null);
 
+  const updateCurrency = useCallback((patch: Partial<typeof draft.currency>) => updateSection("currency", patch), [updateSection]);
+
   const selectedKey = useMemo(() => {
     const sectionParam = searchParams.get("section");
     const keys = new Set(repairBuddyNav.map((item) => item.key));
@@ -46,18 +48,11 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       case "general":
         return <GeneralSection draft={draft} updateGeneral={(patch) => updateSection("general", patch)} />;
       case "currency":
-        return <CurrencySection draft={draft} updateCurrency={(patch) => updateSection("currency", patch)} />;
+        return <CurrencySection draft={draft} updateCurrency={updateCurrency} />;
       case "invoices-reports":
         return <InvoicesReportsSection draft={draft} updateInvoicesReports={(patch) => updateSection("invoicesReports", patch)} />;
       case "job-statuses":
-        return (
-          <JobStatusesSection
-            draft={draft}
-            updateJobStatuses={(patch) => updateSection("jobStatuses", patch)}
-            setDraft={setDraft}
-            isMock={isMock}
-          />
-        );
+        return <JobStatusesSection tenantSlug={tenantSlug} />;
       case "payments":
         return <PaymentsSection draft={draft} updatePayments={(patch) => updateSection("payments", patch)} isMock={isMock} />;
       case "reviews":
@@ -89,7 +84,7 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       default:
         return null;
     }
-  }, [draft, isMock, selectedKey, setDraft, updateSection]);
+  }, [draft, isMock, selectedKey, setDraft, updateCurrency, updateSection]);
 
   async function onSave() {
     setStatus(null);

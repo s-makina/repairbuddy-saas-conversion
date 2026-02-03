@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { defaultRepairBuddyDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/defaults";
 import type { RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
 import { ApiError } from "@/lib/api";
@@ -49,6 +50,7 @@ function applyTenantIdentityToDraft(draft: RepairBuddySettingsDraft, tenant: Ten
 }
 
 export function useRepairBuddyDraft(tenantSlug?: string) {
+  const router = useRouter();
   const [draft, setDraft] = useState<RepairBuddySettingsDraft>(defaultRepairBuddyDraft);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -91,6 +93,13 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
         setDraft(applyTenantIdentityToDraft(merged, setupRes.tenant));
       } catch (e) {
         if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && tenantSlug) {
+          const next = `/app/${String(tenantSlug)}/business-settings`;
+          router.replace(`/app/${String(tenantSlug)}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
         setError(e instanceof Error ? e.message : "Failed to load business settings.");
       } finally {
         if (!alive) return;
@@ -103,7 +112,7 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
     return () => {
       alive = false;
     };
-  }, [tenantSlug]);
+  }, [router, tenantSlug]);
 
   const reset = useCallback(() => {
     setDraft(defaultRepairBuddyDraft);
