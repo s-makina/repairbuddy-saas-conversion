@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RepairBuddyJob extends Model
 {
@@ -71,5 +72,10 @@ class RepairBuddyJob extends Model
         return $this->belongsToMany(User::class, 'rb_job_technicians', 'job_id', 'technician_user_id')
             ->withPivot(['tenant_id', 'branch_id'])
             ->withTimestamps();
+    }
+
+    public function jobDevices(): HasMany
+    {
+        return $this->hasMany(RepairBuddyJobDevice::class, 'job_id');
     }
 }

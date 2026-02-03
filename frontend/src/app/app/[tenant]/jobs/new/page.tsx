@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Select from "react-select";
 import AsyncSelect from "react-select/async";
+import { Trash2 } from "lucide-react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -154,6 +155,13 @@ type JobServiceLineDraft = {
   price: string;
 };
 
+type JobOtherItemLineDraft = {
+  id: string;
+  name: string;
+  qty: string;
+  price: string;
+};
+
 type ApiService = {
   id: number;
   name: string;
@@ -205,7 +213,15 @@ export default function NewJobPage() {
   const [customerCreateOpen, setCustomerCreateOpen] = useState(false);
   const [customerCreateError, setCustomerCreateError] = useState<string | null>(null);
 
-  const [jobDevicesAdmin, setJobDevicesAdmin] = useState<NewJobDeviceDraft[]>([]);
+  const [jobDevicesAdmin, setJobDevicesAdmin] = useState<NewJobDeviceDraft[]>([
+    {
+      device_id: null,
+      option: null,
+      serial: "",
+      pin: "",
+      notes: "",
+    },
+  ]);
 
   const [caseNumber, setCaseNumber] = useState<string>("");
   const [pickupDate, setPickupDate] = useState<string>("");
@@ -261,6 +277,7 @@ export default function NewJobPage() {
 
   const [jobParts, setJobParts] = useState<JobPartLineDraft[]>([]);
   const [jobServices, setJobServices] = useState<JobServiceLineDraft[]>([]);
+  const [jobOtherItems, setJobOtherItems] = useState<JobOtherItemLineDraft[]>([]);
 
   const [statuses, setStatuses] = useState<ApiJobStatus[]>([]);
   const [paymentStatuses, setPaymentStatuses] = useState<ApiPaymentStatus[]>([]);
@@ -303,7 +320,7 @@ export default function NewJobPage() {
 
         try {
           const devicesRes = await apiFetch<{ devices: ApiDevice[] }>(
-            `/api/${tenantSlug}/app/repairbuddy/devices?limit=5000&for_booking=true`,
+            `/api/${tenantSlug}/app/repairbuddy/devices?limit=10`,
           );
           if (!alive) return;
           setDevices(Array.isArray(devicesRes.devices) ? devicesRes.devices : []);
@@ -411,9 +428,8 @@ export default function NewJobPage() {
 
     try {
       const qs = new URLSearchParams();
-      qs.set("limit", "50");
-      qs.set("for_booking", "true");
       const q = inputValue.trim();
+      qs.set("limit", q ? "50" : "10");
       if (q) qs.set("q", q);
 
       const res = await apiFetch<{ devices: ApiDevice[] }>(
@@ -636,7 +652,7 @@ export default function NewJobPage() {
 
       const trimmedTitle = title.trim();
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         devices:
           jobDevicesAdmin.length > 0
             ? jobDevicesAdmin
@@ -654,22 +670,6 @@ export default function NewJobPage() {
         payment_status_slug: paymentStatusSlug.trim() !== "" ? paymentStatusSlug : null,
         priority: priority.trim() !== "" ? priority.trim() : null,
         customer_id: !shouldCreateCustomer && typeof customerId === "number" ? customerId : null,
-        customer_create:
-          shouldCreateCustomer
-            ? {
-                name: customerCreateName.trim(),
-                email: customerCreateEmail.trim(),
-                phone: customerCreatePhone.trim() !== "" ? customerCreatePhone.trim() : null,
-                company: customerCreateCompany.trim() !== "" ? customerCreateCompany.trim() : null,
-                address_line1: customerCreateAddressLine1.trim() !== "" ? customerCreateAddressLine1.trim() : null,
-                address_line2: customerCreateAddressLine2.trim() !== "" ? customerCreateAddressLine2.trim() : null,
-                address_city: customerCreateAddressCity.trim() !== "" ? customerCreateAddressCity.trim() : null,
-                address_state: customerCreateAddressState.trim() !== "" ? customerCreateAddressState.trim() : null,
-                address_postal_code:
-                  customerCreateAddressPostalCode.trim() !== "" ? customerCreateAddressPostalCode.trim() : null,
-                address_country: customerCreateAddressCountry.trim() !== "" ? customerCreateAddressCountry.trim() : null,
-              }
-            : null,
         pickup_date: pickupDate.trim() !== "" ? pickupDate : null,
         delivery_date: deliveryDate.trim() !== "" ? deliveryDate : null,
         next_service_date: nextServiceEnabled && nextServiceDate.trim() !== "" ? nextServiceDate : null,
@@ -687,6 +687,21 @@ export default function NewJobPage() {
 
         wc_order_note: orderNote.trim() !== "" ? orderNote.trim() : null,
       };
+
+      if (shouldCreateCustomer) {
+        payload.customer_create = {
+          name: customerCreateName.trim(),
+          email: customerCreateEmail.trim(),
+          phone: customerCreatePhone.trim() !== "" ? customerCreatePhone.trim() : null,
+          company: customerCreateCompany.trim() !== "" ? customerCreateCompany.trim() : null,
+          address_line1: customerCreateAddressLine1.trim() !== "" ? customerCreateAddressLine1.trim() : null,
+          address_line2: customerCreateAddressLine2.trim() !== "" ? customerCreateAddressLine2.trim() : null,
+          address_city: customerCreateAddressCity.trim() !== "" ? customerCreateAddressCity.trim() : null,
+          address_state: customerCreateAddressState.trim() !== "" ? customerCreateAddressState.trim() : null,
+          address_postal_code: customerCreateAddressPostalCode.trim() !== "" ? customerCreateAddressPostalCode.trim() : null,
+          address_country: customerCreateAddressCountry.trim() !== "" ? customerCreateAddressCountry.trim() : null,
+        };
+      }
 
       const form = new FormData();
       form.append("payload_json", JSON.stringify(payload));
@@ -720,6 +735,29 @@ export default function NewJobPage() {
                 meta: {
                   ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
                 },
+              },
+            });
+          }
+
+          for (const line of jobOtherItems) {
+            const name = line.name.trim();
+            if (name === "") continue;
+
+            const qtyNum = Math.round(Number(line.qty));
+            const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
+
+            const rawPrice = line.price.trim();
+            const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
+            const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
+            if (typeof unitPriceAmountCents !== "number") continue;
+
+            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/items`, {
+              method: "POST",
+              body: {
+                item_type: unitPriceAmountCents < 0 ? "discount" : "fee",
+                name,
+                qty,
+                unit_price_amount_cents: unitPriceAmountCents,
               },
             });
           }
@@ -1695,14 +1733,14 @@ export default function NewJobPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-[var(--rb-text)]">
-                              {s === 1 ? "Customer & devices" : s === 2 ? "Job Items and services" : "Job details"}
+                              {s === 1 ? "Customer & devices" : s === 2 ? "Job Items and services" : "Order information"}
                             </div>
                             <div className="mt-0.5 line-clamp-2 text-xs text-zinc-600">
                               {s === 1
                                 ? "Case, dates, customer, technician, description, devices."
                                 : s === 2
                                   ? "Attach extra fields and files for this job."
-                                  : "Status, payment, priority, attachments, customer devices."}
+                                  : "Status, payment, priority, notes."}
                             </div>
                           </div>
                         </div>
@@ -1718,14 +1756,14 @@ export default function NewJobPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <CardTitle className="text-base">
-                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Job details"}
+                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Order information"}
                     </CardTitle>
                     <CardDescription>
                       {isStep1
                         ? "Enter the customer, technician, description and devices."
                         : isStep2
                           ? "Attach extra fields and files for the job."
-                          : "Finalize status, priority, attachments and other details."}
+                          : "Finalize status, payment, priority and notes."}
                     </CardDescription>
                   </div>
                   <div className="text-right">
@@ -1949,7 +1987,7 @@ export default function NewJobPage() {
                         <div className="rounded-[var(--rb-radius-sm)] border border-dashed border-zinc-300 bg-white p-3">
                           <div className="grid grid-cols-1 gap-3">
                             {jobDevicesAdmin.map((d, idx) => (
-                              <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_1fr_auto] md:items-end">
+                              <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
                                 <div>
                                   <div className="mb-1 text-xs text-zinc-600">Device</div>
                                   <AsyncSelect
@@ -1976,7 +2014,7 @@ export default function NewJobPage() {
                                       );
                                     }}
                                     isDisabled={disabled}
-                                    placeholder="Search devices..."
+                                    placeholder="Search..."
                                     classNamePrefix="rb-select"
                                     styles={{
                                       control: (base) => ({
@@ -2019,33 +2057,29 @@ export default function NewJobPage() {
                                 </div>
 
                                 <div className="flex md:justify-end">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="md"
-                                    className="h-10 w-10 px-0"
-                                    disabled={disabled}
-                                    onClick={() => setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx))}
+                                  <span
+                                    role="button"
+                                    tabIndex={disabled ? -1 : 0}
                                     aria-label="Remove device"
                                     title="Remove device"
+                                    onClick={() => {
+                                      if (disabled) return;
+                                      setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (disabled) return;
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx));
+                                      }
+                                    }}
+                                    className={
+                                      "inline-flex h-10 w-10 items-center justify-center rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white text-zinc-700 " +
+                                      (disabled ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-zinc-50")
+                                    }
                                   >
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      className="h-4 w-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth={2}
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      aria-hidden="true"
-                                    >
-                                      <path d="M3 6h18" />
-                                      <path d="M8 6V4h8v2" />
-                                      <path d="M6 6l1 16h10l1-16" />
-                                      <path d="M10 11v6" />
-                                      <path d="M14 11v6" />
-                                    </svg>
-                                  </Button>
+                                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                  </span>
                                 </div>
                               </div>
                             ))}
@@ -2263,6 +2297,109 @@ export default function NewJobPage() {
                     <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Other items</div>
+                          <div className="mt-1 text-xs text-zinc-600">Add custom line items like rent, used cable, etc.</div>
+                        </div>
+                        <div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `oi-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                              setJobOtherItems((prev) => [
+                                ...prev,
+                                {
+                                  id,
+                                  name: "",
+                                  qty: "1",
+                                  price: "",
+                                },
+                              ]);
+                            }}
+                          >
+                            Add other item
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {jobOtherItems.length > 0 ? (
+                      <div className="space-y-2">
+                        {jobOtherItems.map((line) => {
+                          const qtyNum = Number(line.qty);
+                          const priceNum = Number(line.price);
+                          const total = (Number.isFinite(qtyNum) ? qtyNum : 0) * (Number.isFinite(priceNum) ? priceNum : 0);
+
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex flex-col gap-3 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3"
+                            >
+                              <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:items-end">
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Name</div>
+                                  <Input
+                                    value={line.name}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobOtherItems((prev) => prev.map((x) => (x.id === line.id ? { ...x, name: v } : x)));
+                                    }}
+                                    disabled={disabled}
+                                    placeholder="e.g. Rent, Used cable"
+                                  />
+                                </div>
+
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Qty</div>
+                                  <Input
+                                    value={line.qty}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobOtherItems((prev) => prev.map((x) => (x.id === line.id ? { ...x, qty: v } : x)));
+                                    }}
+                                    disabled={disabled}
+                                  />
+                                </div>
+
+                                <div>
+                                  <div className="mb-1 text-xs text-zinc-600">Price</div>
+                                  <Input
+                                    value={line.price}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJobOtherItems((prev) => prev.map((x) => (x.id === line.id ? { ...x, price: v } : x)));
+                                    }}
+                                    disabled={disabled}
+                                    placeholder="e.g. 10.00 (use -10.00 for discount)"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-xs text-zinc-600">Total: {Number.isFinite(total) ? total.toFixed(2) : "0.00"}</div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={disabled}
+                                  onClick={() => setJobOtherItems((prev) => prev.filter((x) => x.id !== line.id))}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-zinc-600">No other items added yet.</div>
+                    )}
+
+                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
                           <div className="text-sm font-semibold text-[var(--rb-text)]">Attach Fields & Files</div>
                           <div className="mt-1 text-xs text-zinc-600">Add extra fields and optionally attach a file.</div>
                         </div>
@@ -2328,10 +2465,6 @@ export default function NewJobPage() {
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    <FormRow label="Title" fieldId="job_title" description="Optional. Leave blank to auto-fill.">
-                      <Input id="job_title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} />
-                    </FormRow>
-
                     <FormRow label="Status" fieldId="job_status" required>
                       <select
                         id="job_status"
@@ -2381,7 +2514,7 @@ export default function NewJobPage() {
                       </select>
                     </FormRow>
 
-                    <FormRow label="Order note" fieldId="job_order_note" description="Visible to customer.">
+                    <FormRow label="Order notes" fieldId="job_order_note" description="Visible to customer.">
                       <textarea
                         id="job_order_note"
                         value={orderNote}
@@ -2391,118 +2524,6 @@ export default function NewJobPage() {
                         placeholder="Add a note for the customer..."
                         className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
                       />
-                    </FormRow>
-
-                    <FormRow label="File attachment" fieldId="job_file" description="Optional. Upload a single file.">
-                      <Input
-                        id="job_file"
-                        type="file"
-                        disabled={disabled}
-                        onChange={(e) => {
-                          const next = e.target.files?.[0] ?? null;
-                          setJobFile(next);
-                        }}
-                      />
-                    </FormRow>
-
-                    <FormRow label="Customer devices" fieldId="job_devices" description="Optional. Requires selecting a customer.">
-                      {customerDevicesError ? <div className="mb-2 text-sm text-red-600">{customerDevicesError}</div> : null}
-                      <AsyncSelect
-                        inputId="job_devices"
-                        instanceId="job_devices"
-                        cacheOptions
-                        defaultOptions={customerDeviceOptions}
-                        loadOptions={loadCustomerDeviceOptions}
-                        isClearable
-                        isSearchable
-                        isMulti
-                        value={jobDevices.map((d) => d.option)}
-                        onChange={(opts) => {
-                          const nextOptions = (Array.isArray(opts) ? (opts as CustomerDeviceOption[]) : [])
-                            .filter((o) => o && typeof o.value === "number")
-                            .map((o) => ({ value: o.value, label: o.label }));
-
-                          setJobDevices((prev) => {
-                            const prevById = new Map(prev.map((d) => [d.customer_device_id, d] as const));
-                            return nextOptions.map((o) => {
-                              const existing = prevById.get(o.value);
-                              if (existing) {
-                                return { ...existing, option: o };
-                              }
-                              return {
-                                customer_device_id: o.value,
-                                option: o,
-                                serial: "",
-                                notes: "",
-                              };
-                            });
-                          });
-                        }}
-                        isDisabled={disabled || typeof customerId !== "number"}
-                        placeholder={typeof customerId !== "number" ? "Select a customer first" : "Search devices..."}
-                        classNamePrefix="rb-select"
-                        styles={{
-                          control: (base) => ({
-                            ...base,
-                            borderRadius: "var(--rb-radius-sm)",
-                            borderColor: "#d4d4d8",
-                            minHeight: 40,
-                            boxShadow: "none",
-                          }),
-                          menu: (base) => ({
-                            ...base,
-                            zIndex: 50,
-                          }),
-                        }}
-                      />
-
-                      {jobDevices.length > 0 ? (
-                        <div className="mt-3 space-y-3">
-                          {jobDevices.map((d) => (
-                            <div key={d.customer_device_id} className="rounded-[var(--rb-radius-sm)] border border-zinc-200 bg-white p-3">
-                              <div className="text-sm font-medium text-[var(--rb-text)]">{d.option.label}</div>
-
-                              <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                <div>
-                                  <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
-                                  <Input
-                                    value={d.serial}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setJobDevices((prev) =>
-                                        prev.map((x) =>
-                                          x.customer_device_id === d.customer_device_id ? { ...x, serial: v } : x,
-                                        ),
-                                      );
-                                    }}
-                                    disabled={disabled}
-                                    placeholder="Enter device ID / IMEI"
-                                  />
-                                </div>
-
-                                <div>
-                                  <div className="mb-1 text-xs text-zinc-600">Note</div>
-                                  <textarea
-                                    value={d.notes}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setJobDevices((prev) =>
-                                        prev.map((x) =>
-                                          x.customer_device_id === d.customer_device_id ? { ...x, notes: v } : x,
-                                        ),
-                                      );
-                                    }}
-                                    disabled={disabled}
-                                    rows={2}
-                                    placeholder="Add a note for this device"
-                                    className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
                     </FormRow>
                   </div>
                 )}
@@ -2537,7 +2558,7 @@ export default function NewJobPage() {
 
                   <div className="flex items-center gap-3">
                     <div className="hidden sm:block text-xs text-zinc-500">
-                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Job details"}
+                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Order information"}
                       <span className="mx-2">•</span>
                       {Math.round(progress * 100)}%
                     </div>

@@ -79,8 +79,13 @@ export default function TenantJobsPage() {
           throw new Error("Business is missing.");
         }
 
+        const qs = new URLSearchParams();
+        const needle = q.trim();
+        if (needle !== "") qs.set("q", needle);
+        qs.set("limit", "200");
+
         const [jobsRes, statusesRes, paymentStatusesRes] = await Promise.all([
-          apiFetch<{ jobs: ApiJob[] }>(`/api/${tenantSlug}/app/repairbuddy/jobs`),
+          apiFetch<{ jobs: ApiJob[] }>(`/api/${tenantSlug}/app/repairbuddy/jobs?${qs.toString()}`),
           apiFetch<{ job_statuses: ApiJobStatus[] }>(`/api/${tenantSlug}/app/repairbuddy/job-statuses`),
           apiFetch<{ payment_statuses: ApiPaymentStatus[] }>(`/api/${tenantSlug}/app/repairbuddy/payment-statuses`),
         ]);
@@ -119,16 +124,9 @@ export default function TenantJobsPage() {
     return () => {
       alive = false;
     };
-  }, [router, tenantSlug]);
+  }, [router, tenantSlug, q]);
 
-  const filtered = React.useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return jobs;
-    return jobs.filter((j) => {
-      const hay = `${j.case_number} ${j.id} ${j.title}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [jobs, q]);
+  const filtered = jobs;
 
   const totalRows = filtered.length;
   const pageRows = React.useMemo(() => {

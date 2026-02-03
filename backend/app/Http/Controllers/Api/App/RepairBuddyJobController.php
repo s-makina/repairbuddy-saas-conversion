@@ -45,7 +45,13 @@ class RepairBuddyJobController extends Controller
             $query->where(function ($sub) use ($q) {
                 $sub->where('case_number', 'like', "%{$q}%")
                     ->orWhere('title', 'like', "%{$q}%")
-                    ->orWhere('id', $q);
+                    ->orWhere('id', $q)
+                    ->orWhere('plugin_device_id_text', 'like', "%{$q}%")
+                    ->orWhereHas('jobDevices', function ($devices) use ($q) {
+                        $devices
+                            ->where('label_snapshot', 'like', "%{$q}%")
+                            ->orWhere('serial_snapshot', 'like', "%{$q}%");
+                    });
             });
         }
 
