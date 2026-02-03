@@ -340,6 +340,10 @@ Route::prefix('{business}')
                 Route::post('/technicians', [\App\Http\Controllers\Api\App\TechnicianController::class, 'store'])
                     ->middleware('permission:users.manage');
 
+                Route::patch('/technicians/{user}/rates', [\App\Http\Controllers\Api\App\TechnicianController::class, 'updateRates'])
+                    ->whereNumber('user')
+                    ->middleware('permission:users.manage');
+
                 Route::prefix('clients')->middleware('permission:clients.view')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\App\ClientController::class, 'index']);
                     Route::post('/', [\App\Http\Controllers\Api\App\ClientController::class, 'store']);

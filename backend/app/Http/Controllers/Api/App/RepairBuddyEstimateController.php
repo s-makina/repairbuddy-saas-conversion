@@ -13,6 +13,7 @@ use App\Models\RepairBuddyEstimateItem;
 use App\Models\RepairBuddyEstimateToken;
 use App\Models\RepairBuddyEvent;
 use App\Models\User;
+use App\Support\RepairBuddyEstimateConversionService;
 use App\Notifications\EstimateToCustomerNotification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -395,33 +396,53 @@ class RepairBuddyEstimateController extends Controller
             }
         }
 
-        $estimate->forceFill([
-            'title' => array_key_exists('title', $validated) ? $validated['title'] : $estimate->title,
-            'status' => array_key_exists('status', $validated) && $validated['status'] ? (string) $validated['status'] : $estimate->status,
-            'customer_id' => array_key_exists('customer_id', $validated) ? $validated['customer_id'] : $estimate->customer_id,
-            'pickup_date' => array_key_exists('pickup_date', $validated) ? $validated['pickup_date'] : $estimate->pickup_date,
-            'delivery_date' => array_key_exists('delivery_date', $validated) ? $validated['delivery_date'] : $estimate->delivery_date,
-            'case_detail' => array_key_exists('case_detail', $validated) ? $validated['case_detail'] : $estimate->case_detail,
-            'assigned_technician_id' => array_key_exists('assigned_technician_id', $validated) ? $validated['assigned_technician_id'] : $estimate->assigned_technician_id,
-        ]);
+        $requestedStatus = array_key_exists('status', $validated) && is_string($validated['status']) && $validated['status'] !== ''
+            ? (string) $validated['status']
+            : null;
 
-        if (array_key_exists('status', $validated) && is_string($validated['status']) && $validated['status'] !== '') {
-            $next = (string) $validated['status'];
-            if ($next === 'approved' && $estimate->approved_at === null) {
-                $estimate->approved_at = now();
-                $estimate->rejected_at = null;
-            }
-            if ($next === 'rejected' && $estimate->rejected_at === null) {
-                $estimate->rejected_at = now();
-                $estimate->approved_at = null;
-            }
-            if ($next === 'pending') {
-                $estimate->approved_at = null;
-                $estimate->rejected_at = null;
-            }
+        if ($requestedStatus && $requestedStatus !== 'approved' && is_numeric($estimate->converted_job_id) && (int) $estimate->converted_job_id > 0) {
+            return response()->json([
+                'message' => 'Converted estimates cannot change status.',
+            ], 422);
         }
 
-        $estimate->save();
+        $estimate = DB::transaction(function () use ($estimate, $requestedStatus, $validated, $request) {
+            $estimate->forceFill([
+                'title' => array_key_exists('title', $validated) ? $validated['title'] : $estimate->title,
+                'status' => $requestedStatus ?: $estimate->status,
+                'customer_id' => array_key_exists('customer_id', $validated) ? $validated['customer_id'] : $estimate->customer_id,
+                'pickup_date' => array_key_exists('pickup_date', $validated) ? $validated['pickup_date'] : $estimate->pickup_date,
+                'delivery_date' => array_key_exists('delivery_date', $validated) ? $validated['delivery_date'] : $estimate->delivery_date,
+                'case_detail' => array_key_exists('case_detail', $validated) ? $validated['case_detail'] : $estimate->case_detail,
+                'assigned_technician_id' => array_key_exists('assigned_technician_id', $validated) ? $validated['assigned_technician_id'] : $estimate->assigned_technician_id,
+            ]);
+
+            if ($requestedStatus) {
+                if ($requestedStatus === 'approved' && $estimate->approved_at === null) {
+                    $estimate->approved_at = now();
+                    $estimate->rejected_at = null;
+                }
+                if ($requestedStatus === 'rejected' && $estimate->rejected_at === null) {
+                    $estimate->rejected_at = now();
+                    $estimate->approved_at = null;
+                }
+                if ($requestedStatus === 'pending') {
+                    $estimate->approved_at = null;
+                    $estimate->rejected_at = null;
+                }
+            }
+
+            $estimate->save();
+
+            if ($requestedStatus === 'approved' && (! is_numeric($estimate->converted_job_id) || (int) $estimate->converted_job_id <= 0)) {
+                $converter = app(RepairBuddyEstimateConversionService::class);
+                $converter->convertToJob($estimate, $request->user()?->id);
+
+                $estimate = $estimate->fresh();
+            }
+
+            return $estimate;
+        });
 
         return response()->json([
             'estimate' => $this->serializeEstimate($estimate->fresh(['customer']), includeItems: true, includeDevices: true),

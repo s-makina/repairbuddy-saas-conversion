@@ -53,6 +53,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'otp_enabled',
         'otp_secret',
         'otp_confirmed_at',
+        'tech_hourly_rate_cents',
+        'client_hourly_rate_cents',
     ];
 
     /**
@@ -83,6 +85,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'must_change_password' => 'boolean',
             'one_time_password_expires_at' => 'datetime',
             'one_time_password_used_at' => 'datetime',
+            'tech_hourly_rate_cents' => 'integer',
+            'client_hourly_rate_cents' => 'integer',
         ];
     }
 

@@ -10,8 +10,10 @@ import { ListPageShell } from "@/components/shells/ListPageShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Modal } from "@/components/ui/Modal";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/DropdownMenu";
 import { useAuth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
+import { formatMoney } from "@/lib/money";
 import type { Branch, User, UserStatus } from "@/lib/types";
 
 type TechRow = {
@@ -20,6 +22,8 @@ type TechRow = {
   email: string;
   phone?: string;
   status: UserStatus;
+  tech_hourly_rate_cents?: number | null;
+  client_hourly_rate_cents?: number | null;
 };
 
 export default function TenantTechniciansPage() {
@@ -49,6 +53,12 @@ export default function TenantTechniciansPage() {
   const [branches, setBranches] = React.useState<Branch[]>([]);
   const [newShopQuery, setNewShopQuery] = React.useState<string>("");
   const [newShopSelected, setNewShopSelected] = React.useState<Record<number, boolean>>({});
+
+  const [ratesOpen, setRatesOpen] = React.useState(false);
+  const [ratesBusy, setRatesBusy] = React.useState(false);
+  const [ratesUser, setRatesUser] = React.useState<TechRow | null>(null);
+  const [ratesTech, setRatesTech] = React.useState<string>("");
+  const [ratesClient, setRatesClient] = React.useState<string>("");
 
   const branchOptions = React.useMemo(() => {
     const list = branches.slice().sort((a, b) => `${a.code} ${a.name}`.localeCompare(`${b.code} ${b.name}`));
@@ -142,6 +152,87 @@ export default function TenantTechniciansPage() {
     };
   }, [auth.tenant?.default_branch_id, branches.length, canManageUsers, createOpen, tenantSlug]);
 
+  const currency = auth.tenant?.currency ?? "USD";
+
+  const openRatesModal = React.useCallback(
+    (row: TechRow) => {
+      if (!canManageUsers) return;
+      setRatesUser(row);
+      setRatesTech(
+        typeof row.tech_hourly_rate_cents === "number" && Number.isFinite(row.tech_hourly_rate_cents)
+          ? (row.tech_hourly_rate_cents / 100).toFixed(2)
+          : "",
+      );
+      setRatesClient(
+        typeof row.client_hourly_rate_cents === "number" && Number.isFinite(row.client_hourly_rate_cents)
+          ? (row.client_hourly_rate_cents / 100).toFixed(2)
+          : "",
+      );
+      setRatesOpen(true);
+    },
+    [canManageUsers],
+  );
+
+  const onSaveRates = React.useCallback(async () => {
+    if (!canManageUsers) return;
+    if (!ratesUser) return;
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+    if (ratesBusy) return;
+
+    const parseToCents = (s: string): { cents: number | null; valid: boolean } => {
+      const trimmed = s.trim();
+      if (trimmed.length === 0) return { cents: null, valid: true };
+      const num = Number(trimmed);
+      if (!Number.isFinite(num)) return { cents: null, valid: false };
+      return { cents: Math.round(num * 100), valid: true };
+    };
+
+    const techParsed = parseToCents(ratesTech);
+    const clientParsed = parseToCents(ratesClient);
+
+    if (!techParsed.valid || !clientParsed.valid) {
+      notify.error("Enter valid numbers for hourly rates.");
+      return;
+    }
+
+    const techCents = techParsed.cents;
+    const clientCents = clientParsed.cents;
+
+    if (typeof techCents === "number" && techCents < 0) {
+      notify.error("Tech hourly rate must be 0 or greater.");
+      return;
+    }
+    if (typeof clientCents === "number" && clientCents < 0) {
+      notify.error("Client hourly rate must be 0 or greater.");
+      return;
+    }
+
+    setRatesBusy(true);
+
+    try {
+      await apiFetch<{ user: User }>(`/api/${tenantSlug}/app/technicians/${ratesUser.id}/rates`, {
+        method: "PATCH",
+        body: {
+          tech_hourly_rate_cents: techCents,
+          client_hourly_rate_cents: clientCents,
+        },
+      });
+
+      notify.success("Hourly rates updated.");
+      setRatesOpen(false);
+      setRatesUser(null);
+      setReloadKey((v) => v + 1);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        notify.error(err.message);
+      } else {
+        notify.error(err instanceof Error ? err.message : "Failed to update hourly rates.");
+      }
+    } finally {
+      setRatesBusy(false);
+    }
+  }, [canManageUsers, ratesBusy, ratesClient, ratesTech, ratesUser, tenantSlug]);
+
   React.useEffect(() => {
     let alive = true;
 
@@ -176,6 +267,8 @@ export default function TenantTechniciansPage() {
             email: u.email,
             phone: u.phone ?? undefined,
             status: (u.status ?? "active") as UserStatus,
+            tech_hourly_rate_cents: u.tech_hourly_rate_cents ?? null,
+            client_hourly_rate_cents: u.client_hourly_rate_cents ?? null,
           })),
         );
 
@@ -278,8 +371,69 @@ export default function TenantTechniciansPage() {
         cell: (row) => <Badge variant={statusBadgeVariant.get(row.status) ?? "default"}>{row.status}</Badge>,
         className: "whitespace-nowrap",
       },
+      {
+        id: "tech_hourly_rate",
+        header: "Tech hourly",
+        cell: (row) => (
+          <div className="whitespace-nowrap text-sm font-semibold text-[var(--rb-text)]">
+            {formatMoney({ amountCents: row.tech_hourly_rate_cents ?? null, currency, fallback: "—" })} / hr
+          </div>
+        ),
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "client_hourly_rate",
+        header: "Client hourly",
+        cell: (row) => (
+          <div className="whitespace-nowrap text-sm font-semibold text-[var(--rb-text)]">
+            {formatMoney({ amountCents: row.client_hourly_rate_cents ?? null, currency, fallback: "—" })} / hr
+          </div>
+        ),
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "actions",
+        header: "",
+        cell: (row) => (
+          <div className="flex justify-end">
+            <DropdownMenu
+              align="right"
+              trigger={({ toggle }) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canManageUsers}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle();
+                  }}
+                  aria-label="Actions"
+                >
+                  ...
+                </Button>
+              )}
+            >
+              {({ close }) => (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      close();
+                      openRatesModal(row);
+                    }}
+                    disabled={!canManageUsers}
+                  >
+                    Update hourly rates
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenu>
+          </div>
+        ),
+        className: "w-[1%] whitespace-nowrap text-right",
+        headerClassName: "w-[1%]",
+      },
     ],
-    [statusBadgeVariant],
+    [canManageUsers, currency, openRatesModal, statusBadgeVariant],
   );
 
   return (
@@ -304,6 +458,73 @@ export default function TenantTechniciansPage() {
         error={error}
         empty={false}
       >
+        <Modal
+          open={ratesOpen}
+          title={ratesUser ? `Update rates · ${ratesUser.name}` : "Update rates"}
+          onClose={() => {
+            if (ratesBusy) return;
+            setRatesOpen(false);
+            setRatesUser(null);
+          }}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                disabled={ratesBusy}
+                onClick={() => {
+                  if (ratesBusy) return;
+                  setRatesOpen(false);
+                  setRatesUser(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={ratesBusy || !canManageUsers || !ratesUser}
+                onClick={() => {
+                  void onSaveRates();
+                }}
+              >
+                {ratesBusy ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="tech_hourly_rate">
+                Tech hourly rate ({currency})
+              </label>
+              <input
+                id="tech_hourly_rate"
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={ratesTech}
+                onChange={(e) => setRatesTech(e.target.value)}
+                placeholder="e.g. 45.00"
+                disabled={ratesBusy}
+                inputMode="decimal"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="client_hourly_rate">
+                Client hourly rate ({currency})
+              </label>
+              <input
+                id="client_hourly_rate"
+                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                value={ratesClient}
+                onChange={(e) => setRatesClient(e.target.value)}
+                placeholder="e.g. 60.00"
+                disabled={ratesBusy}
+                inputMode="decimal"
+              />
+            </div>
+
+            <div className="text-xs text-zinc-600">Leave blank to clear a rate.</div>
+          </div>
+        </Modal>
+
         <Modal
           open={createOpen}
           title="Add technician"

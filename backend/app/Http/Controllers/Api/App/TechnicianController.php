@@ -103,6 +103,40 @@ class TechnicianController extends Controller
         ]);
     }
 
+    public function updateRates(Request $request, string $tenant, User $user)
+    {
+        $tenantId = TenantContext::tenantId();
+
+        if ((int) $user->tenant_id !== (int) $tenantId || $user->is_admin) {
+            abort(403, 'Forbidden.');
+        }
+
+        $roleId = Role::query()
+            ->where('tenant_id', $tenantId)
+            ->where('name', 'Technician')
+            ->value('id');
+
+        $roleId = is_numeric($roleId) ? (int) $roleId : null;
+
+        if (! $roleId || (int) $user->role_id !== (int) $roleId) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'tech_hourly_rate_cents' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'client_hourly_rate_cents' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+        ]);
+
+        $user->forceFill([
+            'tech_hourly_rate_cents' => array_key_exists('tech_hourly_rate_cents', $validated) ? $validated['tech_hourly_rate_cents'] : $user->tech_hourly_rate_cents,
+            'client_hourly_rate_cents' => array_key_exists('client_hourly_rate_cents', $validated) ? $validated['client_hourly_rate_cents'] : $user->client_hourly_rate_cents,
+        ])->save();
+
+        return response()->json([
+            'user' => $user,
+        ]);
+    }
+
     public function store(Request $request, string $tenant)
     {
         $tenantId = TenantContext::tenantId();

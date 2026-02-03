@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +18,7 @@ type ApiEstimateDetail = {
   case_number: string;
   title: string;
   status: string;
+  converted_job_id?: number | null;
   customer: null | {
     id: number;
     name: string;
@@ -48,6 +49,7 @@ function estimateBadgeVariant(status: string): "default" | "success" | "warning"
 }
 
 export default function TenantEstimateDetailPage() {
+  const router = useRouter();
   const auth = useAuth();
   const params = useParams() as { tenant?: string; business?: string; estimateId?: string };
   const tenantSlug = params.business ?? params.tenant;
@@ -97,6 +99,11 @@ export default function TenantEstimateDetailPage() {
         setEstimate(e);
       } catch (e) {
         if (!alive) return;
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.trim().length > 0) {
+          const next = `/app/${tenantSlug}/estimates/${estimateId}`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
         if (e instanceof ApiError) {
           setError(e.message);
         } else {
@@ -114,10 +121,12 @@ export default function TenantEstimateDetailPage() {
     return () => {
       alive = false;
     };
-  }, [estimateId, refreshKey, tenantSlug]);
+  }, [estimateId, refreshKey, router, tenantSlug]);
 
   const totalCents = estimate?.totals?.total_cents ?? 0;
   const currency = estimate?.totals?.currency ?? "USD";
+  const convertedJobId = estimate?.converted_job_id ?? null;
+  const isConverted = typeof convertedJobId === "number" && convertedJobId > 0;
 
   async function setStatus(status: string) {
     if (!estimate) return;
@@ -196,6 +205,11 @@ export default function TenantEstimateDetailPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={estimateBadgeVariant(estimate.status)}>{estimate.status}</Badge>
+              {isConverted && typeof tenantSlug === "string" ? (
+                <Link href={`/app/${tenantSlug}/jobs/${convertedJobId}`} className="text-sm text-[var(--rb-text)] underline">
+                  View Job
+                </Link>
+              ) : null}
               <Button
                 variant="outline"
                 size="sm"
@@ -213,12 +227,12 @@ export default function TenantEstimateDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={busy || estimate.status !== "pending"}
+                disabled={busy || estimate.status !== "pending" || isConverted}
                 onClick={() => void setStatus("rejected")}
               >
                 Reject
               </Button>
-              <Button disabled={busy || estimate.status !== "pending"} size="sm" onClick={() => void setStatus("approved")}>
+              <Button disabled={busy || estimate.status !== "pending" || isConverted} size="sm" onClick={() => void setStatus("approved")}>
                 Approve
               </Button>
             </div>

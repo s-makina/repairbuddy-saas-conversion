@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyEstimateToken;
 use App\Models\RepairBuddyEvent;
+use App\Support\RepairBuddyEstimateConversionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -85,6 +86,11 @@ class RepairBuddyEstimateActionsController extends Controller
                             'case_number' => $estimate->case_number,
                         ],
                     ]);
+                }
+
+                if (! is_numeric($estimate->converted_job_id) || (int) $estimate->converted_job_id <= 0) {
+                    $converter = app(RepairBuddyEstimateConversionService::class);
+                    $converter->convertToJob($estimate, null);
                 }
             }
 

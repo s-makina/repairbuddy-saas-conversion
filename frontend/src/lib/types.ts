@@ -90,6 +90,8 @@ export interface User {
   avatar_url?: string | null;
   email_verified_at?: string | null;
   phone?: string | null;
+  tech_hourly_rate_cents?: number | null;
+  client_hourly_rate_cents?: number | null;
   address_line1?: string | null;
   address_line2?: string | null;
   address_city?: string | null;
