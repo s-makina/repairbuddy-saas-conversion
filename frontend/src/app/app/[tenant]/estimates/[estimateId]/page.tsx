@@ -2,24 +2,53 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
-import { mockApi } from "@/mock/mockApi";
-import type { Client, ClientId, Estimate, EstimateId, Job, JobId } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
+import { notify } from "@/lib/notify";
 
-function estimateBadgeVariant(status: Estimate["status"]): "default" | "success" | "warning" | "danger" {
+type ApiEstimateDetail = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  customer: null | {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    company: string | null;
+  };
+  items: Array<{
+    id: number;
+    name: string;
+    qty: number;
+    unit_price: { currency: string; amount_cents: number };
+  }>;
+  totals: {
+    currency: string;
+    subtotal_cents: number;
+    tax_cents: number;
+    total_cents: number;
+  };
+  created_at: string;
+  updated_at: string;
+};
+
+function estimateBadgeVariant(status: string): "default" | "success" | "warning" | "danger" {
   if (status === "approved") return "success";
   if (status === "rejected") return "danger";
   return "warning";
 }
 
 export default function TenantEstimateDetailPage() {
-  const router = useRouter();
+  const auth = useAuth();
   const params = useParams() as { tenant?: string; business?: string; estimateId?: string };
   const tenantSlug = params.business ?? params.tenant;
   const estimateId = params.estimateId;
@@ -27,9 +56,7 @@ export default function TenantEstimateDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [estimate, setEstimate] = React.useState<Estimate | null>(null);
-  const [job, setJob] = React.useState<Job | null>(null);
-  const [client, setClient] = React.useState<Client | null>(null);
+  const [estimate, setEstimate] = React.useState<ApiEstimateDetail | null>(null);
 
   const [busy, setBusy] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
@@ -46,34 +73,36 @@ export default function TenantEstimateDetailPage() {
         if (!estimateId) {
           setError("Estimate ID is missing.");
           setEstimate(null);
-          setJob(null);
-          setClient(null);
           return;
         }
 
-        const e = await mockApi.getEstimate(estimateId as EstimateId);
+        if (typeof tenantSlug !== "string" || tenantSlug.trim().length === 0) {
+          setError("Tenant is missing.");
+          setEstimate(null);
+          return;
+        }
+
+        const res = await apiFetch<{ estimate: ApiEstimateDetail }>(`/api/${tenantSlug}/app/repairbuddy/estimates/${estimateId}`, {
+          method: "GET",
+        });
         if (!alive) return;
 
+        const e = res?.estimate ?? null;
         if (!e) {
           setError("Estimate not found.");
           setEstimate(null);
-          setJob(null);
-          setClient(null);
           return;
         }
 
         setEstimate(e);
-
-        const [j, c] = await Promise.all([mockApi.getJob(e.job_id as JobId), mockApi.getClient(e.client_id as ClientId)]);
-        if (!alive) return;
-        setJob(j);
-        setClient(c);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load estimate.");
+        if (e instanceof ApiError) {
+          setError(e.message);
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load estimate.");
+        }
         setEstimate(null);
-        setJob(null);
-        setClient(null);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -85,20 +114,56 @@ export default function TenantEstimateDetailPage() {
     return () => {
       alive = false;
     };
-  }, [estimateId, refreshKey]);
+  }, [estimateId, refreshKey, tenantSlug]);
 
-  const totalCents = React.useMemo(() => (estimate ? mockApi.computeEstimateTotalCents(estimate) : 0), [estimate]);
-  const currency = estimate?.lines[0]?.unit_price.currency ?? "USD";
+  const totalCents = estimate?.totals?.total_cents ?? 0;
+  const currency = estimate?.totals?.currency ?? "USD";
 
-  async function setStatus(status: Estimate["status"]) {
+  async function setStatus(status: string) {
     if (!estimate) return;
     setBusy(true);
     setActionError(null);
     try {
-      await mockApi.setEstimateStatus({ estimateId: estimate.id, status });
+      if (typeof tenantSlug !== "string" || tenantSlug.trim().length === 0) throw new Error("Tenant is missing.");
+
+      await apiFetch<{ estimate: ApiEstimateDetail }>(`/api/${tenantSlug}/app/repairbuddy/estimates/${estimate.id}`, {
+        method: "PATCH",
+        body: { status },
+      });
       setRefreshKey((x) => x + 1);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to update estimate.");
+      if (e instanceof ApiError) {
+        setActionError(e.message);
+      } else {
+        setActionError(e instanceof Error ? e.message : "Failed to update estimate.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendEstimate() {
+    if (!estimate) return;
+    if (busy) return;
+    if (!auth.can("estimates.manage")) return;
+
+    setBusy(true);
+    setActionError(null);
+    try {
+      if (typeof tenantSlug !== "string" || tenantSlug.trim().length === 0) throw new Error("Tenant is missing.");
+
+      await apiFetch<{ message: string }>(`/api/${tenantSlug}/app/repairbuddy/estimates/${estimate.id}/send`, {
+        method: "POST",
+      });
+
+      notify.success("Estimate sent.");
+      setRefreshKey((x) => x + 1);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setActionError(e.message);
+      } else {
+        setActionError(e instanceof Error ? e.message : "Failed to send estimate.");
+      }
     } finally {
       setBusy(false);
     }
@@ -126,11 +191,25 @@ export default function TenantEstimateDetailPage() {
             </span>
           }
           backHref={typeof tenantSlug === "string" ? `/app/${tenantSlug}/estimates` : "/app"}
-          title={estimate.id}
-          description={job?.case_number ? `Case ${job.case_number}` : estimate.job_id}
+          title={estimate.case_number}
+          description={estimate.title}
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={estimateBadgeVariant(estimate.status)}>{estimate.status}</Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  busy ||
+                  !auth.can("estimates.manage") ||
+                  !estimate.customer ||
+                  !estimate.customer.email ||
+                  estimate.customer.email.trim().length === 0
+                }
+                onClick={() => void sendEstimate()}
+              >
+                Send
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -157,7 +236,8 @@ export default function TenantEstimateDetailPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Client</div>
-                      <div className="mt-1 text-sm text-zinc-700">{client?.name ?? estimate.client_id}</div>
+                      <div className="mt-1 text-sm text-zinc-700">{estimate.customer?.name ?? "—"}</div>
+                      <div className="mt-1 text-xs text-zinc-500">{estimate.customer?.email ?? ""}</div>
                     </div>
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total</div>
@@ -171,20 +251,6 @@ export default function TenantEstimateDetailPage() {
                       <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Updated</div>
                       <div className="mt-1 text-sm text-zinc-700">{new Date(estimate.updated_at).toLocaleString()}</div>
                     </div>
-                    {job ? (
-                      <div className="sm:col-span-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-                            router.push(`/app/${tenantSlug}/jobs/${job.id}`);
-                          }}
-                        >
-                          View job
-                        </Button>
-                      </div>
-                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -194,10 +260,10 @@ export default function TenantEstimateDetailPage() {
                 <CardContent className="pt-5">
                   <div className="text-sm font-semibold text-[var(--rb-text)]">Line items</div>
                   <div className="mt-4 space-y-2">
-                    {estimate.lines.map((line) => (
+                    {(estimate.items ?? []).map((line) => (
                       <div key={line.id} className="flex items-start justify-between gap-3 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.label}</div>
+                          <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.name}</div>
                           <div className="mt-1 text-xs text-zinc-500">Qty: {line.qty}</div>
                         </div>
                         <div className="text-sm font-semibold text-[var(--rb-text)] whitespace-nowrap">

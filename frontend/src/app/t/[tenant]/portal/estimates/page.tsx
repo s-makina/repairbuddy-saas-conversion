@@ -7,8 +7,7 @@ import { PortalShell } from "@/components/shells/PortalShell";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
-import { mockApi } from "@/mock/mockApi";
-import type { Estimate, EstimateId, Job, JobId } from "@/mock/types";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
 type PortalSession = {
@@ -35,7 +34,31 @@ function loadPortalSession(tenantSlug: string): PortalSession | null {
   }
 }
 
-function estimateBadgeVariant(status: Estimate["status"]): "default" | "success" | "warning" | "danger" {
+type ApiPortalJob = {
+  id: number;
+  case_number: string;
+};
+
+type ApiPortalEstimate = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  items: Array<{
+    id: number;
+    name: string;
+    qty: number;
+    unit_price: { currency: string; amount_cents: number };
+  }>;
+  totals: {
+    currency: string;
+    subtotal_cents: number;
+    tax_cents: number;
+    total_cents: number;
+  };
+};
+
+function estimateBadgeVariant(status: string): "default" | "success" | "warning" | "danger" {
   if (status === "approved") return "success";
   if (status === "rejected") return "danger";
   return "warning";
@@ -49,8 +72,8 @@ export default function PortalEstimatesPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [session, setSession] = React.useState<PortalSession | null>(null);
 
-  const [job, setJob] = React.useState<Job | null>(null);
-  const [estimate, setEstimate] = React.useState<Estimate | null>(null);
+  const [job, setJob] = React.useState<ApiPortalJob | null>(null);
+  const [estimate, setEstimate] = React.useState<ApiPortalEstimate | null>(null);
 
   React.useEffect(() => {
     let alive = true;
@@ -76,21 +99,52 @@ export default function PortalEstimatesPage() {
           return;
         }
 
-        const foundJob = await mockApi.getJob(s.jobId as JobId);
+        const jobRes = await apiFetch<{ job: ApiPortalJob }>(`/api/t/${tenantSlug}/status/lookup`, {
+          method: "POST",
+          body: { caseNumber: s.caseNumber },
+          token: null,
+          impersonationSessionId: null,
+        });
+
+        const foundJob = jobRes?.job ?? null;
         if (!alive) return;
         setJob(foundJob);
 
-        if (!foundJob?.estimate_id) {
+        if (!foundJob) {
           setEstimate(null);
           return;
         }
 
-        const foundEstimate = await mockApi.getEstimate(foundJob.estimate_id as EstimateId);
+        const listRes = await apiFetch<{ estimates: Array<{ id: number }> }>(`/api/t/${tenantSlug}/portal/estimates?caseNumber=${encodeURIComponent(s.caseNumber)}`, {
+          method: "GET",
+          token: null,
+          impersonationSessionId: null,
+        });
+
+        const estimateId = listRes?.estimates?.[0]?.id ?? null;
+        if (!estimateId) {
+          setEstimate(null);
+          return;
+        }
+
+        const detailRes = await apiFetch<{ estimate: ApiPortalEstimate }>(
+          `/api/t/${tenantSlug}/portal/estimates/${estimateId}?caseNumber=${encodeURIComponent(s.caseNumber)}`,
+          {
+            method: "GET",
+            token: null,
+            impersonationSessionId: null,
+          },
+        );
+
         if (!alive) return;
-        setEstimate(foundEstimate);
+        setEstimate(detailRes?.estimate ?? null);
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to load estimates.");
+        if (e instanceof ApiError) {
+          setError(e.message);
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load estimates.");
+        }
         setJob(null);
         setEstimate(null);
       } finally {
@@ -106,8 +160,8 @@ export default function PortalEstimatesPage() {
     };
   }, [tenantSlug]);
 
-  const totalCents = React.useMemo(() => (estimate ? mockApi.computeEstimateTotalCents(estimate) : 0), [estimate]);
-  const currency = estimate?.lines[0]?.unit_price.currency ?? "USD";
+  const totalCents = estimate?.totals?.total_cents ?? 0;
+  const currency = estimate?.totals?.currency ?? "USD";
 
   return (
     <PortalShell tenantSlug={tenantSlug} title="Estimates" subtitle="Approvals and quote breakdowns.">
@@ -158,10 +212,10 @@ export default function PortalEstimatesPage() {
               </div>
 
               <div className="mt-4 space-y-2">
-                {estimate.lines.map((line) => (
+                {(estimate.items ?? []).map((line) => (
                   <div key={line.id} className="flex items-start justify-between gap-3 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.label}</div>
+                      <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.name}</div>
                       <div className="mt-1 text-xs text-zinc-500">Qty: {line.qty}</div>
                     </div>
                     <div className="whitespace-nowrap text-sm font-semibold text-[var(--rb-text)]">

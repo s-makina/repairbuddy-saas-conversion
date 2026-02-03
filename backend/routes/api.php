@@ -32,6 +32,16 @@ Route::prefix('t/{business}')
                 ->whereNumber('jobId');
             Route::get('/devices', [\App\Http\Controllers\Api\Public\RepairBuddyPortalDevicesController::class, 'index']);
             Route::get('/job-devices', [\App\Http\Controllers\Api\Public\RepairBuddyPortalJobDevicesController::class, 'index']);
+            Route::get('/estimates', [\App\Http\Controllers\Api\Public\RepairBuddyPortalEstimatesController::class, 'index']);
+            Route::get('/estimates/{estimateId}', [\App\Http\Controllers\Api\Public\RepairBuddyPortalEstimatesController::class, 'show'])
+                ->whereNumber('estimateId');
+        });
+
+        Route::prefix('estimates')->group(function () {
+            Route::get('/{caseNumber}/approve', [\App\Http\Controllers\Api\Public\RepairBuddyEstimateActionsController::class, 'approve'])
+                ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
+            Route::get('/{caseNumber}/reject', [\App\Http\Controllers\Api\Public\RepairBuddyEstimateActionsController::class, 'reject'])
+                ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
         });
     });
 
@@ -520,6 +530,28 @@ Route::prefix('{business}')
                     Route::delete('/jobs/{jobId}/devices/{jobDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyJobDeviceController::class, 'destroy'])
                         ->whereNumber('jobId')
                         ->whereNumber('jobDeviceId');
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:estimates.view')->group(function () {
+                    Route::get('/estimates', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'index']);
+                    Route::get('/estimates/{estimateId}', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'show'])->whereNumber('estimateId');
+                });
+
+                Route::prefix('repairbuddy')->middleware('permission:estimates.manage')->group(function () {
+                    Route::post('/estimates', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'store']);
+                    Route::patch('/estimates/{estimateId}', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'update'])->whereNumber('estimateId');
+                    Route::post('/estimates/{estimateId}/send', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'send'])->whereNumber('estimateId');
+
+                    Route::post('/estimates/{estimateId}/items', [\App\Http\Controllers\Api\App\RepairBuddyEstimateItemController::class, 'store'])->whereNumber('estimateId');
+                    Route::delete('/estimates/{estimateId}/items/{itemId}', [\App\Http\Controllers\Api\App\RepairBuddyEstimateItemController::class, 'destroy'])
+                        ->whereNumber('estimateId')
+                        ->whereNumber('itemId');
+
+                    Route::get('/estimates/{estimateId}/devices', [\App\Http\Controllers\Api\App\RepairBuddyEstimateDeviceController::class, 'index'])->whereNumber('estimateId');
+                    Route::post('/estimates/{estimateId}/devices', [\App\Http\Controllers\Api\App\RepairBuddyEstimateDeviceController::class, 'store'])->whereNumber('estimateId');
+                    Route::delete('/estimates/{estimateId}/devices/{estimateDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyEstimateDeviceController::class, 'destroy'])
+                        ->whereNumber('estimateId')
+                        ->whereNumber('estimateDeviceId');
                 });
 
                 Route::prefix('repairbuddy')->middleware('permission:services.view')->group(function () {

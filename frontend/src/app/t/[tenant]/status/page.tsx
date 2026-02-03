@@ -50,6 +50,10 @@ export default function PublicStatusPage() {
   const [refreshKey, setRefreshKey] = React.useState(0);
   const lastCaseNumberRef = React.useRef<string>("");
 
+  const [estimateActionBusy, setEstimateActionBusy] = React.useState(false);
+  const [estimateActionError, setEstimateActionError] = React.useState<string | null>(null);
+  const [estimateActionSuccess, setEstimateActionSuccess] = React.useState<string | null>(null);
+
   const normalizedTenant = typeof tenantSlug === "string" ? tenantSlug : "";
 
   async function loadByCaseNumber(input: string) {
@@ -157,6 +161,79 @@ export default function PublicStatusPage() {
     void loadByCaseNumber(lastCaseNumberRef.current);
   }, [refreshKey]);
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!normalizedTenant) return;
+
+    const qs = new URLSearchParams(window.location.search);
+    const qsCaseRaw = qs.get("caseNumber");
+    const qsActionRaw = qs.get("estimateAction");
+    const qsTokenRaw = qs.get("token");
+
+    const qsCase = typeof qsCaseRaw === "string" ? qsCaseRaw : "";
+    const qsAction = typeof qsActionRaw === "string" ? qsActionRaw : "";
+    const qsToken = typeof qsTokenRaw === "string" ? qsTokenRaw : "";
+
+    if (qsCase !== "" && caseNumber.trim() === "") {
+      setCaseNumber(qsCase);
+    }
+
+    if (qsCase === "" || qsAction === "" || qsToken === "") return;
+    if (estimateActionBusy) return;
+
+    const action = qsAction === "approve" || qsAction === "reject" ? qsAction : null;
+    if (!action) return;
+
+    let cancelled = false;
+
+    async function run() {
+      setEstimateActionError(null);
+      setEstimateActionSuccess(null);
+      setEstimateActionBusy(true);
+
+      try {
+        await loadByCaseNumber(qsCase);
+
+        await apiFetch<{ message: string; status: string }>(
+          `/api/t/${normalizedTenant}/estimates/${encodeURIComponent(qsCase)}/${action}?token=${encodeURIComponent(qsToken)}`,
+          {
+            method: "GET",
+            token: null,
+            impersonationSessionId: null,
+          },
+        );
+
+        if (cancelled) return;
+        setEstimateActionSuccess(action === "approve" ? "Estimate approved." : "Estimate rejected.");
+
+        try {
+          const nextUrl = `/t/${normalizedTenant}/status?caseNumber=${encodeURIComponent(qsCase)}`;
+          window.history.replaceState({}, "", nextUrl);
+        } catch {
+          // ignore
+        }
+
+        setRefreshKey((x) => x + 1);
+      } catch (e) {
+        if (cancelled) return;
+        if (e instanceof ApiError) {
+          setEstimateActionError(e.message);
+        } else {
+          setEstimateActionError(e instanceof Error ? e.message : "Failed to process estimate action.");
+        }
+      } finally {
+        if (cancelled) return;
+        setEstimateActionBusy(false);
+      }
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [caseNumber, estimateActionBusy, normalizedTenant]);
+
   return (
     <PublicPageShell
       badge="RepairBuddy"
@@ -205,6 +282,24 @@ export default function PublicStatusPage() {
               {error ? (
                 <Alert variant="danger" title="Could not load status">
                   {error}
+                </Alert>
+              ) : null}
+
+              {estimateActionBusy ? (
+                <Alert variant="info" title="Processing estimate">
+                  Please wait...
+                </Alert>
+              ) : null}
+
+              {estimateActionSuccess ? (
+                <Alert variant="success" title="Estimate updated">
+                  {estimateActionSuccess}
+                </Alert>
+              ) : null}
+
+              {estimateActionError ? (
+                <Alert variant="danger" title="Could not update estimate">
+                  {estimateActionError}
                 </Alert>
               ) : null}
 
