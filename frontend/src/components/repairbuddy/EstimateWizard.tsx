@@ -15,6 +15,7 @@ import { notify } from "@/lib/notify";
 import { WizardShell } from "@/components/repairbuddy/wizard/WizardShell";
 import { DevicesAdminEditor } from "@/components/repairbuddy/wizard/DevicesAdminEditor";
 import { CustomerCreateModal } from "@/components/repairbuddy/wizard/CustomerCreateModal";
+import { ItemsStep } from "@/components/repairbuddy/wizard/ItemsStep";
 
 type ApiDevice = {
   id: number;
@@ -1078,248 +1079,45 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                   </FormRow>
                 </div>
               ) : isStep2 ? (
-                <div className="space-y-5">
-                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-[var(--rb-text)]">Services</div>
-                        <div className="mt-1 text-xs text-zinc-600">Add services for each selected device and adjust quantities/prices.</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={disabled || deviceContextOptions.length === 0}
-                          onClick={() => {
-                            setServicePickerError(null);
-                            if (!servicePickerDevice && deviceContextOptions.length > 0) {
-                              setServicePickerDevice(deviceContextOptions[0]);
-                            }
-                            setServicePickerModalOpen(true);
-                          }}
-                        >
-                          Add service
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {estimateServices.length > 0 ? (
-                    <div className="space-y-2">
-                      {estimateServices.map((line) => {
-                        const deviceLabel =
-                          typeof line.device_id === "number"
-                            ? deviceContextOptions.find((o) => o.value === line.device_id)?.label ?? `Device #${line.device_id}`
-                            : "—";
-
-                        const qtyNum = Number(line.qty);
-                        const priceNum = Number(line.price);
-                        const total = (Number.isFinite(qtyNum) ? qtyNum : 0) * (Number.isFinite(priceNum) ? priceNum : 0);
-
-                        return (
-                          <div
-                            key={line.id}
-                            className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.service.name}</div>
-                              <div className="mt-1 text-xs text-zinc-600">
-                                {deviceLabel}
-                                <span className="mx-2">•</span>
-                                Qty: {line.qty || "0"}
-                                <span className="mx-2">•</span>
-                                Price: {line.price || "0"}
-                                <span className="mx-2">•</span>
-                                Total: {Number.isFinite(total) ? total.toFixed(2) : "0.00"}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setEstimateServices((prev) => prev.filter((x) => x.id !== line.id))}>
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-zinc-600">No services added yet.</div>
-                  )}
-
-                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-[var(--rb-text)]">Parts</div>
-                        <div className="mt-1 text-xs text-zinc-600">Add parts for each selected device and adjust quantities/prices.</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={disabled || deviceContextOptions.length === 0}
-                          onClick={() => {
-                            setPartPickerError(null);
-                            if (!partPickerDevice && deviceContextOptions.length > 0) {
-                              setPartPickerDevice(deviceContextOptions[0]);
-                            }
-                            setPartPickerModalOpen(true);
-                          }}
-                        >
-                          Add part
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {estimateParts.length > 0 ? (
-                    <div className="space-y-2">
-                      {estimateParts.map((line) => {
-                        const deviceLabel =
-                          typeof line.device_id === "number"
-                            ? deviceContextOptions.find((o) => o.value === line.device_id)?.label ?? `Device #${line.device_id}`
-                            : "—";
-
-                        const qtyNum = Number(line.qty);
-                        const priceNum = Number(line.price);
-                        const total = (Number.isFinite(qtyNum) ? qtyNum : 0) * (Number.isFinite(priceNum) ? priceNum : 0);
-
-                        return (
-                          <div
-                            key={line.id}
-                            className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{line.part.name}</div>
-                              <div className="mt-1 text-xs text-zinc-600">
-                                {deviceLabel}
-                                <span className="mx-2">•</span>
-                                Qty: {line.qty || "0"}
-                                <span className="mx-2">•</span>
-                                Price: {line.price || "0"}
-                                <span className="mx-2">•</span>
-                                Total: {Number.isFinite(total) ? total.toFixed(2) : "0.00"}
-                              </div>
-                              {line.part.code || line.part.capacity ? (
-                                <div className="mt-1 text-xs text-zinc-500">
-                                  {line.part.code ? `Code: ${line.part.code}` : null}
-                                  {line.part.code && line.part.capacity ? <span className="mx-2">•</span> : null}
-                                  {line.part.capacity ? `Capacity: ${line.part.capacity}` : null}
-                                </div>
-                              ) : null}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setEstimateParts((prev) => prev.filter((x) => x.id !== line.id))}>
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-zinc-600">No parts added yet.</div>
-                  )}
-
-                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-[var(--rb-text)]">Other items</div>
-                        <div className="mt-1 text-xs text-zinc-600">Add custom line items like fees or discounts.</div>
-                      </div>
-                      <div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={disabled}
-                          onClick={() => {
-                            setEstimateOtherItems((prev) => [
-                              ...prev,
-                              {
-                                id: makeId("oi"),
-                                name: "",
-                                qty: "1",
-                                price: "",
-                              },
-                            ]);
-                          }}
-                        >
-                          Add other item
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {estimateOtherItems.length > 0 ? (
-                    <div className="space-y-2">
-                      {estimateOtherItems.map((line) => {
-                        const qtyNum = Number(line.qty);
-                        const priceNum = Number(line.price);
-                        const total = (Number.isFinite(qtyNum) ? qtyNum : 0) * (Number.isFinite(priceNum) ? priceNum : 0);
-
-                        return (
-                          <div
-                            key={line.id}
-                            className="flex flex-col gap-3 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3"
-                          >
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:items-end">
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Name</div>
-                                <Input
-                                  value={line.name}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setEstimateOtherItems((prev) => prev.map((x) => (x.id === line.id ? { ...x, name: v } : x)));
-                                  }}
-                                  disabled={disabled}
-                                  placeholder="e.g. Rent, Used cable"
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Qty</div>
-                                <Input
-                                  value={line.qty}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setEstimateOtherItems((prev) => prev.map((x) => (x.id === line.id ? { ...x, qty: v } : x)));
-                                  }}
-                                  disabled={disabled}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Price</div>
-                                <Input
-                                  value={line.price}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setEstimateOtherItems((prev) => prev.map((x) => (x.id === line.id ? { ...x, price: v } : x)));
-                                  }}
-                                  disabled={disabled}
-                                  placeholder="e.g. 10.00 (use -10.00 for discount)"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-xs text-zinc-600">Total: {Number.isFinite(total) ? total.toFixed(2) : "0.00"}</div>
-                              <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setEstimateOtherItems((prev) => prev.filter((x) => x.id !== line.id))}>
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-zinc-600">No other items added yet.</div>
-                  )}
-                </div>
+                <ItemsStep
+                  deviceContextOptions={deviceContextOptions}
+                  disabled={disabled}
+                  services={estimateServices}
+                  setServices={setEstimateServices}
+                  parts={estimateParts}
+                  setParts={setEstimateParts}
+                  otherItems={estimateOtherItems}
+                  setOtherItems={setEstimateOtherItems}
+                  onAddService={() => {
+                    setServicePickerError(null);
+                    if (!servicePickerDevice && deviceContextOptions.length > 0) {
+                      setServicePickerDevice(deviceContextOptions[0]);
+                    }
+                    setServicePickerModalOpen(true);
+                  }}
+                  serviceAddDisabled={disabled || deviceContextOptions.length === 0}
+                  serviceAddLabel="Add service"
+                  onAddPart={() => {
+                    setPartPickerError(null);
+                    if (!partPickerDevice && deviceContextOptions.length > 0) {
+                      setPartPickerDevice(deviceContextOptions[0]);
+                    }
+                    setPartPickerModalOpen(true);
+                  }}
+                  partAddDisabled={disabled || deviceContextOptions.length === 0}
+                  partAddLabel="Add part"
+                  otherItemsTitle="Other items"
+                  otherItemsDescription="Add custom line items like fees or discounts."
+                  otherItemsAddLabel="Add other item"
+                  createOtherItem={() => ({
+                    id: makeId("oi"),
+                    name: "",
+                    qty: "1",
+                    price: "",
+                  })}
+                  otherItemNamePlaceholder="e.g. Rent, Used cable"
+                  otherItemPricePlaceholder="e.g. 10.00 (use -10.00 for discount)"
+                />
               ) : (
                 <div className="space-y-5">
                   <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
