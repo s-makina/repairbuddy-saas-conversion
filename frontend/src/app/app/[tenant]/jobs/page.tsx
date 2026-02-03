@@ -2,10 +2,12 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { CreditCard, Download, Eye, Mail, MessageSquare, PiggyBank, Printer, Repeat2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
@@ -105,8 +107,6 @@ export default function TenantJobsPage() {
 
   const [statsLoading, setStatsLoading] = React.useState<boolean>(true);
   const [statsError, setStatsError] = React.useState<string | null>(null);
-  const [statsTotal, setStatsTotal] = React.useState<number>(0);
-  const [statsByStatus, setStatsByStatus] = React.useState<Record<string, number>>({});
   const [statsOpen, setStatsOpen] = React.useState<number>(0);
   const [statsUrgent, setStatsUrgent] = React.useState<number>(0);
   const [statsOverdue, setStatsOverdue] = React.useState<number>(0);
@@ -208,8 +208,6 @@ export default function TenantJobsPage() {
         const res = await apiFetch<JobsStatsPayload>(`/api/${tenantSlug}/app/repairbuddy/jobs/stats?${qs.toString()}`);
         if (!alive) return;
 
-        setStatsTotal(typeof res.total === "number" ? res.total : 0);
-        setStatsByStatus(res.by_status && typeof res.by_status === "object" ? res.by_status : {});
         setStatsOpen(typeof res.open === "number" ? res.open : 0);
         setStatsUrgent(typeof res.urgent === "number" ? res.urgent : 0);
         setStatsOverdue(typeof res.overdue === "number" ? res.overdue : 0);
@@ -217,8 +215,6 @@ export default function TenantJobsPage() {
       } catch (e) {
         if (!alive) return;
         setStatsError(e instanceof Error ? e.message : "Failed to load stats.");
-        setStatsTotal(0);
-        setStatsByStatus({});
         setStatsOpen(0);
         setStatsUrgent(0);
         setStatsOverdue(0);
@@ -381,18 +377,99 @@ export default function TenantJobsPage() {
         header: <div className="text-right">Actions</div>,
         cell: (row) => (
           <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-                router.push(`/app/${tenantSlug}/jobs/${row.id}`);
-              }}
+            <DropdownMenu
+              align="right"
+              trigger={({ toggle }) => (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggle();
+                  }}
+                >
+                  Actions
+                </Button>
+              )}
             >
-              View
-            </Button>
+              {({ close }) => (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                      close();
+                      router.push(`/app/${tenantSlug}/jobs/${row.id}`);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      <span>View</span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                      close();
+                      router.push(`/app/${tenantSlug}/jobs/${row.id}?tab=financial`);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4" />
+                      <span>Financial</span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                      close();
+                      router.push(`/app/${tenantSlug}/jobs/${row.id}?tab=messages`);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Messages</span>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onSelect={() => {}} disabled>
+                    <span className="flex items-center gap-2">
+                      <Printer className="h-4 w-4" />
+                      <span>Print invoice</span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => {}} disabled>
+                    <span className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      <span>Download PDF</span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => {}} disabled>
+                    <span className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span>Email customer</span>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onSelect={() => {}} disabled>
+                    <span className="flex items-center gap-2">
+                      <Repeat2 className="h-4 w-4" />
+                      <span>Duplicate job</span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => {}} disabled>
+                    <span className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      <span>Take payment</span>
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenu>
           </div>
         ),
         className: "whitespace-nowrap",
@@ -414,89 +491,34 @@ export default function TenantJobsPage() {
     return opts;
   }, [statusLabels]);
 
-  const resetManagerFilters = React.useCallback(() => {
-    setStatusFilter("all");
-    setPriorityFilter("all");
-    setPaymentFilter("all");
-    setOverdueFilter(false);
-    setPageIndex(0);
-  }, []);
-
   const statsCards = React.useMemo(() => {
-    const defs = [
+    return [
       {
         id: "open" as const,
         label: "Open",
         value: statsOpen,
-        accent: "bg-sky-50 border-sky-200",
         dot: "bg-sky-500",
-        active: statusFilter === "open" && !overdueFilter && priorityFilter === "all" && paymentFilter === "all",
-        apply: () => {
-          setStatusFilter("open");
-          setPriorityFilter("all");
-          setPaymentFilter("all");
-          setOverdueFilter(false);
-          setPageIndex(0);
-        },
       },
       {
         id: "urgent" as const,
         label: "Urgent",
         value: statsUrgent,
-        accent: "bg-rose-50 border-rose-200",
         dot: "bg-rose-500",
-        active: priorityFilter === "urgent" && !overdueFilter,
-        apply: () => {
-          setStatusFilter("open");
-          setPriorityFilter("urgent");
-          setPaymentFilter("all");
-          setOverdueFilter(false);
-          setPageIndex(0);
-        },
       },
       {
         id: "overdue" as const,
         label: "Overdue",
         value: statsOverdue,
-        accent: "bg-amber-50 border-amber-200",
         dot: "bg-amber-500",
-        active: overdueFilter,
-        apply: () => {
-          setStatusFilter("open");
-          setPriorityFilter("all");
-          setPaymentFilter("all");
-          setOverdueFilter(true);
-          setPageIndex(0);
-        },
       },
       {
         id: "payment_due" as const,
         label: "Needs payment",
         value: statsPaymentDue,
-        accent: "bg-violet-50 border-violet-200",
         dot: "bg-violet-500",
-        active: paymentFilter === "needs_payment" && !overdueFilter,
-        apply: () => {
-          setStatusFilter("open");
-          setPriorityFilter("all");
-          setPaymentFilter("needs_payment");
-          setOverdueFilter(false);
-          setPageIndex(0);
-        },
       },
     ];
-
-    return defs.map((d) => ({
-      ...d,
-      onClick: () => {
-        if (d.active) {
-          resetManagerFilters();
-          return;
-        }
-        d.apply();
-      },
-    }));
-  }, [overdueFilter, paymentFilter, priorityFilter, resetManagerFilters, statsOpen, statsOverdue, statsPaymentDue, statsUrgent, statusFilter]);
+  }, [statsOpen, statsOverdue, statsPaymentDue, statsUrgent]);
 
   const paymentOptions = React.useMemo(() => {
     const opts = [{ label: "All", value: "all" }, { label: "Needs payment", value: "needs_payment" }];
@@ -551,14 +573,10 @@ export default function TenantJobsPage() {
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {statsCards.map((c) => (
-          <button
+          <div
             key={c.id}
-            type="button"
-            onClick={c.onClick}
-            aria-pressed={c.active}
             className={
-              "rounded-[var(--rb-radius-md)] border p-4 text-left shadow-none transition-all hover:-translate-y-[1px] hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rb-blue)] " +
-              (c.active ? `ring-1 ring-[var(--rb-blue)] ${c.accent}` : `bg-white border-[var(--rb-border)]`)
+              "rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4 text-left shadow-none"
             }
           >
             <div className="flex items-start justify-between gap-3">
@@ -568,11 +586,11 @@ export default function TenantJobsPage() {
               <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${c.dot}`} aria-hidden="true" />
             </div>
             <div className="mt-1 text-2xl font-semibold text-[var(--rb-text)]">{statsLoading ? "—" : String(c.value)}</div>
-            {statsError && c.id === "open" ? <div className="mt-1 text-xs text-red-600">{statsError}</div> : null}
-            {!statsLoading && c.active ? <div className="mt-1 text-xs font-medium text-[var(--rb-blue)]">Active filter</div> : null}
-          </button>
+          </div>
         ))}
       </div>
+
+      {statsError ? <div className="mt-2 text-sm text-red-600">{statsError}</div> : null}
 
       <Card className="shadow-none">
         <CardContent className="pt-5">
