@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarClock, Laptop, ListChecks, MessageSquare, RefreshCw, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
+import { useDetailTab } from "@/components/repairbuddy/detail/detailTabs";
+import { AttachedDevicesManager } from "@/components/repairbuddy/detail/AttachedDevicesManager";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
@@ -104,19 +106,13 @@ function formatShortDate(value: string | null | undefined): string {
   return d.toLocaleDateString();
 }
 
-function isDetailTabKey(value: string | null | undefined): value is "overview" | "devices" | "timeline" | "messages" | "financial" | "print" {
-  return value === "overview" || value === "devices" || value === "timeline" || value === "messages" || value === "financial" || value === "print";
-}
-
 export default function TenantJobDetailPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const params = useParams() as { tenant?: string; business?: string; jobId?: string };
   const tenantSlug = params.business ?? params.tenant;
   const jobId = params.jobId;
 
-  const requestedTab = searchParams?.get("tab") ?? null;
-  const defaultTab = isDetailTabKey(requestedTab) ? requestedTab : "overview";
+  const defaultTab = useDetailTab("overview");
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -373,16 +369,16 @@ export default function TenantJobDetailPage() {
       {job ? (
         <DetailPageShell
           key={`${job.id}:${defaultTab}`}
-          breadcrumb={
-            <span>
-              <Link href={typeof tenantSlug === "string" ? `/app/${tenantSlug}/jobs` : "/app"} className="hover:text-[var(--rb-text)]">
-                Jobs
-              </Link>
-              <span className="px-2">/</span>
-              <span>{job.case_number}</span>
-            </span>
-          }
-          backHref={typeof tenantSlug === "string" ? `/app/${tenantSlug}/jobs` : "/app"}
+          // breadcrumb={
+          //   <span>
+          //     <Link href={typeof tenantSlug === "string" ? `/app/${tenantSlug}/jobs` : "/app"} className="hover:text-[var(--rb-text)]">
+          //       Jobs
+          //     </Link>
+          //     <span className="px-2">/</span>
+          //     <span>{job.case_number}</span>
+          //   </span>
+          // }
+          // backHref={typeof tenantSlug === "string" ? `/app/${tenantSlug}/jobs` : "/app"}
           title={job.case_number}
           description={job.title}
           actions={
@@ -416,85 +412,18 @@ export default function TenantJobDetailPage() {
               />
             ),
             devices: (
-              <div className="space-y-4">
-                {devicesError ? (
-                  <Alert variant="danger" title="Could not load devices">
-                    {devicesError}
-                  </Alert>
-                ) : null}
-
-                {attachError ? (
-                  <Alert variant="danger" title="Could not update devices">
-                    {attachError}
-                  </Alert>
-                ) : null}
-
-                {devicesLoading ? <div className="text-sm text-zinc-500">Loading devices...</div> : null}
-
-                <Card className="shadow-none">
-                  <CardContent className="pt-5">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Attach customer device</div>
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <select
-                        value={attachId}
-                        onChange={(e) => setAttachId(e.target.value)}
-                        disabled={attachBusy || customerDevices.length === 0}
-                        className="h-10 w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 text-sm"
-                      >
-                        <option value="">Select a customer device...</option>
-                        {customerDevices.map((d) => (
-                          <option key={d.id} value={String(d.id)}>
-                            {d.label}{d.serial ? ` (Serial: ${d.serial})` : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <Button onClick={() => void attachDevice()} disabled={attachBusy || attachId.trim().length === 0}>
-                        {attachBusy ? "Saving..." : "Attach"}
-                      </Button>
-                    </div>
-                    {customerDevices.length === 0 ? <div className="mt-2 text-xs text-zinc-500">No customer devices available for this job.</div> : null}
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-none">
-                  <CardContent className="pt-5">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Attached devices</div>
-                    <div className="mt-4 space-y-3">
-                      {jobDevices.length === 0 ? <div className="text-sm text-zinc-600">No devices attached.</div> : null}
-                      {jobDevices.map((d) => (
-                        <div key={d.id} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{d.label}</div>
-                              <div className="mt-1 text-xs text-zinc-500">Serial: {d.serial ?? "—"}</div>
-                              {d.notes ? <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{d.notes}</div> : null}
-                              {Array.isArray(d.extra_fields) && d.extra_fields.length > 0 ? (
-                                <div className="mt-3">
-                                  <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Extra fields</div>
-                                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                    {d.extra_fields.map((f) => (
-                                      <div key={f.key} className="min-w-0">
-                                        <div className="truncate text-xs text-zinc-500">{f.label}</div>
-                                        <div className="truncate text-sm text-zinc-700">{f.value_text}</div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : null}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="default">{d.customer_device_id}</Badge>
-                              <Button variant="outline" size="sm" onClick={() => void detachDevice(d.id)} disabled={attachBusy}>
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <AttachedDevicesManager
+                devicesError={devicesError}
+                attachError={attachError}
+                devicesLoading={devicesLoading}
+                customerDevices={customerDevices}
+                attachedDevices={jobDevices}
+                attachId={attachId}
+                setAttachId={setAttachId}
+                attachBusy={attachBusy}
+                onAttach={() => void attachDevice()}
+                onDetach={(id) => void detachDevice(id)}
+              />
             ),
             timeline: (
               <div className="space-y-4">

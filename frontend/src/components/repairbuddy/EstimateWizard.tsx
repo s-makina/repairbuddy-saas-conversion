@@ -1063,7 +1063,7 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                       loadDeviceOptions={loadDeviceOptions}
                       disabled={disabled}
                       idPrefix="estimate"
-                      showPin
+                      showPin={false}
                       serialLabel="Serial / IMEI"
                       pinLabel="Pin"
                       notesLabel="Notes"

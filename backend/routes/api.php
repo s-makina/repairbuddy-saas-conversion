@@ -299,6 +299,11 @@ Route::prefix('{business}')
                 Route::patch('/settings', [\App\Http\Controllers\Api\App\SettingsController::class, 'update'])
                     ->middleware('permission:settings.manage');
 
+                Route::get('/currencies', [\App\Http\Controllers\Api\App\TenantCurrencyController::class, 'index'])
+                    ->middleware('permission:clients.view');
+                Route::patch('/currencies', [\App\Http\Controllers\Api\App\TenantCurrencyController::class, 'update'])
+                    ->middleware('permission:settings.manage');
+
                 Route::get('/entitlements', [\App\Http\Controllers\Api\App\EntitlementController::class, 'index']);
 
                 Route::get('/notes', [\App\Http\Controllers\Api\App\TenantNoteController::class, 'index']);

@@ -24,6 +24,7 @@ type ApiClient = {
   address_state: string | null;
   address_postal_code: string | null;
   address_country: string | null;
+  currency: string | null;
   created_at: string;
   jobs_count: number;
 };

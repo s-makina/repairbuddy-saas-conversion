@@ -30,9 +30,9 @@ export function DetailPageShell({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn("space-y-0 space-x-2", className)}>
       <div className="space-y-2">
-        {breadcrumb ? <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{breadcrumb}</div> : null}
+        {/* {breadcrumb ? <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{breadcrumb}</div> : null} */}
         {backHref ? (
           <div>
             <Link href={backHref} className="text-sm text-zinc-600 hover:text-[var(--rb-text)]">

@@ -3,11 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { RefreshCw } from "lucide-react";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DetailPageShell } from "@/components/shells/DetailPageShell";
+import { useDetailTab } from "@/components/repairbuddy/detail/detailTabs";
+import { AttachedDevicesManager } from "@/components/repairbuddy/detail/AttachedDevicesManager";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
@@ -42,6 +45,34 @@ type ApiEstimateDetail = {
   updated_at: string;
 };
 
+type ApiEstimateDeviceExtraField = {
+  key: string;
+  label: string;
+  type: string;
+  value_text: string;
+};
+
+type ApiEstimateDevice = {
+  id: number;
+  estimate_id: number;
+  customer_device_id: number;
+  label: string;
+  serial: string | null;
+  pin?: string | null;
+  notes: string | null;
+  extra_fields?: ApiEstimateDeviceExtraField[] | null;
+  created_at: string;
+};
+
+type ApiCustomerDevice = {
+  id: number;
+  customer_id: number;
+  device_id: number | null;
+  label: string;
+  serial: string | null;
+  notes: string | null;
+};
+
 function estimateBadgeVariant(status: string): "default" | "success" | "warning" | "danger" {
   if (status === "approved") return "success";
   if (status === "rejected") return "danger";
@@ -55,6 +86,8 @@ export default function TenantEstimateDetailPage() {
   const tenantSlug = params.business ?? params.tenant;
   const estimateId = params.estimateId;
 
+  const defaultTab = useDetailTab("overview");
+
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -63,6 +96,15 @@ export default function TenantEstimateDetailPage() {
   const [busy, setBusy] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [refreshKey, setRefreshKey] = React.useState(0);
+
+  const [devicesLoading, setDevicesLoading] = React.useState(false);
+  const [devicesError, setDevicesError] = React.useState<string | null>(null);
+  const [estimateDevices, setEstimateDevices] = React.useState<ApiEstimateDevice[]>([]);
+  const [customerDevices, setCustomerDevices] = React.useState<ApiCustomerDevice[]>([]);
+
+  const [attachId, setAttachId] = React.useState<string>("");
+  const [attachBusy, setAttachBusy] = React.useState(false);
+  const [attachError, setAttachError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let alive = true;
@@ -123,6 +165,74 @@ export default function TenantEstimateDetailPage() {
     };
   }, [estimateId, refreshKey, router, tenantSlug]);
 
+  React.useEffect(() => {
+    let alive = true;
+
+    async function loadDevices() {
+      try {
+        setDevicesLoading(true);
+        setDevicesError(null);
+
+        if (!estimateId) {
+          setEstimateDevices([]);
+          setCustomerDevices([]);
+          return;
+        }
+
+        if (typeof tenantSlug !== "string" || tenantSlug.trim().length === 0) {
+          setEstimateDevices([]);
+          setCustomerDevices([]);
+          return;
+        }
+
+        if (!estimate) {
+          setEstimateDevices([]);
+          setCustomerDevices([]);
+          return;
+        }
+
+        const estimateDevicesRes = await apiFetch<{ estimate_devices: ApiEstimateDevice[] }>(
+          `/api/${tenantSlug}/app/repairbuddy/estimates/${estimateId}/devices`,
+        );
+        if (!alive) return;
+        setEstimateDevices(Array.isArray(estimateDevicesRes?.estimate_devices) ? estimateDevicesRes.estimate_devices : []);
+
+        const customerId = estimate.customer?.id;
+        if (typeof customerId !== "number") {
+          setCustomerDevices([]);
+          return;
+        }
+
+        const customerDevicesRes = await apiFetch<{ customer_devices: ApiCustomerDevice[] }>(
+          `/api/${tenantSlug}/app/repairbuddy/customer-devices?customer_id=${encodeURIComponent(String(customerId))}`,
+        );
+        if (!alive) return;
+        setCustomerDevices(Array.isArray(customerDevicesRes?.customer_devices) ? customerDevicesRes.customer_devices : []);
+      } catch (e) {
+        if (!alive) return;
+
+        if (e instanceof ApiError && e.status === 428 && typeof tenantSlug === "string" && tenantSlug.trim().length > 0) {
+          const next = `/app/${tenantSlug}/estimates/${estimateId}`;
+          router.replace(`/app/${tenantSlug}/branches/select?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
+        setDevicesError(e instanceof Error ? e.message : "Failed to load devices.");
+        setEstimateDevices([]);
+        setCustomerDevices([]);
+      } finally {
+        if (!alive) return;
+        setDevicesLoading(false);
+      }
+    }
+
+    void loadDevices();
+
+    return () => {
+      alive = false;
+    };
+  }, [estimate, estimateId, refreshKey, router, tenantSlug]);
+
   const totalCents = estimate?.totals?.total_cents ?? 0;
   const currency = estimate?.totals?.currency ?? "USD";
   const convertedJobId = estimate?.converted_job_id ?? null;
@@ -178,6 +288,76 @@ export default function TenantEstimateDetailPage() {
     }
   }
 
+  async function attachDevice() {
+    setAttachError(null);
+
+    if (!attachId || attachId.trim().length === 0) {
+      setAttachError("Select a customer device.");
+      return;
+    }
+
+    if (typeof tenantSlug !== "string" || tenantSlug.trim().length === 0) {
+      setAttachError("Tenant is missing.");
+      return;
+    }
+
+    if (!estimateId) {
+      setAttachError("Estimate ID is missing.");
+      return;
+    }
+
+    setAttachBusy(true);
+    try {
+      await apiFetch<{ estimate_device: unknown }>(`/api/${tenantSlug}/app/repairbuddy/estimates/${estimateId}/devices`, {
+        method: "POST",
+        body: { customer_device_id: Number(attachId) },
+      });
+      setAttachId("");
+      setRefreshKey((x) => x + 1);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setAttachError(e.message);
+      } else {
+        setAttachError(e instanceof Error ? e.message : "Failed to attach device.");
+      }
+    } finally {
+      setAttachBusy(false);
+    }
+  }
+
+  async function detachDevice(estimateDeviceId: number) {
+    setAttachError(null);
+
+    if (typeof tenantSlug !== "string" || tenantSlug.trim().length === 0) {
+      setAttachError("Tenant is missing.");
+      return;
+    }
+
+    if (!estimateId) {
+      setAttachError("Estimate ID is missing.");
+      return;
+    }
+
+    setAttachBusy(true);
+    try {
+      await apiFetch<{ message: string }>(
+        `/api/${tenantSlug}/app/repairbuddy/estimates/${estimateId}/devices/${estimateDeviceId}`,
+        {
+          method: "DELETE",
+        },
+      );
+      setRefreshKey((x) => x + 1);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setAttachError(e.message);
+      } else {
+        setAttachError(e instanceof Error ? e.message : "Failed to detach device.");
+      }
+    } finally {
+      setAttachBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {error ? (
@@ -190,13 +370,14 @@ export default function TenantEstimateDetailPage() {
 
       {estimate ? (
         <DetailPageShell
+          key={`${estimate.id}:${defaultTab}`}
           breadcrumb={
             <span>
               <Link href={typeof tenantSlug === "string" ? `/app/${tenantSlug}/estimates` : "/app"} className="hover:text-[var(--rb-text)]">
                 Estimates
               </Link>
               <span className="px-2">/</span>
-              <span>{estimate.id}</span>
+              <span>{estimate.case_number}</span>
             </span>
           }
           backHref={typeof tenantSlug === "string" ? `/app/${tenantSlug}/estimates` : "/app"}
@@ -210,6 +391,16 @@ export default function TenantEstimateDetailPage() {
                   View Job
                 </Link>
               ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRefreshKey((x) => x + 1);
+                }}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -237,6 +428,7 @@ export default function TenantEstimateDetailPage() {
               </Button>
             </div>
           }
+          defaultTab={defaultTab}
           tabs={{
             overview: (
               <Card className="shadow-none">
@@ -268,6 +460,20 @@ export default function TenantEstimateDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+            ),
+            devices: (
+              <AttachedDevicesManager
+                devicesError={devicesError}
+                attachError={attachError}
+                devicesLoading={devicesLoading}
+                customerDevices={customerDevices}
+                attachedDevices={estimateDevices}
+                attachId={attachId}
+                setAttachId={setAttachId}
+                attachBusy={attachBusy}
+                onAttach={() => void attachDevice()}
+                onDetach={(id) => void detachDevice(id)}
+              />
             ),
             timeline: (
               <Card className="shadow-none">

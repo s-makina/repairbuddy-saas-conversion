@@ -9,7 +9,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { FormRow } from "@/components/ui/FormRow";
+import { getTenantCurrencies, type TenantCurrency } from "@/lib/tenant-currencies";
 
 type ApiClient = {
   id: number;
@@ -24,6 +26,7 @@ type ApiClient = {
   address_state: string | null;
   address_postal_code: string | null;
   address_country: string | null;
+  currency: string | null;
   created_at: string;
   jobs_count: number;
 };
@@ -53,6 +56,10 @@ export default function EditClientPage() {
   const [addressPostalCode, setAddressPostalCode] = useState("");
   const [addressCountry, setAddressCountry] = useState("");
 
+  const [currency, setCurrency] = useState("");
+  const [currencyOptions, setCurrencyOptions] = React.useState<TenantCurrency[]>([]);
+  const [businessActiveCurrency, setBusinessActiveCurrency] = React.useState<string | null>(null);
+
   useEffect(() => {
     let alive = true;
 
@@ -80,6 +87,8 @@ export default function EditClientPage() {
         setAddressState(c?.address_state ?? "");
         setAddressPostalCode(c?.address_postal_code ?? "");
         setAddressCountry(c?.address_country ?? "");
+
+        setCurrency(typeof c?.currency === "string" ? c.currency.toUpperCase() : "");
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load customer.");
@@ -96,6 +105,40 @@ export default function EditClientPage() {
     };
   }, [clientId, tenant]);
 
+  useEffect(() => {
+    let alive = true;
+
+    async function loadCurrencies() {
+      if (typeof tenant !== "string" || tenant.length === 0) return;
+      try {
+        const res = await getTenantCurrencies(String(tenant));
+        if (!alive) return;
+
+        const list = (Array.isArray(res.currencies) ? res.currencies : []).filter((c) => c && c.is_active);
+        setCurrencyOptions(list);
+
+        const active = typeof res.active_currency === "string" ? res.active_currency.toUpperCase() : null;
+        setBusinessActiveCurrency(active);
+
+        setCurrency((prev) => {
+          if (prev && prev.length === 3) return prev;
+          const defaultFromList = list.find((c) => c.is_default)?.code ?? null;
+          return active ?? defaultFromList ?? (list[0]?.code ?? prev);
+        });
+      } catch {
+        if (!alive) return;
+        setCurrencyOptions([]);
+        setBusinessActiveCurrency(null);
+      }
+    }
+
+    void loadCurrencies();
+
+    return () => {
+      alive = false;
+    };
+  }, [tenant]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (typeof tenant !== "string" || tenant.length === 0) return;
@@ -105,6 +148,8 @@ export default function EditClientPage() {
     setError(null);
 
     try {
+      const cur = currency.trim().toUpperCase();
+
       const payload = {
         name: name.trim(),
         email: email.trim(),
@@ -117,6 +162,7 @@ export default function EditClientPage() {
         address_state: addressState.trim() !== "" ? addressState.trim() : null,
         address_postal_code: addressPostalCode.trim() !== "" ? addressPostalCode.trim() : null,
         address_country: addressCountry.trim() !== "" ? addressCountry.trim().toUpperCase() : null,
+        currency: cur.length === 3 ? cur : null,
       };
 
       await apiFetch<{ client: ApiClient }>(`/api/${tenant}/app/clients/${clientId}`, {
@@ -238,6 +284,41 @@ export default function EditClientPage() {
                       aria-invalid={invalid}
                     />
                   )}
+                </FormRow>
+
+                <FormRow label="Currency" fieldId="client_currency" description="Used for customer-level pricing, invoices, and quotes.">
+                  {({ describedBy, invalid }) =>
+                    currencyOptions.length > 0 ? (
+                      <Select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        disabled={busy}
+                        aria-describedby={describedBy}
+                        aria-invalid={invalid}
+                      >
+                        {currencyOptions.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} {c.name ? `- ${c.name}` : ""}
+                          </option>
+                        ))}
+                        {businessActiveCurrency && !currencyOptions.some((c) => c.code === businessActiveCurrency) ? (
+                          <option value={businessActiveCurrency}>{businessActiveCurrency}</option>
+                        ) : null}
+                      </Select>
+                    ) : (
+                      <Input
+                        id="client_currency"
+                        className="uppercase"
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value.toUpperCase().slice(0, 3))}
+                        disabled={busy}
+                        maxLength={3}
+                        placeholder="USD"
+                        aria-describedby={describedBy}
+                        aria-invalid={invalid}
+                      />
+                    )
+                  }
                 </FormRow>
 
                 <FormRow label="Address line 1" fieldId="client_address_line1" description="Optional street address.">

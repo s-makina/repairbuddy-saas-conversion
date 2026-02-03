@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\TenantCurrency;
 use App\Models\RepairBuddyJob;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -127,9 +128,12 @@ class ClientController extends Controller
             'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
             'address_country' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
         ]);
 
         $tenantId = $this->tenantId();
+
+        $currency = $this->resolveClientCurrency($validated['currency'] ?? null);
 
         $user = User::query()->create([
             'tenant_id' => $tenantId,
@@ -149,6 +153,7 @@ class ClientController extends Controller
             'address_state' => array_key_exists('address_state', $validated) && is_string($validated['address_state']) ? trim((string) $validated['address_state']) : null,
             'address_postal_code' => array_key_exists('address_postal_code', $validated) && is_string($validated['address_postal_code']) ? trim((string) $validated['address_postal_code']) : null,
             'address_country' => array_key_exists('address_country', $validated) && is_string($validated['address_country']) ? strtoupper(trim((string) $validated['address_country'])) : null,
+            'currency' => $currency,
 
             'password' => Hash::make(Str::random(48)),
             'email_verified_at' => null,
@@ -191,7 +196,12 @@ class ClientController extends Controller
             'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
             'address_country' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
         ]);
+
+        $currency = array_key_exists('currency', $validated)
+            ? $this->resolveClientCurrency($validated['currency'])
+            : $client->currency;
 
         $client->forceFill([
             'role' => 'customer',
@@ -210,6 +220,7 @@ class ClientController extends Controller
             'address_state' => array_key_exists('address_state', $validated) && is_string($validated['address_state']) ? trim((string) $validated['address_state']) : null,
             'address_postal_code' => array_key_exists('address_postal_code', $validated) && is_string($validated['address_postal_code']) ? trim((string) $validated['address_postal_code']) : null,
             'address_country' => array_key_exists('address_country', $validated) && is_string($validated['address_country']) ? strtoupper(trim((string) $validated['address_country'])) : null,
+            'currency' => $currency,
         ])->save();
 
         $jobsCount = (int) DB::table('rb_jobs')
@@ -346,8 +357,45 @@ class ClientController extends Controller
             'address_state' => $client->address_state,
             'address_postal_code' => $client->address_postal_code,
             'address_country' => $client->address_country,
+            'currency' => is_string($client->currency) ? strtoupper((string) $client->currency) : null,
             'created_at' => $client->created_at,
             'jobs_count' => $jobsCount,
         ];
+    }
+
+    private function resolveClientCurrency($requested): string
+    {
+        $tenant = $this->tenant();
+
+        $default = is_string($tenant->currency) && trim($tenant->currency) !== '' ? strtoupper(trim($tenant->currency)) : 'USD';
+        if (! preg_match('/^[A-Z]{3}$/', $default)) {
+            $default = 'USD';
+        }
+
+        $requestedCode = is_string($requested) ? strtoupper(trim($requested)) : '';
+        $requestedCode = preg_match('/^[A-Z]{3}$/', $requestedCode) ? $requestedCode : '';
+
+        $active = TenantCurrency::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_active', true)
+            ->pluck('code')
+            ->map(fn ($c) => strtoupper((string) $c))
+            ->filter(fn ($c) => preg_match('/^[A-Z]{3}$/', $c))
+            ->values()
+            ->all();
+
+        if (count($active) > 0) {
+            if ($requestedCode !== '' && in_array($requestedCode, $active, true)) {
+                return $requestedCode;
+            }
+
+            if (in_array($default, $active, true)) {
+                return $default;
+            }
+
+            return (string) $active[0];
+        }
+
+        return $requestedCode !== '' ? $requestedCode : $default;
     }
 }
