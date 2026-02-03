@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuItem } from "@/components/ui/DropdownMenu";
 import { useAuth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
 import { formatMoney } from "@/lib/money";
+import { DollarSign, MoreHorizontal } from "lucide-react";
 import type { Branch, User, UserStatus } from "@/lib/types";
 
 type TechRow = {
@@ -409,7 +410,7 @@ export default function TenantTechniciansPage() {
                   }}
                   aria-label="Actions"
                 >
-                  ...
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               )}
             >
@@ -422,7 +423,10 @@ export default function TenantTechniciansPage() {
                     }}
                     disabled={!canManageUsers}
                   >
-                    Update hourly rates
+                    <span className="inline-flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      <span>Update hourly rates</span>
+                    </span>
                   </DropdownMenuItem>
                 </>
               )}

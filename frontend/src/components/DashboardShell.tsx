@@ -13,6 +13,32 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { UserMenu } from "@/components/ui/UserMenu";
+import {
+  BarChart3,
+  Building2,
+  Calculator,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Clock,
+  CreditCard,
+  FileText,
+  Home,
+  LayoutDashboard,
+  Package,
+  Printer,
+  Settings,
+  Sparkles,
+  Star,
+  Tag,
+  User,
+  Users,
+  Wrench,
+  Laptop,
+  Shield,
+} from "lucide-react";
 
 type DashboardHeaderConfig = {
   title?: React.ReactNode;
@@ -65,239 +91,51 @@ function MenuIcon({
   className?: string;
 }) {
   const common = "h-4 w-4 shrink-0";
-  const base = "fill-none stroke-current";
-  const commonProps = {
-    viewBox: "0 0 24 24",
-    className: cn(common, className),
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
+  const iconClassName = cn(common, className);
+
+  const icons: Record<
+    React.ComponentProps<typeof MenuIcon>["name"],
+    React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>
+  > = {
+    home: Home,
+    admin: Shield,
+    dashboard: LayoutDashboard,
+    building: Building2,
+    calendar: Calendar,
+    wrench: Wrench,
+    file: FileText,
+    services: Sparkles,
+    devices: Laptop,
+    tags: Tag,
+    parts: Package,
+    payments: CreditCard,
+    reports: BarChart3,
+    calculator: Calculator,
+    users: Users,
+    review: Star,
+    clock: Clock,
+    printer: Printer,
+    shield: Shield,
+    profile: User,
+    settings: Settings,
+    default: CircleHelp,
   };
 
-  switch (name) {
-    case "home":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M3 11l9-8 9 8" />
-          <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
-        </svg>
-      );
-    case "building":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14" />
-          <path d="M9 9h.01" />
-          <path d="M15 9h.01" />
-          <path d="M9 13h.01" />
-          <path d="M15 13h.01" />
-          <path d="M9 17h.01" />
-          <path d="M15 17h.01" />
-          <path d="M8 21v-4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v4" />
-        </svg>
-      );
-    case "admin":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 3l8 4v6c0 5-3.4 9.2-8 10-4.6-.8-8-5-8-10V7l8-4z" />
-          <path d="M12 7v6" />
-          <path d="M12 17h.01" />
-        </svg>
-      );
-    case "dashboard":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M4 13a8 8 0 1 1 16 0" />
-          <path d="M12 13l3-3" />
-          <path d="M7 21h10" />
-        </svg>
-      );
-    case "calendar":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M8 3v3" />
-          <path d="M16 3v3" />
-          <path d="M4 7h16" />
-          <path d="M5 7v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7" />
-          <path d="M8 11h4" />
-        </svg>
-      );
-    case "wrench":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.2 2.2-2.8-2.8 2-2.4z" />
-        </svg>
-      );
-    case "file":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-          <path d="M14 2v6h6" />
-        </svg>
-      );
-    case "services":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 2l1.6 3.8L17 7.4l-3.4 1.6L12 13l-1.6-4L7 7.4l3.4-1.6L12 2z" />
-          <path d="M19 13l.9 2.1L22 16l-2.1.9L19 19l-.9-2.1L16 16l2.1-.9L19 13z" />
-        </svg>
-      );
-    case "devices":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M8 4h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
-          <path d="M10 21h4" />
-          <path d="M12 17h.01" />
-        </svg>
-      );
-    case "tags":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M20 12l-8 8-10-10V2h8l10 10z" />
-          <path d="M7 7h.01" />
-        </svg>
-      );
-    case "parts":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 3a4 4 0 0 1 4 4v2h2a4 4 0 0 1 0 8h-2v2a4 4 0 0 1-8 0v-2H6a4 4 0 0 1 0-8h2V7a4 4 0 0 1 4-4z" />
-        </svg>
-      );
-    case "payments":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M4 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" />
-          <path d="M2 11h20" />
-          <path d="M6 15h4" />
-        </svg>
-      );
-    case "reports":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M4 19V5" />
-          <path d="M4 19h16" />
-          <path d="M8 16v-6" />
-          <path d="M12 16V8" />
-          <path d="M16 16v-3" />
-        </svg>
-      );
-    case "calculator":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
-          <path d="M8 7h8" />
-          <path d="M8 11h2" />
-          <path d="M12 11h2" />
-          <path d="M16 11h0" />
-          <path d="M8 15h2" />
-          <path d="M12 15h2" />
-          <path d="M16 15h0" />
-        </svg>
-      );
-    case "users":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M16 11a3 3 0 1 0-6 0" />
-          <path d="M19 21v-1a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v1" />
-          <path d="M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-        </svg>
-      );
-    case "review":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 3l2.8 5.7L21 10l-4.5 4.4L17.6 21 12 18l-5.6 3 1.1-6.6L3 10l6.2-1.3L12 3z" />
-        </svg>
-      );
-    case "clock":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10z" />
-          <path d="M12 6v6l4 2" />
-        </svg>
-      );
-    case "printer":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M7 9V3h10v6" />
-          <path d="M6 17H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2" />
-          <path d="M7 14h10v7H7z" />
-        </svg>
-      );
-    case "shield":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 3l8 4v6c0 5-3.4 9.2-8 10-4.6-.8-8-5-8-10V7l8-4z" />
-          <path d="M9.5 12l1.8 1.8L14.8 10" />
-        </svg>
-      );
-    case "profile":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z" />
-          <path d="M4 21a8 8 0 0 1 16 0" />
-        </svg>
-      );
-    case "settings":
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 15.5a3.5 3.5 0 1 0-3.5-3.5 3.5 3.5 0 0 0 3.5 3.5z" />
-          <path d="M19.4 15a7.8 7.8 0 0 0 .1-2l2-1.5-2-3.4-2.4 1a7.8 7.8 0 0 0-1.8-1l-.4-2.7H9l-.4 2.7c-.6.2-1.2.6-1.8 1l-2.4-1-2 3.4L4.5 13a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1c.6.4 1.2.7 1.8 1l.4 2.7h6.2l.4-2.7c.6-.2 1.2-.6 1.8-1l2.4 1 2-3.4-2-1.5z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...commonProps} className={cn(common, base, className)}>
-          <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10z" />
-          <path d="M12 8h.01" />
-          <path d="M12 12v4" />
-        </svg>
-      );
-  }
+  const Icon = icons[name] ?? CircleHelp;
+
+  return <Icon className={iconClassName} aria-hidden />;
 }
 
 function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={cn("h-4 w-4 shrink-0 fill-none stroke-current", className)}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M9 18l6-6-6-6" />
-    </svg>
-  );
+  return <ChevronRight className={cn("h-4 w-4 shrink-0", className)} aria-hidden />;
 }
 
 function ChevronDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={cn("h-4 w-4 shrink-0 fill-none stroke-current", className)}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
+  return <ChevronDown className={cn("h-4 w-4 shrink-0", className)} aria-hidden />;
 }
 
 function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={cn("h-4 w-4 shrink-0 fill-none stroke-current", className)}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  );
+  return <Check className={cn("h-4 w-4 shrink-0", className)} aria-hidden />;
 }
 
 export function DashboardShell({

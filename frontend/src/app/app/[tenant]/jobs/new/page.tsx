@@ -4,11 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Select from "react-select";
 import AsyncSelect from "react-select/async";
-import { Trash2 } from "lucide-react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FormRow } from "@/components/ui/FormRow";
@@ -16,6 +14,9 @@ import { Modal } from "@/components/ui/Modal";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { getRepairBuddySettings } from "@/lib/repairbuddy-settings";
+import { WizardShell } from "@/components/repairbuddy/wizard/WizardShell";
+import { DevicesAdminEditor } from "@/components/repairbuddy/wizard/DevicesAdminEditor";
+import { CustomerCreateModal } from "@/components/repairbuddy/wizard/CustomerCreateModal";
 
 type ApiDevice = {
   id: number;
@@ -810,8 +811,6 @@ export default function NewJobPage() {
   const isStep1 = step === 1;
   const isStep2 = step === 2;
   const isStep3 = step === 3;
-  const stepIndex = step === 1 ? 0 : step === 2 ? 1 : 2;
-  const progress = stepIndex / 2;
 
   return (
     <RequireAuth requiredPermission="jobs.view">
@@ -838,106 +837,52 @@ export default function NewJobPage() {
 
         {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-        <Modal
+        <CustomerCreateModal
           open={customerCreateOpen}
           title="Add customer"
-          onClose={() => {
-            setCustomerCreateError(null);
+          className="max-w-3xl"
+          disabled={disabled}
+          error={customerCreateError}
+          setError={setCustomerCreateError}
+          name={customerCreateName}
+          setName={setCustomerCreateName}
+          email={customerCreateEmail}
+          setEmail={setCustomerCreateEmail}
+          phone={customerCreatePhone}
+          setPhone={setCustomerCreatePhone}
+          company={customerCreateCompany}
+          setCompany={setCustomerCreateCompany}
+          addressLine1={customerCreateAddressLine1}
+          setAddressLine1={setCustomerCreateAddressLine1}
+          addressLine2={customerCreateAddressLine2}
+          setAddressLine2={setCustomerCreateAddressLine2}
+          addressCity={customerCreateAddressCity}
+          setAddressCity={setCustomerCreateAddressCity}
+          addressState={customerCreateAddressState}
+          setAddressState={setCustomerCreateAddressState}
+          addressPostalCode={customerCreateAddressPostalCode}
+          setAddressPostalCode={setCustomerCreateAddressPostalCode}
+          addressCountry={customerCreateAddressCountry}
+          setAddressCountry={setCustomerCreateAddressCountry}
+          onClose={() => setCustomerCreateOpen(false)}
+          onSave={({ name, email, phone, company, address_line1, address_line2, address_city, address_state, address_postal_code, address_country }) => {
+            setCustomerMode("new");
+            setCustomerId(null);
+            setCustomerOption({ value: -1, label: `${name} (${email})` });
+            setJobDevices([]);
+
+            setCustomerCreatePhone(phone);
+            setCustomerCreateCompany(company);
+            setCustomerCreateAddressLine1(address_line1 ?? "");
+            setCustomerCreateAddressLine2(address_line2 ?? "");
+            setCustomerCreateAddressCity(address_city ?? "");
+            setCustomerCreateAddressState(address_state ?? "");
+            setCustomerCreateAddressPostalCode(address_postal_code ?? "");
+            setCustomerCreateAddressCountry(address_country ?? "");
+
             setCustomerCreateOpen(false);
           }}
-          className="max-w-3xl"
-          footer={
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setCustomerCreateError(null);
-                  setCustomerCreateOpen(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  const name = customerCreateName.trim();
-                  const email = customerCreateEmail.trim();
-                  if (name === "") {
-                    setCustomerCreateError("Customer name is required.");
-                    return;
-                  }
-                  if (email === "") {
-                    setCustomerCreateError("Customer email is required.");
-                    return;
-                  }
-
-                  setCustomerCreateError(null);
-
-                  setCustomerMode("new");
-                  setCustomerId(null);
-                  setCustomerOption({ value: -1, label: `${name} (${email})` });
-                  setJobDevices([]);
-
-                  setCustomerCreateOpen(false);
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          }
-        >
-          <div className="space-y-4">
-            {customerCreateError ? <div className="text-sm text-red-600">{customerCreateError}</div> : null}
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">Name</div>
-                <Input value={customerCreateName} onChange={(e) => setCustomerCreateName(e.target.value)} />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">Email</div>
-                <Input value={customerCreateEmail} onChange={(e) => setCustomerCreateEmail(e.target.value)} />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">Phone</div>
-                <Input value={customerCreatePhone} onChange={(e) => setCustomerCreatePhone(e.target.value)} />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">Company</div>
-                <Input value={customerCreateCompany} onChange={(e) => setCustomerCreateCompany(e.target.value)} />
-              </div>
-
-              <div className="md:col-span-2">
-                <div className="mb-1 text-xs text-zinc-600">Address line 1</div>
-                <Input value={customerCreateAddressLine1} onChange={(e) => setCustomerCreateAddressLine1(e.target.value)} />
-              </div>
-              <div className="md:col-span-2">
-                <div className="mb-1 text-xs text-zinc-600">Address line 2</div>
-                <Input value={customerCreateAddressLine2} onChange={(e) => setCustomerCreateAddressLine2(e.target.value)} />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">City</div>
-                <Input value={customerCreateAddressCity} onChange={(e) => setCustomerCreateAddressCity(e.target.value)} />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">State</div>
-                <Input value={customerCreateAddressState} onChange={(e) => setCustomerCreateAddressState(e.target.value)} />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">Postal code</div>
-                <Input
-                  value={customerCreateAddressPostalCode}
-                  onChange={(e) => setCustomerCreateAddressPostalCode(e.target.value)}
-                />
-              </div>
-              <div>
-                <div className="mb-1 text-xs text-zinc-600">Country (2-letter)</div>
-                <Input value={customerCreateAddressCountry} onChange={(e) => setCustomerCreateAddressCountry(e.target.value)} placeholder="US" />
-              </div>
-            </div>
-          </div>
-        </Modal>
+        />
 
       <Modal
         open={servicePickerModalOpen}
@@ -1672,139 +1617,48 @@ export default function NewJobPage() {
         </Modal>
 
         <form id="rb_job_new_form" className="space-y-6" onSubmit={onSubmit}>
-          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-            <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Job steps</CardTitle>
-                <CardDescription>Complete the steps to create the job.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--rb-border)]">
-                  <div
-                    className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
-                    style={{ width: `${Math.round(progress * 100)}%` }}
-                  />
-                </div>
-
-                <nav aria-label="Job steps" className="space-y-1">
-                  {[1, 2, 3].map((s, idx) => {
-                    const isCurrent = s === step;
-                    const isCompleted = idx < stepIndex;
-                    const isAvailable = idx <= stepIndex;
-
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        disabled={!isAvailable || disabled}
-                        onClick={() => {
-                          if (!isAvailable) return;
-                          setError(null);
-                          setStep(s as 1 | 2 | 3);
-                        }}
-                        className={
-                          "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
-                          (isCurrent
-                            ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
-                            : isCompleted
-                              ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
-                              : "border-[var(--rb-border)] bg-white opacity-60")
-                        }
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={
-                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
-                              (isCurrent
-                                ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
-                                : isCompleted
-                                  ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
-                                  : "border-[var(--rb-border)] bg-white text-zinc-600")
-                            }
-                          >
-                            {isCompleted ? (
-                              <svg
-                                viewBox="0 0 24 24"
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            ) : (
-                              idx + 1
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">
-                              {s === 1 ? "Customer & devices" : s === 2 ? "Job Items and services" : "Order information"}
-                            </div>
-                            <div className="mt-0.5 line-clamp-2 text-xs text-zinc-600">
-                              {s === 1
-                                ? "Case, dates, customer, technician, description, devices."
-                                : s === 2
-                                  ? "Attach extra fields and files for this job."
-                                  : "Status, payment, priority, notes."}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-none flex flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-base">
-                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Order information"}
-                    </CardTitle>
-                    <CardDescription>
-                      {isStep1
-                        ? "Enter the customer, technician, description and devices."
-                        : isStep2
-                          ? "Attach extra fields and files for the job."
-                          : "Finalize status, payment, priority and notes."}
-                    </CardDescription>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-zinc-500">Step {stepIndex + 1} of 3</div>
-                    <div className="mt-2 flex items-center justify-end gap-2">
-                      <div className="flex items-center gap-1" aria-label="Progress">
-                        {[0, 1, 2].map((i) => {
-                          const isDone = i < stepIndex;
-                          const isNow = i === stepIndex;
-                          return (
-                            <span
-                              key={i}
-                              className={
-                                "h-1.5 w-5 rounded-full transition " +
-                                (isNow
-                                  ? "bg-[var(--rb-blue)]"
-                                  : isDone
-                                    ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
-                                    : "bg-[var(--rb-border)]")
-                              }
-                            />
-                          );
-                        })}
-                      </div>
-                      <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
-                        {Math.round(progress * 100)}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="flex-1 space-y-6">
+          <WizardShell
+            steps={[
+              {
+                id: 1,
+                navTitle: "Customer & devices",
+                navDescription: "Case, dates, customer, technician, description, devices.",
+                pageTitle: "Customer & devices",
+                pageDescription: "Enter the customer, technician, description and devices.",
+                footerTitle: "Customer & devices",
+              },
+              {
+                id: 2,
+                navTitle: "Job Items and services",
+                navDescription: "Attach extra fields and files for this job.",
+                pageTitle: "Job Items and services",
+                pageDescription: "Attach extra fields and files for the job.",
+                footerTitle: "Job Items and services",
+              },
+              {
+                id: 3,
+                navTitle: "Order information",
+                navDescription: "Status, payment, priority, notes.",
+                pageTitle: "Order information",
+                pageDescription: "Finalize status, payment, priority and notes.",
+                footerTitle: "Order information",
+              },
+            ]}
+            step={step}
+            disabled={disabled}
+            sidebarTitle="Job steps"
+            sidebarDescription="Complete the steps to create the job."
+            sidebarAriaLabel="Job steps"
+            onStepChange={(next) => {
+              setError(null);
+              setStep(next as 1 | 2 | 3);
+            }}
+            footerRight={
+              <Button id="rb_job_save" variant="primary" disabled={disabled} type="submit">
+                {busy ? "Saving..." : "Save"}
+              </Button>
+            }
+          >
                 {isStep1 ? (
                   <div className="space-y-5">
                     <FormRow label="Case number" fieldId="job_case_number">
@@ -1991,132 +1845,26 @@ export default function NewJobPage() {
                     </FormRow>
 
                     <FormRow label="Add devices to this job" fieldId="job_devices_admin">
-                      <div className="space-y-4">
-                        <div className="rounded-[var(--rb-radius-sm)] border border-dashed border-zinc-300 bg-white p-3">
-                          <div className="grid grid-cols-1 gap-3">
-                            {jobDevicesAdmin.map((d, idx) => (
-                              <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
-                                <div>
-                                  <div className="mb-1 text-xs text-zinc-600">Device</div>
-                                  <AsyncSelect
-                                    inputId={`job_device_${idx}`}
-                                    instanceId={`job_device_${idx}`}
-                                    cacheOptions
-                                    defaultOptions={deviceOptions}
-                                    loadOptions={loadDeviceOptions}
-                                    isClearable
-                                    isSearchable
-                                    value={d.option}
-                                    onChange={(opt) => {
-                                      const next = (opt as DeviceOption | null) ?? null;
-                                      setJobDevicesAdmin((prev) =>
-                                        prev.map((x, i) =>
-                                          i === idx
-                                            ? {
-                                                ...x,
-                                                option: next,
-                                                device_id: typeof next?.value === "number" ? next.value : null,
-                                              }
-                                            : x,
-                                        ),
-                                      );
-                                    }}
-                                    isDisabled={disabled}
-                                    placeholder="Search..."
-                                    classNamePrefix="rb-select"
-                                    styles={{
-                                      control: (base) => ({
-                                        ...base,
-                                        borderRadius: "var(--rb-radius-sm)",
-                                        borderColor: "#d4d4d8",
-                                        minHeight: 40,
-                                        boxShadow: "none",
-                                      }),
-                                      menu: (base) => ({
-                                        ...base,
-                                        zIndex: 50,
-                                      }),
-                                    }}
-                                  />
-                                </div>
-
-                                <div>
-                                  <div className="mb-1 text-xs text-zinc-600">Device ID / IMEI</div>
-                                  <Input
-                                    value={d.serial}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, serial: v } : x)));
-                                    }}
-                                    disabled={disabled}
-                                  />
-                                </div>
-
-                                <div>
-                                  <div className="mb-1 text-xs text-zinc-600">Device note</div>
-                                  <Input
-                                    value={d.notes}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setJobDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: v } : x)));
-                                    }}
-                                    disabled={disabled}
-                                  />
-                                </div>
-
-                                <div className="flex md:justify-end">
-                                  <span
-                                    role="button"
-                                    tabIndex={disabled ? -1 : 0}
-                                    aria-label="Remove device"
-                                    title="Remove device"
-                                    onClick={() => {
-                                      if (disabled) return;
-                                      setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx));
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (disabled) return;
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        setJobDevicesAdmin((prev) => prev.filter((_, i) => i !== idx));
-                                      }
-                                    }}
-                                    className={
-                                      "inline-flex h-10 w-10 items-center justify-center rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white text-zinc-700 " +
-                                      (disabled ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-zinc-50")
-                                    }
-                                  >
-                                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={disabled}
-                            onClick={() => {
-                              setJobDevicesAdmin((prev) => [
-                                ...prev,
-                                {
-                                  device_id: null,
-                                  option: null,
-                                  serial: "",
-                                  pin: "",
-                                  notes: "",
-                                },
-                              ]);
-                            }}
-                          >
-                            Add device
-                          </Button>
-                        </div>
-                      </div>
+                      <DevicesAdminEditor
+                        value={jobDevicesAdmin}
+                        onChange={(next) => setJobDevicesAdmin(next)}
+                        deviceOptions={deviceOptions}
+                        loadDeviceOptions={loadDeviceOptions}
+                        disabled={disabled}
+                        idPrefix="job"
+                        showPin={false}
+                        serialLabel="Device ID / IMEI"
+                        pinLabel="Pin"
+                        notesLabel="Device note"
+                        addButtonLabel="Add device"
+                        createEmptyRow={() => ({
+                          device_id: null,
+                          option: null,
+                          serial: "",
+                          pin: "",
+                          notes: "",
+                        })}
+                      />
                     </FormRow>
                   </div>
                 ) : isStep2 ? (
@@ -2535,77 +2283,7 @@ export default function NewJobPage() {
                     </FormRow>
                   </div>
                 )}
-              </CardContent>
-
-              <div className="sticky bottom-0 border-t border-[var(--rb-border)] bg-white/90 px-5 py-4 backdrop-blur">
-                <div className="flex items-center justify-between gap-4">
-                  <Button
-                    variant="ghost"
-                    disabled={disabled || isStep1}
-                    onClick={() => {
-                      setStep((prev) => (prev === 3 ? 2 : 1));
-                    }}
-                    type="button"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                      Back
-                    </span>
-                  </Button>
-
-                  <div className="flex items-center gap-3">
-                    <div className="hidden sm:block text-xs text-zinc-500">
-                      {isStep1 ? "Customer & devices" : isStep2 ? "Job Items and services" : "Order information"}
-                      <span className="mx-2">•</span>
-                      {Math.round(progress * 100)}%
-                    </div>
-
-                    {!isStep3 ? (
-                      <Button
-                        variant="primary"
-                        disabled={disabled}
-                        onClick={() => {
-                          setStep((prev) => (prev === 1 ? 2 : 3));
-                        }}
-                        type="button"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          Next
-                          <svg
-                            viewBox="0 0 24 24"
-                            className="h-4 w-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <path d="M9 18l6-6-6-6" />
-                          </svg>
-                        </span>
-                      </Button>
-                    ) : (
-                      <Button id="rb_job_save" variant="primary" disabled={disabled} type="submit">
-                        {busy ? "Saving..." : "Save"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
+          </WizardShell>
         </form>
       </div>
     </RequireAuth>

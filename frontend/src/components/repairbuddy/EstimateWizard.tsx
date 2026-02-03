@@ -4,16 +4,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import AsyncSelect from "react-select/async";
-import { Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FormRow } from "@/components/ui/FormRow";
 import { Modal } from "@/components/ui/Modal";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
+import { WizardShell } from "@/components/repairbuddy/wizard/WizardShell";
+import { DevicesAdminEditor } from "@/components/repairbuddy/wizard/DevicesAdminEditor";
+import { CustomerCreateModal } from "@/components/repairbuddy/wizard/CustomerCreateModal";
 
 type ApiDevice = {
   id: number;
@@ -573,73 +574,29 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
 
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-      <Modal
+      <CustomerCreateModal
         open={customerCreateOpen}
         title="Add customer"
-        onClose={() => {
-          setCustomerCreateError(null);
+        disabled={disabled}
+        error={customerCreateError}
+        setError={setCustomerCreateError}
+        name={customerCreateName}
+        setName={setCustomerCreateName}
+        email={customerCreateEmail}
+        setEmail={setCustomerCreateEmail}
+        emailInputType="email"
+        phone={customerCreatePhone}
+        setPhone={setCustomerCreatePhone}
+        company={customerCreateCompany}
+        setCompany={setCustomerCreateCompany}
+        onClose={() => setCustomerCreateOpen(false)}
+        onSave={({ name, email }) => {
+          setCustomerMode("new");
+          setCustomerId(null);
+          setCustomerOption({ value: -1, label: `${name} (${email})` });
           setCustomerCreateOpen(false);
         }}
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setCustomerCreateError(null);
-                setCustomerCreateOpen(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                const name = customerCreateName.trim();
-                const email = customerCreateEmail.trim();
-                if (name === "") {
-                  setCustomerCreateError("Customer name is required.");
-                  return;
-                }
-                if (email === "") {
-                  setCustomerCreateError("Customer email is required.");
-                  return;
-                }
-
-                setCustomerCreateError(null);
-                setCustomerMode("new");
-                setCustomerId(null);
-                setCustomerOption({ value: -1, label: `${name} (${email})` });
-                setCustomerCreateOpen(false);
-              }}
-            >
-              Save
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {customerCreateError ? <div className="text-sm text-red-600">{customerCreateError}</div> : null}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-1 text-xs text-zinc-600">Name</div>
-              <Input value={customerCreateName} onChange={(e) => setCustomerCreateName(e.target.value)} />
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-zinc-600">Email</div>
-              <Input type="email" value={customerCreateEmail} onChange={(e) => setCustomerCreateEmail(e.target.value)} />
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-zinc-600">Phone</div>
-              <Input value={customerCreatePhone} onChange={(e) => setCustomerCreatePhone(e.target.value)} />
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-zinc-600">Company</div>
-              <Input value={customerCreateCompany} onChange={(e) => setCustomerCreateCompany(e.target.value)} />
-            </div>
-          </div>
-        </div>
-      </Modal>
+      />
 
       <Modal
         open={servicePickerModalOpen}
@@ -915,137 +872,65 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
           e.preventDefault();
         }}
       >
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-          <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Estimate steps</CardTitle>
-              <CardDescription>Complete the steps to create the estimate.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--rb-border)]">
-                <div
-                  className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
-                  style={{ width: `${Math.round(progress * 100)}%` }}
-                />
-              </div>
-
-              <nav aria-label="Estimate steps" className="space-y-1">
-                {[1, 2, 3].map((s, idx) => {
-                  const isCurrent = s === step;
-                  const isCompleted = idx < stepIndex;
-                  const isAvailable = idx <= stepIndex;
-
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      disabled={!isAvailable || disabled}
-                      onClick={() => {
-                        if (!isAvailable) return;
-                        setError(null);
-                        setStep(s as 1 | 2 | 3);
-                      }}
-                      className={
-                        "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
-                        (isCurrent
-                          ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
-                          : isCompleted
-                            ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
-                            : "border-[var(--rb-border)] bg-white opacity-60")
-                      }
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
-                            (isCurrent
-                              ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
-                              : isCompleted
-                                ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
-                                : "border-[var(--rb-border)] bg-white text-zinc-600")
-                          }
-                        >
-                          {isCompleted ? (
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="h-4 w-4"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          ) : (
-                            idx + 1
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">
-                            {s === 1 ? "Customer & devices" : s === 2 ? "Items and services" : "Review & send"}
-                          </div>
-                          <div className="mt-0.5 line-clamp-2 text-xs text-zinc-600">
-                            {s === 1
-                              ? "Case, dates, customer, technician, description, devices."
-                              : s === 2
-                                ? "Add services, parts and other items."
-                                : "Review and optionally send the estimate."}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </nav>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-none flex flex-col">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <CardTitle className="text-base">{isStep1 ? "Customer & devices" : isStep2 ? "Items and services" : "Review & send"}</CardTitle>
-                  <CardDescription>
-                    {isStep1
-                      ? "Enter the customer, technician, description and devices."
-                      : isStep2
-                        ? "Attach services, parts and other items."
-                        : "Review the estimate and optionally send it to the customer."}
-                  </CardDescription>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-zinc-500">Step {stepIndex + 1} of 3</div>
-                  <div className="mt-2 flex items-center justify-end gap-2">
-                    <div className="flex items-center gap-1" aria-label="Progress">
-                      {[0, 1, 2].map((i) => {
-                        const isDone = i < stepIndex;
-                        const isNow = i === stepIndex;
-                        return (
-                          <span
-                            key={i}
-                            className={
-                              "h-1.5 w-5 rounded-full transition " +
-                              (isNow
-                                ? "bg-[var(--rb-blue)]"
-                                : isDone
-                                  ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
-                                  : "bg-[var(--rb-border)]")
-                            }
-                          />
-                        );
-                      })}
-                    </div>
-                    <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
-                      {Math.round(progress * 100)}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="flex-1 space-y-6">
+        <WizardShell
+          steps={[
+            {
+              id: 1,
+              navTitle: "Customer & devices",
+              navDescription: "Case, dates, customer, technician, description, devices.",
+              pageTitle: "Customer & devices",
+              pageDescription: "Enter the customer, technician, description and devices.",
+              footerTitle: "Customer & devices",
+            },
+            {
+              id: 2,
+              navTitle: "Items and services",
+              navDescription: "Add services, parts and other items.",
+              pageTitle: "Items and services",
+              pageDescription: "Attach services, parts and other items.",
+              footerTitle: "Items and services",
+            },
+            {
+              id: 3,
+              navTitle: "Review & send",
+              navDescription: "Review and optionally send the estimate.",
+              pageTitle: "Review & send",
+              pageDescription: "Review the estimate and optionally send it to the customer.",
+              footerTitle: "Review & send",
+            },
+          ]}
+          step={step}
+          disabled={disabled}
+          sidebarTitle="Estimate steps"
+          sidebarDescription="Complete the steps to create the estimate."
+          sidebarAriaLabel="Estimate steps"
+          onStepChange={(next) => {
+            setError(null);
+            setStep(next as 1 | 2 | 3);
+          }}
+          footerRight={
+            <div className="flex items-center gap-2">
+              <Button
+                id="rb_estimate_save"
+                variant="outline"
+                disabled={disabled}
+                type="button"
+                onClick={() => void submitEstimate("save")}
+              >
+                {busy ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                id="rb_estimate_save_send"
+                variant="primary"
+                disabled={disabled || !auth.can("estimates.manage") || !canSendEmail}
+                type="button"
+                onClick={() => void submitEstimate("save_send")}
+              >
+                {busy ? "Saving..." : "Save & Send"}
+              </Button>
+            </div>
+          }
+        >
               {isStep1 ? (
                 <div className="space-y-5">
                   <FormRow label="Title" fieldId="estimate_title" required>
@@ -1170,144 +1055,26 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                   </FormRow>
 
                   <FormRow label="Add devices to this estimate" fieldId="estimate_devices_admin">
-                    <div className="space-y-4">
-                      <div className="rounded-[var(--rb-radius-sm)] border border-dashed border-zinc-300 bg-white p-3">
-                        <div className="grid grid-cols-1 gap-3">
-                          {estimateDevicesAdmin.map((d, idx) => (
-                            <div key={idx} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1fr_auto] md:items-end">
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Device</div>
-                                <AsyncSelect
-                                  inputId={`estimate_device_${idx}`}
-                                  instanceId={`estimate_device_${idx}`}
-                                  cacheOptions
-                                  defaultOptions={deviceOptions}
-                                  loadOptions={loadDeviceOptions}
-                                  isClearable
-                                  isSearchable
-                                  value={d.option}
-                                  onChange={(opt) => {
-                                    const next = (opt as DeviceOption | null) ?? null;
-                                    setEstimateDevicesAdmin((prev) =>
-                                      prev.map((x, i) =>
-                                        i === idx
-                                          ? {
-                                              ...x,
-                                              option: next,
-                                              device_id: typeof next?.value === "number" ? next.value : null,
-                                            }
-                                          : x,
-                                      ),
-                                    );
-                                  }}
-                                  isDisabled={disabled}
-                                  placeholder="Search..."
-                                  classNamePrefix="rb-select"
-                                  styles={{
-                                    control: (base) => ({
-                                      ...base,
-                                      borderRadius: "var(--rb-radius-sm)",
-                                      borderColor: "#d4d4d8",
-                                      minHeight: 40,
-                                      boxShadow: "none",
-                                    }),
-                                    menu: (base) => ({
-                                      ...base,
-                                      zIndex: 50,
-                                    }),
-                                  }}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Serial / IMEI</div>
-                                <Input
-                                  value={d.serial}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setEstimateDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, serial: v } : x)));
-                                  }}
-                                  disabled={disabled}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Pin</div>
-                                <Input
-                                  value={d.pin}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setEstimateDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, pin: v } : x)));
-                                  }}
-                                  disabled={disabled}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-xs text-zinc-600">Notes</div>
-                                <Input
-                                  value={d.notes}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setEstimateDevicesAdmin((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: v } : x)));
-                                  }}
-                                  disabled={disabled}
-                                />
-                              </div>
-
-                              <div className="flex md:justify-end">
-                                <span
-                                  role="button"
-                                  tabIndex={disabled ? -1 : 0}
-                                  aria-label="Remove device"
-                                  title="Remove device"
-                                  onClick={() => {
-                                    if (disabled) return;
-                                    setEstimateDevicesAdmin((prev) => prev.filter((_, i) => i !== idx));
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (disabled) return;
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      setEstimateDevicesAdmin((prev) => prev.filter((_, i) => i !== idx));
-                                    }
-                                  }}
-                                  className={
-                                    "inline-flex h-10 w-10 items-center justify-center rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white text-zinc-700 " +
-                                    (disabled ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-zinc-50")
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={disabled}
-                          onClick={() => {
-                            setEstimateDevicesAdmin((prev) => [
-                              ...prev,
-                              {
-                                device_id: null,
-                                option: null,
-                                serial: "",
-                                pin: "",
-                                notes: "",
-                              },
-                            ]);
-                          }}
-                        >
-                          Add device
-                        </Button>
-                      </div>
-                    </div>
+                    <DevicesAdminEditor
+                      value={estimateDevicesAdmin}
+                      onChange={(next) => setEstimateDevicesAdmin(next)}
+                      deviceOptions={deviceOptions}
+                      loadDeviceOptions={loadDeviceOptions}
+                      disabled={disabled}
+                      idPrefix="estimate"
+                      showPin
+                      serialLabel="Serial / IMEI"
+                      pinLabel="Pin"
+                      notesLabel="Notes"
+                      addButtonLabel="Add device"
+                      createEmptyRow={() => ({
+                        device_id: null,
+                        option: null,
+                        serial: "",
+                        pin: "",
+                        notes: "",
+                      })}
+                    />
                   </FormRow>
                 </div>
               ) : isStep2 ? (
@@ -1621,94 +1388,7 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                   </div>
                 </div>
               )}
-            </CardContent>
-
-            <div className="sticky bottom-0 border-t border-[var(--rb-border)] bg-white/90 px-5 py-4 backdrop-blur">
-              <div className="flex items-center justify-between gap-4">
-                <Button
-                  variant="ghost"
-                  disabled={disabled || isStep1}
-                  onClick={() => {
-                    setStep((prev) => (prev === 3 ? 2 : 1));
-                  }}
-                  type="button"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                    Back
-                  </span>
-                </Button>
-
-                <div className="flex items-center gap-3">
-                  <div className="hidden sm:block text-xs text-zinc-500">
-                    {isStep1 ? "Customer & devices" : isStep2 ? "Items and services" : "Review & send"}
-                    <span className="mx-2">•</span>
-                    {Math.round(progress * 100)}%
-                  </div>
-
-                  {!isStep3 ? (
-                    <Button
-                      variant="primary"
-                      disabled={disabled}
-                      onClick={() => {
-                        setStep((prev) => (prev === 1 ? 2 : 3));
-                      }}
-                      type="button"
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        Next
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                      </span>
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        id="rb_estimate_save"
-                        variant="outline"
-                        disabled={disabled}
-                        type="button"
-                        onClick={() => void submitEstimate("save")}
-                      >
-                        {busy ? "Saving..." : "Save"}
-                      </Button>
-                      <Button
-                        id="rb_estimate_save_send"
-                        variant="primary"
-                        disabled={disabled || !auth.can("estimates.manage") || !canSendEmail}
-                        type="button"
-                        onClick={() => void submitEstimate("save_send")}
-                      >
-                        {busy ? "Saving..." : "Save & Send"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+        </WizardShell>
       </form>
     </div>
   );
