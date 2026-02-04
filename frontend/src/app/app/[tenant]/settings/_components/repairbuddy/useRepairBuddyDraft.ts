@@ -64,6 +64,7 @@ function formatTenantAddress(tenant: Tenant): string {
 function applyTenantIdentityToDraft(draft: RepairBuddySettingsDraft, tenant: Tenant): RepairBuddySettingsDraft {
   const setupState = (tenant.setup_state ?? {}) as Record<string, unknown>;
   const logoUrlFromState = (setupState.identity as Record<string, unknown> | undefined)?.logo_url;
+  const identityFromState = (setupState.identity ?? {}) as Record<string, unknown>;
   const logoUrl =
     typeof tenant.logo_url === "string"
       ? tenant.logo_url
@@ -79,6 +80,11 @@ function applyTenantIdentityToDraft(draft: RepairBuddySettingsDraft, tenant: Ten
       businessName: tenant.name ?? "",
       businessPhone: tenant.contact_phone ?? "",
       email: tenant.contact_email ?? "",
+      displayName: typeof identityFromState.display_name === "string" ? identityFromState.display_name : draft.general.displayName,
+      primaryContactName:
+        typeof identityFromState.primary_contact_name === "string" ? identityFromState.primary_contact_name : draft.general.primaryContactName,
+      registrationNumber:
+        typeof identityFromState.registration_number === "string" ? identityFromState.registration_number : draft.general.registrationNumber,
       businessAddress: formatTenantAddress(tenant),
       logoUrl,
       defaultCountry: billingCountry || draft.general.defaultCountry,
@@ -127,6 +133,24 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
           },
         };
 
+        const shouldHydrateTimeLogStatuses =
+          !merged.timeLogs ||
+          !Array.isArray(merged.timeLogs.enableTimeLogForStatusIds) ||
+          merged.timeLogs.enableTimeLogForStatusIds.length === 0;
+
+        const cancelledStatusId = merged.jobStatuses?.cancelledStatusId;
+        if (shouldHydrateTimeLogStatuses && merged.jobStatuses && Array.isArray(merged.jobStatuses.statuses)) {
+          const enabled = merged.jobStatuses.statuses
+            .filter((s) => s.status === "active")
+            .map((s) => s.id)
+            .filter((id) => (typeof cancelledStatusId === "string" && cancelledStatusId ? id !== cancelledStatusId : true));
+
+          merged.timeLogs = {
+            ...merged.timeLogs,
+            enableTimeLogForStatusIds: enabled,
+          };
+        }
+
         setDraft(applyTenantIdentityToDraft(normalizeAdditionalDeviceFields(merged), setupRes.tenant));
       } catch (e) {
         if (!alive) return;
@@ -162,6 +186,8 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
     try {
       const setupRes = await getSetup(String(tenantSlug));
 
+      const nextTenantCurrency = draft.currency.currency.trim().toUpperCase();
+
       const nextCountry = draft.general.defaultCountry.trim().toUpperCase();
       const addressInput = draft.general.businessAddress.trim();
       const trailingCountry = nextCountry ? new RegExp(`,\\s*${nextCountry}$`, "i") : null;
@@ -176,6 +202,9 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
         ...state,
         identity: {
           ...identity,
+          display_name: draft.general.displayName || null,
+          primary_contact_name: draft.general.primaryContactName || null,
+          registration_number: draft.general.registrationNumber || null,
           logo_url: draft.general.logoUrl,
         },
       };
@@ -186,6 +215,7 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
         contact_phone: draft.general.businessPhone || null,
         billing_country: nextCountry || null,
         billing_address_json: nextAddr,
+        currency: nextTenantCurrency.length === 3 ? nextTenantCurrency : null,
         setup_state: nextState,
       });
 

@@ -5,13 +5,26 @@ namespace App\Http\Controllers\Api\App;
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyPaymentStatus;
 use App\Models\TenantStatusOverride;
+use App\Support\BranchContext;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 
 class RepairBuddyPaymentStatusController extends Controller
 {
     public function index(Request $request)
     {
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
+
+        if (! $tenantId || ! $branchId) {
+            return response()->json([
+                'message' => 'Tenant or branch context is missing.',
+            ], 400);
+        }
+
         $overrides = TenantStatusOverride::query()
+            ->where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
             ->where('domain', 'payment')
             ->get()
             ->keyBy('code');
@@ -41,6 +54,15 @@ class RepairBuddyPaymentStatusController extends Controller
 
     public function updateDisplay(Request $request, string $business, string $slug)
     {
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
+
+        if (! $tenantId || ! $branchId) {
+            return response()->json([
+                'message' => 'Tenant or branch context is missing.',
+            ], 400);
+        }
+
         $validated = $request->validate([
             'label' => ['sometimes', 'nullable', 'string', 'max:255'],
             'color' => ['sometimes', 'nullable', 'string', 'max:32'],
@@ -56,12 +78,16 @@ class RepairBuddyPaymentStatusController extends Controller
         }
 
         $override = TenantStatusOverride::query()
+            ->where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
             ->where('domain', 'payment')
             ->where('code', $slug)
             ->first();
 
         if (! $override) {
             TenantStatusOverride::query()->create([
+                'tenant_id' => $tenantId,
+                'branch_id' => $branchId,
                 'domain' => 'payment',
                 'code' => $slug,
                 'label' => $validated['label'] ?? null,

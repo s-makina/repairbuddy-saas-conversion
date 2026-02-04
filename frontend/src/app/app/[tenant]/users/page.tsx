@@ -99,6 +99,15 @@ export default function TenantUsersPage() {
   const params = useParams() as { tenant?: string; business?: string };
   const tenant = params.business ?? params.tenant;
 
+  function scrollToInviteForm() {
+    const el = document.getElementById("invite-user");
+    if (!el) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -405,7 +414,25 @@ export default function TenantUsersPage() {
   return (
     <RequireAuth requiredPermission="users.manage">
       <div className="space-y-6">
-        <PageHeader title="Users" description="Manage tenant users and their roles." />
+        <PageHeader
+          title="Users"
+          description="Manage tenant users and their roles."
+          actions={
+            <Button
+              type="button"
+              onClick={() => {
+                setEditingUserId(null);
+                setNewName("");
+                setNewEmail("");
+                setNewShopQuery("");
+                setNewShopSelected({});
+                scrollToInviteForm();
+              }}
+            >
+              Invite user
+            </Button>
+          }
+        />
 
         <ConfirmDialog
           open={confirmOpen}
@@ -431,6 +458,7 @@ export default function TenantUsersPage() {
           <div>
             <Card className="shadow-none">
               <CardContent className="pt-5">
+                <div id="invite-user" />
                 <div className="text-sm font-semibold text-[var(--rb-text)]">{editingUserId ? "Edit user" : "Create user"}</div>
                 <form className="mt-4" onSubmit={onSaveUser}>
                   <div className="grid gap-6 lg:grid-cols-12">

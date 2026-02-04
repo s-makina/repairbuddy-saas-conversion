@@ -7,6 +7,9 @@ export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
     businessAddress: "",
     logoUrl: "",
     email: "",
+    displayName: "",
+    primaryContactName: "",
+    registrationNumber: "",
     caseNumberPrefix: "RB",
     caseNumberLength: 6,
     emailCustomer: true,
@@ -168,7 +171,7 @@ export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
   timeLogs: {
     disableTimeLog: false,
     defaultTaxIdForHours: "tax_none",
-    enableTimeLogForStatusIds: ["status_received", "status_completed"],
+    enableTimeLogForStatusIds: [],
     activities: "",
   },
   maintenanceReminders: {

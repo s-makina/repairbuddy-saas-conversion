@@ -91,6 +91,17 @@ class SetupController extends Controller
             }
         }
 
+        $nextSetupState = $tenant->setup_state;
+        if (array_key_exists('setup_state', $validated)) {
+            $incomingSetupState = $validated['setup_state'] ?? null;
+            if (is_array($incomingSetupState)) {
+                $baseSetupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+                $nextSetupState = array_replace_recursive($baseSetupState, $incomingSetupState);
+            } else {
+                $nextSetupState = null;
+            }
+        }
+
         $tenant->forceFill([
             'name' => array_key_exists('name', $validated) ? $validated['name'] : $tenant->name,
             'contact_email' => array_key_exists('contact_email', $validated) ? ($validated['contact_email'] ?? null) : $tenant->contact_email,
@@ -111,7 +122,7 @@ class SetupController extends Controller
             'brand_color' => array_key_exists('brand_color', $validated) ? ($validated['brand_color'] ?? null) : $tenant->brand_color,
 
             'setup_step' => array_key_exists('setup_step', $validated) ? ($validated['setup_step'] ?? null) : $tenant->setup_step,
-            'setup_state' => array_key_exists('setup_state', $validated) ? ($validated['setup_state'] ?? null) : $tenant->setup_state,
+            'setup_state' => array_key_exists('setup_state', $validated) ? $nextSetupState : $tenant->setup_state,
         ])->save();
 
         PlatformAudit::log($request, 'tenant.setup.updated', $tenant, null, [

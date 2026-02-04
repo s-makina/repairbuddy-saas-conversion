@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
 import type { RepairBuddyTax, RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
 import { updateRepairBuddySettings } from "@/lib/repairbuddy-settings";
+import { getSetup, updateSetup } from "@/lib/setup";
 import {
   createRepairBuddyTax,
   deleteRepairBuddyTax,
@@ -34,8 +35,13 @@ export function TaxesSection({
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [savingMeta, setSavingMeta] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+
+  const [taxRegistered, setTaxRegistered] = useState(false);
+  const [billingVatNumber, setBillingVatNumber] = useState("");
+  const [invoicePrefix, setInvoicePrefix] = useState("RB");
 
   const [taxes, setTaxes] = useState<ApiRepairBuddyTax[]>([]);
   const [loadingTaxes, setLoadingTaxes] = useState(false);
@@ -63,9 +69,17 @@ export function TaxesSection({
       setError(null);
       setLoadingTaxes(true);
       try {
-        const res = await getRepairBuddyTaxes(String(tenantSlug));
+        const [res, setupRes] = await Promise.all([getRepairBuddyTaxes(String(tenantSlug)), getSetup(String(tenantSlug))]);
         if (!alive) return;
         setTaxes(Array.isArray(res.taxes) ? res.taxes : []);
+
+        const vat = typeof setupRes.tenant?.billing_vat_number === "string" ? setupRes.tenant.billing_vat_number : "";
+        setBillingVatNumber(vat);
+
+        const state = (setupRes.setup?.state ?? {}) as Record<string, unknown>;
+        const taxState = (state.tax ?? {}) as Record<string, unknown>;
+        setTaxRegistered(typeof taxState.tax_registered === "boolean" ? taxState.tax_registered : false);
+        setInvoicePrefix(typeof taxState.invoice_prefix === "string" ? taxState.invoice_prefix : "RB");
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load taxes.");
@@ -79,6 +93,36 @@ export function TaxesSection({
       alive = false;
     };
   }, [tenantSlug]);
+
+  async function saveTaxMeta() {
+    if (isMock) return;
+    setStatus(null);
+    setError(null);
+    setSavingMeta(true);
+    try {
+      const setupRes = await getSetup(String(tenantSlug));
+      const prevState = (setupRes.setup?.state ?? {}) as Record<string, unknown>;
+      const prevTax = (prevState.tax ?? {}) as Record<string, unknown>;
+      const nextState: Record<string, unknown> = {
+        ...prevState,
+        tax: {
+          ...prevTax,
+          tax_registered: Boolean(taxRegistered),
+          invoice_prefix: invoicePrefix.trim() || null,
+        },
+      };
+
+      await updateSetup(String(tenantSlug), {
+        billing_vat_number: billingVatNumber.trim() || null,
+        setup_state: nextState,
+      });
+      setStatus("Saved.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save tax settings.");
+    } finally {
+      setSavingMeta(false);
+    }
+  }
 
   useEffect(() => {
     function onBranchChanged() {
@@ -313,6 +357,32 @@ export function TaxesSection({
     <SectionShell title="Taxes" description="Tax rates and invoice calculation preferences.">
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
       {status ? <div className="text-sm text-green-700">{status}</div> : null}
+
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={taxRegistered} onChange={(e) => setTaxRegistered(e.target.checked)} disabled={savingMeta || busy} />
+                Tax/VAT registered?
+              </label>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">VAT number</label>
+              <Input value={billingVatNumber} onChange={(e) => setBillingVatNumber(e.target.value)} placeholder="EU123456789" disabled={savingMeta || busy} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Invoice prefix (optional)</label>
+              <Input value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value)} placeholder="RB" disabled={savingMeta || busy} />
+            </div>
+            <div className="sm:col-span-2 flex items-center justify-end gap-2">
+              <Button variant="outline" disabled={isMock || savingMeta || busy} onClick={() => void saveTaxMeta()}>
+                {savingMeta ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <label className="flex items-center gap-2 text-sm">
         <input

@@ -22,6 +22,18 @@ export function GeneralSection({
           <Input value={g.businessName} onChange={(e) => updateGeneral({ businessName: e.target.value })} />
         </div>
         <div className="space-y-1">
+          <label className="text-sm font-medium">Display name</label>
+          <Input value={g.displayName} onChange={(e) => updateGeneral({ displayName: e.target.value })} placeholder="Defaults to business name" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Primary contact person name</label>
+          <Input value={g.primaryContactName} onChange={(e) => updateGeneral({ primaryContactName: e.target.value })} placeholder="e.g. Alex Johnson" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Business registration number</label>
+          <Input value={g.registrationNumber} onChange={(e) => updateGeneral({ registrationNumber: e.target.value })} placeholder="Optional" />
+        </div>
+        <div className="space-y-1">
           <label className="text-sm font-medium">Business phone</label>
           <Input value={g.businessPhone} onChange={(e) => updateGeneral({ businessPhone: e.target.value })} placeholder="+1 555 123 4567" />
         </div>

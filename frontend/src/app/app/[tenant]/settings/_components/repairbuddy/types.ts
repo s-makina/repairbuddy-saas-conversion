@@ -4,6 +4,9 @@ export type RepairBuddyGeneralSettings = {
   businessAddress: string;
   logoUrl: string;
   email: string;
+  displayName: string;
+  primaryContactName: string;
+  registrationNumber: string;
   caseNumberPrefix: string;
   caseNumberLength: number;
   emailCustomer: boolean;
