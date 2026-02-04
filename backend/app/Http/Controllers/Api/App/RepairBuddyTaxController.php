@@ -7,6 +7,7 @@ use App\Models\RepairBuddyTax;
 use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 
 class RepairBuddyTaxController extends Controller
@@ -63,64 +64,83 @@ class RepairBuddyTaxController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, string $business, RepairBuddyTax $tax)
+    public function update(Request $request, string $business, int $tax)
     {
+        $taxModel = $this->findTaxOr404($tax);
+
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'rate' => ['sometimes', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        $tax->forceFill([
-            'name' => array_key_exists('name', $validated) ? $validated['name'] : $tax->name,
-            'rate' => array_key_exists('rate', $validated) ? $validated['rate'] : $tax->rate,
+        $taxModel->forceFill([
+            'name' => array_key_exists('name', $validated) ? $validated['name'] : $taxModel->name,
+            'rate' => array_key_exists('rate', $validated) ? $validated['rate'] : $taxModel->rate,
         ])->save();
 
         return response()->json([
-            'tax' => $this->serialize($tax->fresh()),
+            'tax' => $this->serialize($taxModel->fresh()),
         ]);
     }
 
-    public function destroy(Request $request, string $business, RepairBuddyTax $tax)
+    public function destroy(Request $request, string $business, int $tax)
     {
-        $tax->delete();
+        $taxModel = $this->findTaxOr404($tax);
+        $taxModel->delete();
 
         return response()->json([
             'deleted' => true,
         ]);
     }
 
-    public function setDefault(Request $request, string $business, RepairBuddyTax $tax)
+    public function setDefault(Request $request, string $business, int $tax)
     {
-        DB::transaction(function () use ($tax) {
+        $taxModel = $this->findTaxOr404($tax);
+
+        DB::transaction(function () use ($taxModel) {
             RepairBuddyTax::query()
                 ->where('is_default', true)
                 ->update([
                     'is_default' => false,
                 ]);
 
-            $tax->forceFill([
+            $taxModel->forceFill([
                 'is_default' => true,
             ])->save();
         });
 
         return response()->json([
-            'tax' => $this->serialize($tax->fresh()),
+            'tax' => $this->serialize($taxModel->fresh()),
         ]);
     }
 
-    public function setActive(Request $request, string $business, RepairBuddyTax $tax)
+    public function setActive(Request $request, string $business, int $tax)
     {
+        $taxModel = $this->findTaxOr404($tax);
+
         $validated = $request->validate([
             'is_active' => ['required', 'boolean'],
         ]);
 
-        $tax->forceFill([
+        $taxModel->forceFill([
             'is_active' => (bool) $validated['is_active'],
         ])->save();
 
         return response()->json([
-            'tax' => $this->serialize($tax->fresh()),
+            'tax' => $this->serialize($taxModel->fresh()),
         ]);
+    }
+
+    private function findTaxOr404(int $taxId): RepairBuddyTax
+    {
+        $tax = RepairBuddyTax::query()->whereKey($taxId)->first();
+        if (! $tax) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Tax not found.',
+            ], 404));
+        }
+
+        return $tax;
     }
 
     private function importLegacyTaxesIfMissing(): void

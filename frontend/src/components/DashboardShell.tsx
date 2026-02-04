@@ -227,6 +227,9 @@ export function DashboardShell({
         body: { branch_id: branchId },
       });
       setActiveBranchId(branchId);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("rb:branch-changed", { detail: { branchId } }));
+      }
     } finally {
       setBranchSwitchBusy(null);
     }

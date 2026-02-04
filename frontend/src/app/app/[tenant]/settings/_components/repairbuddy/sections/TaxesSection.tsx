@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
 import type { RepairBuddyTax, RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
+import { updateRepairBuddySettings } from "@/lib/repairbuddy-settings";
 import {
   createRepairBuddyTax,
   deleteRepairBuddyTax,
@@ -43,6 +44,18 @@ export function TaxesSection({
   const [pageSize, setPageSize] = useState(10);
   const t = draft.taxes;
 
+  async function persistTaxesPrefs(next: RepairBuddySettingsDraft["taxes"]) {
+    if (isMock) return;
+    try {
+      await updateRepairBuddySettings(String(tenantSlug), {
+        ...draft,
+        taxes: next,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save tax preferences.");
+    }
+  }
+
   useEffect(() => {
     let alive = true;
     async function load() {
@@ -60,6 +73,24 @@ export function TaxesSection({
     return () => {
       alive = false;
     };
+  }, [tenantSlug]);
+
+  useEffect(() => {
+    function onBranchChanged() {
+      setStatus(null);
+      setError(null);
+      setEditOpen(false);
+      setAddOpen(false);
+      void refresh();
+    }
+
+    if (typeof window === "undefined") return;
+
+    window.addEventListener("rb:branch-changed", onBranchChanged);
+    return () => {
+      window.removeEventListener("rb:branch-changed", onBranchChanged);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantSlug]);
 
   function syncDraft(nextTaxes: ApiRepairBuddyTax[]) {
@@ -248,7 +279,15 @@ export function TaxesSection({
       {status ? <div className="text-sm text-green-700">{status}</div> : null}
 
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={t.enableTaxes} onChange={(e) => updateTaxes({ enableTaxes: e.target.checked })} />
+        <input
+          type="checkbox"
+          checked={t.enableTaxes}
+          onChange={(e) => {
+            const next = e.target.checked;
+            updateTaxes({ enableTaxes: next });
+            void persistTaxesPrefs({ ...t, enableTaxes: next });
+          }}
+        />
         Enable taxes
       </label>
 
@@ -295,6 +334,7 @@ export function TaxesSection({
             onChange={async (e) => {
               const next = e.target.value;
               updateTaxes({ defaultTaxId: next });
+              void persistTaxesPrefs({ ...t, defaultTaxId: next });
               const id = Number(next);
               if (!Number.isFinite(id)) return;
               try {
@@ -317,7 +357,14 @@ export function TaxesSection({
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Invoice amounts</label>
-          <Select value={t.invoiceAmounts} onChange={(e) => updateTaxes({ invoiceAmounts: e.target.value as RepairBuddySettingsDraft["taxes"]["invoiceAmounts"] })}>
+          <Select
+            value={t.invoiceAmounts}
+            onChange={(e) => {
+              const next = e.target.value as RepairBuddySettingsDraft["taxes"]["invoiceAmounts"];
+              updateTaxes({ invoiceAmounts: next });
+              void persistTaxesPrefs({ ...t, invoiceAmounts: next });
+            }}
+          >
             <option value="exclusive">Exclusive</option>
             <option value="inclusive">Inclusive</option>
           </Select>

@@ -121,6 +121,7 @@ export default function GetUpAndGloCalendarPage() {
   const [itemsLoading, setItemsLoading] = React.useState(true);
   const [itemsError, setItemsError] = React.useState<string | null>(null);
   const [items, setItems] = React.useState<CalendarItem[]>([]);
+  const [activeRange, setActiveRange] = React.useState<{ start: string; end: string } | null>(null);
 
   const [busyRefresh, setBusyRefresh] = React.useState(false);
   const [calendarLoading, setCalendarLoading] = React.useState(false);
@@ -227,13 +228,6 @@ export default function GetUpAndGloCalendarPage() {
     return items;
   }, [filter, items]);
 
-  const totals = React.useMemo(() => {
-    return {
-      jobs: visibleItems.filter((e) => e.type === "job").length,
-      estimates: visibleItems.filter((e) => e.type === "estimate").length,
-    };
-  }, [visibleItems]);
-
   const resolveItemDate = React.useCallback(
     (item: CalendarItem) => {
       if (dateField === "pickup_date") return item.pickup_date;
@@ -243,6 +237,25 @@ export default function GetUpAndGloCalendarPage() {
     },
     [dateField],
   );
+
+  const visibleItemsInRange = React.useMemo(() => {
+    if (!activeRange) return visibleItems;
+    const start = activeRange.start;
+    const end = activeRange.end;
+
+    return visibleItems.filter((item) => {
+      const date = resolveItemDate(item);
+      if (!date) return false;
+      return withinRange(date, start, end);
+    });
+  }, [activeRange, resolveItemDate, visibleItems]);
+
+  const totals = React.useMemo(() => {
+    return {
+      jobs: visibleItemsInRange.filter((e) => e.type === "job").length,
+      estimates: visibleItemsInRange.filter((e) => e.type === "estimate").length,
+    };
+  }, [visibleItemsInRange]);
 
   const loadEvents = React.useCallback(
     (info: EventSourceFuncArg, successCallback: (events: EventInput[]) => void, failureCallback: (error: Error) => void) => {
@@ -403,6 +416,15 @@ export default function GetUpAndGloCalendarPage() {
                 selectable
                 dayMaxEvents={10}
                 events={loadEvents}
+                datesSet={(arg) => {
+                  const start = arg.start;
+                  const end = arg.end;
+                  const startIso = start instanceof Date && !Number.isNaN(start.getTime()) ? start.toISOString().slice(0, 10) : null;
+                  const endIso = end instanceof Date && !Number.isNaN(end.getTime()) ? end.toISOString().slice(0, 10) : null;
+                  if (startIso && endIso) {
+                    setActiveRange({ start: startIso, end: endIso });
+                  }
+                }}
                 eventDidMount={(info: EventMountArg) => {
                   const tip = (info.event.extendedProps as CalendarExtendedProps | undefined)?.tooltip;
                   if (typeof tip === "string" && tip.length > 0) {
@@ -467,15 +489,19 @@ export default function GetUpAndGloCalendarPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-0 bg-[var(--rb-blue)] text-white shadow-none">
-          <CardContent className="pt-5">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-[var(--rb-blue)] via-[#1d4ed8] to-[#0ea5e9] text-white shadow-sm">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-black/10" />
+          <CardContent className="relative pt-5">
             <div className="text-sm font-semibold opacity-90">Total Jobs</div>
             <div className="mt-2 text-4xl font-bold">{totals.jobs}</div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-[#16a34a] text-white shadow-none">
-          <CardContent className="pt-5">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-[#16a34a] via-[#22c55e] to-[#10b981] text-white shadow-sm">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-black/10" />
+          <CardContent className="relative pt-5">
             <div className="text-sm font-semibold opacity-90">Total Estimates</div>
             <div className="mt-2 text-4xl font-bold">{totals.estimates}</div>
           </CardContent>
