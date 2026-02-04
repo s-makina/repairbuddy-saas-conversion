@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
@@ -43,8 +44,15 @@ const fallbackTimezones = [
 
 export default function TenantSettingsPage() {
   const auth = useAuth();
+  const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
+
+  useEffect(() => {
+    if (typeof tenantSlug === "string" && tenantSlug.length > 0) {
+      router.replace(`/app/${tenantSlug}/business-settings?section=company-profile`);
+    }
+  }, [router, tenantSlug]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

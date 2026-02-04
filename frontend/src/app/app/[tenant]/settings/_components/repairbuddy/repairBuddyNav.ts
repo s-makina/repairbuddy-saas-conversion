@@ -5,6 +5,7 @@ export type RepairBuddyNavItem = {
 };
 
 export const repairBuddyNav: RepairBuddyNavItem[] = [
+  { key: "company-profile", label: "Company Profile" },
   { key: "general", label: "General" },
   { key: "currency", label: "Currency" },
   { key: "invoices-reports", label: "Invoices & Reports" },

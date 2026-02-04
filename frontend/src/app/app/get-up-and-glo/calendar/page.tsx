@@ -112,7 +112,7 @@ export default function GetUpAndGloCalendarPage() {
   const router = useRouter();
   const tenantSlug = "get-up-and-glo";
 
-  const enableNextServiceDate = false;
+  const enableNextServiceDate = true;
   const showMyAssignments = auth.isAdmin;
 
   const [dateField, setDateField] = React.useState<DateField>("pickup_date");
@@ -232,7 +232,7 @@ export default function GetUpAndGloCalendarPage() {
     (item: CalendarItem) => {
       if (dateField === "pickup_date") return item.pickup_date;
       if (dateField === "delivery_date") return item.delivery_date;
-      if (dateField === "next_service_date") return item.next_service_date ?? item.pickup_date;
+      if (dateField === "next_service_date") return item.next_service_date;
       return item.post_date;
     },
     [dateField],
@@ -475,14 +475,14 @@ export default function GetUpAndGloCalendarPage() {
           <div className="mt-5 border-t border-[var(--rb-border)] pt-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-zinc-500">Legend:</span>
-              <Badge className="bg-[var(--rb-blue)] text-white border-transparent">Job</Badge>
-              <Badge className="bg-[var(--rb-orange)] text-white border-transparent">Estimate</Badge>
-              <Badge className="bg-[#16a34a] text-white border-transparent">New/Quote</Badge>
-              <Badge className="bg-[#0ea5e9] text-white border-transparent">In Process</Badge>
-              <Badge className="bg-[#dc2626] text-white border-transparent">Cancelled</Badge>
-              <Badge className="bg-[#fd7e14] text-white border-transparent">Ready</Badge>
-              <Badge className="bg-[#6f42c1] text-white border-transparent">Completed</Badge>
-              <Badge className="bg-[#e83e8c] text-white border-transparent">Delivered</Badge>
+              <Badge className="!bg-[var(--rb-blue)] !text-white !border-transparent shadow-sm">Job</Badge>
+              <Badge className="!bg-[var(--rb-orange)] !text-white !border-transparent shadow-sm">Estimate</Badge>
+              <Badge className="!bg-[#16a34a] !text-white !border-transparent shadow-sm">New/Quote</Badge>
+              <Badge className="!bg-[#0ea5e9] !text-white !border-transparent shadow-sm">In Process</Badge>
+              <Badge className="!bg-[#dc2626] !text-white !border-transparent shadow-sm">Cancelled</Badge>
+              <Badge className="!bg-[#fd7e14] !text-white !border-transparent shadow-sm">Ready</Badge>
+              <Badge className="!bg-[#6f42c1] !text-white !border-transparent shadow-sm">Completed</Badge>
+              <Badge className="!bg-[#e83e8c] !text-white !border-transparent shadow-sm">Delivered</Badge>
             </div>
           </div>
         </CardContent>

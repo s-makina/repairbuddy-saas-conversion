@@ -145,22 +145,30 @@ class RepairBuddyTaxController extends Controller
 
     private function importLegacyTaxesIfMissing(): void
     {
-        if (RepairBuddyTax::query()->exists()) {
-            return;
-        }
-
         $tenant = TenantContext::tenant();
         if (! $tenant instanceof Tenant) {
             return;
         }
 
+        $alreadyHandled = (bool) data_get($tenant->setup_state ?? [], 'repairbuddy_flags.legacy_taxes_imported', false);
+        if ($alreadyHandled) {
+            return;
+        }
+
+        if (RepairBuddyTax::query()->exists()) {
+            $this->markLegacyTaxesImported($tenant);
+            return;
+        }
+
         $legacy = data_get($tenant->setup_state ?? [], 'repairbuddy_settings.taxes');
         if (! is_array($legacy)) {
+            $this->markLegacyTaxesImported($tenant);
             return;
         }
 
         $legacyTaxes = $legacy['taxes'] ?? null;
         if (! is_array($legacyTaxes) || count($legacyTaxes) === 0) {
+            $this->markLegacyTaxesImported($tenant);
             return;
         }
 
@@ -202,6 +210,17 @@ class RepairBuddyTaxController extends Controller
                 }
             }
         });
+
+        $this->markLegacyTaxesImported($tenant);
+    }
+
+    private function markLegacyTaxesImported(Tenant $tenant): void
+    {
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        data_set($state, 'repairbuddy_flags.legacy_taxes_imported', true);
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
     }
 
     private function serialize(RepairBuddyTax $t): array

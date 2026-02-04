@@ -310,7 +310,7 @@ export function DashboardShell({
               label: "Settings",
               href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/app",
               icon: "settings",
-              show: auth.isAuthenticated && auth.can("settings.manage"),
+              show: auth.isAuthenticated && auth.isAdmin && auth.can("settings.manage"),
             },
             {
               label: "Security",
@@ -411,15 +411,15 @@ export function DashboardShell({
             },
             {
               label: "Profile",
-              href: auth.isAdmin ? "/admin/profile" : tenantSlug ? `/app/${tenantSlug}/profile` : "/app",
-              icon: "profile",
+              href: "/app/profile",
+              icon: "users",
               show: auth.isAuthenticated && auth.can("profile.manage"),
             },
             {
               label: "Settings",
-              href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/app",
+              href: auth.isAdmin ? "/admin/settings" : "/app/settings",
               icon: "settings",
-              show: auth.isAuthenticated && auth.can("settings.manage"),
+              show: auth.isAuthenticated && auth.isAdmin && auth.can("settings.manage"),
             },
             {
               label: "Business Settings",

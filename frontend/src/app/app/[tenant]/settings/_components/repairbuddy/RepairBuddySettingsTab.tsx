@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { repairBuddyNav } from "@/app/app/[tenant]/settings/_components/repairbuddy/repairBuddyNav";
 import { useRepairBuddyDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/useRepairBuddyDraft";
+import { CompanyProfileSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/CompanyProfileSection";
 import { BookingSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/BookingSection";
 import { CurrencySection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/CurrencySection";
 import { DevicesBrandsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/DevicesBrandsSection";
@@ -37,13 +38,15 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
     const sectionParam = searchParams.get("section");
     const keys = new Set(repairBuddyNav.map((item) => item.key));
     if (sectionParam && keys.has(sectionParam)) return sectionParam;
-    return "general";
+    return "company-profile";
   }, [searchParams]);
 
   const selectedItem = useMemo(() => repairBuddyNav.find((item) => item.key === selectedKey) ?? null, [selectedKey]);
 
   const sectionNode = useMemo(() => {
     switch (selectedKey) {
+      case "company-profile":
+        return <CompanyProfileSection tenantSlug={tenantSlug} />;
       case "general":
         return <GeneralSection draft={draft} updateGeneral={(patch) => updateSection("general", patch)} />;
       case "currency":
@@ -81,7 +84,7 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       default:
         return null;
     }
-  }, [draft, isMock, selectedKey, setDraft, updateCurrency, updateSection]);
+  }, [draft, isMock, selectedKey, tenantSlug, updateCurrency, updateSection]);
 
   async function onSave() {
     setStatus(null);

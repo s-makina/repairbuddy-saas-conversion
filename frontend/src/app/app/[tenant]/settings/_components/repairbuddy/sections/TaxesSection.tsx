@@ -38,6 +38,7 @@ export function TaxesSection({
   const [status, setStatus] = useState<string | null>(null);
 
   const [taxes, setTaxes] = useState<ApiRepairBuddyTax[]>([]);
+  const [loadingTaxes, setLoadingTaxes] = useState(false);
 
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
@@ -60,6 +61,7 @@ export function TaxesSection({
     let alive = true;
     async function load() {
       setError(null);
+      setLoadingTaxes(true);
       try {
         const res = await getRepairBuddyTaxes(String(tenantSlug));
         if (!alive) return;
@@ -67,6 +69,9 @@ export function TaxesSection({
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load taxes.");
+      } finally {
+        if (!alive) return;
+        setLoadingTaxes(false);
       }
     }
     void load();
@@ -102,10 +107,20 @@ export function TaxesSection({
     }));
 
     const defaultFromDb = nextTaxes.find((x) => x.is_default) ?? null;
+    const nextIds = new Set(nextTaxes.map((x) => String(x.id)));
+    const active = nextTaxes.filter((x) => x.is_active);
+    const activeIds = new Set(active.map((x) => String(x.id)));
+
+    const currentDefault = t.defaultTaxId;
+    const currentIsKnown = typeof currentDefault === "string" && currentDefault.length > 0 && nextIds.has(currentDefault);
+    const currentIsActive = currentIsKnown && activeIds.has(currentDefault);
+
+    const fallbackDefault = active.length > 0 ? String(active[0]?.id) : "";
+    const nextDefaultTaxId = defaultFromDb ? String(defaultFromDb.id) : currentIsActive ? currentDefault : fallbackDefault;
 
     updateTaxes({
       taxes: mapped,
-      defaultTaxId: defaultFromDb ? String(defaultFromDb.id) : t.defaultTaxId,
+      defaultTaxId: nextDefaultTaxId,
     });
   }
 
@@ -116,6 +131,12 @@ export function TaxesSection({
 
   const activeTaxes = useMemo(() => taxes.filter((x) => x.is_active), [taxes]);
 
+  const defaultTaxSelectValue = useMemo(() => {
+    const activeIds = new Set(activeTaxes.map((x) => String(x.id)));
+    if (t.defaultTaxId && activeIds.has(String(t.defaultTaxId))) return String(t.defaultTaxId);
+    return "";
+  }, [activeTaxes, t.defaultTaxId]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return taxes;
@@ -123,6 +144,12 @@ export function TaxesSection({
   }, [query, taxes]);
 
   const totalRows = filtered.length;
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+    const clamped = Math.min(pageIndex, totalPages - 1);
+    if (clamped !== pageIndex) setPageIndex(clamped);
+  }, [pageIndex, pageSize, totalRows]);
+
   const pageRows = useMemo(() => {
     const start = pageIndex * pageSize;
     const end = start + pageSize;
@@ -193,8 +220,15 @@ export function TaxesSection({
   const [editDefault, setEditDefault] = useState(false);
 
   async function refresh() {
-    const res = await getRepairBuddyTaxes(String(tenantSlug));
-    setTaxes(Array.isArray(res.taxes) ? res.taxes : []);
+    setLoadingTaxes(true);
+    try {
+      const res = await getRepairBuddyTaxes(String(tenantSlug));
+      setTaxes(Array.isArray(res.taxes) ? res.taxes : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load taxes.");
+    } finally {
+      setLoadingTaxes(false);
+    }
   }
 
   async function onAdd() {
@@ -263,11 +297,13 @@ export function TaxesSection({
     setError(null);
     setBusy(true);
     try {
+      setTaxes((prev) => prev.filter((t) => String(t.id) !== String(row.id)));
       await deleteRepairBuddyTax(String(tenantSlug), Number(row.id));
       await refresh();
       setStatus("Tax deleted.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete tax.");
+      void refresh();
     } finally {
       setBusy(false);
     }
@@ -305,6 +341,7 @@ export function TaxesSection({
             data={pageRows}
             columns={columns}
             getRowId={(row) => row.id}
+            loading={loadingTaxes}
             emptyMessage="No tax rates."
             search={{ placeholder: "Search taxes..." }}
             server={{
@@ -330,13 +367,15 @@ export function TaxesSection({
         <div className="space-y-1">
           <label className="text-sm font-medium">Default tax</label>
           <Select
-            value={t.defaultTaxId}
+            value={defaultTaxSelectValue}
+            disabled={activeTaxes.length === 0 || busy || loadingTaxes}
             onChange={async (e) => {
               const next = e.target.value;
               updateTaxes({ defaultTaxId: next });
               void persistTaxesPrefs({ ...t, defaultTaxId: next });
+              if (!next) return;
               const id = Number(next);
-              if (!Number.isFinite(id)) return;
+              if (!Number.isFinite(id) || id <= 0) return;
               try {
                 setBusy(true);
                 await setRepairBuddyTaxDefault(String(tenantSlug), id);
@@ -348,6 +387,7 @@ export function TaxesSection({
               }
             }}
           >
+            <option value="">None</option>
             {activeTaxes.map((x) => (
               <option key={x.id} value={String(x.id)}>
                 {x.name} ({Number(x.rate)}%)

@@ -9,7 +9,9 @@ export type ApiRepairBuddyTax = {
 };
 
 export async function getRepairBuddyTaxes(business: string): Promise<{ taxes: ApiRepairBuddyTax[] }> {
-  return apiFetch<{ taxes: ApiRepairBuddyTax[] }>(`/api/${business}/app/repairbuddy/taxes`);
+  return apiFetch<{ taxes: ApiRepairBuddyTax[] }>(`/api/${business}/app/repairbuddy/taxes`, {
+    cache: "no-store",
+  });
 }
 
 export async function createRepairBuddyTax(
@@ -19,6 +21,7 @@ export async function createRepairBuddyTax(
   return apiFetch<{ tax: ApiRepairBuddyTax }>(`/api/${business}/app/repairbuddy/taxes`, {
     method: "POST",
     body: input,
+    cache: "no-store",
   });
 }
 
@@ -30,18 +33,21 @@ export async function updateRepairBuddyTax(
   return apiFetch<{ tax: ApiRepairBuddyTax }>(`/api/${business}/app/repairbuddy/taxes/${id}`, {
     method: "PATCH",
     body: input,
+    cache: "no-store",
   });
 }
 
 export async function deleteRepairBuddyTax(business: string, id: number): Promise<{ deleted: boolean }> {
   return apiFetch<{ deleted: boolean }>(`/api/${business}/app/repairbuddy/taxes/${id}`, {
     method: "DELETE",
+    cache: "no-store",
   });
 }
 
 export async function setRepairBuddyTaxDefault(business: string, id: number): Promise<{ tax: ApiRepairBuddyTax }> {
   return apiFetch<{ tax: ApiRepairBuddyTax }>(`/api/${business}/app/repairbuddy/taxes/${id}/default`, {
     method: "PATCH",
+    cache: "no-store",
   });
 }
 
@@ -49,5 +55,6 @@ export async function setRepairBuddyTaxActive(business: string, id: number, is_a
   return apiFetch<{ tax: ApiRepairBuddyTax }>(`/api/${business}/app/repairbuddy/taxes/${id}/active`, {
     method: "PATCH",
     body: { is_active },
+    cache: "no-store",
   });
 }
