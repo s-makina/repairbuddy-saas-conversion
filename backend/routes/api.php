@@ -518,9 +518,6 @@ Route::prefix('{business}')
                         ->middleware(['throttle:auth', 'permission:settings.manage'])
                         ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
 
-                    Route::get('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'index']);
-                    Route::post('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'store']);
-
                     Route::get('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'index']);
                     Route::post('/jobs', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'store']);
                     Route::get('/jobs/stats', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'stats']);
@@ -586,6 +583,22 @@ Route::prefix('{business}')
                 });
 
                 Route::prefix('repairbuddy')->middleware('permission:settings.manage')->group(function () {
+                    Route::get('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'index']);
+                    Route::post('/taxes', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'store'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage']);
+                    Route::patch('/taxes/{tax}', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'update'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage'])
+                        ->whereNumber('tax');
+                    Route::delete('/taxes/{tax}', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'destroy'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage'])
+                        ->whereNumber('tax');
+                    Route::patch('/taxes/{tax}/default', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'setDefault'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage'])
+                        ->whereNumber('tax');
+                    Route::patch('/taxes/{tax}/active', [\App\Http\Controllers\Api\App\RepairBuddyTaxController::class, 'setActive'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage'])
+                        ->whereNumber('tax');
+
                     Route::get('/device-field-definitions', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'index']);
                     Route::post('/device-field-definitions', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'store']);
                     Route::patch('/device-field-definitions/{definitionId}', [\App\Http\Controllers\Api\App\RepairBuddyDeviceFieldDefinitionController::class, 'update'])

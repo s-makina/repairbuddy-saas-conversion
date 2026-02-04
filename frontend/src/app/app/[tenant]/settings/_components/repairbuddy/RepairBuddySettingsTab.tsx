@@ -65,7 +65,7 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       case "sms":
         return <SmsSection draft={draft} updateSms={(patch) => updateSection("sms", patch)} />;
       case "taxes":
-        return <TaxesSection draft={draft} updateTaxes={(patch) => updateSection("taxes", patch)} isMock={isMock} />;
+        return <TaxesSection tenantSlug={tenantSlug} draft={draft} updateTaxes={(patch) => updateSection("taxes", patch)} isMock={isMock} />;
       case "service-settings":
         return <ServiceSettingsSection draft={draft} updateServiceSettings={(patch) => updateSection("serviceSettings", patch)} />;
       case "time-logs":

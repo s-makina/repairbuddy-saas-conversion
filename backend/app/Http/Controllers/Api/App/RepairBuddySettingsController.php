@@ -127,6 +127,22 @@ class RepairBuddySettingsController extends Controller
             'settings.devicesBrands.rentalEnabled' => ['sometimes', 'boolean'],
             'settings.devicesBrands.rentalPerDay' => ['sometimes', 'nullable', 'string', 'max:64'],
             'settings.devicesBrands.rentalPerWeek' => ['sometimes', 'nullable', 'string', 'max:64'],
+
+            'settings.sms' => ['sometimes', 'array'],
+            'settings.sms.activateSmsForSelectiveStatuses' => ['sometimes', 'boolean'],
+            'settings.sms.gateway' => ['sometimes', 'string', 'in:twilio,nexmo,custom'],
+            'settings.sms.gatewayAccountSid' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.sms.gatewayAuthToken' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.sms.gatewayFromNumber' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'settings.sms.sendWhenStatusChangedToIds' => ['sometimes', 'array'],
+            'settings.sms.sendWhenStatusChangedToIds.*' => ['sometimes', 'string', 'max:255'],
+            'settings.sms.testNumber' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'settings.sms.testMessage' => ['sometimes', 'nullable', 'string', 'max:1024'],
+
+            'settings.taxes' => ['sometimes', 'array'],
+            'settings.taxes.enableTaxes' => ['sometimes', 'boolean'],
+            'settings.taxes.defaultTaxId' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.taxes.invoiceAmounts' => ['sometimes', 'string', 'in:exclusive,inclusive'],
         ]);
 
         $before = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');
