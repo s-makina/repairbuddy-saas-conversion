@@ -3,6 +3,22 @@
 import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import {
+  Building2,
+  Calculator,
+  Calendar,
+  CircleHelp,
+  Clock,
+  CreditCard,
+  FileText,
+  Laptop,
+  Settings,
+  Sparkles,
+  Star,
+  Tag,
+  User,
+  Wrench,
+} from "lucide-react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -26,6 +42,27 @@ import { SmsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/
 import { StylingLabelsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/StylingLabelsSection";
 import { TaxesSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/TaxesSection";
 import { TimeLogsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/TimeLogsSection";
+
+const navIcons: Record<string, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
+  "company-profile": Building2,
+  general: Settings,
+  currency: Calculator,
+  "invoices-reports": FileText,
+  "job-statuses": Tag,
+  payments: CreditCard,
+  reviews: Star,
+  estimates: FileText,
+  "my-account": User,
+  "devices-brands": Laptop,
+  sms: CircleHelp,
+  taxes: Calculator,
+  "service-settings": Wrench,
+  "time-logs": Clock,
+  "maintenance-reminders": Clock,
+  "styling-labels": Sparkles,
+  "signature-workflow": FileText,
+  booking: Calendar,
+};
 
 export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
   const searchParams = useSearchParams();
@@ -72,7 +109,7 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       case "service-settings":
         return <ServiceSettingsSection draft={draft} updateServiceSettings={(patch) => updateSection("serviceSettings", patch)} />;
       case "time-logs":
-        return <TimeLogsSection draft={draft} updateTimeLogs={(patch) => updateSection("timeLogs", patch)} />;
+        return <TimeLogsSection tenantSlug={tenantSlug} draft={draft} updateTimeLogs={(patch) => updateSection("timeLogs", patch)} isMock={isMock} />;
       case "maintenance-reminders":
         return <MaintenanceRemindersSection draft={draft} isMock={isMock} />;
       case "styling-labels":
@@ -123,6 +160,7 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
           <CardContent className="space-y-1">
             {repairBuddyNav.map((item) => {
               const isActive = item.key === selectedKey;
+              const Icon = navIcons[item.key] ?? CircleHelp;
 
               return (
                 <Link
@@ -136,7 +174,16 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
                       : "text-zinc-700 hover:bg-[var(--rb-surface-muted)]")
                   }
                 >
-                  {item.label}
+                  <span className="flex items-center gap-2">
+                    <Icon
+                      className={
+                        "h-4 w-4 shrink-0 " +
+                        (isActive ? "text-[var(--rb-text)]" : "text-zinc-500")
+                      }
+                      aria-hidden
+                    />
+                    <span>{item.label}</span>
+                  </span>
                 </Link>
               );
             })}

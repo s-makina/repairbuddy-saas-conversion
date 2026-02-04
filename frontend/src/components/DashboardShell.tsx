@@ -271,7 +271,7 @@ export function DashboardShell({
               show: Boolean(tenantBaseHref) && auth.can("dashboard.view"),
             },
             {
-              label: "Calendar",
+              label: "Appointments",
               href: tenantSlug ? `/app/${tenantSlug}/calendar` : "/app",
               icon: "calendar",
               show: Boolean(tenantBaseHref) && auth.can("appointments.view"),
@@ -339,7 +339,7 @@ export function DashboardShell({
         {
           title: "Operations",
           items: [
-            { label: "Appointments", href: tenantSlug ? `/app/${tenantSlug}/appointments` : "/app", icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
+            // { label: "Appointments", href: tenantSlug ? `/app/${tenantSlug}/appointments` : "/app", icon: "calendar", show: Boolean(tenantBaseHref) && auth.can("appointments.view") },
             { label: "Jobs", href: tenantSlug ? `/app/${tenantSlug}/jobs` : "/app", icon: "wrench", show: Boolean(tenantBaseHref) && auth.can("jobs.view") },
             { label: "Estimates", href: tenantSlug ? `/app/${tenantSlug}/estimates` : "/app", icon: "file", show: Boolean(tenantBaseHref) && auth.can("estimates.view") },
             { label: "Services", href: tenantSlug ? `/app/${tenantSlug}/services` : "/app", icon: "services", show: Boolean(tenantBaseHref) && auth.can("services.view") },
