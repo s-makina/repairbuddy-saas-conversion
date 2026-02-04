@@ -39,6 +39,10 @@ type ApiPortalJob = {
   case_number: string;
 };
 
+type ApiStatusLookupRes =
+  | { entity_type: "job"; job: ApiPortalJob }
+  | { entity_type: "estimate"; estimate: { id: number; case_number: string } };
+
 type ApiPortalEstimate = {
   id: number;
   case_number: string;
@@ -74,6 +78,7 @@ export default function PortalEstimatesPage() {
 
   const [job, setJob] = React.useState<ApiPortalJob | null>(null);
   const [estimate, setEstimate] = React.useState<ApiPortalEstimate | null>(null);
+  const [caseLabel, setCaseLabel] = React.useState<string>("");
 
   React.useEffect(() => {
     let alive = true;
@@ -96,23 +101,25 @@ export default function PortalEstimatesPage() {
         if (!s) {
           setJob(null);
           setEstimate(null);
+          setCaseLabel("");
           return;
         }
 
-        const jobRes = await apiFetch<{ job: ApiPortalJob }>(`/api/t/${tenantSlug}/status/lookup`, {
+        const statusRes = await apiFetch<ApiStatusLookupRes>(`/api/t/${tenantSlug}/status/lookup`, {
           method: "POST",
           body: { caseNumber: s.caseNumber },
           token: null,
           impersonationSessionId: null,
         });
 
-        const foundJob = jobRes?.job ?? null;
         if (!alive) return;
-        setJob(foundJob);
 
-        if (!foundJob) {
-          setEstimate(null);
-          return;
+        if (statusRes?.entity_type === "job") {
+          setJob(statusRes.job ?? null);
+          setCaseLabel(statusRes.job?.case_number ?? s.caseNumber);
+        } else {
+          setJob(null);
+          setCaseLabel(statusRes?.estimate?.case_number ?? s.caseNumber);
         }
 
         const listRes = await apiFetch<{ estimates: Array<{ id: number }> }>(`/api/t/${tenantSlug}/portal/estimates?caseNumber=${encodeURIComponent(s.caseNumber)}`, {
@@ -147,6 +154,7 @@ export default function PortalEstimatesPage() {
         }
         setJob(null);
         setEstimate(null);
+        setCaseLabel("");
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -181,8 +189,8 @@ export default function PortalEstimatesPage() {
         ) : null}
 
         {!loading && !error && session && !job ? (
-          <Alert variant="warning" title="Ticket not found">
-            We couldn’t load your ticket.
+          <Alert variant="info" title="Estimate case">
+            This case currently has an estimate (quote). You can review it below.
           </Alert>
         ) : null}
 
@@ -206,7 +214,7 @@ export default function PortalEstimatesPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-[var(--rb-text)]">Estimate</div>
-                  <div className="mt-1 text-sm text-zinc-600">For case {job?.case_number ?? "—"}</div>
+                  <div className="mt-1 text-sm text-zinc-600">For case {caseLabel || job?.case_number || session?.caseNumber || "—"}</div>
                 </div>
                 <Badge variant={estimateBadgeVariant(estimate.status)}>{estimate.status}</Badge>
               </div>

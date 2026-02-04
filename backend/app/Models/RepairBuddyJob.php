@@ -33,6 +33,7 @@ class RepairBuddyJob extends Model
         'pickup_date',
         'delivery_date',
         'next_service_date',
+        'maintenance_reminders_opted_out_at',
         'case_detail',
         'assigned_technician_id',
     ];
@@ -47,6 +48,7 @@ class RepairBuddyJob extends Model
             'pickup_date' => 'date',
             'delivery_date' => 'date',
             'next_service_date' => 'date',
+            'maintenance_reminders_opted_out_at' => 'datetime',
             'assigned_technician_id' => 'integer',
             'plugin_device_post_id' => 'integer',
         ];

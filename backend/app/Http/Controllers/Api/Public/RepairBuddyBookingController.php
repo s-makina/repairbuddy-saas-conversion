@@ -25,6 +25,7 @@ use App\Models\User;
 use App\Notifications\BookingSubmissionAdminNotification;
 use App\Notifications\BookingSubmissionCustomerNotification;
 use App\Notifications\OneTimePasswordNotification;
+use App\Support\RepairBuddyPublicBookingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Database\QueryException;
@@ -69,6 +70,7 @@ class RepairBuddyBookingController extends Controller
             'booking' => [
                 'publicBookingMode' => $booking['publicBookingMode'] ?? 'ungrouped',
                 'sendBookingQuoteToJobs' => (bool) ($booking['sendBookingQuoteToJobs'] ?? ($estimates['bookingQuoteSendToJobs'] ?? true)),
+                'customerCreationEmailBehavior' => $booking['customerCreationEmailBehavior'] ?? 'send_login_credentials',
                 'turnOffOtherDeviceBrand' => (bool) ($booking['turnOffOtherDeviceBrand'] ?? false),
                 'turnOffOtherService' => (bool) ($booking['turnOffOtherService'] ?? false),
                 'turnOffServicePrice' => (bool) ($booking['turnOffServicePrice'] ?? false),
@@ -472,302 +474,20 @@ class RepairBuddyBookingController extends Controller
             'devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.pin' => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'devices.*.extra_fields' => ['sometimes', 'array', 'max:50'],
+            'devices.*.extra_fields.*.key' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'devices.*.extra_fields.*.label' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'devices.*.extra_fields.*.value_text' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'devices.*.services' => ['sometimes', 'array', 'max:50'],
             'devices.*.services.*.service_id' => ['required_with:devices.*.services', 'integer'],
             'devices.*.services.*.qty' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9999'],
             'devices.*.other_service' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
-        $tenant = $this->tenant();
-        $branch = $this->branch();
+        $svc = app(RepairBuddyPublicBookingService::class);
+        $payload = $svc->submit($request, $business, $validated);
 
-        $settings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');
-        $settings = is_array($settings) ? $settings : [];
-        $general = is_array($settings['general'] ?? null) ? $settings['general'] : [];
-        $booking = is_array($settings['booking'] ?? null) ? $settings['booking'] : [];
-        $myAccount = is_array($settings['myAccount'] ?? null) ? $settings['myAccount'] : [];
-        $devicesBrands = is_array($settings['devicesBrands'] ?? null) ? $settings['devicesBrands'] : [];
-        $estimates = is_array($settings['estimates'] ?? null) ? $settings['estimates'] : [];
-
-        if ((bool) ($myAccount['disableBooking'] ?? false)) {
-            return response()->json([
-                'message' => 'Booking is disabled.',
-            ], 422);
-        }
-
-        $mode = is_string($validated['mode'] ?? null) && $validated['mode'] !== ''
-            ? (string) $validated['mode']
-            : (is_string($booking['publicBookingMode'] ?? null) ? (string) $booking['publicBookingMode'] : 'ungrouped');
-
-        if ($mode === 'warranty') {
-            $dop = data_get($validated, 'warranty.dateOfPurchase');
-            if (! $dop) {
-                throw ValidationException::withMessages([
-                    'warranty.dateOfPurchase' => ['Date of purchase is required for warranty bookings.'],
-                ]);
-            }
-        }
-
-        $gdprText = is_string($general['gdprAcceptanceText'] ?? null) ? trim((string) $general['gdprAcceptanceText']) : '';
-        if ($gdprText !== '') {
-            $accepted = array_key_exists('gdprAccepted', $validated) ? (bool) $validated['gdprAccepted'] : false;
-            if (! $accepted) {
-                throw ValidationException::withMessages([
-                    'gdprAccepted' => ['GDPR acceptance is required.'],
-                ]);
-            }
-        }
-
-        $sendToJobs = (bool) ($booking['sendBookingQuoteToJobs'] ?? ($estimates['bookingQuoteSendToJobs'] ?? true));
-        $disableEstimates = (bool) ($estimates['disableEstimates'] ?? false);
-
-        if ($disableEstimates) {
-            $sendToJobs = true;
-        }
-
-        $turnOffOtherDeviceBrand = (bool) ($booking['turnOffOtherDeviceBrand'] ?? false);
-        $turnOffOtherService = (bool) ($booking['turnOffOtherService'] ?? false);
-
-        $customer = $validated['customer'];
-
-        $email = strtolower(trim((string) ($customer['userEmail'] ?? '')));
-        $fullName = trim((string) ($customer['firstName'] ?? '')).' '.trim((string) ($customer['lastName'] ?? ''));
-        $fullName = trim($fullName);
-
-        $existingAny = User::query()->where('email', $email)->first();
-        if ($existingAny instanceof User && (int) ($existingAny->tenant_id ?? 0) !== (int) $tenant->id) {
-            throw ValidationException::withMessages([
-                'customer.userEmail' => ['Email is already in use.'],
-            ]);
-        }
-
-        $existing = User::query()
-            ->where('tenant_id', (int) $tenant->id)
-            ->where('email', $email)
-            ->first();
-
-        $createdCustomer = null;
-        $createdCustomerOneTimePassword = null;
-
-        $result = DB::transaction(function () use ($branch, $customer, $disableEstimates, $email, $existing, $fullName, $general, $mode, $request, $sendToJobs, $tenant, $turnOffOtherDeviceBrand, $turnOffOtherService, $validated, &$createdCustomer, &$createdCustomerOneTimePassword) {
-            $tenantId = (int) $tenant->id;
-            $branchId = (int) $branch->id;
-
-            $customerId = null;
-
-            if ($existing instanceof User) {
-                $customerId = (int) $existing->id;
-            } else {
-                $oneTimePassword = Str::password(16);
-                $oneTimePasswordExpiresAt = now()->addMinutes(60 * 24);
-
-                try {
-                    $newUser = User::query()->create([
-                    'tenant_id' => $tenantId,
-                    'is_admin' => false,
-                    'role' => 'customer',
-                    'role_id' => null,
-                    'status' => 'active',
-
-                    'name' => $fullName !== '' ? $fullName : $email,
-                    'email' => $email,
-                    'phone' => array_key_exists('phone', $customer) && is_string($customer['phone']) ? trim((string) $customer['phone']) : null,
-                    'company' => array_key_exists('company', $customer) && is_string($customer['company']) ? trim((string) $customer['company']) : null,
-                    'tax_id' => array_key_exists('taxId', $customer) && is_string($customer['taxId']) ? trim((string) $customer['taxId']) : null,
-                    'address_line1' => array_key_exists('addressLine1', $customer) && is_string($customer['addressLine1']) ? trim((string) $customer['addressLine1']) : null,
-                    'address_line2' => array_key_exists('addressLine2', $customer) && is_string($customer['addressLine2']) ? trim((string) $customer['addressLine2']) : null,
-                    'address_city' => array_key_exists('city', $customer) && is_string($customer['city']) ? trim((string) $customer['city']) : null,
-                    'address_state' => array_key_exists('state', $customer) && is_string($customer['state']) ? trim((string) $customer['state']) : null,
-                    'address_postal_code' => array_key_exists('postalCode', $customer) && is_string($customer['postalCode']) ? trim((string) $customer['postalCode']) : null,
-                    'address_country' => array_key_exists('country', $customer) && is_string($customer['country']) ? strtoupper(trim((string) $customer['country'])) : null,
-
-                    'password' => Hash::make(Str::random(72)),
-                    'must_change_password' => true,
-                    'one_time_password_hash' => Hash::make($oneTimePassword),
-                    'one_time_password_expires_at' => $oneTimePasswordExpiresAt,
-                    'one_time_password_used_at' => null,
-                    'email_verified_at' => now(),
-                    ]);
-                } catch (QueryException $e) {
-                    throw ValidationException::withMessages([
-                        'customer.userEmail' => ['Email is already in use.'],
-                    ]);
-                }
-
-                $customerId = (int) $newUser->id;
-                $createdCustomer = $newUser;
-                $createdCustomerOneTimePassword = $oneTimePassword;
-            }
-
-            $caseNumber = $this->generateCaseNumber($tenant->slug, $branch->code, $general);
-
-            $jobDetails = trim((string) $validated['jobDetails']);
-            if ($mode === 'warranty') {
-                $dop = data_get($validated, 'warranty.dateOfPurchase');
-                if ($dop) {
-                    $jobDetails = trim($jobDetails."\n\nDate of purchase: ".(string) $dop);
-                }
-            }
-
-            if ($sendToJobs) {
-                $statusSlug = $this->resolveInitialJobStatusSlug();
-
-                $job = RepairBuddyJob::query()->create([
-                    'case_number' => $caseNumber,
-                    'title' => $caseNumber,
-                    'status_slug' => $statusSlug,
-                    'payment_status_slug' => null,
-                    'priority' => null,
-                    'customer_id' => $customerId,
-                    'created_by' => null,
-                    'opened_at' => now(),
-                    'pickup_date' => now()->toDateString(),
-                    'delivery_date' => null,
-                    'next_service_date' => null,
-                    'case_detail' => $jobDetails,
-                    'assigned_technician_id' => null,
-                    'plugin_device_post_id' => null,
-                    'plugin_device_id_text' => null,
-                ]);
-
-                $this->attachDevicesAndItemsToJob($job, $validated['devices']);
-
-                $uploaded = $request->file('attachments');
-                $this->attachUploadsToJob($job, $uploaded);
-
-                return [
-                    'entity' => 'job',
-                    'id' => $job->id,
-                    'case_number' => $job->case_number,
-                    'customer_id' => $customerId,
-                ];
-            }
-
-            if ($disableEstimates) {
-                throw ValidationException::withMessages([
-                    'mode' => ['Estimates are disabled.'],
-                ]);
-            }
-
-            $estimate = RepairBuddyEstimate::query()->create([
-                'case_number' => $caseNumber,
-                'title' => $caseNumber,
-                'status' => 'pending',
-                'customer_id' => $customerId,
-                'created_by' => null,
-                'pickup_date' => now()->toDateString(),
-                'delivery_date' => null,
-                'case_detail' => $jobDetails,
-                'assigned_technician_id' => null,
-                'approved_at' => null,
-                'rejected_at' => null,
-                'converted_job_id' => null,
-            ]);
-
-            $this->attachDevicesAndItemsToEstimate($estimate, $validated['devices']);
-
-            $uploaded = $request->file('attachments');
-            $this->attachUploadsToEstimate($estimate, $uploaded);
-
-            return [
-                'entity' => 'estimate',
-                'id' => $estimate->id,
-                'case_number' => $estimate->case_number,
-                'customer_id' => $customerId,
-            ];
-        });
-
-        if ($createdCustomer instanceof User && is_string($createdCustomerOneTimePassword) && $createdCustomerOneTimePassword !== '') {
-            try {
-                $createdCustomer->notify(new OneTimePasswordNotification($createdCustomerOneTimePassword, 60 * 24));
-            } catch (\Throwable $e) {
-                Log::error('customer.onetime_password_notification_failed', [
-                    'user_id' => $createdCustomer->id,
-                    'tenant_id' => $tenant->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        $frontendBase = rtrim((string) env('FRONTEND_URL', (string) env('APP_URL', '')), '/');
-        $statusCheckUrl = $frontendBase.'/t/'.$business.'/status?caseNumber='.urlencode((string) $result['case_number']);
-
-        $customerSubject = is_string($booking['customerEmailSubject'] ?? null) ? (string) $booking['customerEmailSubject'] : '';
-        $customerBody = is_string($booking['customerEmailBody'] ?? null) ? (string) $booking['customerEmailBody'] : '';
-        $adminSubject = is_string($booking['adminEmailSubject'] ?? null) ? (string) $booking['adminEmailSubject'] : '';
-        $adminBody = is_string($booking['adminEmailBody'] ?? null) ? (string) $booking['adminEmailBody'] : '';
-
-        if (trim($customerSubject) === '') {
-            $customerSubject = 'We received your booking';
-        }
-        if (trim($customerBody) === '') {
-            $customerBody = "Hello,\n\nWe have received your booking request.\n\nCase: {case_number}\nStatus check: {status_check_url}\n";
-        }
-        if (trim($adminSubject) === '') {
-            $adminSubject = 'New booking received';
-        }
-        if (trim($adminBody) === '') {
-            $adminBody = "A new booking was submitted.\n\nCase: {case_number}\nCustomer: {customer_name} ({customer_email})\nStatus check: {status_check_url}\n";
-        }
-
-        $pairs = [
-            '{case_number}' => (string) $result['case_number'],
-            '{business_name}' => is_string($tenant->name) ? (string) $tenant->name : '',
-            '{entity}' => (string) $result['entity'],
-            '{entity_id}' => (string) $result['id'],
-            '{status_check_url}' => (string) $statusCheckUrl,
-            '{customer_name}' => $fullName,
-            '{customer_email}' => $email,
-        ];
-
-        $customerSubject = $this->renderBookingTemplate($customerSubject, $pairs);
-        $customerBody = $this->renderBookingTemplate($customerBody, $pairs);
-        $adminSubject = $this->renderBookingTemplate($adminSubject, $pairs);
-        $adminBody = $this->renderBookingTemplate($adminBody, $pairs);
-
-        $customerUser = $createdCustomer instanceof User ? $createdCustomer : $existing;
-        if ($customerUser instanceof User && is_string($customerUser->email) && trim((string) $customerUser->email) !== '') {
-            try {
-                $customerUser->notify(new BookingSubmissionCustomerNotification(
-                    subject: $customerSubject,
-                    body: $customerBody,
-                ));
-            } catch (\Throwable $e) {
-                Log::error('booking.customer_email_failed', [
-                    'tenant_id' => $tenant->id,
-                    'case_number' => $result['case_number'],
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        $adminTo = is_string($branch->email) && trim((string) $branch->email) !== ''
-            ? trim((string) $branch->email)
-            : (is_string($tenant->contact_email) && trim((string) $tenant->contact_email) !== '' ? trim((string) $tenant->contact_email) : null);
-
-        if ($adminTo) {
-            try {
-                Notification::route('mail', $adminTo)->notify(new BookingSubmissionAdminNotification(
-                    subject: $adminSubject,
-                    body: $adminBody,
-                ));
-            } catch (\Throwable $e) {
-                Log::error('booking.admin_email_failed', [
-                    'tenant_id' => $tenant->id,
-                    'case_number' => $result['case_number'],
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return response()->json([
-            'message' => 'Received.',
-            'case_number' => $result['case_number'],
-            'entity' => $result['entity'],
-            'entity_id' => $result['id'],
-            'status_check_url' => $statusCheckUrl,
-            'created_user' => $createdCustomer instanceof User,
-        ], 201);
+        return response()->json($payload, 201);
     }
 
     protected function renderBookingTemplate(string $template, array $pairs): string

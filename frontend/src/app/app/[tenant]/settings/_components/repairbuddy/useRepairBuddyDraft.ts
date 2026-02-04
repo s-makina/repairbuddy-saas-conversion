@@ -23,7 +23,7 @@ function normalizeAdditionalDeviceFields(draft: RepairBuddySettingsDraft): Repai
       const label = typeof r.label === "string" ? r.label : "";
       if (!label.trim()) return null;
 
-      const type: "text" = "text";
+      const type = "text" as const;
       const displayInBookingForm = typeof r.displayInBookingForm === "boolean" ? r.displayInBookingForm : true;
       const displayInInvoice = typeof r.displayInInvoice === "boolean" ? r.displayInInvoice : true;
       const displayForCustomer = typeof r.displayForCustomer === "boolean" ? r.displayForCustomer : true;

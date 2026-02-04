@@ -71,12 +71,12 @@ export function DevicesBrandsSection({
     setFieldModalOpen(true);
   }
 
-  function openEditField(field: RepairBuddyAdditionalDeviceField) {
+  const openEditField = React.useCallback((field: RepairBuddyAdditionalDeviceField) => {
     setFieldError(null);
     setEditingFieldId(field.id);
     setFieldDraft({ ...field });
     setFieldModalOpen(true);
-  }
+  }, []);
 
   function closeFieldModal() {
     setFieldModalOpen(false);
@@ -112,10 +112,13 @@ export function DevicesBrandsSection({
     closeFieldModal();
   }
 
-  function deleteField(field: RepairBuddyAdditionalDeviceField) {
-    if (!globalThis.confirm(`Delete field "${field.label}"?`)) return;
-    updateDevicesBrands({ additionalDeviceFields: fields.filter((f) => f.id !== field.id) });
-  }
+  const deleteField = React.useCallback(
+    (field: RepairBuddyAdditionalDeviceField) => {
+      if (!globalThis.confirm(`Delete field "${field.label}"?`)) return;
+      updateDevicesBrands({ additionalDeviceFields: fields.filter((f) => f.id !== field.id) });
+    },
+    [fields, updateDevicesBrands],
+  );
 
   const columns = React.useMemo<Array<DataTableColumn<RepairBuddyAdditionalDeviceField>>>(
     () => [
@@ -155,7 +158,7 @@ export function DevicesBrandsSection({
         className: "whitespace-nowrap",
       },
     ],
-    [isMock, fields],
+    [deleteField, isMock, openEditField],
   );
 
   return (

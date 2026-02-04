@@ -238,6 +238,7 @@ export type RepairBuddyBookingSettings = {
   adminEmailBody: string;
   publicBookingMode: "ungrouped" | "grouped" | "warranty";
   sendBookingQuoteToJobs: boolean;
+  customerCreationEmailBehavior?: "send_login_credentials" | "send_invite_link" | "do_not_email";
   turnOffOtherDeviceBrand: boolean;
   turnOffOtherService: boolean;
   turnOffServicePrice: boolean;

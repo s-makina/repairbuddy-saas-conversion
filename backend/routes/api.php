@@ -52,6 +52,11 @@ Route::prefix('t/{business}')
             Route::get('/{caseNumber}/reject', [\App\Http\Controllers\Api\Public\RepairBuddyEstimateActionsController::class, 'reject'])
                 ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
         });
+
+        Route::get('/maintenance-reminders/unsubscribe/{jobId}', [\App\Http\Controllers\Api\Public\RepairBuddyMaintenanceReminderUnsubscribeController::class, 'unsubscribe'])
+            ->whereNumber('jobId')
+            ->middleware(['signed'])
+            ->name('public.maintenance-reminders.unsubscribe');
     });
 
 Route::prefix('auth')->group(function () {
@@ -372,6 +377,23 @@ Route::prefix('{business}')
                         ->middleware('permission:settings.manage');
                     Route::patch('/settings', [\App\Http\Controllers\Api\App\RepairBuddySettingsController::class, 'update'])
                         ->middleware(['throttle:auth', 'permission:settings.manage']);
+
+                    Route::get('/maintenance-reminders', [\App\Http\Controllers\Api\App\RepairBuddyMaintenanceReminderController::class, 'index'])
+                        ->middleware('permission:settings.manage');
+                    Route::post('/maintenance-reminders', [\App\Http\Controllers\Api\App\RepairBuddyMaintenanceReminderController::class, 'store'])
+                        ->middleware(['throttle:auth', 'permission:settings.manage']);
+                    Route::patch('/maintenance-reminders/{id}', [\App\Http\Controllers\Api\App\RepairBuddyMaintenanceReminderController::class, 'update'])
+                        ->whereNumber('id')
+                        ->middleware(['throttle:auth', 'permission:settings.manage']);
+                    Route::delete('/maintenance-reminders/{id}', [\App\Http\Controllers\Api\App\RepairBuddyMaintenanceReminderController::class, 'destroy'])
+                        ->whereNumber('id')
+                        ->middleware(['throttle:auth', 'permission:settings.manage']);
+                    Route::post('/maintenance-reminders/{id}/test', [\App\Http\Controllers\Api\App\RepairBuddyMaintenanceReminderController::class, 'test'])
+                        ->whereNumber('id')
+                        ->middleware(['throttle:auth', 'permission:settings.manage']);
+
+                    Route::get('/maintenance-reminder-logs', [\App\Http\Controllers\Api\App\RepairBuddyMaintenanceReminderLogController::class, 'index'])
+                        ->middleware('permission:reminder_logs.view');
 
                     Route::get('/device-types', [\App\Http\Controllers\Api\App\RepairBuddyDeviceTypeController::class, 'index'])
                         ->middleware('permission:device_types.view');

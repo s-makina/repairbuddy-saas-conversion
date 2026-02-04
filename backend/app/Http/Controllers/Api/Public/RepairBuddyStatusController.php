@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyEvent;
+use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobStatus;
 use App\Models\TenantStatusOverride;
@@ -21,31 +22,53 @@ class RepairBuddyStatusController extends Controller
 
         $job = RepairBuddyJob::query()->where('case_number', $caseNumber)->first();
 
-        if (! $job) {
+        if ($job) {
+            $status = RepairBuddyJobStatus::query()->where('slug', $job->status_slug)->first();
+            $override = TenantStatusOverride::query()
+                ->where('domain', 'job')
+                ->where('code', $job->status_slug)
+                ->first();
+
+            $statusLabel = $status?->label;
+            if (is_string($override?->label) && $override->label !== '') {
+                $statusLabel = $override->label;
+            }
+
             return response()->json([
-                'message' => 'Job not found.',
+                'entity_type' => 'job',
+                'job' => [
+                    'id' => $job->id,
+                    'case_number' => $job->case_number,
+                    'title' => $job->title,
+                    'status' => $job->status_slug,
+                    'status_label' => $statusLabel,
+                    'updated_at' => $job->updated_at,
+                ],
+            ]);
+        }
+
+        $estimate = RepairBuddyEstimate::query()
+            ->where('case_number', $caseNumber)
+            ->first();
+
+        if (! $estimate) {
+            return response()->json([
+                'message' => 'Case not found.',
             ], 404);
         }
 
-        $status = RepairBuddyJobStatus::query()->where('slug', $job->status_slug)->first();
-        $override = TenantStatusOverride::query()
-            ->where('domain', 'job')
-            ->where('code', $job->status_slug)
-            ->first();
-
-        $statusLabel = $status?->label;
-        if (is_string($override?->label) && $override->label !== '') {
-            $statusLabel = $override->label;
-        }
+        $statusKey = is_string($estimate->status) ? (string) $estimate->status : 'pending';
+        $statusLabel = ucwords(str_replace('_', ' ', $statusKey));
 
         return response()->json([
-            'job' => [
-                'id' => $job->id,
-                'case_number' => $job->case_number,
-                'title' => $job->title,
-                'status' => $job->status_slug,
+            'entity_type' => 'estimate',
+            'estimate' => [
+                'id' => $estimate->id,
+                'case_number' => $estimate->case_number,
+                'title' => $estimate->title,
+                'status' => $statusKey,
                 'status_label' => $statusLabel,
-                'updated_at' => $job->updated_at,
+                'updated_at' => $estimate->updated_at,
             ],
         ]);
     }

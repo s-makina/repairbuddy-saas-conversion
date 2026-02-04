@@ -10,6 +10,7 @@ use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
+use App\Support\RepairBuddyCaseNumberService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
@@ -182,43 +183,8 @@ class RepairBuddyEstimateConversionService
             $general = $settings['general'];
         }
 
-        $prefix = is_string($general['caseNumberPrefix'] ?? null) ? trim((string) $general['caseNumberPrefix']) : '';
-        if ($prefix === '') {
-            $prefix = is_string($branch->rb_case_prefix) ? trim((string) $branch->rb_case_prefix) : '';
-        }
-        if ($prefix === '') {
-            $prefix = 'RB';
-        }
+        $svc = app(RepairBuddyCaseNumberService::class);
 
-        $length = is_numeric($general['caseNumberLength'] ?? null) ? (int) $general['caseNumberLength'] : 0;
-        if ($length <= 0) {
-            $length = is_numeric($branch->rb_case_digits) ? (int) $branch->rb_case_digits : 6;
-        }
-        $length = max(1, min(32, $length));
-
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $charactersLength = strlen($characters);
-
-        $caseNumber = '';
-
-        for ($attempt = 0; $attempt < 5; $attempt++) {
-            $randomString = '';
-            for ($i = 0; $i < $length; $i++) {
-                $randomString .= $characters[random_int(0, $charactersLength - 1)];
-            }
-
-            $caseNumber = $prefix.$randomString.time();
-
-            $exists = RepairBuddyJob::query()->where('case_number', $caseNumber)->exists();
-            if (! $exists) {
-                return $caseNumber;
-            }
-        }
-
-        if ($caseNumber === '') {
-            $caseNumber = $prefix.time();
-        }
-
-        return $caseNumber;
+        return $svc->nextCaseNumber($tenant, $branch, $general);
     }
 }

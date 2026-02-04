@@ -60,6 +60,23 @@ export function BookingSection({
                 <option value="warranty">Warranty (grouped + date of purchase)</option>
               </Select>
             </div>
+
+            <div className="grid gap-1 sm:max-w-[360px]">
+              <label className="text-sm font-medium">New customer email behavior</label>
+              <Select
+                value={b.customerCreationEmailBehavior ?? "send_login_credentials"}
+                onChange={(e) =>
+                  updateBooking({
+                    customerCreationEmailBehavior: e.target.value as NonNullable<typeof b.customerCreationEmailBehavior>,
+                  })
+                }
+              >
+                <option value="send_login_credentials">Send login credentials (OTP)</option>
+                <option value="do_not_email">Do not email</option>
+              </Select>
+              <div className="text-xs text-zinc-500">Controls whether customers get an email when an account is created on booking submit.</div>
+            </div>
+
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={b.sendBookingQuoteToJobs} onChange={(e) => updateBooking({ sendBookingQuoteToJobs: e.target.checked })} />
               Send booking/quote to jobs

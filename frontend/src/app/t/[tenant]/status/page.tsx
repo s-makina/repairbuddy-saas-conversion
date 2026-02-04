@@ -20,6 +20,15 @@ type ApiLookupJob = {
   updated_at: string;
 };
 
+type ApiLookupEstimate = {
+  id: number;
+  case_number: string;
+  title: string;
+  status: string;
+  status_label?: string | null;
+  updated_at: string;
+};
+
 function portalSessionKey(tenantSlug: string) {
   return `rb.portal.session:v1:${tenantSlug}`;
 }
@@ -41,6 +50,7 @@ export default function PublicStatusPage() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [job, setJob] = React.useState<ApiLookupJob | null>(null);
+  const [estimate, setEstimate] = React.useState<ApiLookupEstimate | null>(null);
 
   const [messageBody, setMessageBody] = React.useState("");
   const [messageBusy, setMessageBusy] = React.useState(false);
@@ -73,18 +83,27 @@ export default function PublicStatusPage() {
         throw new Error("Tenant slug is required in the URL.");
       }
 
-      const res = await apiFetch<{ job: ApiLookupJob }>(`/api/t/${normalizedTenant}/status/lookup`, {
+      const res = await apiFetch<{ entity_type?: string; job?: ApiLookupJob; estimate?: ApiLookupEstimate }>(`/api/t/${normalizedTenant}/status/lookup`, {
         method: "POST",
         body: { caseNumber: normalized },
         token: null,
         impersonationSessionId: null,
       });
 
-      if (!res?.job) {
-        throw new Error("No job found for that case number.");
+      const entityType = typeof res?.entity_type === "string" ? res.entity_type : "job";
+      const foundJob = res?.job ?? null;
+      const foundEstimate = res?.estimate ?? null;
+
+      setJob(entityType === "job" ? foundJob : null);
+      setEstimate(entityType === "estimate" ? foundEstimate : null);
+
+      const caseForSession = foundJob?.case_number ?? foundEstimate?.case_number ?? normalized;
+      const idForSession = foundJob?.id ?? foundEstimate?.id ?? null;
+
+      if (!idForSession) {
+        throw new Error("No case found for that case number.");
       }
 
-      setJob(res.job);
       setMessageBody("");
       setMessageError(null);
       setMessageSuccess(null);
@@ -94,8 +113,8 @@ export default function PublicStatusPage() {
           window.localStorage.setItem(
             portalSessionKey(normalizedTenant),
             JSON.stringify({
-              job_id: String(res.job.id),
-              case_number: res.job.case_number,
+              job_id: String(idForSession),
+              case_number: caseForSession,
             }),
           );
         }
@@ -104,11 +123,12 @@ export default function PublicStatusPage() {
       }
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
-        setError("No job found for that case number.");
+        setError("No case found for that case number.");
       } else {
         setError(e instanceof Error ? e.message : "Failed to load status.");
       }
       setJob(null);
+      setEstimate(null);
     } finally {
       setLoading(false);
     }
@@ -367,6 +387,41 @@ export default function PublicStatusPage() {
                       </Button>
                     </div>
                   </div>
+                </div>
+              ) : null}
+
+              {estimate ? (
+                <div className="space-y-4">
+                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-[var(--rb-text)]">Case {estimate.case_number}</div>
+                        <div className="mt-1 text-sm text-zinc-600">{estimate.title}</div>
+                        <div className="mt-2 text-xs text-zinc-500">Last updated: {new Date(estimate.updated_at).toLocaleString()}</div>
+                      </div>
+                      <Badge variant="warning">{estimate.status_label ?? estimate.status.replace(/_/g, " ")}</Badge>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (!normalizedTenant) return;
+                          router.push(`/t/${normalizedTenant}/portal/estimates`);
+                        }}
+                      >
+                        View estimate
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setRefreshKey((x) => x + 1)}>
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Alert variant="info" title="Estimate case">
+                    This case currently has an estimate (quote). If you have questions, you can approve/reject via the links in your email or from the portal.
+                  </Alert>
                 </div>
               ) : null}
             </div>
