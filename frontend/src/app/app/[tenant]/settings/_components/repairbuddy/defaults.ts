@@ -172,7 +172,7 @@ export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
     disableTimeLog: false,
     defaultTaxIdForHours: "tax_none",
     enableTimeLogForStatusIds: [],
-    activities: "",
+    activities: "Repair\nDiagnostic\nTesting\nCleaning\nConsultation\nOther",
   },
   maintenanceReminders: {
     reminders: [

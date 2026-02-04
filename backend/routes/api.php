@@ -539,6 +539,15 @@ Route::prefix('{business}')
                         ->whereNumber('jobDeviceId');
                 });
 
+                Route::prefix('repairbuddy')->middleware('permission:time_logs.view')->group(function () {
+                    Route::get('/time-logs', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'index']);
+                    Route::post('/time-logs', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'store']);
+                    Route::patch('/time-logs/{timeLogId}', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'update'])
+                        ->whereNumber('timeLogId');
+                    Route::post('/time-logs/{timeLogId}/bill', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'bill'])
+                        ->whereNumber('timeLogId');
+                });
+
                 Route::prefix('repairbuddy')->middleware('permission:estimates.view')->group(function () {
                     Route::get('/estimates', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'index']);
                     Route::get('/estimates/{estimateId}', [\App\Http\Controllers\Api\App\RepairBuddyEstimateController::class, 'show'])->whereNumber('estimateId');

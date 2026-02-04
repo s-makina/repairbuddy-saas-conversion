@@ -97,6 +97,20 @@ class RepairBuddySettingsController extends Controller
             'settings.estimates.adminApproveRejectEmailSubject' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.estimates.adminApproveRejectEmailBody' => ['sometimes', 'nullable', 'string', 'max:4096'],
 
+            'settings.booking' => ['sometimes', 'array'],
+            'settings.booking.customerEmailSubject' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.booking.customerEmailBody' => ['sometimes', 'nullable', 'string', 'max:4096'],
+            'settings.booking.adminEmailSubject' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.booking.adminEmailBody' => ['sometimes', 'nullable', 'string', 'max:4096'],
+            'settings.booking.sendBookingQuoteToJobs' => ['sometimes', 'boolean'],
+            'settings.booking.turnOffOtherDeviceBrand' => ['sometimes', 'boolean'],
+            'settings.booking.turnOffOtherService' => ['sometimes', 'boolean'],
+            'settings.booking.turnOffServicePrice' => ['sometimes', 'boolean'],
+            'settings.booking.turnOffIdImeiInBooking' => ['sometimes', 'boolean'],
+            'settings.booking.defaultType' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.booking.defaultBrand' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.booking.defaultDevice' => ['sometimes', 'nullable', 'string', 'max:255'],
+
             'settings.myAccount' => ['sometimes', 'array'],
             'settings.myAccount.disableBooking' => ['sometimes', 'boolean'],
             'settings.myAccount.disableEstimates' => ['sometimes', 'boolean'],
@@ -143,6 +157,13 @@ class RepairBuddySettingsController extends Controller
             'settings.taxes.enableTaxes' => ['sometimes', 'boolean'],
             'settings.taxes.defaultTaxId' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.taxes.invoiceAmounts' => ['sometimes', 'string', 'in:exclusive,inclusive'],
+
+            'settings.timeLogs' => ['sometimes', 'array'],
+            'settings.timeLogs.disableTimeLog' => ['sometimes', 'boolean'],
+            'settings.timeLogs.defaultTaxIdForHours' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'settings.timeLogs.enableTimeLogForStatusIds' => ['sometimes', 'array'],
+            'settings.timeLogs.enableTimeLogForStatusIds.*' => ['sometimes', 'string', 'max:255'],
+            'settings.timeLogs.activities' => ['sometimes', 'nullable', 'string', 'max:4096'],
         ]);
 
         $before = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');
@@ -152,6 +173,35 @@ class RepairBuddySettingsController extends Controller
         }
 
         $next = $this->applyTenantIdentityToSettings($next, $tenant);
+
+        $booking = [];
+        if (array_key_exists('booking', $next) && is_array($next['booking'])) {
+            $booking = $next['booking'];
+        }
+
+        $estimates = [];
+        if (array_key_exists('estimates', $next) && is_array($next['estimates'])) {
+            $estimates = $next['estimates'];
+        }
+
+        $bookingSendToJobs = array_key_exists('sendBookingQuoteToJobs', $booking) ? $booking['sendBookingQuoteToJobs'] : null;
+        $estimatesSendToJobs = array_key_exists('bookingQuoteSendToJobs', $estimates) ? $estimates['bookingQuoteSendToJobs'] : null;
+
+        if (is_bool($bookingSendToJobs) && ! is_bool($estimatesSendToJobs)) {
+            $estimates['bookingQuoteSendToJobs'] = $bookingSendToJobs;
+        } elseif (! is_bool($bookingSendToJobs) && is_bool($estimatesSendToJobs)) {
+            $booking['sendBookingQuoteToJobs'] = $estimatesSendToJobs;
+        } elseif (is_bool($bookingSendToJobs) && is_bool($estimatesSendToJobs) && $bookingSendToJobs !== $estimatesSendToJobs) {
+            $estimates['bookingQuoteSendToJobs'] = $bookingSendToJobs;
+        }
+
+        if (! empty($booking)) {
+            $next['booking'] = $booking;
+        }
+
+        if (! empty($estimates)) {
+            $next['estimates'] = $estimates;
+        }
 
         $state = $tenant->setup_state ?? [];
         if (! is_array($state)) {

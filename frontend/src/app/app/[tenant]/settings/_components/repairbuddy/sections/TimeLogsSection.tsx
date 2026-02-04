@@ -46,7 +46,7 @@ export function TimeLogsSection({
 
         <div>
           <div className="text-sm font-semibold text-[var(--rb-text)]">Enable time log for statuses</div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
             {statusOptions.map((s) => (
               <label key={s.id} className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={t.enableTimeLogForStatusIds.includes(s.id)} onChange={() => toggleStatus(s.id)} />

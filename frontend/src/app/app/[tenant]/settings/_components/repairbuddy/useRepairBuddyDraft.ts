@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { defaultRepairBuddyDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/defaults";
 import type { RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import { getRepairBuddySettings, updateRepairBuddySettings } from "@/lib/repairbuddy-settings";
 import { getSetup, updateSetup } from "@/lib/setup";
 import type { Tenant } from "@/lib/types";
@@ -118,7 +118,13 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
       setLoading(true);
       setError(null);
       try {
-        const [settingsRes, setupRes] = await Promise.all([getRepairBuddySettings(String(tenantSlug)), getSetup(String(tenantSlug))]);
+        const [settingsRes, setupRes, jobStatusesRes] = await Promise.all([
+          getRepairBuddySettings(String(tenantSlug)),
+          getSetup(String(tenantSlug)),
+          apiFetch<{ job_statuses: Array<{ id: number; slug: string; label: string; invoice_label?: string | null; is_active?: boolean }> }>(
+            `/api/${String(tenantSlug)}/app/repairbuddy/job-statuses`
+          ),
+        ]);
         if (!alive) return;
 
         setTenant(setupRes.tenant);
@@ -132,6 +138,30 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
             ...((settingsFromApi?.general ?? {}) as RepairBuddySettingsDraft["general"]),
           },
         };
+
+        const apiJobStatuses = Array.isArray(jobStatusesRes?.job_statuses) ? jobStatusesRes.job_statuses : [];
+        if (apiJobStatuses.length > 0) {
+          merged.jobStatuses = {
+            ...(merged.jobStatuses ?? defaultRepairBuddyDraft.jobStatuses),
+            statuses: apiJobStatuses.map((s) => {
+              const slug = typeof s.slug === "string" ? s.slug : "";
+              const label = typeof s.label === "string" ? s.label : slug;
+              const invoiceLabel = typeof s.invoice_label === "string" ? s.invoice_label : label;
+
+              return {
+                id: `status_${slug}`,
+                name: label,
+                slug,
+                description: "",
+                invoiceLabel,
+                manageWooStock: false,
+                status: s.is_active === false ? "inactive" : "active",
+              };
+            }),
+            completedStatusId: merged.jobStatuses?.completedStatusId ?? defaultRepairBuddyDraft.jobStatuses.completedStatusId,
+            cancelledStatusId: merged.jobStatuses?.cancelledStatusId ?? defaultRepairBuddyDraft.jobStatuses.cancelledStatusId,
+          };
+        }
 
         const shouldHydrateTimeLogStatuses =
           !merged.timeLogs ||
