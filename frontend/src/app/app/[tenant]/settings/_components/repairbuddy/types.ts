@@ -105,8 +105,10 @@ export type RepairBuddyMyAccountSettings = {
 export type RepairBuddyAdditionalDeviceField = {
   id: string;
   label: string;
-  key: string;
-  required: boolean;
+  type: "text";
+  displayInBookingForm: boolean;
+  displayInInvoice: boolean;
+  displayForCustomer: boolean;
 };
 
 export type RepairBuddyDevicesBrandsSettings = {

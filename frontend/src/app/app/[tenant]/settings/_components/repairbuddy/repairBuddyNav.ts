@@ -14,7 +14,6 @@ export const repairBuddyNav: RepairBuddyNavItem[] = [
   { key: "estimates", label: "Estimates" },
   { key: "my-account", label: "My Account" },
   { key: "devices-brands", label: "Devices & Brands" },
-  { key: "pages-setup", label: "Pages Setup" },
   { key: "sms", label: "SMS" },
   { key: "taxes", label: "Taxes" },
   { key: "service-settings", label: "Service Settings" },

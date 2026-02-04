@@ -11,6 +11,43 @@ import type { Tenant } from "@/lib/types";
 
 export const savingDisabledReason = "";
 
+function normalizeAdditionalDeviceFields(draft: RepairBuddySettingsDraft): RepairBuddySettingsDraft {
+  const db = draft.devicesBrands;
+  if (!db || !Array.isArray(db.additionalDeviceFields)) return draft;
+
+  const nextFields = db.additionalDeviceFields
+    .map((raw) => {
+      if (!raw || typeof raw !== "object") return null;
+      const r = raw as Record<string, unknown>;
+      const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : `device_field_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      const label = typeof r.label === "string" ? r.label : "";
+      if (!label.trim()) return null;
+
+      const type: "text" = "text";
+      const displayInBookingForm = typeof r.displayInBookingForm === "boolean" ? r.displayInBookingForm : true;
+      const displayInInvoice = typeof r.displayInInvoice === "boolean" ? r.displayInInvoice : true;
+      const displayForCustomer = typeof r.displayForCustomer === "boolean" ? r.displayForCustomer : true;
+
+      return {
+        id,
+        label: label.trim(),
+        type,
+        displayInBookingForm,
+        displayInInvoice,
+        displayForCustomer,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
+
+  return {
+    ...draft,
+    devicesBrands: {
+      ...db,
+      additionalDeviceFields: nextFields,
+    },
+  };
+}
+
 function formatTenantAddress(tenant: Tenant): string {
   const addr = (tenant.billing_address_json ?? {}) as Record<string, unknown>;
   const parts: string[] = [];
@@ -90,7 +127,7 @@ export function useRepairBuddyDraft(tenantSlug?: string) {
           },
         };
 
-        setDraft(applyTenantIdentityToDraft(merged, setupRes.tenant));
+        setDraft(applyTenantIdentityToDraft(normalizeAdditionalDeviceFields(merged), setupRes.tenant));
       } catch (e) {
         if (!alive) return;
 

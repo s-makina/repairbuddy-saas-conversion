@@ -17,7 +17,6 @@ import { InvoicesReportsSection } from "@/app/app/[tenant]/settings/_components/
 import { JobStatusesSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/JobStatusesSection";
 import { MaintenanceRemindersSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/MaintenanceRemindersSection";
 import { MyAccountSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/MyAccountSection";
-import { PagesSetupSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/PagesSetupSection";
 import { PaymentsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/PaymentsSection";
 import { ReviewsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/ReviewsSection";
 import { ServiceSettingsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/ServiceSettingsSection";
@@ -63,8 +62,6 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
         return <MyAccountSection draft={draft} updateMyAccount={(patch) => updateSection("myAccount", patch)} />;
       case "devices-brands":
         return <DevicesBrandsSection draft={draft} updateDevicesBrands={(patch) => updateSection("devicesBrands", patch)} isMock={isMock} />;
-      case "pages-setup":
-        return <PagesSetupSection draft={draft} updatePagesSetup={(patch) => updateSection("pagesSetup", patch)} />;
       case "sms":
         return <SmsSection draft={draft} updateSms={(patch) => updateSection("sms", patch)} />;
       case "taxes":
