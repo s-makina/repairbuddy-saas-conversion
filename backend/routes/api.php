@@ -17,6 +17,15 @@ Route::prefix('t/{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['tenant', 'branch.public'])
     ->group(function () {
+        Route::prefix('booking')->middleware(['throttle:public-booking'])->group(function () {
+            Route::get('/config', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'config']);
+            Route::get('/device-types', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'deviceTypes']);
+            Route::get('/brands', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'brands']);
+            Route::get('/devices', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'devices']);
+            Route::get('/services', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'services']);
+            Route::post('/submit', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'submit']);
+        });
+
         Route::get('/services', [\App\Http\Controllers\Api\Public\RepairBuddyServicesController::class, 'index']);
         Route::get('/parts', [\App\Http\Controllers\Api\Public\RepairBuddyPartsController::class, 'index']);
 

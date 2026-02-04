@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { SectionShell } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/SectionShell";
 import type { RepairBuddySettingsDraft } from "@/app/app/[tenant]/settings/_components/repairbuddy/types";
 
@@ -51,6 +52,14 @@ export function BookingSection({
         <div>
           <div className="text-sm font-semibold text-[var(--rb-text)]">Booking workflow</div>
           <div className="mt-2 grid gap-2">
+            <div className="grid gap-1 sm:max-w-[360px]">
+              <label className="text-sm font-medium">Public booking mode</label>
+              <Select value={b.publicBookingMode} onChange={(e) => updateBooking({ publicBookingMode: e.target.value as typeof b.publicBookingMode })}>
+                <option value="ungrouped">Ungrouped (brand → device)</option>
+                <option value="grouped">Grouped (type → brand → device)</option>
+                <option value="warranty">Warranty (grouped + date of purchase)</option>
+              </Select>
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={b.sendBookingQuoteToJobs} onChange={(e) => updateBooking({ sendBookingQuoteToJobs: e.target.checked })} />
               Send booking/quote to jobs

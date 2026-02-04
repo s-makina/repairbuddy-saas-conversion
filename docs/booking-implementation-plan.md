@@ -24,6 +24,34 @@ Plugin source of truth (customer-side booking):
     - an **Estimate** by default, OR
     - a **Job** by default, controlled by setting parity: `Send booking forms & quote forms to jobs instead of estimates`.
 
+### 0.0 SaaS authoritative settings keys (must be used)
+
+The SaaS already stores RepairBuddy settings under `tenant.setup_state.repairbuddy_settings` and validates them in:
+- Backend: `backend/app/Http/Controllers/Api/App/RepairBuddySettingsController.php`
+- Frontend draft types: `frontend/src/app/app/[tenant]/settings/_components/repairbuddy/types.ts`
+
+Booking-related keys used by the SaaS settings UI:
+- `settings.booking.customerEmailSubject`
+- `settings.booking.customerEmailBody`
+- `settings.booking.adminEmailSubject`
+- `settings.booking.adminEmailBody`
+- `settings.booking.publicBookingMode` (`ungrouped|grouped|warranty`)
+- `settings.booking.sendBookingQuoteToJobs`
+- `settings.booking.turnOffOtherDeviceBrand`
+- `settings.booking.turnOffOtherService`
+- `settings.booking.turnOffServicePrice`
+- `settings.booking.turnOffIdImeiInBooking`
+- `settings.booking.defaultType`
+- `settings.booking.defaultBrand`
+- `settings.booking.defaultDevice`
+
+Note: there is also an existing estimates key used in the UI:
+- `settings.estimates.bookingQuoteSendToJobs`
+
+For robustness and to prevent misconfiguration, the backend must keep these two toggles consistent:
+- `settings.booking.sendBookingQuoteToJobs`
+- `settings.estimates.bookingQuoteSendToJobs`
+
 ### 0.1 Booking Contract (what must match plugin)
 
 #### Customer-visible steps
@@ -72,10 +100,12 @@ Plugin source of truth (customer-side booking):
 #### Outcomes / side-effects (must match plugin)
 - Create or reuse customer:
   - If email exists, associate booking to that customer.
-  - If email does not exist, plugin creates a user and emails login credentials.
+  - If email does not exist, create a user and send an email containing a **one-time password** (OTP) for initial access.
 - Create booking record:
   - Create a draft post of type `wcrb_return_booking_post_type()` (job vs estimate depending setting).
-  - Generate a **case number** (plugin style).
+  - Generate a **case number** (tenant+branch format).
+    - Uniqueness scope: **unique per `tenant_id` + `branch_id`** (matches existing DB constraints on `rb_jobs.case_number` and `rb_estimates.case_number`).
+    - Format: include tenant + branch identifiers (e.g. `RB-{TENANT_SLUG}-{BRANCH_SLUG}-{NNNNNN}`) with a per-branch sequence padded to the configured length.
   - Persist booking meta:
     - devices array (`_wc_device_data` equivalent)
     - customer fields (billing/shipping-like)
@@ -114,12 +144,12 @@ You must represent plugin concepts:
 - Service types (taxonomy `service_type`)
 - Services (`rep_services` posts)
 
-SaaS tables (suggested):
-- `device_types`
-- `device_brands`
-- `devices`
-- `service_types`
-- `services`
+SaaS tables (already implemented):
+- `rb_device_types`
+- `rb_device_brands`
+- `rb_devices`
+- `rb_service_types`
+- `rb_services`
 
 ### 1.2 Service pricing + availability parity
 Plugin computes service eligibility and price per device selection:
@@ -131,9 +161,16 @@ Plugin computes service eligibility and price per device selection:
 - Availability priority:
   - can be set `inactive` by device, brand, or type
 
-SaaS schema (suggested):
-- `service_prices` (service_id, scope_type: device|brand|type|default, scope_id nullable, amount)
-- `service_availability_rules` (service_id, scope_type, scope_id, status active|inactive)
+SaaS schema (already implemented for pricing):
+- `rb_service_price_overrides`
+  - fields include: `service_id`, `scope_type` (`device|brand|type`), `scope_ref_id`, `price_amount_cents`, `price_currency`, `tax_id`, `is_active`
+  - price precedence is already implemented in `RepairBuddyServicePricingController`:
+    - device override → brand override → type override → base price
+
+SaaS schema (added for availability parity):
+- `rb_service_availability_overrides`
+  - fields: `service_id`, `scope_type` (`device|brand|type`), `scope_ref_id`, `status` (`inactive|active`)
+  - this is required because the plugin supports disabling services by device/brand/type independently of pricing.
 
 ### 1.3 Booking submission record
 You need a durable record for:
@@ -142,9 +179,22 @@ You need a durable record for:
 - attachments
 - case number
 
-SaaS schema options:
-- Option A (recommended): store booking directly as a `job` or `estimate` with attached structured JSON snapshots.
-- Option B: store a `booking_requests` table, then create job/estimate from it.
+SaaS schema (already supports Option A):
+- Job tables:
+  - `rb_jobs`
+  - `rb_job_devices` (device snapshots + extra fields snapshot)
+  - `rb_job_items` (services/extras snapshots)
+  - `rb_job_attachments`
+- Estimate tables:
+  - `rb_estimates`
+  - `rb_estimate_devices` (device snapshots + extra fields snapshot)
+  - `rb_estimate_items` (services/extras snapshots)
+  - `rb_estimate_tokens`
+  - `rb_estimate_attachments`
+
+Parity requirement:
+- Booking submission must be able to land into either `rb_jobs` or `rb_estimates` based on:
+  - `settings.booking.sendBookingQuoteToJobs` (kept consistent with `settings.estimates.bookingQuoteSendToJobs`)
 
 Parity requirement: regardless of modeling choice, you must be able to reproduce:
 - per-device service line items
@@ -169,6 +219,9 @@ You need tenant-scoped settings for all booking options:
 Implementation approach:
 - Use existing SaaS settings mechanism (whatever backs `docs/repairbuddy-settings-ui-coverage-checklist.md`).
 - Ensure all booking settings are **tenant-scoped**.
+
+Tenant/branch scoping robustness:
+- All RepairBuddy catalog and booking records use the `BelongsToTenantAndBranch` trait (global scopes + enforced context on create).
 
 ---
 

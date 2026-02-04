@@ -33,6 +33,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
+        RateLimiter::for('public-booking', function (Request $request) {
+            $business = $request->route('business');
+            $business = is_string($business) ? $business : '';
+
+            return Limit::perMinute(30)->by($request->ip().':'.$business);
+        });
+
         ResetPassword::createUrlUsing(function (mixed $notifiable, string $token) {
             $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
             $tenantSlug = TenantContext::tenant()?->slug;

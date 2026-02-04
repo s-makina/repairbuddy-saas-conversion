@@ -218,6 +218,7 @@ export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
     customerEmailBody: "Thanks for your booking.",
     adminEmailSubject: "New booking",
     adminEmailBody: "A new booking has been received.",
+    publicBookingMode: "ungrouped",
     sendBookingQuoteToJobs: true,
     turnOffOtherDeviceBrand: false,
     turnOffOtherService: false,

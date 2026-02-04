@@ -102,6 +102,7 @@ class RepairBuddySettingsController extends Controller
             'settings.booking.customerEmailBody' => ['sometimes', 'nullable', 'string', 'max:4096'],
             'settings.booking.adminEmailSubject' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.booking.adminEmailBody' => ['sometimes', 'nullable', 'string', 'max:4096'],
+            'settings.booking.publicBookingMode' => ['sometimes', 'string', 'in:ungrouped,grouped,warranty'],
             'settings.booking.sendBookingQuoteToJobs' => ['sometimes', 'boolean'],
             'settings.booking.turnOffOtherDeviceBrand' => ['sometimes', 'boolean'],
             'settings.booking.turnOffOtherService' => ['sometimes', 'boolean'],
