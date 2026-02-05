@@ -11,6 +11,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { ImagePickerWithPreview } from "@/components/ui/ImagePickerWithPreview";
 import { Modal } from "@/components/ui/Modal";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 
@@ -455,6 +456,13 @@ export default function TenantPartBrandsPage() {
             </Button>
           }
           loading={loading}
+          loadingFallback={
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <TableSkeleton rows={8} columns={5} className="shadow-none" />
+              </CardContent>
+            </Card>
+          }
           error={null}
           empty={!loading && !error && brands.length === 0}
           emptyTitle="No part brands"

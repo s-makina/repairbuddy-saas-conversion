@@ -943,20 +943,31 @@ export default function PublicBookingPage() {
                                       setDeviceId("");
                                     }}
                                     className={cn(
-                                      "group flex items-center gap-3 rounded-[var(--rb-radius-md)] border bg-white p-3 text-left transition",
+                                      "group overflow-hidden rounded-[var(--rb-radius-md)] border bg-white text-left transition",
                                       isSelected
-                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_94%)]"
+                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_96%)]"
                                         : "border-[var(--rb-border)] hover:bg-[var(--rb-surface-muted)]",
                                     )}
                                   >
-                                    <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
+                                    <span className="relative block aspect-[16/10] w-full overflow-hidden bg-[var(--rb-surface-muted)]">
                                       {src ? (
-                                        <Image alt={t.name} src={src} width={40} height={40} className="h-full w-full object-cover" loader={({ src }) => src} unoptimized />
+                                        <Image
+                                          alt={t.name}
+                                          src={src}
+                                          fill
+                                          sizes="(min-width: 1024px) 320px, (min-width: 640px) 33vw, 100vw"
+                                          className="object-cover"
+                                          loader={({ src }) => src}
+                                          unoptimized
+                                        />
                                       ) : (
-                                        <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-500">{t.name.slice(0, 2).toUpperCase()}</span>
+                                        <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-500">
+                                          {t.name.slice(0, 2).toUpperCase()}
+                                        </span>
                                       )}
+                                      <span className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
                                     </span>
-                                    <span className="min-w-0">
+                                    <span className="block p-3">
                                       <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">{t.name}</span>
                                       {t.description ? <span className="mt-0.5 block line-clamp-2 text-xs text-zinc-600">{t.description}</span> : null}
                                     </span>
@@ -969,7 +980,7 @@ export default function PublicBookingPage() {
                           <div>
                             <div className="text-sm font-semibold text-[var(--rb-text)]">Brand</div>
                             {!typeId ? <div className="mt-1 text-xs text-zinc-500">Select a device type to see brands.</div> : null}
-                            <div className="mt-2 grid gap-3 sm:grid-cols-4">
+                            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
                               {brands.map((b) => {
                                 const isSelected = brandId === String(b.id);
                                 const src = typeof b.image_url === "string" ? b.image_url : null;
@@ -985,21 +996,32 @@ export default function PublicBookingPage() {
                                       setDeviceId("");
                                     }}
                                     className={cn(
-                                      "group flex items-center gap-3 rounded-[var(--rb-radius-md)] border bg-white p-3 text-left transition",
+                                      "group overflow-hidden rounded-[var(--rb-radius-md)] border bg-white text-left transition",
                                       !typeId ? "pointer-events-none opacity-60" : "",
                                       isSelected
-                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_94%)]"
+                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_96%)]"
                                         : "border-[var(--rb-border)] hover:bg-[var(--rb-surface-muted)]",
                                     )}
                                   >
-                                    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
+                                    <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white">
                                       {src ? (
-                                        <Image alt={b.name} src={src} width={36} height={36} className="h-full w-full object-cover" loader={({ src }) => src} unoptimized />
+                                        <Image
+                                          alt={b.name}
+                                          src={src}
+                                          fill
+                                          sizes="(min-width: 1024px) 240px, (min-width: 640px) 25vw, 50vw"
+                                          className="object-contain p-4"
+                                          loader={({ src }) => src}
+                                          unoptimized
+                                        />
                                       ) : (
-                                        <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-500">{b.name.slice(0, 2).toUpperCase()}</span>
+                                        <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-500">
+                                          {b.name.slice(0, 2).toUpperCase()}
+                                        </span>
                                       )}
+                                      <span className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
                                     </span>
-                                    <span className="min-w-0">
+                                    <span className="block p-3 pt-2">
                                       <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">{b.name}</span>
                                     </span>
                                   </button>

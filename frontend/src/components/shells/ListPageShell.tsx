@@ -11,6 +11,7 @@ export function ListPageShell({
   actions,
   filters,
   loading,
+  loadingFallback,
   error,
   empty,
   emptyTitle = "Nothing here yet",
@@ -22,6 +23,7 @@ export function ListPageShell({
   actions?: React.ReactNode;
   filters?: React.ReactNode;
   loading?: boolean;
+  loadingFallback?: React.ReactNode;
   error?: string | React.ReactNode | null;
   empty?: boolean;
   emptyTitle?: string;
@@ -40,7 +42,9 @@ export function ListPageShell({
         </Alert>
       ) : null}
 
-      {loading ? <div className="text-sm text-zinc-500">Loading...</div> : null}
+      {loading ? (
+        loadingFallback ?? <div className="text-sm text-zinc-500">Loading...</div>
+      ) : null}
 
       {!loading && !error && empty ? (
         <Card className="shadow-none">

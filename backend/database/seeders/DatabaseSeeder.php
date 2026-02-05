@@ -76,6 +76,11 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        $seedCatalog = filter_var(env('SEED_REPAIRBUDDY_CATALOG', true), FILTER_VALIDATE_BOOL);
+        if ($seedCatalog) {
+            $this->call(RepairBuddyCatalogSeeder::class);
+        }
+
         if (! Schema::hasTable('billing_plans')
             || ! Schema::hasTable('billing_plan_versions')
             || ! Schema::hasTable('billing_prices')
@@ -117,6 +122,11 @@ class DatabaseSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+        } else {
+            DB::table('billing_plans')->where('id', $planId)->update([
+                'is_active' => true,
+                'updated_at' => now(),
+            ]);
         }
 
         $versionId = DB::table('billing_plan_versions')
@@ -131,6 +141,13 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
                 'locked_at' => now(),
                 'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('billing_plan_versions')->where('id', $versionId)->update([
+                'status' => 'active',
+                'locked_at' => DB::raw('COALESCE(locked_at, NOW())'),
+                'activated_at' => DB::raw('COALESCE(activated_at, NOW())'),
                 'updated_at' => now(),
             ]);
         }

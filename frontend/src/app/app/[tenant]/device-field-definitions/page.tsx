@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
 import { Modal } from "@/components/ui/Modal";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 
@@ -449,6 +450,13 @@ export default function TenantDeviceFieldDefinitionsPage() {
             </Button>
           }
           loading={loading}
+          loadingFallback={
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <TableSkeleton rows={8} columns={6} className="shadow-none" />
+              </CardContent>
+            </Card>
+          }
           error={null}
           empty={!loading && !error && items.length === 0}
           emptyTitle="No device fields"

@@ -26,6 +26,7 @@ class RepairBuddyDeviceBrandController extends Controller
     {
         $validated = $request->validate([
             'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'is_active' => ['sometimes', 'nullable', 'boolean'],
             'limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:200'],
             'page' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:200'],
@@ -34,6 +35,7 @@ class RepairBuddyDeviceBrandController extends Controller
         ]);
 
         $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $isActive = array_key_exists('is_active', $validated) ? ($validated['is_active'] ?? null) : null;
         $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 200;
         $page = is_int($validated['page'] ?? null) ? (int) $validated['page'] : null;
         $perPage = is_int($validated['per_page'] ?? null) ? (int) $validated['per_page'] : null;
@@ -44,6 +46,10 @@ class RepairBuddyDeviceBrandController extends Controller
 
         if ($q !== '') {
             $query->where('name', 'like', "%{$q}%");
+        }
+
+        if ($isActive !== null) {
+            $query->where('is_active', (bool) $isActive);
         }
 
         $allowedSorts = ['id', 'name', 'is_active'];

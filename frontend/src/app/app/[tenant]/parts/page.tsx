@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { ListPageShell } from "@/components/shells/ListPageShell";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
@@ -380,6 +381,13 @@ export default function TenantPartsPage() {
             </Button>
           }
           loading={loading}
+          loadingFallback={
+            <Card className="shadow-none">
+              <CardContent className="pt-5">
+                <TableSkeleton rows={8} columns={7} className="shadow-none" />
+              </CardContent>
+            </Card>
+          }
           error={null}
           empty={!loading && !error && parts.length === 0}
           emptyTitle="No parts"
