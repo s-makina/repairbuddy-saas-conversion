@@ -13,6 +13,7 @@ use App\Models\TenantSubscription;
 use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class InvoicingService
@@ -215,13 +216,32 @@ class InvoicingService
             ->first();
 
         if (! $counter) {
-            $counter = BranchInvoiceCounter::query()->create([
-                'branch_id' => $branchId,
-                'year' => $year,
-                'next_number' => 1,
-            ]);
+            try {
+                BranchInvoiceCounter::query()->create([
+                    'branch_id' => $branchId,
+                    'year' => $year,
+                    'next_number' => 1,
+                ]);
+            } catch (QueryException $e) {
+                $sqlState = is_array($e->errorInfo ?? null) ? (string) ($e->errorInfo[0] ?? '') : '';
+                $errorCode = is_array($e->errorInfo ?? null) ? (string) ($e->errorInfo[1] ?? '') : '';
 
-            $counter->refresh();
+                $isUniqueViolation = $sqlState === '23000' || $errorCode === '1062';
+
+                if (! $isUniqueViolation) {
+                    throw $e;
+                }
+            }
+
+            $counter = BranchInvoiceCounter::query()
+                ->where('branch_id', $branchId)
+                ->where('year', $year)
+                ->lockForUpdate()
+                ->first();
+        }
+
+        if (! $counter) {
+            throw new \RuntimeException('Failed to initialize invoice counter.');
         }
 
         $n = (int) ($counter->next_number ?? 1);

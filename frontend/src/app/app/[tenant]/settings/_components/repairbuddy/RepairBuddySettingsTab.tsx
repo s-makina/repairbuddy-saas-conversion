@@ -111,7 +111,7 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
       case "time-logs":
         return <TimeLogsSection tenantSlug={tenantSlug} draft={draft} updateTimeLogs={(patch) => updateSection("timeLogs", patch)} isMock={isMock} />;
       case "maintenance-reminders":
-        return <MaintenanceRemindersSection draft={draft} isMock={isMock} />;
+        return <MaintenanceRemindersSection tenantSlug={tenantSlug} draft={draft} isMock={isMock} />;
       case "styling-labels":
         return <StylingLabelsSection draft={draft} updateStylingLabels={(patch) => updateSection("stylingLabels", patch)} />;
       case "signature-workflow":

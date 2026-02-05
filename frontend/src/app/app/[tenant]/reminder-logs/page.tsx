@@ -7,18 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { ListPageShell } from "@/components/shells/ListPageShell";
+import { ApiError } from "@/lib/api";
+import { listMaintenanceReminderLogs, type MaintenanceReminderLogRow } from "@/lib/repairbuddy-maintenance-reminder-logs";
 
-type Row = {
-  id: string;
-  target: string;
-  channel: "sms" | "email";
-  status: "queued" | "sent" | "failed";
-  scheduled_at: string;
-};
-
-function statusVariant(status: Row["status"]): "default" | "info" | "success" | "warning" | "danger" {
-  if (status === "sent") return "success";
-  if (status === "failed") return "danger";
+function statusVariant(status: string): "default" | "info" | "success" | "warning" | "danger" {
+  const s = String(status || "").toLowerCase();
+  if (s === "sent") return "success";
+  if (s === "failed") return "danger";
+  if (s === "skipped") return "info";
   return "warning";
 }
 
@@ -30,27 +26,63 @@ export default function TenantReminderLogsPage() {
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
 
-  const data = React.useMemo<Row[]>(
-    () => [
-      { id: "rem_001", target: "RB-10421", channel: "sms", status: "sent", scheduled_at: "2025-01-12T09:00:00.000Z" },
-      { id: "rem_002", target: "RB-10419", channel: "email", status: "queued", scheduled_at: "2025-01-12T10:00:00.000Z" },
-      { id: "rem_003", target: "RB-10411", channel: "sms", status: "failed", scheduled_at: "2025-01-12T08:00:00.000Z" },
-    ],
-    [],
-  );
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [rows, setRows] = React.useState<MaintenanceReminderLogRow[]>([]);
+  const [totalRows, setTotalRows] = React.useState(0);
+  const [reminderIdFilter, setReminderIdFilter] = React.useState<number | null>(null);
 
-  const columns = React.useMemo<Array<DataTableColumn<Row>>>(
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const rid = url.searchParams.get("reminder_id");
+    const parsed = rid && /^\d+$/.test(rid) ? Number(rid) : null;
+    setReminderIdFilter(parsed);
+  }, []);
+
+  const refresh = React.useCallback(async () => {
+    if (typeof tenantSlug !== "string" || !tenantSlug) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await listMaintenanceReminderLogs(String(tenantSlug), {
+        q: query.trim() || undefined,
+        reminder_id: reminderIdFilter ?? undefined,
+        page: pageIndex + 1,
+        per_page: pageSize,
+      });
+      setRows(Array.isArray(res.logs) ? res.logs : []);
+      setTotalRows(typeof res.meta?.total === "number" ? res.meta.total : 0);
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed to load reminder logs.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [pageIndex, pageSize, query, reminderIdFilter, tenantSlug]);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const columns = React.useMemo<Array<DataTableColumn<MaintenanceReminderLogRow>>>(
     () => [
       {
         id: "target",
         header: "Target",
         cell: (row) => (
           <div className="min-w-0">
-            <div className="truncate font-semibold text-[var(--rb-text)]">{row.target}</div>
-            <div className="truncate text-xs text-zinc-600">{row.id}</div>
+            <div className="truncate font-semibold text-[var(--rb-text)]">{row.job?.case_number ?? "—"}</div>
+            <div className="truncate text-xs text-zinc-600">{row.reminder?.name ?? "Reminder"}</div>
           </div>
         ),
         className: "min-w-[240px]",
+      },
+      {
+        id: "to",
+        header: "To",
+        cell: (row) => <div className="text-sm text-zinc-700">{row.to_address ?? "—"}</div>,
+        className: "min-w-[220px]",
       },
       {
         id: "channel",
@@ -65,9 +97,9 @@ export default function TenantReminderLogsPage() {
         className: "whitespace-nowrap",
       },
       {
-        id: "scheduled",
-        header: "Scheduled",
-        cell: (row) => <div className="text-sm text-zinc-700">{new Date(row.scheduled_at).toLocaleString()}</div>,
+        id: "created",
+        header: "Created",
+        cell: (row) => <div className="text-sm text-zinc-700">{new Date(row.created_at).toLocaleString()}</div>,
         className: "whitespace-nowrap",
       },
     ],
@@ -77,15 +109,15 @@ export default function TenantReminderLogsPage() {
   return (
     <ListPageShell
       title="Reminder Logs"
-      description="Automated reminder delivery history (mock)."
+      description="Automated reminder delivery history."
       actions={
-        <Button disabled variant="outline" size="sm">
-          Queue reminder
+        <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>
+          Refresh
         </Button>
       }
-      loading={false}
-      error={null}
-      empty={data.length === 0}
+      loading={loading}
+      error={error}
+      empty={!loading && !error && rows.length === 0}
       emptyTitle="No reminders"
       emptyDescription="Reminders will be generated from job status changes and timelines."
     >
@@ -93,14 +125,7 @@ export default function TenantReminderLogsPage() {
         <CardContent className="pt-5">
           <DataTable
             title={typeof tenantSlug === "string" ? `Reminder Logs · ${tenantSlug}` : "Reminder Logs"}
-            data={data
-              .filter((row) => {
-                const needle = query.trim().toLowerCase();
-                if (!needle) return true;
-                const hay = `${row.id} ${row.target} ${row.channel} ${row.status}`.toLowerCase();
-                return hay.includes(needle);
-              })
-              .slice(pageIndex * pageSize, pageIndex * pageSize + pageSize)}
+            data={rows}
             columns={columns}
             getRowId={(row) => row.id}
             emptyMessage="No reminder logs."
@@ -120,12 +145,7 @@ export default function TenantReminderLogsPage() {
                 setPageSize(value);
                 setPageIndex(0);
               },
-              totalRows: data.filter((row) => {
-                const needle = query.trim().toLowerCase();
-                if (!needle) return true;
-                const hay = `${row.id} ${row.target} ${row.channel} ${row.status}`.toLowerCase();
-                return hay.includes(needle);
-              }).length,
+              totalRows,
             }}
           />
         </CardContent>
