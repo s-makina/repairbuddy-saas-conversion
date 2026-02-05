@@ -62,6 +62,18 @@ export function BookingSection({
             </div>
 
             <div className="grid gap-1 sm:max-w-[360px]">
+              <label className="text-sm font-medium">Public booking UI style</label>
+              <Select
+                value={b.publicBookingUiStyle ?? "wizard"}
+                onChange={(e) => updateBooking({ publicBookingUiStyle: e.target.value as NonNullable<typeof b.publicBookingUiStyle> })}
+              >
+                <option value="wizard">List / Wizard</option>
+                <option value="images">Images / Cards</option>
+              </Select>
+              <div className="text-xs text-zinc-500">Controls the design used on /t/&lt;tenant&gt;/book.</div>
+            </div>
+
+            <div className="grid gap-1 sm:max-w-[360px]">
               <label className="text-sm font-medium">New customer email behavior</label>
               <Select
                 value={b.customerCreationEmailBehavior ?? "send_login_credentials"}

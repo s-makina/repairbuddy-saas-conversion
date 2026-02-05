@@ -7,7 +7,7 @@ import { useDashboardHeader } from "@/components/DashboardShell";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
@@ -63,6 +63,114 @@ function formatCents(cents: number, currency: string) {
   const c = Number.isFinite(cents) ? cents : 0;
   const cur = (currency || "").toUpperCase() || "XXX";
   return `${(c / 100).toFixed(2)} ${cur}`;
+}
+
+function BuilderStepsSidebar({
+  steps,
+  step,
+  maxStepAllowed,
+  onStepChange,
+}: {
+  steps: string[];
+  step: number;
+  maxStepAllowed: number;
+  onStepChange: (next: number) => void;
+}) {
+  const stepIndex = Math.max(0, Math.min(step, steps.length - 1));
+  const denom = Math.max(1, steps.length - 1);
+  const progress = stepIndex / denom;
+
+  return (
+    <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <CardTitle className="text-base">Builder steps</CardTitle>
+            <CardDescription>Follow the steps to build and create a plan.</CardDescription>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-zinc-500">
+              Step {stepIndex + 1} of {steps.length}
+            </div>
+            <div className="mt-2">
+              <Badge variant={stepIndex === steps.length - 1 ? "info" : "default"}>{steps[stepIndex] ?? ""}</Badge>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--rb-border)]">
+          <div
+            className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+        </div>
+
+        <nav aria-label="Builder steps" className="space-y-1">
+          {steps.map((label, idx) => {
+            const isCurrent = idx === stepIndex;
+            const isCompleted = idx < stepIndex;
+            const isAvailable = idx <= maxStepAllowed;
+
+            return (
+              <button
+                key={label}
+                type="button"
+                disabled={!isAvailable}
+                onClick={() => {
+                  if (!isAvailable) return;
+                  onStepChange(idx);
+                }}
+                className={
+                  "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-60 " +
+                  (isCurrent
+                    ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
+                    : isCompleted
+                      ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
+                      : "border-[var(--rb-border)] bg-white hover:bg-[var(--rb-surface-muted)]")
+                }
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
+                      (isCurrent
+                        ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
+                        : isCompleted
+                          ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
+                          : "border-[var(--rb-border)] bg-white text-zinc-600")
+                    }
+                  >
+                    {isCompleted ? (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      idx + 1
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-[var(--rb-text)]">{label}</div>
+                    <div className="mt-0.5 text-xs text-zinc-600">{idx === 0 ? "Plan details." : idx === 1 ? "Price points." : idx === 2 ? "Entitlements." : "Create & activate."}</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AdminBillingBuilderPage() {
@@ -747,111 +855,56 @@ export default function AdminBillingBuilderPage() {
           </Alert>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Builder steps</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm text-zinc-600">
-                  Step {step + 1} of {steps.length}
-                </div>
-                <Badge variant={step === steps.length - 1 ? "info" : "default"}>{steps[step]}</Badge>
-              </div>
+        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+          <BuilderStepsSidebar steps={steps} step={step} maxStepAllowed={maxStepAllowed} onStepChange={setStep} />
 
-              <div className="overflow-x-auto">
-                <div className="flex min-w-[780px] items-center">
-                  {steps.map((label, i) => {
-                    const isActive = i === step;
-                    const isDone = i < step;
-                    const isLocked = i > maxStepAllowed;
+          <div className="space-y-6">
 
-                    const circleClass = isActive
-                      ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_40%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_88%)] text-[var(--rb-blue)]"
-                      : isDone
-                        ? "border-[color:color-mix(in_srgb,#16a34a,white_40%)] bg-[color:color-mix(in_srgb,#16a34a,white_88%)] text-[#166534]"
-                        : "border-[var(--rb-border)] bg-white text-zinc-600";
+            {step === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Plan details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3 text-sm text-zinc-700">
+                    Configure the plan here and click Next. The plan will be created on the Review step.
+                  </div>
 
-                    const labelClass = isActive ? "text-zinc-900" : isDone ? "text-zinc-800" : "text-zinc-500";
+                  {planEditError ? (
+                    <Alert variant="danger" title="Cannot save plan">
+                      {planEditError}
+                    </Alert>
+                  ) : null}
 
-                    const connectorClass = i < step ? "bg-[#16a34a]" : "bg-[var(--rb-border)]";
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Name</label>
+                    <Input value={planName} onChange={(e) => setPlanName(e.target.value)} disabled={loading || createBusy} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Code</label>
+                    <Input value={planCode} onChange={(e) => setPlanCode(e.target.value)} disabled={loading || createBusy} />
+                    <div className="text-xs text-zinc-500">Leave blank to auto-generate from name.</div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Description</label>
+                    <textarea
+                      className="min-h-[90px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                      value={planDescription}
+                      onChange={(e) => setPlanDescription(e.target.value)}
+                      disabled={loading || createBusy}
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={planActive} onChange={(e) => setPlanActive(e.target.checked)} disabled={loading || createBusy} />
+                    Active
+                  </label>
 
-                    return (
-                      <React.Fragment key={label}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!isLocked) setStep(i);
-                          }}
-                          disabled={isLocked}
-                          className="flex items-center gap-3 rounded-[var(--rb-radius-sm)] px-2 py-1 text-left disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold ${circleClass}`}>
-                            {i + 1}
-                          </div>
-                          <div className={`text-sm font-medium ${labelClass}`}>{label}</div>
-                        </button>
-
-                        {i < steps.length - 1 ? (
-                          <div className="flex-1 px-2">
-                            <div className={`h-[2px] w-full ${connectorClass}`} />
-                          </div>
-                        ) : null}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {step === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Plan details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3 text-sm text-zinc-700">
-                Configure the plan here and click Next. The plan will be created on the Review step.
-              </div>
-
-              {planEditError ? (
-                <Alert variant="danger" title="Cannot save plan">
-                  {planEditError}
-                </Alert>
-              ) : null}
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Name</label>
-                <Input value={planName} onChange={(e) => setPlanName(e.target.value)} disabled={loading || createBusy} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Code</label>
-                <Input value={planCode} onChange={(e) => setPlanCode(e.target.value)} disabled={loading || createBusy} />
-                <div className="text-xs text-zinc-500">Leave blank to auto-generate from name.</div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Description</label>
-                <textarea
-                  className="min-h-[90px] w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                  value={planDescription}
-                  onChange={(e) => setPlanDescription(e.target.value)}
-                  disabled={loading || createBusy}
-                />
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={planActive} onChange={(e) => setPlanActive(e.target.checked)} disabled={loading || createBusy} />
-                Active
-              </label>
-
-              <div className="text-xs text-zinc-500">
-                Need to edit existing plans? Use <Link className="underline" href="/admin/billing/plans">Billing plans</Link>.
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
+                  <div className="text-xs text-zinc-500">
+                    Need to edit existing plans? Use <Link className="underline" href="/admin/billing/plans">Billing plans</Link>.
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
 
         {step === 1 ? (
           <Card>
@@ -1257,6 +1310,9 @@ export default function AdminBillingBuilderPage() {
             >
               {step === steps.length - 1 ? (createBusy ? "Creating…" : "Create plan") : "Next"}
             </Button>
+          </div>
+        </div>
+
           </div>
         </div>
 

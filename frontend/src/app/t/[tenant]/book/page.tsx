@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PublicPageShell } from "@/components/PublicPageShell";
@@ -30,6 +31,7 @@ type BookingConfig = {
   };
   booking: {
     publicBookingMode: "ungrouped" | "grouped" | "warranty";
+    publicBookingUiStyle: "wizard" | "images";
     sendBookingQuoteToJobs: boolean;
     customerCreationEmailBehavior: "send_login_credentials" | "no_email";
     turnOffOtherDeviceBrand: boolean;
@@ -65,6 +67,8 @@ type SubmitResult = {
   case_number: string;
   customer_id: number;
 };
+
+type BookingUiStyle = "wizard" | "images";
 
 function portalSessionKey(tenantSlug: string) {
   return `rb.portal.session:v1:${tenantSlug}`;
@@ -102,6 +106,8 @@ export default function PublicBookingPage() {
 
   const [step, setStep] = React.useState<1 | 2 | 3 | 4>(1);
   const [flowError, setFlowError] = React.useState<string | null>(null);
+
+  const [uiStyle, setUiStyle] = React.useState<BookingUiStyle>("wizard");
 
   const [typeId, setTypeId] = React.useState<string>("");
   const [brandId, setBrandId] = React.useState<string>("");
@@ -168,6 +174,13 @@ export default function PublicBookingPage() {
         });
         if (!alive) return;
         setConfig(c);
+
+        const style = c?.booking?.publicBookingUiStyle;
+        if (style === "wizard" || style === "images") {
+          setUiStyle(style);
+        } else {
+          setUiStyle("wizard");
+        }
 
         const nextExtraFields: ExtraFieldDraft[] = (Array.isArray(c?.devicesBrands?.additionalDeviceFields) ? c.devicesBrands.additionalDeviceFields : [])
           .map((f) => {
@@ -732,143 +745,334 @@ export default function PublicBookingPage() {
                 >
                   {step === 1 ? (
                     <div className="space-y-4">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">Device type</div>
-                          <div className="mt-2">
-                            <Select
-                              value={typeId}
-                              onChange={(e) => {
-                                setFlowError(null);
-                                setTypeId(e.target.value);
-                                setBrandId("");
-                                setDeviceId("");
-                              }}
-                            >
-                              <option value="">Select type</option>
-                              {deviceTypes.map((t) => (
-                                <option key={t.id} value={String(t.id)}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">Brand</div>
-                          <div className="mt-2">
-                            <Select
-                              value={brandId}
-                              disabled={!typeId}
-                              onChange={(e) => {
-                                setFlowError(null);
-                                setBrandId(e.target.value);
-                                setDeviceId("");
-                              }}
-                            >
-                              <option value="">Select brand</option>
-                              {brands.map((b) => (
-                                <option key={b.id} value={String(b.id)}>
-                                  {b.name}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">Device</div>
-                          <div className="mt-2">
-                            <Select
-                              value={deviceId}
-                              disabled={!typeId || !brandId}
-                              onChange={(e) => {
-                                setFlowError(null);
-                                setDeviceId(e.target.value);
-                              }}
-                            >
-                              <option value="">Select device</option>
-                              {devices.map((d) => (
-                                <option key={d.id} value={String(d.id)}>
-                                  {d.model}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-                          {allowOtherDevice ? <div className="mt-2 text-xs text-zinc-500">If your device is not listed, enter it below.</div> : null}
-                        </div>
-
-                        {allowOtherDevice ? (
-                          <div className="sm:col-span-2">
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">Other device</div>
+                      {uiStyle === "wizard" ? (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Device type</div>
                             <div className="mt-2">
-                              <Input
-                                value={otherDeviceLabel}
+                              <Select
+                                value={typeId}
                                 onChange={(e) => {
                                   setFlowError(null);
-                                  setOtherDeviceLabel(e.target.value);
+                                  setTypeId(e.target.value);
+                                  setBrandId("");
+                                  setDeviceId("");
                                 }}
-                                placeholder="e.g. Custom PC, Unknown model"
+                              >
+                                <option value="">Select type</option>
+                                {deviceTypes.map((t) => (
+                                  <option key={t.id} value={String(t.id)}>
+                                    {t.name}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Brand</div>
+                            <div className="mt-2">
+                              <Select
+                                value={brandId}
+                                disabled={!typeId}
+                                onChange={(e) => {
+                                  setFlowError(null);
+                                  setBrandId(e.target.value);
+                                  setDeviceId("");
+                                }}
+                              >
+                                <option value="">Select brand</option>
+                                {brands.map((b) => (
+                                  <option key={b.id} value={String(b.id)}>
+                                    {b.name}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Device</div>
+                            <div className="mt-2">
+                              <Select
+                                value={deviceId}
+                                disabled={!typeId || !brandId}
+                                onChange={(e) => {
+                                  setFlowError(null);
+                                  setDeviceId(e.target.value);
+                                }}
+                              >
+                                <option value="">Select device</option>
+                                {devices.map((d) => (
+                                  <option key={d.id} value={String(d.id)}>
+                                    {d.model}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                            {allowOtherDevice ? <div className="mt-2 text-xs text-zinc-500">If your device is not listed, enter it below.</div> : null}
+                          </div>
+
+                          {allowOtherDevice ? (
+                            <div className="sm:col-span-2">
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">Other device</div>
+                              <div className="mt-2">
+                                <Input
+                                  value={otherDeviceLabel}
+                                  onChange={(e) => {
+                                    setFlowError(null);
+                                    setOtherDeviceLabel(e.target.value);
+                                  }}
+                                  placeholder="e.g. Custom PC, Unknown model"
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {!config.booking.turnOffIdImeiInBooking ? (
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">Serial / IMEI (optional)</div>
+                              <div className="mt-2">
+                                <Input value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Serial, IMEI" />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {config.devicesBrands.enablePinCodeField ? (
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">PIN (optional)</div>
+                              <div className="mt-2">
+                                <Input value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Device PIN" />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <div className="sm:col-span-2">
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Device notes (optional)</div>
+                            <div className="mt-2">
+                              <textarea
+                                value={deviceNotes}
+                                onChange={(e) => setDeviceNotes(e.target.value)}
+                                placeholder="Condition, accessories included, passcode notes, etc."
+                                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-[var(--rb-text)] shadow-sm outline-none transition placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--rb-orange),white_65%)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                                rows={4}
                               />
                             </div>
                           </div>
-                        ) : null}
 
-                        {!config.booking.turnOffIdImeiInBooking ? (
-                          <div>
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">Serial / IMEI (optional)</div>
-                            <div className="mt-2">
-                              <Input value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Serial, IMEI" />
+                          {extraFields.length > 0 ? (
+                            <div className="sm:col-span-2">
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">Additional device info (optional)</div>
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                {extraFields.map((f, idx) => (
+                                  <label key={f.key} className="grid gap-1 text-sm">
+                                    <span className="font-semibold text-[var(--rb-text)]">{f.label}</span>
+                                    <Input
+                                      value={f.value_text}
+                                      onChange={(e) => {
+                                        setExtraFields((prev) => {
+                                          const next = prev.slice();
+                                          next[idx] = { ...next[idx], value_text: e.target.value };
+                                          return next;
+                                        });
+                                      }}
+                                    />
+                                  </label>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ) : null}
-
-                        {config.devicesBrands.enablePinCodeField ? (
-                          <div>
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">PIN (optional)</div>
-                            <div className="mt-2">
-                              <Input value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Device PIN" />
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="sm:col-span-2">
-                          <div className="text-sm font-semibold text-[var(--rb-text)]">Device notes (optional)</div>
-                          <div className="mt-2">
-                            <textarea
-                              value={deviceNotes}
-                              onChange={(e) => setDeviceNotes(e.target.value)}
-                              placeholder="Condition, accessories included, passcode notes, etc."
-                              className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-[var(--rb-text)] shadow-sm outline-none transition placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--rb-orange),white_65%)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                              rows={4}
-                            />
-                          </div>
+                          ) : null}
                         </div>
+                      ) : (
+                        <div className="space-y-5">
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Device type</div>
+                            <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                              {deviceTypes.map((t) => {
+                                const isSelected = typeId === String(t.id);
+                                const src = typeof t.image_url === "string" ? t.image_url : null;
 
-                        {extraFields.length > 0 ? (
-                          <div className="sm:col-span-2">
-                            <div className="text-sm font-semibold text-[var(--rb-text)]">Additional device info (optional)</div>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                              {extraFields.map((f, idx) => (
-                                <label key={f.key} className="grid gap-1 text-sm">
-                                  <span className="font-semibold text-[var(--rb-text)]">{f.label}</span>
-                                  <Input
-                                    value={f.value_text}
-                                    onChange={(e) => {
-                                      setExtraFields((prev) => {
-                                        const next = prev.slice();
-                                        next[idx] = { ...next[idx], value_text: e.target.value };
-                                        return next;
-                                      });
+                                return (
+                                  <button
+                                    key={t.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFlowError(null);
+                                      setTypeId(String(t.id));
+                                      setBrandId("");
+                                      setDeviceId("");
                                     }}
-                                  />
-                                </label>
-                              ))}
+                                    className={cn(
+                                      "group flex items-center gap-3 rounded-[var(--rb-radius-md)] border bg-white p-3 text-left transition",
+                                      isSelected
+                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_94%)]"
+                                        : "border-[var(--rb-border)] hover:bg-[var(--rb-surface-muted)]",
+                                    )}
+                                  >
+                                    <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
+                                      {src ? (
+                                        <Image alt={t.name} src={src} width={40} height={40} className="h-full w-full object-cover" loader={({ src }) => src} unoptimized />
+                                      ) : (
+                                        <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-500">{t.name.slice(0, 2).toUpperCase()}</span>
+                                      )}
+                                    </span>
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">{t.name}</span>
+                                      {t.description ? <span className="mt-0.5 block line-clamp-2 text-xs text-zinc-600">{t.description}</span> : null}
+                                    </span>
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
-                        ) : null}
-                      </div>
+
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Brand</div>
+                            {!typeId ? <div className="mt-1 text-xs text-zinc-500">Select a device type to see brands.</div> : null}
+                            <div className="mt-2 grid gap-3 sm:grid-cols-4">
+                              {brands.map((b) => {
+                                const isSelected = brandId === String(b.id);
+                                const src = typeof b.image_url === "string" ? b.image_url : null;
+
+                                return (
+                                  <button
+                                    key={b.id}
+                                    type="button"
+                                    disabled={!typeId}
+                                    onClick={() => {
+                                      setFlowError(null);
+                                      setBrandId(String(b.id));
+                                      setDeviceId("");
+                                    }}
+                                    className={cn(
+                                      "group flex items-center gap-3 rounded-[var(--rb-radius-md)] border bg-white p-3 text-left transition",
+                                      !typeId ? "pointer-events-none opacity-60" : "",
+                                      isSelected
+                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_94%)]"
+                                        : "border-[var(--rb-border)] hover:bg-[var(--rb-surface-muted)]",
+                                    )}
+                                  >
+                                    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)]">
+                                      {src ? (
+                                        <Image alt={b.name} src={src} width={36} height={36} className="h-full w-full object-cover" loader={({ src }) => src} unoptimized />
+                                      ) : (
+                                        <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-500">{b.name.slice(0, 2).toUpperCase()}</span>
+                                      )}
+                                    </span>
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-sm font-semibold text-[var(--rb-text)]">{b.name}</span>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Device</div>
+                            {!typeId || !brandId ? <div className="mt-1 text-xs text-zinc-500">Select a type and brand to see devices.</div> : null}
+                            <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                              {devices.map((d) => {
+                                const isSelected = deviceId === String(d.id);
+
+                                return (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    disabled={!typeId || !brandId}
+                                    onClick={() => {
+                                      setFlowError(null);
+                                      setDeviceId(String(d.id));
+                                    }}
+                                    className={cn(
+                                      "rounded-[var(--rb-radius-md)] border bg-white p-3 text-left transition",
+                                      !typeId || !brandId ? "pointer-events-none opacity-60" : "hover:bg-[var(--rb-surface-muted)]",
+                                      isSelected
+                                        ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_60%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_94%)]"
+                                        : "border-[var(--rb-border)]",
+                                    )}
+                                  >
+                                    <div className="text-sm font-semibold text-[var(--rb-text)]">{d.model}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {allowOtherDevice ? <div className="mt-2 text-xs text-zinc-500">If your device is not listed, enter it below.</div> : null}
+                          </div>
+
+                          {allowOtherDevice ? (
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">Other device</div>
+                              <div className="mt-2">
+                                <Input
+                                  value={otherDeviceLabel}
+                                  onChange={(e) => {
+                                    setFlowError(null);
+                                    setOtherDeviceLabel(e.target.value);
+                                  }}
+                                  placeholder="e.g. Custom PC, Unknown model"
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            {!config.booking.turnOffIdImeiInBooking ? (
+                              <div>
+                                <div className="text-sm font-semibold text-[var(--rb-text)]">Serial / IMEI (optional)</div>
+                                <div className="mt-2">
+                                  <Input value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Serial, IMEI" />
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {config.devicesBrands.enablePinCodeField ? (
+                              <div>
+                                <div className="text-sm font-semibold text-[var(--rb-text)]">PIN (optional)</div>
+                                <div className="mt-2">
+                                  <Input value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Device PIN" />
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div>
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Device notes (optional)</div>
+                            <div className="mt-2">
+                              <textarea
+                                value={deviceNotes}
+                                onChange={(e) => setDeviceNotes(e.target.value)}
+                                placeholder="Condition, accessories included, passcode notes, etc."
+                                className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-[var(--rb-text)] shadow-sm outline-none transition placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--rb-orange),white_65%)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                                rows={4}
+                              />
+                            </div>
+                          </div>
+
+                          {extraFields.length > 0 ? (
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">Additional device info (optional)</div>
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                {extraFields.map((f, idx) => (
+                                  <label key={f.key} className="grid gap-1 text-sm">
+                                    <span className="font-semibold text-[var(--rb-text)]">{f.label}</span>
+                                    <Input
+                                      value={f.value_text}
+                                      onChange={(e) => {
+                                        setExtraFields((prev) => {
+                                          const next = prev.slice();
+                                          next[idx] = { ...next[idx], value_text: e.target.value };
+                                          return next;
+                                        });
+                                      }}
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   ) : null}
 
@@ -886,7 +1090,7 @@ export default function PublicBookingPage() {
                           {serviceGroups.map((g) => (
                             <div key={g.service_type?.id ?? "none"} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-3">
                               <div className="text-sm font-semibold text-[var(--rb-text)]">{g.service_type?.name ?? "Services"}</div>
-                              <div className="mt-2 grid gap-2">
+                              <div className={cn("mt-2", uiStyle === "images" ? "grid gap-2 sm:grid-cols-2" : "grid gap-2")}>
                                 {g.services
                                   .filter((s) => s.is_active)
                                   .filter((s) => {
@@ -897,36 +1101,33 @@ export default function PublicBookingPage() {
                                   .map((s) => {
                                     const isSelected = serviceId === String(s.id);
                                     return (
-                                      <label
+                                      <button
                                         key={s.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setFlowError(null);
+                                          setServiceId(String(s.id));
+                                          setOtherService("");
+                                        }}
                                         className={cn(
-                                          "flex cursor-pointer items-start gap-3 rounded-[var(--rb-radius-sm)] border p-3 transition",
+                                          "w-full rounded-[var(--rb-radius-sm)] border p-3 text-left transition",
                                           isSelected
                                             ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
                                             : "border-zinc-200 bg-white hover:bg-[var(--rb-surface-muted)]",
                                         )}
                                       >
-                                        <input
-                                          type="radio"
-                                          name="service"
-                                          value={String(s.id)}
-                                          checked={isSelected}
-                                          onChange={() => {
-                                            setFlowError(null);
-                                            setServiceId(String(s.id));
-                                            setOtherService("");
-                                          }}
-                                        />
-                                        <div className="min-w-0 flex-1">
-                                          <div className="text-sm font-semibold text-[var(--rb-text)]">{s.name}</div>
-                                          {s.description ? <div className="mt-1 text-sm text-zinc-600">{s.description}</div> : null}
-                                        </div>
-                                        {!config.booking.turnOffServicePrice ? (
-                                          <div className="text-sm font-semibold text-[var(--rb-text)]">
-                                            {formatMoney({ amountCents: s.price?.amount_cents, currency: s.price?.currency })}
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0 flex-1">
+                                            <div className="text-sm font-semibold text-[var(--rb-text)]">{s.name}</div>
+                                            {s.description ? <div className="mt-1 text-sm text-zinc-600">{s.description}</div> : null}
                                           </div>
-                                        ) : null}
-                                      </label>
+                                          {!config.booking.turnOffServicePrice ? (
+                                            <div className="shrink-0 text-sm font-semibold text-[var(--rb-text)]">
+                                              {formatMoney({ amountCents: s.price?.amount_cents, currency: s.price?.currency })}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      </button>
                                     );
                                   })}
                               </div>

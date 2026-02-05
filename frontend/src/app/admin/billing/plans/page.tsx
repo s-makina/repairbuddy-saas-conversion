@@ -288,9 +288,7 @@ export default function AdminBillingPlansPage() {
           </div>
         ) : null}
 
-        {!loading && filteredPlans.length === 0 ? (
-          <div className="text-sm text-zinc-500">No billing plans found.</div>
-        ) : null}
+        {!loading && filteredPlans.length === 0 ? <div className="text-sm text-zinc-500">No billing plans found.</div> : null}
 
         {!loading && filteredPlans.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -316,11 +314,7 @@ export default function AdminBillingPlansPage() {
                   <div
                     className={
                       "h-1.5 w-full " +
-                      (isFeatured
-                        ? "bg-[var(--rb-orange)]"
-                        : p.is_active
-                          ? "bg-[var(--rb-blue)]"
-                          : "bg-[var(--rb-border)]")
+                      (isFeatured ? "bg-[var(--rb-orange)]" : p.is_active ? "bg-[var(--rb-blue)]" : "bg-[var(--rb-border)]")
                     }
                   />
 
@@ -351,9 +345,7 @@ export default function AdminBillingPlansPage() {
                     <div className="text-sm text-zinc-700">{p.description ?? "—"}</div>
 
                     <div className="space-y-2">
-                      {price?.trial_days ? (
-                        <div className="text-xs text-zinc-500">{price.trial_days} day trial included</div>
-                      ) : null}
+                      {price?.trial_days ? <div className="text-xs text-zinc-500">{price.trial_days} day trial included</div> : null}
                       <ul className="space-y-1">
                         {features.length > 0 ? (
                           features.map((f) => (
@@ -371,15 +363,11 @@ export default function AdminBillingPlansPage() {
                     <div className="grid grid-cols-2 gap-3 border-t border-[var(--rb-border)] pt-4">
                       <div>
                         <div className="text-xs text-zinc-500">Current version</div>
-                        <div className="mt-1 text-sm font-medium text-zinc-800">
-                          {version ? `v${version.version} (${version.status})` : "—"}
-                        </div>
+                        <div className="mt-1 text-sm font-medium text-zinc-800">{version ? `v${version.version} (${version.status})` : "—"}</div>
                       </div>
                       <div>
                         <div className="text-xs text-zinc-500">Currencies</div>
-                        <div className="mt-1 text-sm font-medium text-zinc-800">
-                          {currencies.length > 0 ? currencies.join(", ") : "—"}
-                        </div>
+                        <div className="mt-1 text-sm font-medium text-zinc-800">{currencies.length > 0 ? currencies.join(", ") : "—"}</div>
                       </div>
                     </div>
 

@@ -69,6 +69,7 @@ class RepairBuddyBookingController extends Controller
             ],
             'booking' => [
                 'publicBookingMode' => $booking['publicBookingMode'] ?? 'ungrouped',
+                'publicBookingUiStyle' => $booking['publicBookingUiStyle'] ?? 'wizard',
                 'sendBookingQuoteToJobs' => (bool) ($booking['sendBookingQuoteToJobs'] ?? ($estimates['bookingQuoteSendToJobs'] ?? true)),
                 'customerCreationEmailBehavior' => $booking['customerCreationEmailBehavior'] ?? 'send_login_credentials',
                 'turnOffOtherDeviceBrand' => (bool) ($booking['turnOffOtherDeviceBrand'] ?? false),
