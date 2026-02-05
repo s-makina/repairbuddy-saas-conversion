@@ -562,21 +562,21 @@ export default function AdminBillingBuilderPage() {
     return out;
   }
 
-  async function onCreatePlanAtEnd() {
-    if (!canWrite) return;
-    if (createBusy) return;
+  async function onCreatePlanAtEnd(): Promise<BillingPlanVersion | null> {
+    if (!canWrite) return null;
+    if (createBusy) return null;
 
     const nextName = planName.trim();
     if (!nextName) {
       setPlanEditError("Name is required.");
       setStep(0);
-      return;
+      return null;
     }
 
     if (!pricesValidation.ok) {
       setActionError(pricesValidation.message ?? "Invalid prices.");
       setStep(1);
-      return;
+      return null;
     }
 
     setCreateBusy(true);
@@ -654,8 +654,11 @@ export default function AdminBillingBuilderPage() {
       } catch {
         void 0;
       }
+
+      return entRes.version;
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : "Failed to create plan.");
+      return null;
     } finally {
       setCreateBusy(false);
     }
@@ -803,21 +806,39 @@ export default function AdminBillingBuilderPage() {
     }
   }
 
-  async function onValidate() {
-    if (!createdVersion) return;
+  async function onValidate(version?: BillingPlanVersion | null): Promise<{ ok: boolean; errors: string[] } | null> {
+    const target = version ?? createdVersion;
+    if (!target) return null;
+
     setValidateBusy(true);
     setValidateResult(null);
     setActionError(null);
     try {
-      const res = await validateBillingPlanVersionDraft({ versionId: createdVersion.id });
+      const res = await validateBillingPlanVersionDraft({ versionId: target.id });
       const ok = "status" in res && res.status === "ok";
       const errors = "errors" in res && Array.isArray(res.errors) ? res.errors.map(String) : [];
-      setValidateResult({ ok, errors });
+      const next = { ok, errors };
+      setValidateResult(next);
+      return next;
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to validate.");
+      return null;
     } finally {
       setValidateBusy(false);
     }
+  }
+
+  async function onSaveAndValidate() {
+    if (!canWrite) return;
+    if (createBusy || validateBusy) return;
+
+    let version = createdVersion;
+    if (!version) {
+      version = await onCreatePlanAtEnd();
+    }
+    if (!version) return;
+
+    await onValidate(version);
   }
 
   async function onActivate() {
@@ -839,6 +860,9 @@ export default function AdminBillingBuilderPage() {
       setActivateBusy(false);
     }
   }
+
+  const isActiveVersion = Boolean(createdVersion && String(createdVersion.status).toLowerCase() === "active");
+  const saveValidateBusy = Boolean(createBusy || validateBusy);
 
   return (
     <RequireAuth requiredPermission="admin.billing.read">
@@ -1107,35 +1131,61 @@ export default function AdminBillingBuilderPage() {
                 <div className="mt-1 text-sm text-zinc-600">Create the plan from your configuration, then validate/activate the draft.</div>
               </div>
               <div className="flex items-center gap-2">
-                {canWrite ? (
-                  <Button variant="secondary" size="sm" onClick={() => void onCreatePlanAtEnd()} disabled={createBusy}>
-                    {createBusy ? "Creating…" : "Create plan"}
+                <Link href="/admin/billing/plans">
+                  <Button variant="outline" size="sm">
+                    Back to plans
                   </Button>
-                ) : null}
-                {canWrite && createdVersion ? (
-                  <Button variant="outline" size="sm" onClick={() => void onValidate()} disabled={validateBusy}>
-                    {validateBusy ? "Validating…" : "Validate"}
-                  </Button>
-                ) : null}
-                {canWrite && createdVersion ? (
-                  <Button variant="secondary" size="sm" onClick={() => setActivateOpen(true)} disabled={activateBusy}>
-                    Activate
-                  </Button>
-                ) : null}
+                </Link>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActivateOpen(true)}
+                  disabled={!canWrite || activateBusy || isActiveVersion || !validateResult?.ok}
+                >
+                  {isActiveVersion ? "Activated" : "Activate"}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {createError ? <Alert variant="danger" title="Create failed">{createError}</Alert> : null}
+
+              <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
+                <div className="text-sm font-semibold text-zinc-900">Next actions</div>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-zinc-700">1. Save & validate</div>
+                    {isActiveVersion || validateResult?.ok ? (
+                      <Badge variant="success">done</Badge>
+                    ) : saveValidateBusy ? (
+                      <Badge variant="info">running</Badge>
+                    ) : (
+                      <Badge variant="default">pending</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-zinc-700">2. Activate</div>
+                    {isActiveVersion ? (
+                      <Badge variant="success">active</Badge>
+                    ) : validateResult?.ok ? (
+                      <Badge variant="default">ready</Badge>
+                    ) : (
+                      <Badge variant="default">locked</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {createdPlan && createdVersion ? (
                 <Alert variant="success" title="Plan created">
                   Plan <span className="font-mono">{createdPlan.code}</span> created. Draft version id {createdVersion.id}.
                 </Alert>
               ) : (
-                <Alert variant="info" title="Not created yet">Click Create plan to persist this configuration.</Alert>
+                <Alert variant="info" title="Not saved yet">Click Save & validate to persist this configuration.</Alert>
               )}
 
-              {validateResult ? (
+              {isActiveVersion ? (
+                <Alert variant="success" title="Activated">This plan version is active.</Alert>
+              ) : validateResult ? (
                 validateResult.ok ? (
                   <Alert variant="success" title="Validation passed">This draft version is ready to activate.</Alert>
                 ) : (
@@ -1148,7 +1198,7 @@ export default function AdminBillingBuilderPage() {
                   </Alert>
                 )
               ) : (
-                <Alert variant="info" title="Not validated">Click Validate to run server-side checks.</Alert>
+                <Alert variant="info" title="Not validated">Click Save & validate to run server-side checks.</Alert>
               )}
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1301,14 +1351,44 @@ export default function AdminBillingBuilderPage() {
             </div>
             <Button
               variant="primary"
-              onClick={() => void (step === steps.length - 1 ? onCreatePlanAtEnd() : goNext())}
+              onClick={() => {
+                if (step !== steps.length - 1) {
+                  void goNext();
+                  return;
+                }
+
+                if (!canWrite) return;
+
+                if (isActiveVersion) return;
+
+                if (!validateResult?.ok) {
+                  void onSaveAndValidate();
+                  return;
+                }
+
+                setActivateOpen(true);
+              }}
               disabled={
                 step > maxStepAllowed ||
                 (step === 2 && entitlementsBusy) ||
-                (step === steps.length - 1 && (!canWrite || createBusy))
+                (step === steps.length - 1 &&
+                  (!canWrite ||
+                    activateBusy ||
+                    isActiveVersion ||
+                    (!validateResult?.ok ? saveValidateBusy : false)))
               }
             >
-              {step === steps.length - 1 ? (createBusy ? "Creating…" : "Create plan") : "Next"}
+              {step === steps.length - 1
+                ? isActiveVersion
+                  ? "Activated"
+                  : !validateResult?.ok
+                    ? saveValidateBusy
+                      ? "Saving & validating…"
+                      : "Save & validate"
+                    : activateBusy
+                      ? "Activating…"
+                      : "Activate"
+                : "Next"}
             </Button>
           </div>
         </div>

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { createDraftBillingPlanVersionFromActive, getBillingCatalog, updateBillingPlan } from "@/lib/billing";
 import { useAuth } from "@/lib/auth";
 import type { BillingPlan, BillingPlanVersion, BillingPrice } from "@/lib/types";
@@ -68,6 +69,113 @@ function formatDate(value?: string | null) {
   } catch {
     return d.toISOString().slice(0, 10);
   }
+}
+
+function BillingPlanDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Card className="overflow-hidden">
+        <div className="h-1.5 w-full bg-[var(--rb-border)]" />
+        <CardHeader className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <Skeleton className="h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Skeleton className="h-7 w-56 rounded-[var(--rb-radius-sm)]" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="mt-2 h-4 w-80 rounded-[var(--rb-radius-sm)]" />
+            </div>
+
+            <div className="sm:text-right">
+              <Skeleton className="ml-auto h-3 w-20 rounded-[var(--rb-radius-sm)]" />
+              <div className="mt-2 flex items-baseline gap-2 sm:justify-end">
+                <Skeleton className="h-8 w-28 rounded-[var(--rb-radius-sm)]" />
+                <Skeleton className="h-4 w-12 rounded-[var(--rb-radius-sm)]" />
+              </div>
+              <Skeleton className="mt-2 ml-auto h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4"
+              >
+                <Skeleton className="h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <Skeleton className="h-3 w-16 rounded-[var(--rb-radius-sm)]" />
+                    <Skeleton className="mt-2 h-4 w-28 rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-3 w-20 rounded-[var(--rb-radius-sm)]" />
+                    <Skeleton className="mt-2 h-4 w-24 rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+                    <Skeleton className="mt-2 h-4 w-20 rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <Skeleton className="h-5 w-40 rounded-[var(--rb-radius-sm)]" />
+            <Skeleton className="mt-2 h-4 w-72 rounded-[var(--rb-radius-sm)]" />
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <Skeleton className="h-9 w-full rounded-[var(--rb-radius-sm)] sm:w-[260px]" />
+            <div className="flex flex-wrap items-center gap-2">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <Skeleton key={idx} className="h-8 w-20 rounded-[var(--rb-radius-sm)]" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white p-5">
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="flex gap-4">
+                <div className="relative flex w-5 flex-col items-center">
+                  <div className="mt-1 h-3 w-3 rounded-full bg-[var(--rb-border)]" />
+                  {idx < 2 ? <div className="mt-2 w-px flex-1 bg-[var(--rb-border)]" /> : null}
+                </div>
+                <div className="min-w-0 flex-1 rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-4 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Skeleton className="h-5 w-12 rounded-[var(--rb-radius-sm)]" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-3 w-14 rounded-[var(--rb-radius-sm)]" />
+                      </div>
+                      <Skeleton className="mt-2 h-3 w-40 rounded-[var(--rb-radius-sm)]" />
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Skeleton className="h-5 w-28 rounded-[var(--rb-radius-sm)]" />
+                        <Skeleton className="h-5 w-16 rounded-[var(--rb-radius-sm)]" />
+                        <Skeleton className="h-5 w-24 rounded-[var(--rb-radius-sm)]" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-8 w-16 rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminBillingPlanDetailPage() {
@@ -300,6 +408,8 @@ export default function AdminBillingPlanDetailPage() {
           </Alert>
         ) : null}
 
+        {loading && !plan && !error ? <BillingPlanDetailSkeleton /> : null}
+
         {plan ? (
           <Card className="overflow-hidden">
             <div className={"h-1.5 w-full " + (plan.is_active ? "bg-[var(--rb-blue)]" : "bg-[var(--rb-border)]")} />
@@ -515,7 +625,7 @@ export default function AdminBillingPlanDetailPage() {
             </div>
           </div>
 
-          {loading ? <div className="text-sm text-zinc-500">Loading…</div> : null}
+          {loading ? null : null}
 
           {!loading && filteredVersions.length === 0 ? (
             <div className="text-sm text-zinc-500">No versions found.</div>

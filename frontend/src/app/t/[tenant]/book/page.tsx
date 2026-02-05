@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { WizardShell } from "@/components/repairbuddy/wizard/WizardShell";
 import { apiFetch, ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -94,6 +95,46 @@ function errorMessage(e: unknown): string {
     return e.message;
   }
   return e instanceof Error ? e.message : "Booking failed.";
+}
+
+function PublicBookingPageSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-56 rounded-[var(--rb-radius-sm)]" />
+        <Skeleton className="h-4 w-4/5 rounded-[var(--rb-radius-sm)]" />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-32 rounded-[var(--rb-radius-sm)]" />
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full rounded-[var(--rb-radius-md)]" />
+            <Skeleton className="h-10 w-full rounded-[var(--rb-radius-md)]" />
+            <Skeleton className="h-10 w-full rounded-[var(--rb-radius-md)]" />
+            <Skeleton className="h-10 w-full rounded-[var(--rb-radius-md)]" />
+          </div>
+          <Skeleton className="h-28 w-full rounded-[var(--rb-radius-md)]" />
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-64 rounded-[var(--rb-radius-sm)]" />
+            <Skeleton className="h-4 w-full rounded-[var(--rb-radius-sm)]" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full rounded-[var(--rb-radius-md)]" />
+            <Skeleton className="h-10 w-full rounded-[var(--rb-radius-md)]" />
+            <Skeleton className="h-10 w-11/12 rounded-[var(--rb-radius-md)]" />
+            <Skeleton className="h-10 w-10/12 rounded-[var(--rb-radius-md)]" />
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Skeleton className="h-10 w-28 rounded-[var(--rb-radius-md)]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PublicBookingPage() {
@@ -602,8 +643,7 @@ export default function PublicBookingPage() {
                 </Alert>
               ) : null}
 
-              {configLoading ? <div className="text-sm text-zinc-500">Loading booking settings...</div> : null}
-              {catalogLoading ? <div className="text-sm text-zinc-500">Loading device catalog...</div> : null}
+              {configLoading || catalogLoading ? <PublicBookingPageSkeleton /> : null}
 
               {submitError ? (
                 <Alert variant="danger" title="Booking failed">
@@ -635,7 +675,7 @@ export default function PublicBookingPage() {
                 </Alert>
               ) : null}
 
-              {!configLoading && !configError && config && !config.disabled && !submitResult ? (
+              {!configLoading && !catalogLoading && !configError && !catalogError && config && !config.disabled && !submitResult ? (
                 <WizardShell
                   steps={[
                     {

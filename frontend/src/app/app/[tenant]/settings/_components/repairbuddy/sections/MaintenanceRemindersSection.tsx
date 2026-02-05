@@ -501,7 +501,9 @@ function ReminderForm({
       </div>
 
       <div className="space-y-1">
-        <div className="text-xs text-zinc-500">Template variables: {{customer_name}} {{device_name}} {{unsubscribe_device}}</div>
+        <div className="text-xs text-zinc-500">
+          Template variables: {"{{customer_name}}"} {"{{device_name}}"} {"{{unsubscribe_device}}"}
+        </div>
       </div>
 
       <div className="space-y-1">
