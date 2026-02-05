@@ -385,7 +385,7 @@ export default function NewDevicePage() {
 
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={isOther} onChange={(e) => setIsOther(e.target.checked)} disabled={disabled} />
-                    Is "Other" device
+                    Is {"\"Other\""} device
                   </label>
 
                   <label className="flex items-center gap-2 text-sm">

@@ -501,7 +501,7 @@ export default function TenantDevicesPage() {
 
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={editIsOther} onChange={(e) => setEditIsOther(e.target.checked)} disabled={busy} />
-              Is "Other" device
+              Is {"\"Other\""} device
             </label>
 
             <label className="flex items-center gap-2 text-sm">

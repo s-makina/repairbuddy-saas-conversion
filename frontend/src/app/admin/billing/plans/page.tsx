@@ -8,6 +8,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { createBillingPlan, getBillingCatalog } from "@/lib/billing";
@@ -69,6 +70,76 @@ function planEntitlementList(plan: BillingPlan): string[] {
     .filter(Boolean)
     .map((n) => String(n));
   return Array.from(new Set(names));
+}
+
+function BillingPlanCardSkeleton() {
+  return (
+    <Card className="relative overflow-hidden">
+      <div className="h-1.5 w-full bg-[var(--rb-border)]" />
+
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Skeleton className="h-5 w-40 rounded-[var(--rb-radius-sm)]" />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Skeleton className="h-3 w-16 rounded-[var(--rb-radius-sm)]" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+            </div>
+          </div>
+          <div className="text-right">
+            <Skeleton className="ml-auto h-8 w-28 rounded-[var(--rb-radius-sm)]" />
+            <div className="mt-2 flex items-center justify-end gap-2">
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-full rounded-[var(--rb-radius-sm)]" />
+          <Skeleton className="h-3 w-4/5 rounded-[var(--rb-radius-sm)]" />
+        </div>
+
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-44 rounded-[var(--rb-radius-sm)]" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded-[var(--rb-radius-sm)]" />
+              <Skeleton className="h-3 w-2/3 rounded-[var(--rb-radius-sm)]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded-[var(--rb-radius-sm)]" />
+              <Skeleton className="h-3 w-1/2 rounded-[var(--rb-radius-sm)]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded-[var(--rb-radius-sm)]" />
+              <Skeleton className="h-3 w-3/5 rounded-[var(--rb-radius-sm)]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 border-t border-[var(--rb-border)] pt-4">
+          <div>
+            <Skeleton className="h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+            <div className="mt-2">
+              <Skeleton className="h-4 w-28 rounded-[var(--rb-radius-sm)]" />
+            </div>
+          </div>
+          <div>
+            <Skeleton className="h-3 w-20 rounded-[var(--rb-radius-sm)]" />
+            <div className="mt-2">
+              <Skeleton className="h-4 w-24 rounded-[var(--rb-radius-sm)]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <Skeleton className="h-9 w-24 rounded-[var(--rb-radius-sm)]" />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AdminBillingPlansPage() {
@@ -209,7 +280,13 @@ export default function AdminBillingPlansPage() {
           </div>
         </div>
 
-        {loading ? <div className="text-sm text-zinc-500">Loading…</div> : null}
+        {loading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <BillingPlanCardSkeleton key={idx} />
+            ))}
+          </div>
+        ) : null}
 
         {!loading && filteredPlans.length === 0 ? (
           <div className="text-sm text-zinc-500">No billing plans found.</div>

@@ -18,9 +18,11 @@ export function WizardShell<TStep extends number>({
   step,
   onStepChange,
   disabled,
+  nextDisabled,
   sidebarTitle,
   sidebarDescription,
   sidebarAriaLabel,
+  sidebarFooter,
   footerRight,
   children,
 }: {
@@ -28,9 +30,11 @@ export function WizardShell<TStep extends number>({
   step: TStep;
   onStepChange: (step: TStep) => void;
   disabled: boolean;
+  nextDisabled?: boolean;
   sidebarTitle: string;
   sidebarDescription: string;
   sidebarAriaLabel: string;
+  sidebarFooter?: React.ReactNode;
   footerRight: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -121,6 +125,8 @@ export function WizardShell<TStep extends number>({
               );
             })}
           </nav>
+
+          {sidebarFooter ? <div className="border-t border-[var(--rb-border)] pt-4">{sidebarFooter}</div> : null}
         </CardContent>
       </Card>
 
@@ -205,7 +211,7 @@ export function WizardShell<TStep extends number>({
               {!isLast ? (
                 <Button
                   variant="primary"
-                  disabled={disabled}
+                  disabled={disabled || Boolean(nextDisabled)}
                   onClick={() => {
                     const next = steps[stepIndex + 1];
                     if (!next) return;

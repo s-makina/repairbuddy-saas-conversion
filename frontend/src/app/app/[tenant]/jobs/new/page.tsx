@@ -345,7 +345,7 @@ export default function NewJobPage() {
         try {
           const settingsRes = await getRepairBuddySettings(String(tenantSlug));
           if (!alive) return;
-          setNextServiceEnabled(Boolean((settingsRes.settings as any)?.general?.nextServiceDateEnabled));
+          setNextServiceEnabled(Boolean(settingsRes.settings?.general?.nextServiceDateEnabled));
         } catch {
           if (!alive) return;
           setNextServiceEnabled(false);
@@ -925,10 +925,10 @@ export default function NewJobPage() {
                   return;
                 }
 
-                const anyCrypto = globalThis.crypto as any;
+                const crypto = globalThis.crypto as unknown as { randomUUID?: () => string };
                 const id =
-                  typeof anyCrypto?.randomUUID === "function"
-                    ? anyCrypto.randomUUID()
+                  typeof crypto?.randomUUID === "function"
+                    ? crypto.randomUUID()
                     : `js-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
                 setJobServices((prev) => [
@@ -1094,10 +1094,10 @@ export default function NewJobPage() {
                   return;
                 }
 
-                const anyCrypto = globalThis.crypto as any;
+                const crypto = globalThis.crypto as unknown as { randomUUID?: () => string };
                 const id =
-                  typeof anyCrypto?.randomUUID === "function"
-                    ? anyCrypto.randomUUID()
+                  typeof crypto?.randomUUID === "function"
+                    ? crypto.randomUUID()
                     : `jp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
                 setJobParts((prev) => [
