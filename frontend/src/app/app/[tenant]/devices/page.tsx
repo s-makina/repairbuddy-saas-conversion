@@ -5,14 +5,19 @@ import { useParams, useRouter } from "next/navigation";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DataGrid } from "@/components/ui/DataGrid";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/DropdownMenu";
+import { DataViewToggle, type DataViewMode } from "@/components/ui/DataViewToggle";
 import { Modal } from "@/components/ui/Modal";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { ListPageShell } from "@/components/shells/ListPageShell";
+import { useUrlDataGridState } from "@/components/ui/useUrlDataGridState";
 import { apiFetch, ApiError } from "@/lib/api";
+import { MoreHorizontal } from "lucide-react";
 
 type ApiDeviceType = {
   id: number;
@@ -38,11 +43,26 @@ type ApiDevice = {
   is_active: boolean;
 };
 
+type DevicesPayload = {
+  devices: ApiDevice[];
+  meta?: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+  };
+};
+
 export default function TenantDevicesPage() {
   const auth = useAuth();
   const router = useRouter();
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
+
+  const grid = useUrlDataGridState({ defaultPageSize: 12 });
+  const statusFilter = grid.getParam("is_active") ?? "all";
+  const viewParam = grid.getParam("view");
+  const view: DataViewMode = viewParam === "grid" ? "grid" : "table";
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -52,6 +72,9 @@ export default function TenantDevicesPage() {
   const [devices, setDevices] = React.useState<ApiDevice[]>([]);
   const [brands, setBrands] = React.useState<ApiDeviceBrand[]>([]);
   const [types, setTypes] = React.useState<ApiDeviceType[]>([]);
+
+  const [parentOptions, setParentOptions] = React.useState<ApiDevice[]>([]);
+  const [reloadNonce, setReloadNonce] = React.useState(0);
 
   const [editOpen, setEditOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<number | null>(null);
@@ -68,11 +91,19 @@ export default function TenantDevicesPage() {
   const [confirmMessage, setConfirmMessage] = React.useState<React.ReactNode>("");
   const [confirmAction, setConfirmAction] = React.useState<(() => Promise<void>) | null>(null);
 
-  const [query, setQuery] = React.useState("");
-  const [pageIndex, setPageIndex] = React.useState(0);
-  const [pageSize, setPageSize] = React.useState(10);
+  const [totalRows, setTotalRows] = React.useState(0);
 
   const canManage = auth.can("devices.manage");
+
+  const loadParentOptions = React.useCallback(async () => {
+    if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+    try {
+      const res = await apiFetch<{ devices: ApiDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/devices?limit=200`);
+      setParentOptions(Array.isArray(res.devices) ? res.devices : []);
+    } catch {
+      setParentOptions([]);
+    }
+  }, [tenantSlug]);
 
   const load = React.useCallback(async () => {
     try {
@@ -83,13 +114,20 @@ export default function TenantDevicesPage() {
         throw new Error("Business is missing.");
       }
 
+      const qs = new URLSearchParams();
+      if (grid.query.trim().length > 0) qs.set("q", grid.query.trim());
+      qs.set("page", String(grid.pageIndex + 1));
+      qs.set("per_page", String(grid.pageSize));
+      if (statusFilter !== "all") qs.set("is_active", statusFilter);
+
       const [devicesRes, brandsRes, typesRes] = await Promise.all([
-        apiFetch<{ devices: ApiDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/devices?limit=200`),
+        apiFetch<DevicesPayload>(`/api/${tenantSlug}/app/repairbuddy/devices?${qs.toString()}`),
         apiFetch<{ device_brands: ApiDeviceBrand[] }>(`/api/${tenantSlug}/app/repairbuddy/device-brands?limit=200`),
         apiFetch<{ device_types: ApiDeviceType[] }>(`/api/${tenantSlug}/app/repairbuddy/device-types?limit=200`),
       ]);
 
       setDevices(Array.isArray(devicesRes.devices) ? devicesRes.devices : []);
+      setTotalRows(typeof devicesRes.meta?.total === "number" ? devicesRes.meta.total : 0);
       setBrands(Array.isArray(brandsRes.device_brands) ? brandsRes.device_brands : []);
       setTypes(Array.isArray(typesRes.device_types) ? typesRes.device_types : []);
     } catch (e) {
@@ -103,11 +141,16 @@ export default function TenantDevicesPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, tenantSlug]);
+  }, [grid.pageIndex, grid.pageSize, grid.query, reloadNonce, router, statusFilter, tenantSlug]);
 
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  React.useEffect(() => {
+    if (!editOpen) return;
+    void loadParentOptions();
+  }, [editOpen, loadParentOptions]);
 
   function openEdit(row: ApiDevice) {
     if (!canManage) return;
@@ -186,8 +229,8 @@ export default function TenantDevicesPage() {
       }
 
       setEditOpen(false);
-      setPageIndex(0);
-      await load();
+      grid.onPageIndexChange(0);
+      setReloadNonce((n) => n + 1);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -223,8 +266,8 @@ export default function TenantDevicesPage() {
             method: "DELETE",
           });
           setStatus("Device deleted.");
-          setPageIndex(0);
-          await load();
+          grid.onPageIndexChange(0);
+          setReloadNonce((n) => n + 1);
         } catch (err) {
           if (err instanceof ApiError) {
             setError(err.message);
@@ -241,32 +284,15 @@ export default function TenantDevicesPage() {
   const brandById = React.useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
   const typeById = React.useMemo(() => new Map(types.map((t) => [t.id, t])), [types]);
 
-  const filtered = React.useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return devices;
+  const pageRows = devices;
 
-    return devices.filter((d) => {
-      const brand = brandById.get(d.device_brand_id)?.name ?? String(d.device_brand_id);
-      const type = typeById.get(d.device_type_id)?.name ?? String(d.device_type_id);
-      const hay = `${d.id} ${d.model} ${brand} ${type}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [brandById, devices, query, typeById]);
-
-  const totalRows = filtered.length;
-  const pageRows = React.useMemo(() => {
-    const start = pageIndex * pageSize;
-    const end = start + pageSize;
-    return filtered.slice(start, end);
-  }, [filtered, pageIndex, pageSize]);
-
-  const parentOptions = React.useMemo(() => {
+  const parentSelectOptions = React.useMemo(() => {
     const excludeId = editId ?? null;
-    return devices
+    return parentOptions
       .filter((d) => (excludeId ? d.id !== excludeId : true))
       .slice()
       .sort((a, b) => a.model.localeCompare(b.model));
-  }, [devices, editId]);
+  }, [editId, parentOptions]);
 
   const columns = React.useMemo<Array<DataTableColumn<ApiDevice>>>(
     () => [
@@ -310,8 +336,16 @@ export default function TenantDevicesPage() {
             <DropdownMenu
               align="right"
               trigger={({ toggle }) => (
-                <Button variant="ghost" size="sm" onClick={toggle} disabled={busy} className="px-2">
-                  Actions
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggle}
+                  disabled={busy}
+                  className="px-2"
+                  aria-label="Actions"
+                  title="Actions"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               )}
             >
@@ -487,7 +521,7 @@ export default function TenantDevicesPage() {
                 disabled={busy}
               >
                 <option value="">(none)</option>
-                {parentOptions.map((d) => (
+                {parentSelectOptions.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.model}
                   </option>
@@ -519,18 +553,28 @@ export default function TenantDevicesPage() {
           title="Devices"
           description="Supported device models for your repair catalog."
           actions={
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                if (!canManage) return;
-                if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
-                router.push(`/app/${tenantSlug}/devices/new`);
-              }}
-              disabled={!canManage || loading || busy}
-            >
-              New device
-            </Button>
+            <>
+              <DataViewToggle
+                value={view}
+                onChange={(next) => {
+                  grid.setParam("view", next === "table" ? null : next);
+                }}
+                disabled={loading || busy}
+              />
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (!canManage) return;
+                  if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+                  router.push(`/app/${tenantSlug}/devices/new`);
+                }}
+                disabled={!canManage || loading || busy}
+              >
+                New device
+              </Button>
+            </>
           }
           loading={loading}
           loadingFallback={
@@ -547,32 +591,157 @@ export default function TenantDevicesPage() {
         >
           <Card className="shadow-none">
             <CardContent className="pt-5">
-              <DataTable
-                // title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
-                data={pageRows}
-                loading={loading}
-                emptyMessage="No devices."
-                columns={columns}
-                getRowId={(row) => row.id}
-                search={{
-                  placeholder: "Search devices...",
-                }}
-                server={{
-                  query,
-                  onQueryChange: (value) => {
-                    setQuery(value);
-                    setPageIndex(0);
-                  },
-                  pageIndex,
-                  onPageIndexChange: setPageIndex,
-                  pageSize,
-                  onPageSizeChange: (value) => {
-                    setPageSize(value);
-                    setPageIndex(0);
-                  },
-                  totalRows,
-                }}
-              />
+              {view === "table" ? (
+                <DataTable
+                  // title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
+                  data={pageRows}
+                  loading={loading}
+                  emptyMessage="No devices."
+                  columns={columns}
+                  getRowId={(row) => row.id}
+                  search={{
+                    placeholder: "Search devices...",
+                  }}
+                  filters={[
+                    {
+                      id: "is_active",
+                      label: "Status",
+                      value: statusFilter,
+                      options: [
+                        { label: "All", value: "all" },
+                        { label: "Active", value: "1" },
+                        { label: "Inactive", value: "0" },
+                      ],
+                      onChange: (value) => {
+                        const next = String(value);
+                        grid.setParam("is_active", next === "all" ? null : next, { resetPage: true });
+                      },
+                    },
+                  ]}
+                  server={{
+                    query: grid.query,
+                    onQueryChange: grid.onQueryChange,
+                    pageIndex: grid.pageIndex,
+                    onPageIndexChange: grid.onPageIndexChange,
+                    pageSize: grid.pageSize,
+                    onPageSizeChange: grid.onPageSizeChange,
+                    totalRows,
+                  }}
+                />
+              ) : (
+                <DataGrid
+                  title={typeof tenantSlug === "string" ? `Devices · ${tenantSlug}` : "Devices"}
+                  data={pageRows}
+                  loading={loading}
+                  emptyMessage="No devices."
+                  getItemId={(row) => row.id}
+                  search={{ placeholder: "Search devices..." }}
+                  filters={[
+                    {
+                      id: "is_active",
+                      label: "Status",
+                      value: statusFilter,
+                      options: [
+                        { label: "All", value: "all" },
+                        { label: "Active", value: "1" },
+                        { label: "Inactive", value: "0" },
+                      ],
+                      onChange: (value) => {
+                        const next = String(value);
+                        grid.setParam("is_active", next === "all" ? null : next, { resetPage: true });
+                      },
+                    },
+                  ]}
+                  server={{
+                    query: grid.query,
+                    onQueryChange: grid.onQueryChange,
+                    pageIndex: grid.pageIndex,
+                    onPageIndexChange: grid.onPageIndexChange,
+                    pageSize: grid.pageSize,
+                    onPageSizeChange: grid.onPageSizeChange,
+                    totalRows,
+                  }}
+                  onItemClick={canManage ? openEdit : undefined}
+                  renderItem={(row) => {
+                    const brandName = brandById.get(row.device_brand_id)?.name ?? String(row.device_brand_id);
+                    const typeName = typeById.get(row.device_type_id)?.name ?? String(row.device_type_id);
+                    return (
+                      <Card className="overflow-hidden shadow-none">
+                        <div className="flex h-20 items-center justify-between gap-3 bg-[var(--rb-surface-muted)] px-4">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-[var(--rb-text)]">{row.model}</div>
+                            <div className="truncate text-xs text-zinc-600">{row.id}</div>
+                          </div>
+
+                          {canManage ? (
+                            <DropdownMenu
+                              align="right"
+                              trigger={({ toggle }) => (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggle();
+                                  }}
+                                  disabled={busy}
+                                  className="px-2"
+                                  aria-label="Actions"
+                                  title="Actions"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              )}
+                            >
+                              {({ close }) => (
+                                <>
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      close();
+                                      openEdit(row);
+                                    }}
+                                    disabled={busy}
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    destructive
+                                    onSelect={() => {
+                                      close();
+                                      void onDelete(row);
+                                    }}
+                                    disabled={busy}
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenu>
+                          ) : null}
+                        </div>
+
+                        <CardContent className="pt-4">
+                          <div className="space-y-2">
+                            <div className="text-sm text-zinc-700">
+                              <span className="font-medium text-[var(--rb-text)]">Brand:</span> {brandName}
+                            </div>
+                            <div className="text-sm text-zinc-700">
+                              <span className="font-medium text-[var(--rb-text)]">Type:</span> {typeName}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <Badge variant={row.is_active ? "success" : "default"}>{row.is_active ? "Active" : "Inactive"}</Badge>
+                            {row.disable_in_booking_form ? <Badge variant="default">Hidden in booking</Badge> : null}
+                            {row.is_other ? <Badge variant="default">Other</Badge> : null}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </ListPageShell>

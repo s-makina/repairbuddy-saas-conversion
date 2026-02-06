@@ -13,6 +13,20 @@ use Illuminate\Http\Request;
 
 class RepairBuddyDeviceController extends Controller
 {
+    protected function serializeDevice(RepairBuddyDevice $d): array
+    {
+        return [
+            'id' => $d->id,
+            'model' => $d->model,
+            'device_type_id' => $d->device_type_id,
+            'device_brand_id' => $d->device_brand_id,
+            'parent_device_id' => $d->parent_device_id,
+            'disable_in_booking_form' => (bool) $d->disable_in_booking_form,
+            'is_other' => (bool) $d->is_other,
+            'is_active' => (bool) $d->is_active,
+        ];
+    }
+
     protected function ensureValidParent(?int $parentId, ?RepairBuddyDevice $current = null): ?int
     {
         if (! $parentId || $parentId <= 0) {
@@ -57,37 +71,64 @@ class RepairBuddyDeviceController extends Controller
     {
         $validated = $request->validate([
             'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'is_active' => ['sometimes', 'nullable', 'boolean'],
             'limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:200'],
+            'page' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:200'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
             'for_booking' => ['sometimes', 'nullable', 'boolean'],
         ]);
 
         $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $isActive = array_key_exists('is_active', $validated) ? ($validated['is_active'] ?? null) : null;
         $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 200;
+        $page = is_int($validated['page'] ?? null) ? (int) $validated['page'] : null;
+        $perPage = is_int($validated['per_page'] ?? null) ? (int) $validated['per_page'] : null;
+        $sort = is_string($validated['sort'] ?? null) ? trim((string) $validated['sort']) : '';
+        $dir = strtolower(is_string($validated['dir'] ?? null) ? trim((string) $validated['dir']) : '');
         $forBooking = array_key_exists('for_booking', $validated) ? (bool) $validated['for_booking'] : false;
 
-        $query = RepairBuddyDevice::query()->orderBy('model');
+        $query = RepairBuddyDevice::query();
 
         if ($forBooking) {
             $query->where('is_active', true)->where('disable_in_booking_form', false);
+        } elseif ($isActive !== null) {
+            $query->where('is_active', (bool) $isActive);
         }
 
         if ($q !== '') {
             $query->where('model', 'like', "%{$q}%");
         }
 
+        $allowedSorts = ['id', 'model', 'is_active'];
+        $resolvedSort = in_array($sort, $allowedSorts, true) ? $sort : 'model';
+        $resolvedDir = $dir === 'desc' ? 'desc' : 'asc';
+
+        $query->orderBy($resolvedSort, $resolvedDir);
+
+        if ($resolvedSort !== 'model') {
+            $query->orderBy('model', 'asc');
+        }
+
+        if ($page !== null || $perPage !== null || $sort !== '' || $dir !== '') {
+            $paginator = $query->paginate($perPage ?? 10, ['*'], 'page', $page ?? 1);
+
+            return response()->json([
+                'devices' => collect($paginator->items())->map(fn (RepairBuddyDevice $d) => $this->serializeDevice($d)),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'last_page' => $paginator->lastPage(),
+                ],
+            ]);
+        }
+
         $devices = $query->limit($limit)->get();
 
         return response()->json([
-            'devices' => $devices->map(fn (RepairBuddyDevice $d) => [
-                'id' => $d->id,
-                'model' => $d->model,
-                'device_type_id' => $d->device_type_id,
-                'device_brand_id' => $d->device_brand_id,
-                'parent_device_id' => $d->parent_device_id,
-                'disable_in_booking_form' => (bool) $d->disable_in_booking_form,
-                'is_other' => (bool) $d->is_other,
-                'is_active' => (bool) $d->is_active,
-            ]),
+            'devices' => $devices->map(fn (RepairBuddyDevice $d) => $this->serializeDevice($d)),
         ]);
     }
 

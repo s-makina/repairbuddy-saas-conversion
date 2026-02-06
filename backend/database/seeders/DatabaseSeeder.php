@@ -10,6 +10,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -30,6 +31,12 @@ class DatabaseSeeder extends Seeder
             'contact_email' => 'demo-owner@99smartx.com',
         ]);
 
+        $tenant->forceFill([
+            'name' => $tenant->name ?: 'Demo Tenant',
+            'status' => $tenant->status ?: 'active',
+            'contact_email' => $tenant->contact_email ?: 'demo-owner@99smartx.com',
+        ])->save();
+
         if (Schema::hasColumn('tenants', 'currency')) {
             $tenant->forceFill([
                 'currency' => $tenant->currency ?: 'USD',
@@ -41,6 +48,81 @@ class DatabaseSeeder extends Seeder
                     'country' => 'EG',
                 ],
             ])->save();
+        }
+
+        if (Schema::hasColumn('tenants', 'activated_at') && ! $tenant->activated_at) {
+            $tenant->forceFill([
+                'activated_at' => now(),
+            ])->save();
+        }
+
+        if (Schema::hasColumn('tenants', 'contact_phone') && ! $tenant->contact_phone) {
+            $tenant->forceFill([
+                'contact_phone' => '+20 100 000 0000',
+            ])->save();
+        }
+
+        if (Schema::hasColumn('tenants', 'timezone') && ! $tenant->timezone) {
+            $tenant->forceFill([
+                'timezone' => 'Africa/Cairo',
+            ])->save();
+        }
+
+        if (Schema::hasColumn('tenants', 'language') && ! $tenant->language) {
+            $tenant->forceFill([
+                'language' => 'en',
+            ])->save();
+        }
+
+        if (Schema::hasColumn('tenants', 'brand_color') && ! $tenant->brand_color) {
+            $tenant->forceFill([
+                'brand_color' => '#063e70',
+            ])->save();
+        }
+
+        if (Schema::hasColumn('tenants', 'setup_completed_at') && ! $tenant->setup_completed_at) {
+            $tenant->forceFill([
+                'setup_completed_at' => now(),
+                'setup_step' => null,
+                'setup_state' => $tenant->setup_state ?: [
+                    'seeded' => true,
+                    'source' => 'DatabaseSeeder',
+                ],
+            ])->save();
+        }
+
+        $demoBranchId = null;
+        if (Schema::hasTable('branches')) {
+            $demoBranchId = DB::table('branches')
+                ->where('tenant_id', $tenant->id)
+                ->where('code', 'MAIN')
+                ->value('id');
+
+            if (! $demoBranchId) {
+                $demoBranchId = DB::table('branches')->insertGetId([
+                    'tenant_id' => $tenant->id,
+                    'name' => 'Main Branch',
+                    'code' => 'MAIN',
+                    'phone' => '+20 100 000 0000',
+                    'email' => 'demo@99smartx.com',
+                    'address_line1' => 'Demo Address',
+                    'address_city' => 'Cairo',
+                    'address_country' => 'EG',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
+        if (Schema::hasColumn('tenants', 'default_branch_id') && $demoBranchId) {
+            if ((int) ($tenant->default_branch_id ?? 0) !== (int) $demoBranchId) {
+                DB::table('tenants')->where('id', $tenant->id)->update([
+                    'default_branch_id' => $demoBranchId,
+                    'updated_at' => now(),
+                ]);
+                $tenant = $tenant->fresh();
+            }
         }
 
         User::query()->updateOrCreate([
@@ -64,6 +146,28 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
+        User::query()->updateOrCreate([
+            'email' => 'tech1@99smartx.com',
+        ], [
+            'name' => 'Demo Technician 1',
+            'password' => Hash::make('Password123!@#Aa'),
+            'tenant_id' => $tenant->id,
+            'role' => 'member',
+            'is_admin' => false,
+            'email_verified_at' => now(),
+        ]);
+
+        User::query()->updateOrCreate([
+            'email' => 'tech2@99smartx.com',
+        ], [
+            'name' => 'Demo Technician 2',
+            'password' => Hash::make('Password123!@#Aa'),
+            'tenant_id' => $tenant->id,
+            'role' => 'member',
+            'is_admin' => false,
+            'email_verified_at' => now(),
+        ]);
+
         $ownerRoleId = Role::query()
             ->where('tenant_id', $tenant->id)
             ->where('name', 'Owner')
@@ -74,6 +178,36 @@ class DatabaseSeeder extends Seeder
                 'role_id' => $ownerRoleId,
                 'role' => null,
             ]);
+        }
+
+        $memberRoleId = Role::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('name', 'Member')
+            ->value('id');
+
+        if ($memberRoleId) {
+            User::query()->whereIn('email', ['tech1@99smartx.com', 'tech2@99smartx.com'])->update([
+                'role_id' => $memberRoleId,
+                'role' => null,
+            ]);
+        }
+
+        if ($demoBranchId && Schema::hasTable('branch_user')) {
+            $demoUserIds = User::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('is_admin', false)
+                ->pluck('id');
+
+            foreach ($demoUserIds as $userId) {
+                DB::table('branch_user')->updateOrInsert([
+                    'branch_id' => $demoBranchId,
+                    'user_id' => $userId,
+                ], [
+                    'tenant_id' => $tenant->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         $seedCatalog = filter_var(env('SEED_REPAIRBUDDY_CATALOG', true), FILTER_VALIDATE_BOOL);
@@ -163,6 +297,40 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
             'created_at' => now(),
         ]);
+
+        if (Schema::hasTable('tenant_subscriptions')) {
+            $starterPriceId = DB::table('billing_prices')
+                ->where('billing_plan_version_id', $versionId)
+                ->where('currency', 'USD')
+                ->where('interval', 'month')
+                ->orderByDesc('is_default')
+                ->orderBy('id')
+                ->value('id');
+
+            $existingSubId = DB::table('tenant_subscriptions')
+                ->where('tenant_id', $tenant->id)
+                ->whereIn('status', ['trial', 'active', 'past_due'])
+                ->orderByDesc('id')
+                ->value('id');
+
+            if (! $existingSubId && $starterPriceId) {
+                $now = now();
+                DB::table('tenant_subscriptions')->insert([
+                    'tenant_id' => $tenant->id,
+                    'billing_plan_version_id' => $versionId,
+                    'billing_price_id' => $starterPriceId,
+                    'currency' => 'USD',
+                    'status' => 'active',
+                    'started_at' => $now,
+                    'current_period_start' => $now,
+                    'current_period_end' => $now->copy()->addMonth(),
+                    'cancel_at_period_end' => 0,
+                    'canceled_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
 
         $entitlementIds = DB::table('entitlement_definitions')
             ->whereIn('code', ['max_users', 'feature_customer_portal', 'feature_invoices', 'feature_sms', 'feature_inventory'])
