@@ -2,20 +2,19 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToTenantAndBranch;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RepairBuddyTax extends Model
 {
     use HasFactory;
-    use BelongsToTenantAndBranch;
+    use BelongsToTenant;
 
     protected $table = 'rb_taxes';
 
     protected $fillable = [
         'tenant_id',
-        'branch_id',
         'name',
         'rate',
         'is_default',

@@ -23,6 +23,12 @@ class EnsureActiveBranch
             return $next($request);
         }
 
+        $path = $request->path();
+        // Allow repairbuddy taxes and settings during setup/onboarding even without active branch
+        if (preg_match('#^(?:api/)?[^/]+/app/repairbuddy/(?:taxes|settings)(?:/.*)?$#', $path)) {
+            return $next($request);
+        }
+
         $tenantId = TenantContext::tenantId();
         if (! $tenantId || (int) $user->tenant_id !== (int) $tenantId) {
             return $next($request);

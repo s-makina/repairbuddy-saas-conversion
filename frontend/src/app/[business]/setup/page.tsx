@@ -14,10 +14,22 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/lib/auth";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { Select } from "@/components/ui/Select";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import type { Branch, Tenant } from "@/lib/types";
 import { completeSetup, getSetup, updateSetup } from "@/lib/setup";
+import { getRepairBuddySettings, updateRepairBuddySettings } from "@/lib/repairbuddy-settings";
+import {
+  createRepairBuddyTax,
+  deleteRepairBuddyTax,
+  getRepairBuddyTaxes,
+  setRepairBuddyTaxActive,
+  setRepairBuddyTaxDefault,
+  updateRepairBuddyTax,
+  type ApiRepairBuddyTax,
+} from "@/lib/repairbuddy-taxes";
 
 type StepId = "welcome" | "business" | "address" | "branches" | "branding" | "preferences" | "tax" | "team" | "finish";
 
@@ -58,6 +70,10 @@ type WizardState = {
 
   tax_registered: boolean;
   invoice_prefix: string;
+
+  enable_taxes: boolean;
+  default_tax_id: string;
+  invoice_amounts: "exclusive" | "inclusive";
 
   team_invites: string;
   team_default_role: string;
@@ -157,6 +173,10 @@ export default function BusinessSetupPage() {
     tax_registered: false,
     invoice_prefix: "RB",
 
+    enable_taxes: false,
+    default_tax_id: "",
+    invoice_amounts: "exclusive",
+
     team_invites: "",
     team_default_role: "member",
   });
@@ -180,6 +200,27 @@ export default function BusinessSetupPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState<React.ReactNode>("");
   const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null);
+
+  const [loadingTaxes, setLoadingTaxes] = useState(false);
+  const [taxes, setTaxes] = useState<ApiRepairBuddyTax[]>([]);
+  const [taxBusy, setTaxBusy] = useState(false);
+  const [addTaxOpen, setAddTaxOpen] = useState(false);
+  const [editTaxOpen, setEditTaxOpen] = useState(false);
+
+  const [addTaxName, setAddTaxName] = useState("");
+  const [addTaxRate, setAddTaxRate] = useState("0");
+  const [addTaxActive, setAddTaxActive] = useState(true);
+  const [addTaxDefault, setAddTaxDefault] = useState(false);
+
+  const [editTaxId, setEditTaxId] = useState<string | null>(null);
+  const [editTaxName, setEditTaxName] = useState("");
+  const [editTaxRate, setEditTaxRate] = useState("0");
+  const [editTaxActive, setEditTaxActive] = useState(true);
+  const [editTaxDefault, setEditTaxDefault] = useState(false);
+
+  const [taxQuery, setTaxQuery] = useState("");
+  const [taxPageIndex, setTaxPageIndex] = useState(0);
+  const [taxPageSize, setTaxPageSize] = useState(10);
 
   const initializedRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -307,6 +348,92 @@ export default function BusinessSetupPage() {
     setConfirmOpen(true);
   }
 
+  const loadTaxes = useCallback(async () => {
+    if (typeof business !== "string" || business.length === 0) return;
+    setLoadingTaxes(true);
+    try {
+      const res = await getRepairBuddyTaxes(business);
+      setTaxes(Array.isArray(res.taxes) ? res.taxes : []);
+    } catch (e) {
+      console.error("Failed to load taxes", e);
+    } finally {
+      setLoadingTaxes(false);
+    }
+  }, [business]);
+
+  const onAddTax = useCallback(async () => {
+    if (typeof business !== "string" || business.length === 0) return;
+    setTaxBusy(true);
+    setError(null);
+    try {
+      const name = addTaxName.trim();
+      const rate = Number(addTaxRate);
+      if (!name) throw new Error("Name is required.");
+      if (!Number.isFinite(rate)) throw new Error("Rate is invalid.");
+
+      await createRepairBuddyTax(business, {
+        name,
+        rate,
+        is_active: addTaxActive,
+        is_default: addTaxDefault,
+      });
+      await loadTaxes();
+      setAddTaxOpen(false);
+      setAddTaxName("");
+      setAddTaxRate("0");
+      setAddTaxActive(true);
+      setAddTaxDefault(false);
+      notify.success("Tax created.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to create tax.");
+    } finally {
+      setTaxBusy(false);
+    }
+  }, [addTaxActive, addTaxDefault, addTaxName, addTaxRate, business, loadTaxes]);
+
+  const onEditTaxSave = useCallback(async () => {
+    if (!editTaxId || typeof business !== "string" || business.length === 0) return;
+    setTaxBusy(true);
+    setError(null);
+    try {
+      const id = Number(editTaxId);
+      const name = editTaxName.trim();
+      const rate = Number(editTaxRate);
+      if (!name) throw new Error("Name is required.");
+      if (!Number.isFinite(rate)) throw new Error("Rate is invalid.");
+
+      await updateRepairBuddyTax(business, id, { name, rate });
+      await setRepairBuddyTaxActive(business, id, editTaxActive);
+      if (editTaxDefault) {
+        await setRepairBuddyTaxDefault(business, id);
+      }
+
+      await loadTaxes();
+      setEditTaxOpen(false);
+      notify.success("Tax updated.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update tax.");
+    } finally {
+      setTaxBusy(false);
+    }
+  }, [business, editTaxActive, editTaxDefault, editTaxId, editTaxName, editTaxRate, loadTaxes]);
+
+  const onDeleteTax = useCallback(async (row: ApiRepairBuddyTax) => {
+    if (typeof business !== "string" || business.length === 0) return;
+    if (!globalThis.confirm(`Delete tax "${row.name}"?`)) return;
+    setTaxBusy(true);
+    setError(null);
+    try {
+      await deleteRepairBuddyTax(business, Number(row.id));
+      await loadTaxes();
+      notify.success("Tax deleted.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete tax.");
+    } finally {
+      setTaxBusy(false);
+    }
+  }, [business, loadTaxes]);
+
   const billingAddressJson = useMemo(() => {
     const out: Record<string, string> = {};
     if (form.address_line1.trim()) out.line1 = form.address_line1.trim();
@@ -379,9 +506,12 @@ export default function BusinessSetupPage() {
   );
 
   useEffect(() => {
-    if (step !== "branches") return;
-    void loadBranches();
-  }, [loadBranches, step]);
+    if (step === "branches") {
+      void loadBranches();
+    } else if (step === "tax") {
+      void loadTaxes();
+    }
+  }, [loadBranches, loadTaxes, step]);
 
   const persist = useCallback(
     async (nextStep: StepId, showStatus: boolean) => {
@@ -438,6 +568,21 @@ export default function BusinessSetupPage() {
           setup_step: nextStep,
           setup_state: nextSetupState,
         });
+
+        // Also update RepairBuddy settings for taxes
+        const rbSettingsRes = await getRepairBuddySettings(business);
+        const rbSettings = rbSettingsRes.settings;
+        if (rbSettings) {
+          await updateRepairBuddySettings(business, {
+            ...rbSettings,
+            taxes: {
+              ...rbSettings.taxes,
+              enableTaxes: form.enable_taxes,
+              defaultTaxId: form.default_tax_id,
+              invoiceAmounts: form.invoice_amounts,
+            },
+          });
+        }
 
         setTenant(payload.tenant);
         setSetupState(nextSetupState);
@@ -524,9 +669,29 @@ export default function BusinessSetupPage() {
           tax_registered: typeof tax.tax_registered === "boolean" ? tax.tax_registered : false,
           invoice_prefix: typeof tax.invoice_prefix === "string" ? tax.invoice_prefix : "RB",
 
+          enable_taxes: false,
+          default_tax_id: "",
+          invoice_amounts: "exclusive",
+
           team_invites: typeof team.invites === "string" ? team.invites : "",
           team_default_role: typeof team.default_role === "string" ? team.default_role : "member",
         });
+
+        // Load RepairBuddy settings to fill tax fields
+        try {
+          const rbSettingsRes = await getRepairBuddySettings(business);
+          if (rbSettingsRes.settings?.taxes) {
+            const rx = rbSettingsRes.settings.taxes;
+            setForm((prev) => ({
+              ...prev,
+              enable_taxes: Boolean(rx.enableTaxes),
+              default_tax_id: String(rx.defaultTaxId || ""),
+              invoice_amounts: rx.invoiceAmounts || "exclusive",
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to load RepairBuddy settings", e);
+        }
 
         const wizardStep =
           payload.setup.state && typeof payload.setup.state === "object"
@@ -699,12 +864,12 @@ export default function BusinessSetupPage() {
   if (typeof business !== "string" || business.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--rb-surface)] px-6">
-          <Card className="w-full max-w-lg shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base">Setup wizard</CardTitle>
-              <CardDescription>Business is missing.</CardDescription>
-            </CardHeader>
-          </Card>
+        <Card className="w-full max-w-lg shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">Setup wizard</CardTitle>
+            <CardDescription>Business is missing.</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
@@ -741,858 +906,1029 @@ export default function BusinessSetupPage() {
               </Button>
             </div>
           </div>
+
         </header>
 
         <main>
           <section className="mx-auto w-full max-w-6xl px-4 py-10">
             <div className="mx-auto w-full max-w-5xl space-y-6">
-                <PageHeader
-                  title="Business setup"
-                  description={`Finish setting up ${tenantName} to start using the app.`}
-                  actions={
-                    <div className="flex items-center gap-2">
-                      <div className="hidden sm:block text-xs text-zinc-500">{saving ? "Saving..." : "Autosave on"}</div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={saving}
-                        onClick={() => {
-                          void persist(step, true);
-                        }}
-                      >
-                        Save
-                      </Button>
-                    </div>
-                  }
-                />
-
-                {error ? <Alert variant="danger" title="Setup error">{error}</Alert> : null}
-
-                <Modal
-                  open={branchModalOpen}
-                  onClose={() => {
-                    if (branchSaving) return;
-                    setBranchModalOpen(false);
-                  }}
-                  title={branchEditId ? "Edit branch" : "Create branch"}
-                  footer={
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="outline" onClick={() => setBranchModalOpen(false)} disabled={branchSaving}>
-                        Cancel
-                      </Button>
-                      <Button onClick={() => void saveBranch()} disabled={branchSaving}>
-                        {branchSaving ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-                  }
-                >
-                  <div className="grid gap-3">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-[var(--rb-text)]" htmlFor="setup_branch_name">Name</label>
-                      <Input
-                        id="setup_branch_name"
-                        value={branchName}
-                        onChange={(e) => setBranchName(e.target.value)}
-                        placeholder="e.g. Main Shop"
-                        disabled={branchSaving}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-[var(--rb-text)]" htmlFor="setup_branch_code">Code</label>
-                      <Input
-                        id="setup_branch_code"
-                        value={branchCode}
-                        onChange={(e) => setBranchCode(e.target.value)}
-                        placeholder="e.g. MAIN"
-                        disabled={branchSaving}
-                        maxLength={16}
-                      />
-                    </div>
-
-                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
-                      <input type="checkbox" checked={branchIsActive} onChange={(e) => setBranchIsActive(e.target.checked)} disabled={branchSaving} />
-                      Active
-                    </label>
+              <PageHeader
+                title="Business setup"
+                description={`Finish setting up ${tenantName} to start using the app.`}
+                actions={
+                  <div className="flex items-center gap-2">
+                    <div className="hidden sm:block text-xs text-zinc-500">{saving ? "Saving..." : "Autosave on"}</div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={saving}
+                      onClick={() => {
+                        void persist(step, true);
+                      }}
+                    >
+                      Save
+                    </Button>
                   </div>
-                </Modal>
+                }
+              />
 
-                <ConfirmDialog
-                  open={confirmOpen}
-                  title="Set default branch"
-                  message={confirmMessage}
-                  busy={branchSaving}
-                  onCancel={() => {
-                    if (branchSaving) return;
+              {error ? <Alert variant="danger" title="Setup error">{error}</Alert> : null}
+
+              <Modal
+                open={branchModalOpen}
+                onClose={() => {
+                  if (branchSaving) return;
+                  setBranchModalOpen(false);
+                }}
+                title={branchEditId ? "Edit branch" : "Create branch"}
+                footer={
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="outline" onClick={() => setBranchModalOpen(false)} disabled={branchSaving}>
+                      Cancel
+                    </Button>
+                    <Button onClick={() => void saveBranch()} disabled={branchSaving}>
+                      {branchSaving ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
+                }
+              >
+                <div className="grid gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-[var(--rb-text)]" htmlFor="setup_branch_name">Name</label>
+                    <Input
+                      id="setup_branch_name"
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      placeholder="e.g. Main Shop"
+                      disabled={branchSaving}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-[var(--rb-text)]" htmlFor="setup_branch_code">Code</label>
+                    <Input
+                      id="setup_branch_code"
+                      value={branchCode}
+                      onChange={(e) => setBranchCode(e.target.value)}
+                      placeholder="e.g. MAIN"
+                      disabled={branchSaving}
+                      maxLength={16}
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                    <input type="checkbox" checked={branchIsActive} onChange={(e) => setBranchIsActive(e.target.checked)} disabled={branchSaving} />
+                    Active
+                  </label>
+                </div>
+              </Modal>
+
+              <ConfirmDialog
+                open={confirmOpen}
+                title="Set default branch"
+                message={confirmMessage}
+                busy={branchSaving}
+                onCancel={() => {
+                  if (branchSaving) return;
+                  setConfirmOpen(false);
+                  setConfirmAction(null);
+                }}
+                onConfirm={() => {
+                  if (!confirmAction) return;
+                  void (async () => {
+                    await confirmAction();
                     setConfirmOpen(false);
                     setConfirmAction(null);
-                  }}
-                  onConfirm={() => {
-                    if (!confirmAction) return;
-                    void (async () => {
-                      await confirmAction();
-                      setConfirmOpen(false);
-                      setConfirmAction(null);
-                    })();
-                  }}
-                />
+                  })();
+                }}
+              />
 
-                <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-                  <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">Setup steps</CardTitle>
-                      <CardDescription>Complete the steps to start using the app.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="h-2 w-full rounded-full bg-[var(--rb-border)] overflow-hidden">
-                        <div
-                          className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
-                          style={{ width: `${Math.round(progress * 100)}%` }}
-                        />
-                      </div>
+              <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+                <Card className="shadow-none lg:sticky lg:top-6 lg:self-start">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Setup steps</CardTitle>
+                    <CardDescription>Complete the steps to start using the app.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="h-2 w-full rounded-full bg-[var(--rb-border)] overflow-hidden">
+                      <div
+                        className="h-full bg-[linear-gradient(90deg,var(--rb-blue),var(--rb-orange))]"
+                        style={{ width: `${Math.round(progress * 100)}%` }}
+                      />
+                    </div>
 
-                      <nav aria-label="Setup steps" className="space-y-1">
-                        {stepOrder.map((s, idx) => {
-                          const isCurrent = idx === stepIndex;
-                          const isCompleted = idx < stepIndex;
-                          const isAvailable = idx <= stepIndex;
+                    <nav aria-label="Setup steps" className="space-y-1">
+                      {stepOrder.map((s, idx) => {
+                        const isCurrent = idx === stepIndex;
+                        const isCompleted = idx < stepIndex;
+                        const isAvailable = idx <= stepIndex;
 
-                          return (
-                            <button
-                              key={s}
-                              type="button"
-                              disabled={!isAvailable || saving || completing}
-                              onClick={() => {
-                                if (!isAvailable) return;
-                                setError(null);
-                                setStep(s);
-                                void persist(s, true);
-                              }}
-                              className={
-                                "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
-                                (isCurrent
-                                  ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
-                                  : isCompleted
-                                    ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
-                                    : "border-[var(--rb-border)] bg-white opacity-60")
-                              }
-                            >
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={
-                                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
-                                    (isCurrent
-                                      ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
-                                      : isCompleted
-                                        ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
-                                        : "border-[var(--rb-border)] bg-white text-zinc-600")
-                                  }
-                                >
-                                  {isCompleted ? (
-                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M20 6L9 17l-5-5" />
-                                    </svg>
-                                  ) : (
-                                    idx + 1
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
-                                  <div className="mt-0.5 text-xs text-zinc-600 line-clamp-2">{stepDescription(s)}</div>
-                                </div>
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            disabled={!isAvailable || saving || completing}
+                            onClick={() => {
+                              if (!isAvailable) return;
+                              setError(null);
+                              setStep(s);
+                              void persist(s, true);
+                            }}
+                            className={
+                              "w-full rounded-[var(--rb-radius-md)] border px-3 py-2 text-left transition " +
+                              (isCurrent
+                                ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_65%)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_92%)]"
+                                : isCompleted
+                                  ? "border-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] bg-white hover:bg-[var(--rb-surface-muted)]"
+                                  : "border-[var(--rb-border)] bg-white opacity-60")
+                            }
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={
+                                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold " +
+                                  (isCurrent
+                                    ? "border-[var(--rb-blue)] bg-[var(--rb-blue)] text-white"
+                                    : isCompleted
+                                      ? "border-[var(--rb-blue)] bg-[color:color-mix(in_srgb,var(--rb-blue),white_90%)] text-[var(--rb-blue)]"
+                                      : "border-[var(--rb-border)] bg-white text-zinc-600")
+                                }
+                              >
+                                {isCompleted ? (
+                                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M20 6L9 17l-5-5" />
+                                  </svg>
+                                ) : (
+                                  idx + 1
+                                )}
                               </div>
-                            </button>
-                          );
-                        })}
-                      </nav>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="shadow-none flex min-h-[calc(100vh-220px)] flex-col">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <CardTitle className="text-base">{stepLabel(step)}</CardTitle>
-                          <CardDescription>{stepDescription(step)}</CardDescription>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-zinc-500">Step {stepIndex + 1} of {stepOrder.length}</div>
-                          <div className="mt-2 flex items-center justify-end gap-2">
-                            <div className="flex items-center gap-1" aria-label="Progress">
-                              {stepOrder.map((_, idx) => {
-                                const isDone = idx < stepIndex;
-                                const isNow = idx === stepIndex;
-                                return (
-                                  <span
-                                    key={idx}
-                                    className={
-                                      "h-1.5 w-5 rounded-full transition " +
-                                      (isNow
-                                        ? "bg-[var(--rb-blue)]"
-                                        : isDone
-                                          ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
-                                          : "bg-[var(--rb-border)]")
-                                    }
-                                  />
-                                );
-                              })}
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
+                                <div className="mt-0.5 text-xs text-zinc-600 line-clamp-2">{stepDescription(s)}</div>
+                              </div>
                             </div>
-                            <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
-                              {Math.round(progress * 100)}%
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
+                          </button>
+                        );
+                      })}
+                    </nav>
+                  </CardContent>
+                </Card>
 
-                    <CardContent className="flex-1 space-y-6">
-                {step === "welcome" ? (
-                  <div className="space-y-6">
-                    <div className="relative overflow-hidden rounded-[var(--rb-radius-lg)] border border-[color:color-mix(in_srgb,var(--rb-blue),white_80%)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--rb-blue),white_90%),white_70%)] p-6">
-                      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] blur-2xl" aria-hidden="true" />
-                      <div className="relative flex items-start gap-4">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--rb-blue),white_70%)] bg-white/70 text-[var(--rb-blue)]">
-                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z" />
-                            <path d="M5 14l.9 2.8L9 18l-3.1 1.2L5 22l-.9-2.8L1 18l3.1-1.2L5 14z" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xl font-semibold text-[var(--rb-text)]">Welcome — let’s get your business ready</div>
-                          <div className="mt-1 text-sm text-zinc-700">
-                            This wizard saves as you go and takes about 3–5 minutes. You can skip optional steps and come back later.
-                          </div>
-                        </div>
+                <Card className="shadow-none flex min-h-[calc(100vh-220px)] flex-col">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-base">{stepLabel(step)}</CardTitle>
+                        <CardDescription>{stepDescription(step)}</CardDescription>
                       </div>
-
-                      <div className="relative mt-5 grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
-                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Time</div>
-                          <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">3–5 minutes</div>
-                        </div>
-                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
-                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Saving</div>
-                          <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">Auto-saved</div>
-                        </div>
-                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
-                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Flexibility</div>
-                          <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">Optional steps</div>
+                      <div className="text-right">
+                        <div className="text-xs text-zinc-500">Step {stepIndex + 1} of {stepOrder.length}</div>
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <div className="flex items-center gap-1" aria-label="Progress">
+                            {stepOrder.map((_, idx) => {
+                              const isDone = idx < stepIndex;
+                              const isNow = idx === stepIndex;
+                              return (
+                                <span
+                                  key={idx}
+                                  className={
+                                    "h-1.5 w-5 rounded-full transition " +
+                                    (isNow
+                                      ? "bg-[var(--rb-blue)]"
+                                      : isDone
+                                        ? "bg-[color:color-mix(in_srgb,var(--rb-blue),white_55%)]"
+                                        : "bg-[var(--rb-border)]")
+                                  }
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="rounded-full border border-[var(--rb-border)] bg-white px-2 py-1 text-[11px] font-medium text-zinc-600">
+                            {Math.round(progress * 100)}%
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </CardHeader>
 
-                    <div>
-                      <div className="text-sm font-medium text-[var(--rb-text)]">What you’ll configure</div>
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        {stepOrder
-                          .filter((s) => s !== "welcome")
-                          .map((s) => {
-                            const isOptional = skippableSteps.includes(s);
+                  <CardContent className="flex-1 space-y-6">
+                    {step === "welcome" ? (
+                      <div className="space-y-6">
+                        <div className="relative overflow-hidden rounded-[var(--rb-radius-lg)] border border-[color:color-mix(in_srgb,var(--rb-blue),white_80%)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--rb-blue),white_90%),white_70%)] p-6">
+                          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[color:color-mix(in_srgb,var(--rb-blue),white_75%)] blur-2xl" aria-hidden="true" />
+                          <div className="relative flex items-start gap-4">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,var(--rb-blue),white_70%)] bg-white/70 text-[var(--rb-blue)]">
+                              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z" />
+                                <path d="M5 14l.9 2.8L9 18l-3.1 1.2L5 22l-.9-2.8L1 18l3.1-1.2L5 14z" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xl font-semibold text-[var(--rb-text)]">Welcome — let’s get your business ready</div>
+                              <div className="mt-1 text-sm text-zinc-700">
+                                This wizard saves as you go and takes about 3–5 minutes. You can skip optional steps and come back later.
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="relative mt-5 grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
+                              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Time</div>
+                              <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">3–5 minutes</div>
+                            </div>
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
+                              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Saving</div>
+                              <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">Auto-saved</div>
+                            </div>
+                            <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white/70 px-4 py-3">
+                              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Flexibility</div>
+                              <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">Optional steps</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium text-[var(--rb-text)]">What you’ll configure</div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            {stepOrder
+                              .filter((s) => s !== "welcome")
+                              .map((s) => {
+                                const isOptional = skippableSteps.includes(s);
+                                return (
+                                  <div
+                                    key={s}
+                                    className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3"
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
+                                      {isOptional ? (
+                                        <span className="rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                                          Optional
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <div className="mt-1 text-xs text-zinc-600">{stepDescription(s)}</div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <Button
+                            variant="primary"
+                            size="lg"
+                            disabled={saving || completing}
+                            onClick={() => {
+                              void onNext();
+                            }}
+                          >
+                            Start setup
+                          </Button>
+                          <div className="text-xs text-zinc-500">You can adjust everything later from Settings.</div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {step === "business" ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Business name</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.name}
+                              onChange={(e) => setField("name", e.target.value)}
+                              placeholder="e.g. RepairBuddy Electronics"
+                              autoComplete="organization"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Display name (optional)</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.display_name}
+                              onChange={(e) => setField("display_name", e.target.value)}
+                              placeholder="Defaults to business name"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Primary contact person name</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.primary_contact_name}
+                              onChange={(e) => setField("primary_contact_name", e.target.value)}
+                              placeholder="e.g. Alex Johnson"
+                              autoComplete="name"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Contact email</label>
+                          <div className="mt-1">
+                            <Input
+                              type="email"
+                              value={form.contact_email}
+                              onChange={(e) => setField("contact_email", e.target.value)}
+                              placeholder="billing@company.com"
+                              autoComplete="email"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Contact phone</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.contact_phone}
+                              onChange={(e) => setField("contact_phone", e.target.value)}
+                              placeholder="+1 555 123 4567"
+                              autoComplete="tel"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Business registration number (optional)</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.registration_number}
+                              onChange={(e) => setField("registration_number", e.target.value)}
+                              placeholder="e.g. CRN-123456"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {step === "branches" ? (
+                      <div className="space-y-4">
+                        <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--rb-text)]">Your shops / branches</div>
+                              <div className="mt-1 text-xs text-zinc-600">Branches are used for staff access and branch-specific invoice numbering.</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" onClick={() => void loadBranches()} disabled={branchesLoading || branchSaving}>
+                                Refresh
+                              </Button>
+                              <Button size="sm" onClick={openCreateBranch} disabled={branchSaving}>
+                                New branch
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {branchesError ? <Alert variant="danger" title="Branches error">{branchesError}</Alert> : null}
+
+                        <div className="space-y-2">
+                          {branchesLoading ? <div className="text-sm text-zinc-600">Loading branches...</div> : null}
+
+                          {!branchesLoading && branchesSorted.length === 0 ? (
+                            <div className="text-sm text-zinc-600">No branches found.</div>
+                          ) : null}
+
+                          {branchesSorted.map((b) => {
+                            const isDefault = tenant?.default_branch_id === b.id;
                             return (
                               <div
-                                key={s}
-                                className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3"
+                                key={b.id}
+                                className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                               >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="text-sm font-semibold text-[var(--rb-text)]">{stepLabel(s)}</div>
-                                  {isOptional ? (
-                                    <span className="rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-zinc-600">
-                                      Optional
-                                    </span>
-                                  ) : null}
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-semibold text-[var(--rb-text)]">
+                                    {b.code} - {b.name}
+                                  </div>
+                                  <div className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
+                                    <span>{b.is_active ? "Active" : "Inactive"}</span>
+                                    {isDefault ? (
+                                      <span className="rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                                        Default
+                                      </span>
+                                    ) : null}
+                                  </div>
                                 </div>
-                                <div className="mt-1 text-xs text-zinc-600">{stepDescription(s)}</div>
+
+                                <div className="flex items-center gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => openEditBranch(b)} disabled={branchSaving}>
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => confirmDefault(b)}
+                                    disabled={branchSaving || isDefault}
+                                  >
+                                    Set default
+                                  </Button>
+                                </div>
                               </div>
                             );
                           })}
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        disabled={saving || completing}
-                        onClick={() => {
-                          void onNext();
-                        }}
-                      >
-                        Start setup
-                      </Button>
-                      <div className="text-xs text-zinc-500">You can adjust everything later from Settings.</div>
-                    </div>
-                  </div>
-                ) : null}
-
-              {step === "business" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Business name</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.name}
-                        onChange={(e) => setField("name", e.target.value)}
-                        placeholder="e.g. RepairBuddy Electronics"
-                        autoComplete="organization"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Display name (optional)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.display_name}
-                        onChange={(e) => setField("display_name", e.target.value)}
-                        placeholder="Defaults to business name"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Primary contact person name</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.primary_contact_name}
-                        onChange={(e) => setField("primary_contact_name", e.target.value)}
-                        placeholder="e.g. Alex Johnson"
-                        autoComplete="name"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Contact email</label>
-                    <div className="mt-1">
-                      <Input
-                        type="email"
-                        value={form.contact_email}
-                        onChange={(e) => setField("contact_email", e.target.value)}
-                        placeholder="billing@company.com"
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Contact phone</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.contact_phone}
-                        onChange={(e) => setField("contact_phone", e.target.value)}
-                        placeholder="+1 555 123 4567"
-                        autoComplete="tel"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Business registration number (optional)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.registration_number}
-                        onChange={(e) => setField("registration_number", e.target.value)}
-                        placeholder="e.g. CRN-123456"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "branches" ? (
-                <div className="space-y-4">
-                  <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-[var(--rb-text)]">Your shops / branches</div>
-                        <div className="mt-1 text-xs text-zinc-600">Branches are used for staff access and branch-specific invoice numbering.</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => void loadBranches()} disabled={branchesLoading || branchSaving}>
-                          Refresh
-                        </Button>
-                        <Button size="sm" onClick={openCreateBranch} disabled={branchSaving}>
-                          New branch
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {branchesError ? <Alert variant="danger" title="Branches error">{branchesError}</Alert> : null}
-
-                  <div className="space-y-2">
-                    {branchesLoading ? <div className="text-sm text-zinc-600">Loading branches...</div> : null}
-
-                    {!branchesLoading && branchesSorted.length === 0 ? (
-                      <div className="text-sm text-zinc-600">No branches found.</div>
                     ) : null}
 
-                    {branchesSorted.map((b) => {
-                      const isDefault = tenant?.default_branch_id === b.id;
-                      return (
-                        <div
-                          key={b.id}
-                          className="flex flex-col gap-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-[var(--rb-text)]">
-                              {b.code} - {b.name}
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
-                              <span>{b.is_active ? "Active" : "Inactive"}</span>
-                              {isDefault ? (
-                                <span className="rounded-full border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-zinc-600">
-                                  Default
-                                </span>
-                              ) : null}
+                    {step === "tax" ? (
+                      <div className="space-y-6">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="sm:col-span-2">
+                            <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                              <input
+                                type="checkbox"
+                                checked={form.tax_registered}
+                                onChange={(e) => setField("tax_registered", e.target.checked)}
+                              />
+                              Tax/VAT registered?
+                            </label>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-[var(--rb-text)]">VAT number</label>
+                            <div className="mt-1">
+                              <Input
+                                value={form.billing_vat_number}
+                                onChange={(e) => setField("billing_vat_number", e.target.value)}
+                                placeholder="EU123456789"
+                              />
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => openEditBranch(b)} disabled={branchSaving}>
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => confirmDefault(b)}
-                              disabled={branchSaving || isDefault}
-                            >
-                              Set default
-                            </Button>
+                          <div>
+                            <label className="text-sm font-medium text-[var(--rb-text)]">Invoice prefix (optional)</label>
+                            <div className="mt-1">
+                              <Input
+                                value={form.invoice_prefix}
+                                onChange={(e) => setField("invoice_prefix", e.target.value)}
+                                placeholder="RB"
+                              />
+                            </div>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="text-sm font-medium text-[var(--rb-text)]">Invoice format preview</label>
+                            <div className="mt-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-zinc-700">
+                              {(form.invoice_prefix.trim() || "RB") + "-" + business + "-YYYY-000001"}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
 
-              {step === "tax" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
-                      <input
-                        type="checkbox"
-                        checked={form.tax_registered}
-                        onChange={(e) => setField("tax_registered", e.target.checked)}
-                      />
-                      Tax/VAT registered?
-                    </label>
-                    <div className="mt-2 text-xs text-zinc-500">
-                      If enabled, VAT number becomes required to complete setup.
-                    </div>
-                  </div>
+                        <div className="border-t border-[var(--rb-border)] pt-6">
+                          <label className="flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                            <input
+                              type="checkbox"
+                              checked={form.enable_taxes}
+                              onChange={(e) => setField("enable_taxes", e.target.checked)}
+                            />
+                            Enable taxes
+                          </label>
+                        </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-[var(--rb-text)]">VAT number</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.billing_vat_number}
-                        onChange={(e) => setField("billing_vat_number", e.target.value)}
-                        placeholder="EU123456789"
-                      />
-                    </div>
-                  </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-[var(--rb-text)]">Tax rates</div>
+                            <Button variant="outline" size="sm" onClick={() => setAddTaxOpen(true)}>
+                              Add tax
+                            </Button>
+                          </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Invoice prefix (optional)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.invoice_prefix}
-                        onChange={(e) => setField("invoice_prefix", e.target.value)}
-                        placeholder="RB"
-                      />
-                    </div>
-                  </div>
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-1">
+                            <DataTable
+                              data={taxes}
+                              columns={[
+                                { id: "name", header: "Name", cell: (x) => <div className="text-sm">{x.name}</div> },
+                                { id: "rate", header: "Rate (%)", cell: (x) => <div className="text-sm">{Number(x.rate)}</div> },
+                                { id: "active", header: "Active", cell: (x) => <div className="text-sm">{x.is_active ? "Yes" : "No"}</div> },
+                                { id: "default", header: "Default", cell: (x) => <div className="text-sm">{x.is_default ? "Yes" : "No"}</div> },
+                                {
+                                  id: "actions",
+                                  header: "",
+                                  cell: (row) => (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditTaxId(String(row.id));
+                                          setEditTaxName(row.name);
+                                          setEditTaxRate(String(row.rate));
+                                          setEditTaxActive(row.is_active);
+                                          setEditTaxDefault(row.is_default);
+                                          setEditTaxOpen(true);
+                                        }}
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button size="sm" variant="outline" onClick={() => void onDeleteTax(row)}>
+                                        Delete
+                                      </Button>
+                                    </div>
+                                  ),
+                                },
+                              ]}
+                              getRowId={(row) => String(row.id)}
+                              loading={loadingTaxes}
+                              emptyMessage="No tax rates defined."
+                            />
+                          </div>
+                        </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Invoice format preview</label>
-                    <div className="mt-2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm text-zinc-700">
-                      {(form.invoice_prefix.trim() || "RB") + "-" + business + "-YYYY-000001"}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "team" ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Invite team members (optional)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.team_invites}
-                        onChange={(e) => setField("team_invites", e.target.value)}
-                        placeholder="Emails separated by commas"
-                      />
-                    </div>
-                    <div className="mt-2 text-xs text-zinc-500">Invites are stored for later processing (email sending not implemented yet).</div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Default role for invites (optional)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.team_default_role}
-                        onChange={(e) => setField("team_default_role", e.target.value)}
-                        placeholder="member"
-                      />
-                    </div>
-                    <div className="mt-2 text-xs text-zinc-500">Example values: owner, member, technician, front_desk.</div>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "address" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Billing country (2-letter)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.billing_country}
-                        onChange={(e) => setField("billing_country", e.target.value.toUpperCase())}
-                        placeholder="US"
-                        maxLength={2}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Currency</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.currency}
-                        onChange={(e) => setField("currency", e.target.value.toUpperCase())}
-                        placeholder="USD"
-                        maxLength={3}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-[var(--rb-text)]">VAT number (optional)</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.billing_vat_number}
-                        onChange={(e) => setField("billing_vat_number", e.target.value)}
-                        placeholder="EU123456789"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Address</div>
-                    <div className="mt-1 grid gap-3 sm:grid-cols-2">
-                      <div className="sm:col-span-2">
-                        <Input
-                          value={form.address_line1}
-                          onChange={(e) => setField("address_line1", e.target.value)}
-                          placeholder="Address line 1"
-                          autoComplete="address-line1"
-                        />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium text-[var(--rb-text)]">Default tax</label>
+                            <Select
+                              value={form.default_tax_id}
+                              disabled={taxes.filter(x => x.is_active).length === 0}
+                              onChange={(e) => setField("default_tax_id", e.target.value)}
+                            >
+                              <option value="">None</option>
+                              {taxes.filter(x => x.is_active).map((x) => (
+                                <option key={x.id} value={String(x.id)}>
+                                  {x.name} ({Number(x.rate)}%)
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium text-[var(--rb-text)]">Invoice amounts</label>
+                            <Select
+                              value={form.invoice_amounts}
+                              onChange={(e) => setField("invoice_amounts", e.target.value as "exclusive" | "inclusive")}
+                            >
+                              <option value="exclusive">Exclusive</option>
+                              <option value="inclusive">Inclusive</option>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
-                      <div className="sm:col-span-2">
-                        <Input
-                          value={form.address_line2}
-                          onChange={(e) => setField("address_line2", e.target.value)}
-                          placeholder="Address line 2"
-                          autoComplete="address-line2"
-                        />
-                      </div>
-                      <Input
-                        value={form.address_city}
-                        onChange={(e) => setField("address_city", e.target.value)}
-                        placeholder="City"
-                        autoComplete="address-level2"
-                      />
-                      <Input
-                        value={form.address_state}
-                        onChange={(e) => setField("address_state", e.target.value)}
-                        placeholder="State / Region"
-                        autoComplete="address-level1"
-                      />
-                      <Input
-                        value={form.address_postal_code}
-                        onChange={(e) => setField("address_postal_code", e.target.value)}
-                        placeholder="Postal code"
-                        autoComplete="postal-code"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "branding" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Brand color</label>
-                    <div className="mt-2 flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={form.brand_color}
-                        onChange={(e) => setField("brand_color", e.target.value)}
-                        className="h-10 w-14 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white shadow-sm"
-                        aria-label="Brand color"
-                      />
-                      <Input
-                        value={form.brand_color}
-                        onChange={(e) => setField("brand_color", e.target.value)}
-                        placeholder="#2563eb"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Logo</label>
-                    <div className="mt-2 flex items-center gap-3">
-                      {tenant?.logo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={tenant.logo_url}
-                          alt="Logo"
-                          className="h-10 w-10 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white object-contain"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white" />
-                      )}
-
-                      <div className="flex-1">
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          disabled={uploadingLogo}
-                          onChange={(e) => {
-                            const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-                            if (file) {
-                              void onUploadLogo(file);
-                            }
-                          }}
-                          className="block w-full text-sm text-zinc-700 file:mr-3 file:rounded-[var(--rb-radius-sm)] file:border-0 file:bg-[var(--rb-surface-muted)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--rb-text)] hover:file:bg-[color:color-mix(in_srgb,var(--rb-surface-muted),black_4%)]"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-zinc-500">
-                      {uploadingLogo ? "Uploading..." : "PNG/JPG/WEBP up to 5MB"}
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Customer-facing contact (optional)</div>
-                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                      <Input
-                        value={form.support_email}
-                        onChange={(e) => setField("support_email", e.target.value)}
-                        placeholder="Public support email"
-                        autoComplete="email"
-                      />
-                      <Input
-                        value={form.support_phone}
-                        onChange={(e) => setField("support_phone", e.target.value)}
-                        placeholder="Public support phone"
-                        autoComplete="tel"
-                      />
-                      <div className="sm:col-span-2">
-                        <Input
-                          value={form.website}
-                          onChange={(e) => setField("website", e.target.value)}
-                          placeholder="Website (optional)"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <Input
-                          value={form.document_footer}
-                          onChange={(e) => setField("document_footer", e.target.value)}
-                          placeholder="Document footer text (optional)"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "preferences" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Timezone</label>
-                    <div className="mt-1">
-                      <Input
-                        value={form.timezone}
-                        onChange={(e) => setField("timezone", e.target.value)}
-                        placeholder="UTC"
-                        list="rb-timezones"
-                      />
-                      <datalist id="rb-timezones">
-                        {timezoneOptions.map((tz) => (
-                          <option key={tz} value={tz} />
-                        ))}
-                      </datalist>
-                    </div>
-                    <div className="mt-2 text-xs text-zinc-500">Example: UTC, Europe/Berlin, America/New_York</div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[var(--rb-text)]">Language</label>
-                    <div className="mt-1">
-                      <Input value="English (en)" disabled />
-                    </div>
-                    <div className="mt-2 text-xs text-zinc-500">Currently supported language: English</div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <div className="text-sm font-semibold text-[var(--rb-text)]">Operations defaults (optional)</div>
-                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                      <div className="sm:col-span-2">
-                        <Input
-                          value={form.working_hours}
-                          onChange={(e) => setField("working_hours", e.target.value)}
-                          placeholder="Working hours (e.g. Mon–Fri 09:00–17:00)"
-                        />
-                      </div>
-                      <Input
-                        value={form.default_labor_rate}
-                        onChange={(e) => setField("default_labor_rate", e.target.value)}
-                        placeholder="Default labor rate (optional)"
-                      />
-                      <Input
-                        value={form.warranty_terms}
-                        onChange={(e) => setField("warranty_terms", e.target.value)}
-                        placeholder="Default warranty terms (optional)"
-                      />
-                      <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[var(--rb-text)]">
-                        <input
-                          type="checkbox"
-                          checked={form.notify_status_change}
-                          onChange={(e) => setField("notify_status_change", e.target.checked)}
-                        />
-                        Email on status change
-                      </label>
-                      <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[var(--rb-text)]">
-                        <input
-                          type="checkbox"
-                          checked={form.notify_invoice_created}
-                          onChange={(e) => setField("notify_invoice_created", e.target.checked)}
-                        />
-                        Email on invoice created
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "finish" ? (
-                <div className="space-y-4">
-                  <Alert variant="info" title="Review">
-                    Please confirm the required fields. Clicking complete will finish setup and take you to the dashboard.
-                  </Alert>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Business</div>
-                      <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">{form.name.trim() || "—"}</div>
-                      <div className="mt-1 text-xs text-zinc-500">Contact: {form.contact_email.trim() || "—"}</div>
-                      <div className="mt-1 text-xs text-zinc-500">Primary contact: {form.primary_contact_name.trim() || "—"}</div>
-                    </div>
-                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Defaults</div>
-                      <div className="mt-1 text-sm text-[var(--rb-text)]">Timezone: {form.timezone.trim() || "—"}</div>
-                      <div className="mt-1 text-sm text-[var(--rb-text)]">Language: {form.language.trim() || "—"}</div>
-                    </div>
-                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Billing</div>
-                      <div className="mt-1 text-sm text-[var(--rb-text)]">
-                        Country: {form.billing_country.trim() || "—"} | Currency: {form.currency.trim() || "—"}
-                      </div>
-                      <div className="mt-1 text-xs text-zinc-500">VAT: {form.billing_vat_number.trim() || "—"}</div>
-                    </div>
-                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tax & invoicing</div>
-                      <div className="mt-1 text-sm text-[var(--rb-text)]">
-                        Registered: {form.tax_registered ? "Yes" : "No"}
-                      </div>
-                      <div className="mt-1 text-xs text-zinc-500">Prefix: {form.invoice_prefix.trim() || "—"}</div>
-                    </div>
-                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Branding</div>
-                      <div className="mt-1 text-sm text-[var(--rb-text)]">Color: {form.brand_color}</div>
-                      <div className="mt-1 text-xs text-zinc-500">Logo: {tenant?.logo_url ? "Uploaded" : "—"}</div>
-                    </div>
-                    <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Team</div>
-                      <div className="mt-1 text-xs text-zinc-500">Invites: {form.team_invites.trim() ? "Drafted" : "—"}</div>
-                      <div className="mt-1 text-xs text-zinc-500">Role: {form.team_default_role.trim() || "—"}</div>
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="primary"
-                    disabled={completing || saving}
-                    onClick={() => {
-                      void onComplete();
-                    }}
-                  >
-                    {completing ? "Completing..." : "Complete setup"}
-                  </Button>
-                </div>
-              ) : null}
-
-              </CardContent>
-
-              <div className="sticky bottom-0 border-t border-[var(--rb-border)] bg-white/90 px-5 py-4 backdrop-blur">
-                <div className="flex items-center justify-between gap-4">
-                  <Button variant="ghost" disabled={!canGoBack || saving || completing} onClick={() => void onBack()}>
-                    <span className="inline-flex items-center gap-2">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                      Back
-                    </span>
-                  </Button>
-
-                  <div className="flex items-center gap-3">
-                    <div className="hidden sm:block text-xs text-zinc-500">
-                      {stepLabel(step)}
-                      <span className="mx-2">•</span>
-                      {Math.round(progress * 100)}%
-                    </div>
-
-                    {canSkip ? (
-                      <Button variant="outline" disabled={saving || completing} onClick={() => void onSkip()}>
-                        Skip for now
-                      </Button>
                     ) : null}
 
-                    {step !== "finish" ? (
-                      <Button variant="primary" disabled={!canGoNext || saving || completing} onClick={() => void onNext()}>
+                    {step === "team" ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Invite team members (optional)</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.team_invites}
+                              onChange={(e) => setField("team_invites", e.target.value)}
+                              placeholder="Emails separated by commas"
+                            />
+                          </div>
+                          <div className="mt-2 text-xs text-zinc-500">Invites are stored for later processing (email sending not implemented yet).</div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Default role for invites (optional)</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.team_default_role}
+                              onChange={(e) => setField("team_default_role", e.target.value)}
+                              placeholder="member"
+                            />
+                          </div>
+                          <div className="mt-2 text-xs text-zinc-500">Example values: owner, member, technician, front_desk.</div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {step === "address" ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Billing country (2-letter)</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.billing_country}
+                              onChange={(e) => setField("billing_country", e.target.value.toUpperCase())}
+                              placeholder="US"
+                              maxLength={2}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Currency</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.currency}
+                              onChange={(e) => setField("currency", e.target.value.toUpperCase())}
+                              placeholder="USD"
+                              maxLength={3}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-sm font-medium text-[var(--rb-text)]">VAT number (optional)</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.billing_vat_number}
+                              onChange={(e) => setField("billing_vat_number", e.target.value)}
+                              placeholder="EU123456789"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Address</div>
+                          <div className="mt-1 grid gap-3 sm:grid-cols-2">
+                            <div className="sm:col-span-2">
+                              <Input
+                                value={form.address_line1}
+                                onChange={(e) => setField("address_line1", e.target.value)}
+                                placeholder="Address line 1"
+                                autoComplete="address-line1"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Input
+                                value={form.address_line2}
+                                onChange={(e) => setField("address_line2", e.target.value)}
+                                placeholder="Address line 2"
+                                autoComplete="address-line2"
+                              />
+                            </div>
+                            <Input
+                              value={form.address_city}
+                              onChange={(e) => setField("address_city", e.target.value)}
+                              placeholder="City"
+                              autoComplete="address-level2"
+                            />
+                            <Input
+                              value={form.address_state}
+                              onChange={(e) => setField("address_state", e.target.value)}
+                              placeholder="State / Region"
+                              autoComplete="address-level1"
+                            />
+                            <Input
+                              value={form.address_postal_code}
+                              onChange={(e) => setField("address_postal_code", e.target.value)}
+                              placeholder="Postal code"
+                              autoComplete="postal-code"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {step === "branding" ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Brand color</label>
+                          <div className="mt-2 flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={form.brand_color}
+                              onChange={(e) => setField("brand_color", e.target.value)}
+                              className="h-10 w-14 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white shadow-sm"
+                              aria-label="Brand color"
+                            />
+                            <Input
+                              value={form.brand_color}
+                              onChange={(e) => setField("brand_color", e.target.value)}
+                              placeholder="#2563eb"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Logo</label>
+                          <div className="mt-2 flex items-center gap-3">
+                            {tenant?.logo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={tenant.logo_url}
+                                alt="Logo"
+                                className="h-10 w-10 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white object-contain"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white" />
+                            )}
+
+                            <div className="flex-1">
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                disabled={uploadingLogo}
+                                onChange={(e) => {
+                                  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                                  if (file) {
+                                    void onUploadLogo(file);
+                                  }
+                                }}
+                                className="block w-full text-sm text-zinc-700 file:mr-3 file:rounded-[var(--rb-radius-sm)] file:border-0 file:bg-[var(--rb-surface-muted)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--rb-text)] hover:file:bg-[color:color-mix(in_srgb,var(--rb-surface-muted),black_4%)]"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2 text-xs text-zinc-500">
+                            {uploadingLogo ? "Uploading..." : "PNG/JPG/WEBP up to 5MB"}
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Customer-facing contact (optional)</div>
+                          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                            <Input
+                              value={form.support_email}
+                              onChange={(e) => setField("support_email", e.target.value)}
+                              placeholder="Public support email"
+                              autoComplete="email"
+                            />
+                            <Input
+                              value={form.support_phone}
+                              onChange={(e) => setField("support_phone", e.target.value)}
+                              placeholder="Public support phone"
+                              autoComplete="tel"
+                            />
+                            <div className="sm:col-span-2">
+                              <Input
+                                value={form.website}
+                                onChange={(e) => setField("website", e.target.value)}
+                                placeholder="Website (optional)"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Input
+                                value={form.document_footer}
+                                onChange={(e) => setField("document_footer", e.target.value)}
+                                placeholder="Document footer text (optional)"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {step === "preferences" ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Timezone</label>
+                          <div className="mt-1">
+                            <Input
+                              value={form.timezone}
+                              onChange={(e) => setField("timezone", e.target.value)}
+                              placeholder="UTC"
+                              list="rb-timezones"
+                            />
+                            <datalist id="rb-timezones">
+                              {timezoneOptions.map((tz) => (
+                                <option key={tz} value={tz} />
+                              ))}
+                            </datalist>
+                          </div>
+                          <div className="mt-2 text-xs text-zinc-500">Example: UTC, Europe/Berlin, America/New_York</div>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[var(--rb-text)]">Language</label>
+                          <div className="mt-1">
+                            <Input value="English (en)" disabled />
+                          </div>
+                          <div className="mt-2 text-xs text-zinc-500">Currently supported language: English</div>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <div className="text-sm font-semibold text-[var(--rb-text)]">Operations defaults (optional)</div>
+                          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                            <div className="sm:col-span-2">
+                              <Input
+                                value={form.working_hours}
+                                onChange={(e) => setField("working_hours", e.target.value)}
+                                placeholder="Working hours (e.g. Mon–Fri 09:00–17:00)"
+                              />
+                            </div>
+                            <Input
+                              value={form.default_labor_rate}
+                              onChange={(e) => setField("default_labor_rate", e.target.value)}
+                              placeholder="Default labor rate (optional)"
+                            />
+                            <Input
+                              value={form.warranty_terms}
+                              onChange={(e) => setField("warranty_terms", e.target.value)}
+                              placeholder="Default warranty terms (optional)"
+                            />
+                            <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                              <input
+                                type="checkbox"
+                                checked={form.notify_status_change}
+                                onChange={(e) => setField("notify_status_change", e.target.checked)}
+                              />
+                              Email on status change
+                            </label>
+                            <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[var(--rb-text)]">
+                              <input
+                                type="checkbox"
+                                checked={form.notify_invoice_created}
+                                onChange={(e) => setField("notify_invoice_created", e.target.checked)}
+                              />
+                              Email on invoice created
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {step === "finish" ? (
+                      <div className="space-y-4">
+                        <Alert variant="info" title="Review">
+                          Please confirm the required fields. Clicking complete will finish setup and take you to the dashboard.
+                        </Alert>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Business</div>
+                            <div className="mt-1 text-sm font-medium text-[var(--rb-text)]">{form.name.trim() || "—"}</div>
+                            <div className="mt-1 text-xs text-zinc-500">Contact: {form.contact_email.trim() || "—"}</div>
+                            <div className="mt-1 text-xs text-zinc-500">Primary contact: {form.primary_contact_name.trim() || "—"}</div>
+                          </div>
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Defaults</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">Timezone: {form.timezone.trim() || "—"}</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">Language: {form.language.trim() || "—"}</div>
+                          </div>
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Billing</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">
+                              Country: {form.billing_country.trim() || "—"} | Currency: {form.currency.trim() || "—"}
+                            </div>
+                            <div className="mt-1 text-xs text-zinc-500">VAT: {form.billing_vat_number.trim() || "—"}</div>
+                          </div>
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tax & invoicing</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">
+                              Registered: {form.tax_registered ? "Yes" : "No"}
+                            </div>
+                            <div className="mt-1 text-xs text-zinc-500">Prefix: {form.invoice_prefix.trim() || "—"}</div>
+                          </div>
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Branding</div>
+                            <div className="mt-1 text-sm text-[var(--rb-text)]">Color: {form.brand_color}</div>
+                            <div className="mt-1 text-xs text-zinc-500">Logo: {tenant?.logo_url ? "Uploaded" : "—"}</div>
+                          </div>
+                          <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4">
+                            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Team</div>
+                            <div className="mt-1 text-xs text-zinc-500">Invites: {form.team_invites.trim() ? "Drafted" : "—"}</div>
+                            <div className="mt-1 text-xs text-zinc-500">Role: {form.team_default_role.trim() || "—"}</div>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="primary"
+                          disabled={completing || saving}
+                          onClick={() => {
+                            void onComplete();
+                          }}
+                        >
+                          {completing ? "Completing..." : "Complete setup"}
+                        </Button>
+                      </div>
+                    ) : null}
+
+                  </CardContent>
+
+                  <div className="sticky bottom-0 border-t border-[var(--rb-border)] bg-white/90 px-5 py-4 backdrop-blur">
+                    <div className="flex items-center justify-between gap-4">
+                      <Button variant="ghost" disabled={!canGoBack || saving || completing} onClick={() => void onBack()}>
                         <span className="inline-flex items-center gap-2">
-                          {step === "welcome" ? "Start" : "Next"}
                           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M9 18l6-6-6-6" />
+                            <path d="M15 18l-6-6 6-6" />
                           </svg>
+                          Back
                         </span>
                       </Button>
-                    ) : null}
+
+                      <div className="flex items-center gap-3">
+                        <div className="hidden sm:block text-xs text-zinc-500">
+                          {stepLabel(step)}
+                          <span className="mx-2">•</span>
+                          {Math.round(progress * 100)}%
+                        </div>
+
+                        {canSkip ? (
+                          <Button variant="outline" disabled={saving || completing} onClick={() => void onSkip()}>
+                            Skip for now
+                          </Button>
+                        ) : null}
+
+                        {step !== "finish" ? (
+                          <Button variant="primary" disabled={!canGoNext || saving || completing} onClick={() => void onNext()}>
+                            <span className="inline-flex items-center gap-2">
+                              {step === "welcome" ? "Start" : "Next"}
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M9 18l6-6-6-6" />
+                              </svg>
+                            </span>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <footer className="mt-12 border-t border-[var(--rb-border)] pt-8 text-xs text-zinc-600">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>© {new Date().getFullYear()} 99smartx</div>
+                  <div className="flex items-center gap-4">
+                    <Link href="/login" className="hover:text-[var(--rb-text)]">
+                      Login
+                    </Link>
+                    <Link href="/register" className="hover:text-[var(--rb-text)]">
+                      Register
+                    </Link>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </div>
-
-          <footer className="mt-12 border-t border-[var(--rb-border)] pt-8 text-xs text-zinc-600">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>© {new Date().getFullYear()} 99smartx</div>
-              <div className="flex items-center gap-4">
-                <Link href="/login" className="hover:text-[var(--rb-text)]">
-                  Login
-                </Link>
-                <Link href="/register" className="hover:text-[var(--rb-text)]">
-                  Register
-                </Link>
-              </div>
-            </div>
-          </footer>
+              </footer>
 
             </div>
           </section>
+
+          <Modal
+            open={addTaxOpen}
+            onClose={() => setAddTaxOpen(false)}
+            title="Add tax"
+            footer={
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={() => setAddTaxOpen(false)} disabled={taxBusy}>
+                  Cancel
+                </Button>
+                <Button onClick={() => void onAddTax()} disabled={taxBusy}>
+                  {taxBusy ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[var(--rb-text)]">Name</label>
+                <Input value={addTaxName} onChange={(e) => setAddTaxName(e.target.value)} placeholder="e.g. VAT" disabled={taxBusy} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[var(--rb-text)]">Rate (%)</label>
+                <Input type="number" min={0} value={addTaxRate} onChange={(e) => setAddTaxRate(e.target.value)} disabled={taxBusy} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[var(--rb-text)]">Active</label>
+                  <Select value={addTaxActive ? "yes" : "no"} onChange={(e) => setAddTaxActive(e.target.value === "yes")} disabled={taxBusy}>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[var(--rb-text)]">Default</label>
+                  <Select value={addTaxDefault ? "yes" : "no"} onChange={(e) => setAddTaxDefault(e.target.value === "yes")} disabled={taxBusy}>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal
+            open={editTaxOpen}
+            onClose={() => setEditTaxOpen(false)}
+            title="Edit tax"
+            footer={
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditTaxOpen(false)} disabled={taxBusy}>
+                  Cancel
+                </Button>
+                <Button onClick={() => void onEditTaxSave()} disabled={taxBusy}>
+                  {taxBusy ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[var(--rb-text)]">Name</label>
+                <Input value={editTaxName} onChange={(e) => setEditTaxName(e.target.value)} disabled={taxBusy} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[var(--rb-text)]">Rate (%)</label>
+                <Input type="number" min={0} value={editTaxRate} onChange={(e) => setEditTaxRate(e.target.value)} disabled={taxBusy} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[var(--rb-text)]">Active</label>
+                  <Select value={editTaxActive ? "yes" : "no"} onChange={(e) => setEditTaxActive(e.target.value === "yes")} disabled={taxBusy}>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[var(--rb-text)]">Default</label>
+                  <Select value={editTaxDefault ? "yes" : "no"} onChange={(e) => setEditTaxDefault(e.target.value === "yes")} disabled={taxBusy}>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </Modal>
         </main>
       </div>
     </RequireAuth>

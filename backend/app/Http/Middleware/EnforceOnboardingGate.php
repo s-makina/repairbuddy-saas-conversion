@@ -66,6 +66,11 @@ class EnforceOnboardingGate
                 return $next($request);
             }
 
+            // Allow repairbuddy taxes and settings during onboarding/setup
+            if (preg_match('#^(?:api/)?[^/]+/app/repairbuddy/(?:taxes|settings)(?:/.*)?$#', $path)) {
+                return $next($request);
+            }
+
             return $this->deny('Business setup is required.', 'setup_required', '/'.$business.'/setup');
         }
 
