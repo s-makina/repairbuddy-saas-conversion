@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -122,24 +123,33 @@ export function DevicesBrandsSection({
 
   const columns = React.useMemo<Array<DataTableColumn<RepairBuddyAdditionalDeviceField>>>(
     () => [
-      { id: "label", header: "Label", cell: (f) => <div className="text-sm text-zinc-700">{f.label}</div>, className: "min-w-[200px]" },
+      {
+        id: "label",
+        header: "Label",
+        cell: (f) => (
+          <div className="min-w-[200px]">
+            <div className="text-sm font-medium text-[var(--rb-text)]">{f.label}</div>
+            <div className="mt-0.5 text-xs text-zinc-500">ID: {f.id}</div>
+          </div>
+        ),
+      },
       { id: "type", header: "Type", cell: () => <div className="text-sm text-zinc-600">Text</div>, className: "whitespace-nowrap" },
       {
         id: "booking",
         header: "In booking form?",
-        cell: (f) => <div className="text-sm text-zinc-700">{f.displayInBookingForm ? "Display" : "Hide"}</div>,
+        cell: (f) => <Badge variant={f.displayInBookingForm ? "success" : "default"}>{f.displayInBookingForm ? "Display" : "Hide"}</Badge>,
         className: "whitespace-nowrap",
       },
       {
         id: "invoice",
         header: "In invoice?",
-        cell: (f) => <div className="text-sm text-zinc-700">{f.displayInInvoice ? "Display" : "Hide"}</div>,
+        cell: (f) => <Badge variant={f.displayInInvoice ? "success" : "default"}>{f.displayInInvoice ? "Display" : "Hide"}</Badge>,
         className: "whitespace-nowrap",
       },
       {
         id: "customer",
         header: "In customer output?",
-        cell: (f) => <div className="text-sm text-zinc-700">{f.displayForCustomer ? "Display" : "Hide"}</div>,
+        cell: (f) => <Badge variant={f.displayForCustomer ? "success" : "default"}>{f.displayForCustomer ? "Display" : "Hide"}</Badge>,
         className: "whitespace-nowrap",
       },
       {
@@ -164,37 +174,64 @@ export function DevicesBrandsSection({
   return (
     <SectionShell title="Devices & Brands" description="Device fields, labels and pickup/delivery/rental toggles.">
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={d.enablePinCodeField} onChange={(e) => updateDevicesBrands({ enablePinCodeField: e.target.checked })} />
-          Enable pin code field
-        </label>
-        <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={d.showPinCodeInDocuments}
-            onChange={(e) => updateDevicesBrands({ showPinCodeInDocuments: e.target.checked })}
-          />
-          Show pin code in invoices/emails/status check
-        </label>
-        {/* <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={d.useWooProductsAsDevices}
-            onChange={(e) => updateDevicesBrands({ useWooProductsAsDevices: e.target.checked })}
-          />
-          Use Woo products as devices
-        </label> */}
+        <div className="sm:col-span-2">
+          <div className="text-sm font-semibold text-[var(--rb-text)]">Device form</div>
+          <div className="mt-2 grid gap-3">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={d.enablePinCodeField}
+                onChange={(e) => updateDevicesBrands({ enablePinCodeField: e.target.checked })}
+              />
+              <span>
+                <span className="block font-medium text-[var(--rb-text)]">Enable pin code field</span>
+                <span className="mt-0.5 block text-xs text-zinc-500">Adds a PIN input on the device form.</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={d.showPinCodeInDocuments}
+                onChange={(e) => updateDevicesBrands({ showPinCodeInDocuments: e.target.checked })}
+                disabled={!d.enablePinCodeField}
+              />
+              <span>
+                <span className="block font-medium text-[var(--rb-text)]">Show pin code in documents</span>
+                <span className="mt-0.5 block text-xs text-zinc-500">Visible in invoices, emails, and status check (if enabled).</span>
+              </span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div>
         <div className="text-sm font-semibold text-[var(--rb-text)]">Labels</div>
+        <div className="mt-1 text-xs text-zinc-500">Customize how fields are named across the app.</div>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <Input value={d.labels.note} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, note: e.target.value } })} placeholder="Note" />
-          <Input value={d.labels.pin} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, pin: e.target.value } })} placeholder="PIN" />
-          <Input value={d.labels.device} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, device: e.target.value } })} placeholder="Device" />
-          <Input value={d.labels.deviceBrand} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, deviceBrand: e.target.value } })} placeholder="Brand" />
-          <Input value={d.labels.deviceType} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, deviceType: e.target.value } })} placeholder="Type" />
-          <Input value={d.labels.imei} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, imei: e.target.value } })} placeholder="IMEI" />
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Note label</label>
+            <Input value={d.labels.note} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, note: e.target.value } })} placeholder="Note" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">PIN label</label>
+            <Input value={d.labels.pin} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, pin: e.target.value } })} placeholder="PIN" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Device label</label>
+            <Input value={d.labels.device} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, device: e.target.value } })} placeholder="Device" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Brand label</label>
+            <Input value={d.labels.deviceBrand} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, deviceBrand: e.target.value } })} placeholder="Brand" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Type label</label>
+            <Input value={d.labels.deviceType} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, deviceType: e.target.value } })} placeholder="Type" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">IMEI label</label>
+            <Input value={d.labels.imei} onChange={(e) => updateDevicesBrands({ labels: { ...d.labels, imei: e.target.value } })} placeholder="IMEI" />
+          </div>
         </div>
       </div>
 
@@ -217,6 +254,7 @@ export function DevicesBrandsSection({
             getRowId={(row) => row.id}
             emptyMessage="No additional fields yet."
             search={{ placeholder: "Search fields..." }}
+            onRowClick={isMock ? undefined : (row) => openEditField(row)}
             server={{
               query,
               onQueryChange: (value) => {
@@ -233,6 +271,15 @@ export function DevicesBrandsSection({
               totalRows,
             }}
           />
+
+          {fields.length === 0 ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] px-3 py-2">
+              <div className="text-sm text-zinc-700">Add your first field to capture extra device info (e.g. Password, Pattern, Account email).</div>
+              <Button variant="outline" size="sm" disabled={isMock} onClick={openAddField}>
+                Add field
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -247,8 +294,24 @@ export function DevicesBrandsSection({
             />
             Pickup/delivery enabled
           </label>
-          <Input value={d.pickupCharge} onChange={(e) => updateDevicesBrands({ pickupCharge: e.target.value })} placeholder="Pickup charge" />
-          <Input value={d.deliveryCharge} onChange={(e) => updateDevicesBrands({ deliveryCharge: e.target.value })} placeholder="Delivery charge" />
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Pickup charge</label>
+            <Input
+              value={d.pickupCharge}
+              onChange={(e) => updateDevicesBrands({ pickupCharge: e.target.value })}
+              placeholder="Pickup charge"
+              disabled={!d.pickupDeliveryEnabled}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Delivery charge</label>
+            <Input
+              value={d.deliveryCharge}
+              onChange={(e) => updateDevicesBrands({ deliveryCharge: e.target.value })}
+              placeholder="Delivery charge"
+              disabled={!d.pickupDeliveryEnabled}
+            />
+          </div>
         </div>
       </div>
 
@@ -259,8 +322,24 @@ export function DevicesBrandsSection({
             <input type="checkbox" checked={d.rentalEnabled} onChange={(e) => updateDevicesBrands({ rentalEnabled: e.target.checked })} />
             Rental enabled
           </label>
-          <Input value={d.rentalPerDay} onChange={(e) => updateDevicesBrands({ rentalPerDay: e.target.value })} placeholder="Per-day" />
-          <Input value={d.rentalPerWeek} onChange={(e) => updateDevicesBrands({ rentalPerWeek: e.target.value })} placeholder="Per-week" />
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Per day</label>
+            <Input
+              value={d.rentalPerDay}
+              onChange={(e) => updateDevicesBrands({ rentalPerDay: e.target.value })}
+              placeholder="Per-day"
+              disabled={!d.rentalEnabled}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Per week</label>
+            <Input
+              value={d.rentalPerWeek}
+              onChange={(e) => updateDevicesBrands({ rentalPerWeek: e.target.value })}
+              placeholder="Per-week"
+              disabled={!d.rentalEnabled}
+            />
+          </div>
         </div>
       </div>
 
@@ -283,7 +362,21 @@ export function DevicesBrandsSection({
           {fieldError ? <div className="text-sm text-red-600">{fieldError}</div> : null}
           <div className="space-y-1">
             <label className="text-sm font-medium">Label</label>
-            <Input value={fieldDraft.label} onChange={(e) => setFieldDraft((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Password" />
+            <Input
+              value={fieldDraft.label}
+              onChange={(e) => {
+                setFieldError(null);
+                setFieldDraft((p) => ({ ...p, label: e.target.value }));
+              }}
+              placeholder="e.g. Password"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveField();
+                }
+              }}
+            />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Type</label>

@@ -44,6 +44,39 @@ import { StylingLabelsSection } from "@/app/app/[tenant]/settings/_components/re
 import { TaxesSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/TaxesSection";
 import { TimeLogsSection } from "@/app/app/[tenant]/settings/_components/repairbuddy/sections/TimeLogsSection";
 
+function SettingsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
+            <Skeleton className="mt-2 h-3 w-36 rounded-[var(--rb-radius-sm)]" />
+            <Skeleton className="mt-3 h-9 w-[520px] max-w-full rounded-[var(--rb-radius-sm)]" />
+          </div>
+          <Skeleton className="h-9 w-20 rounded-[var(--rb-radius-sm)]" />
+        </div>
+      </div>
+
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <Skeleton className="h-5 w-48 rounded-[var(--rb-radius-sm)]" />
+          <Skeleton className="mt-3 h-4 w-full rounded-[var(--rb-radius-sm)]" />
+          <Skeleton className="mt-2 h-4 w-4/5 rounded-[var(--rb-radius-sm)]" />
+          <Skeleton className="mt-2 h-4 w-3/5 rounded-[var(--rb-radius-sm)]" />
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2">
+                <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 const navIcons: Record<string, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
   "company-profile": Building2,
   general: Settings,
@@ -132,39 +165,6 @@ export function RepairBuddySettingsTab({ tenantSlug }: { tenantSlug: string }) {
     } catch {
       return;
     }
-  }
-
-  function SettingsSkeleton() {
-    return (
-      <div className="space-y-4">
-        <div className="rounded-[var(--rb-radius-lg)] border border-[var(--rb-border)] bg-white px-5 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
-              <Skeleton className="mt-2 h-3 w-36 rounded-[var(--rb-radius-sm)]" />
-              <Skeleton className="mt-3 h-9 w-[520px] max-w-full rounded-[var(--rb-radius-sm)]" />
-            </div>
-            <Skeleton className="h-9 w-20 rounded-[var(--rb-radius-sm)]" />
-          </div>
-        </div>
-
-        <Card className="shadow-none">
-          <CardContent className="pt-5">
-            <Skeleton className="h-5 w-48 rounded-[var(--rb-radius-sm)]" />
-            <Skeleton className="mt-3 h-4 w-full rounded-[var(--rb-radius-sm)]" />
-            <Skeleton className="mt-2 h-4 w-4/5 rounded-[var(--rb-radius-sm)]" />
-            <Skeleton className="mt-2 h-4 w-3/5 rounded-[var(--rb-radius-sm)]" />
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <div key={idx} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2">
-                  <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return (

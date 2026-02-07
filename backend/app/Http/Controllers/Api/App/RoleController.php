@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
@@ -28,7 +29,12 @@ class RoleController extends Controller
         $tenantId = TenantContext::tenantId();
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'name')->where(fn ($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'permission_names' => ['array'],
             'permission_names.*' => ['string'],
         ]);
@@ -47,9 +53,28 @@ class RoleController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Role $role)
+    public function update(Request $request, $role)
     {
         $tenantId = TenantContext::tenantId();
+
+        if (!($role instanceof Role)) {
+            $roleKey = (string) $role;
+
+            if (ctype_digit($roleKey)) {
+                $role = Role::query()->find((int) $roleKey);
+            } else {
+                $role = Role::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('name', $roleKey)
+                    ->first();
+            }
+        }
+
+        if (!$role) {
+            return response()->json([
+                'message' => 'Not found.',
+            ], 404);
+        }
 
         if ((int) $role->tenant_id !== (int) $tenantId) {
             return response()->json([
@@ -58,7 +83,14 @@ class RoleController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'name')
+                    ->where(fn ($q) => $q->where('tenant_id', $tenantId))
+                    ->ignore($role->id),
+            ],
             'permission_names' => ['array'],
             'permission_names.*' => ['string'],
         ]);
@@ -76,9 +108,28 @@ class RoleController extends Controller
         ]);
     }
 
-    public function destroy(Role $role)
+    public function destroy($role)
     {
         $tenantId = TenantContext::tenantId();
+
+        if (!($role instanceof Role)) {
+            $roleKey = (string) $role;
+
+            if (ctype_digit($roleKey)) {
+                $role = Role::query()->find((int) $roleKey);
+            } else {
+                $role = Role::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('name', $roleKey)
+                    ->first();
+            }
+        }
+
+        if (!$role) {
+            return response()->json([
+                'message' => 'Not found.',
+            ], 404);
+        }
 
         if ((int) $role->tenant_id !== (int) $tenantId) {
             return response()->json([

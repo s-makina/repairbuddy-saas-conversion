@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->throttleApi('60,1');
 
+        $middleware->appendToGroup('api', [
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'permission' => \App\Http\Middleware\EnsurePermission::class,
