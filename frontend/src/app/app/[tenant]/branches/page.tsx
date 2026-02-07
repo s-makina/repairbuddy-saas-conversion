@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Skeleton, TableSkeleton } from "@/components/ui/Skeleton";
 
 type BranchesPayload = {
   branches: Branch[];
@@ -183,6 +184,52 @@ export default function TenantBranchesPage() {
   }
 
   const rows = useMemo(() => branches.slice().sort((a, b) => a.name.localeCompare(b.name)), [branches]);
+
+  function BranchesSkeleton() {
+    return (
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-4">
+          <Card className="shadow-none">
+            <CardContent className="pt-5">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <Skeleton className="h-4 w-32 rounded-[var(--rb-radius-sm)]" />
+                  <Skeleton className="mt-2 h-4 w-56 rounded-[var(--rb-radius-sm)]" />
+                </div>
+                <Skeleton className="h-9 w-20 rounded-[var(--rb-radius-sm)]" />
+              </div>
+              <div className="mt-4">
+                <Skeleton className="h-4 w-72 rounded-[var(--rb-radius-sm)]" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-8">
+          <TableSkeleton rows={6} columns={2} />
+        </div>
+      </div>
+    );
+  }
+
+  if (loading && branches.length === 0 && !error) {
+    return (
+      <RequireAuth requiredPermission="branches.manage">
+        <div className="space-y-6">
+          <PageHeader
+            title="Branches"
+            description="Manage shops (branches), set the default branch, and assign staff."
+            actions={
+              <Button size="sm" variant="outline" disabled>
+                Refresh
+              </Button>
+            }
+          />
+          <BranchesSkeleton />
+        </div>
+      </RequireAuth>
+    );
+  }
 
   return (
     <RequireAuth requiredPermission="branches.manage">

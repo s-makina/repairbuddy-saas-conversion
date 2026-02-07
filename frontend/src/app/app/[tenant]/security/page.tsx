@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import QRCode from "react-qr-code";
 import React, { useEffect, useMemo, useState } from "react";
@@ -269,6 +270,47 @@ export default function SecurityPage() {
     ],
     [],
   );
+
+  function PoliciesSkeleton() {
+    return (
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <Skeleton className="h-4 w-52 rounded-[var(--rb-radius-sm)]" />
+          <Skeleton className="mt-2 h-4 w-80 rounded-[var(--rb-radius-sm)]" />
+
+          <div className="mt-4 space-y-3">
+            <div className="space-y-1">
+              <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
+              <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
+                <div className="grid gap-2 md:grid-cols-2">
+                  {Array.from({ length: 6 }).map((_, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-4 rounded-[4px]" />
+                      <Skeleton className="h-4 w-32 rounded-[var(--rb-radius-sm)]" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="space-y-1">
+                  <Skeleton className="h-4 w-48 rounded-[var(--rb-radius-sm)]" />
+                  <Skeleton className="h-9 w-full rounded-[var(--rb-radius-sm)]" />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-9 w-28 rounded-[var(--rb-radius-sm)]" />
+              <Skeleton className="h-9 w-44 rounded-[var(--rb-radius-sm)]" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const auditFiltered = useMemo(() => {
     return auditEvents;
@@ -569,151 +611,164 @@ export default function SecurityPage() {
 
         {canManage ? (
           <TabsContent value="policies">
-            <Card className="shadow-none">
-              <CardContent className="pt-5">
-                <div className="text-sm font-semibold text-[var(--rb-text)]">Tenant security policies</div>
-                <div className="mt-1 text-sm text-zinc-600">
-                  Configure enforcement rules for all users in this business.
-                </div>
+            {settingsLoading && !settings && !settingsError ? (
+              <PoliciesSkeleton />
+            ) : (
+              <Card className="shadow-none">
+                <CardContent className="pt-5">
+                  <div className="text-sm font-semibold text-[var(--rb-text)]">Tenant security policies</div>
+                  <div className="mt-1 text-sm text-zinc-600">
+                    Configure enforcement rules for all users in this business.
+                  </div>
 
-                {settingsError ? <div className="mt-3 text-sm text-red-600">{settingsError}</div> : null}
+                  {settingsError ? <div className="mt-3 text-sm text-red-600">{settingsError}</div> : null}
 
-                <form className="mt-4 grid gap-3" onSubmit={onSavePolicies}>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="mfa_roles">
-                      MFA required roles
-                    </label>
-                    <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
-                      {rolesLoading ? <div className="text-sm text-zinc-600">Loading roles...</div> : null}
-                      {!rolesLoading && roles.length === 0 ? <div className="text-sm text-zinc-600">No roles found.</div> : null}
+                  <form className="mt-4 grid gap-3" onSubmit={onSavePolicies}>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium" htmlFor="mfa_roles">
+                        MFA required roles
+                      </label>
+                      <div className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white p-3">
+                        {rolesLoading ? (
+                          <div className="grid gap-2 md:grid-cols-2">
+                            {Array.from({ length: 6 }).map((_, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <Skeleton className="h-4 w-4 rounded-[4px]" />
+                                <Skeleton className="h-4 w-32 rounded-[var(--rb-radius-sm)]" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {!rolesLoading && roles.length === 0 ? <div className="text-sm text-zinc-600">No roles found.</div> : null}
 
-                      {!rolesLoading && roles.length > 0 ? (
-                        <div className="grid gap-2 md:grid-cols-2">
-                          {roles.map((r) => {
-                            const checked = mfaRoleIds.includes(r.id);
-                            return (
-                              <label key={r.id} className="flex items-center gap-2 text-sm text-zinc-700">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  disabled={settingsLoading}
-                                  onChange={(e) => {
-                                    const next = e.target.checked
-                                      ? Array.from(new Set([...mfaRoleIds, r.id]))
-                                      : mfaRoleIds.filter((id) => id !== r.id);
-                                    setMfaRoleIds(next);
-                                  }}
-                                />
-                                <span className="min-w-0 truncate">{r.name}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                        {!rolesLoading && roles.length > 0 ? (
+                          <div className="grid gap-2 md:grid-cols-2">
+                            {roles.map((r) => {
+                              const checked = mfaRoleIds.includes(r.id);
+                              return (
+                                <label key={r.id} className="flex items-center gap-2 text-sm text-zinc-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={settingsLoading}
+                                    onChange={(e) => {
+                                      const next = e.target.checked
+                                        ? Array.from(new Set([...mfaRoleIds, r.id]))
+                                        : mfaRoleIds.filter((id) => id !== r.id);
+                                      setMfaRoleIds(next);
+                                    }}
+                                  />
+                                  <span className="min-w-0 truncate">{r.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                      {settings?.mfa_enforce_after ? (
+                        <div className="text-xs text-zinc-600">Enforce after: {settings.mfa_enforce_after}</div>
                       ) : null}
                     </div>
-                    {settings?.mfa_enforce_after ? (
-                      <div className="text-xs text-zinc-600">Enforce after: {settings.mfa_enforce_after}</div>
-                    ) : null}
-                  </div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium" htmlFor="mfa_grace">
-                        MFA grace period (days)
-                      </label>
-                      <input
-                        id="mfa_grace"
-                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                        value={String(mfaGraceDays)}
-                        onChange={(e) => setMfaGraceDays(Number(e.target.value))}
-                        type="number"
-                        min={0}
-                        max={365}
-                        disabled={settingsLoading}
-                      />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium" htmlFor="mfa_grace">
+                          MFA grace period (days)
+                        </label>
+                        <input
+                          id="mfa_grace"
+                          className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                          value={String(mfaGraceDays)}
+                          onChange={(e) => setMfaGraceDays(Number(e.target.value))}
+                          type="number"
+                          min={0}
+                          max={365}
+                          disabled={settingsLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium" htmlFor="idle_timeout">
+                          Session idle timeout (minutes)
+                        </label>
+                        <input
+                          id="idle_timeout"
+                          className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                          value={String(idleMinutes)}
+                          onChange={(e) => setIdleMinutes(Number(e.target.value))}
+                          type="number"
+                          min={5}
+                          max={1440}
+                          disabled={settingsLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium" htmlFor="max_life">
+                          Session max lifetime (days)
+                        </label>
+                        <input
+                          id="max_life"
+                          className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                          value={String(maxLifetimeDays)}
+                          onChange={(e) => setMaxLifetimeDays(Number(e.target.value))}
+                          type="number"
+                          min={1}
+                          max={365}
+                          disabled={settingsLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium" htmlFor="lockout_attempts">
+                          Lockout max attempts
+                        </label>
+                        <input
+                          id="lockout_attempts"
+                          className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                          value={String(lockoutAttempts)}
+                          onChange={(e) => setLockoutAttempts(Number(e.target.value))}
+                          type="number"
+                          min={1}
+                          max={100}
+                          disabled={settingsLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium" htmlFor="lockout_minutes">
+                          Lockout duration (minutes)
+                        </label>
+                        <input
+                          id="lockout_minutes"
+                          className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
+                          value={String(lockoutMinutes)}
+                          onChange={(e) => setLockoutMinutes(Number(e.target.value))}
+                          type="number"
+                          min={1}
+                          max={1440}
+                          disabled={settingsLoading}
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium" htmlFor="idle_timeout">
-                        Session idle timeout (minutes)
-                      </label>
-                      <input
-                        id="idle_timeout"
-                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                        value={String(idleMinutes)}
-                        onChange={(e) => setIdleMinutes(Number(e.target.value))}
-                        type="number"
-                        min={5}
-                        max={1440}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button type="submit" disabled={settingsLoading}>
+                        {settingsLoading ? "Saving..." : "Save policies"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => void onForceLogout()}
                         disabled={settingsLoading}
-                      />
+                      >
+                        Force logout all users
+                      </Button>
                     </div>
-
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium" htmlFor="max_life">
-                        Session max lifetime (days)
-                      </label>
-                      <input
-                        id="max_life"
-                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                        value={String(maxLifetimeDays)}
-                        onChange={(e) => setMaxLifetimeDays(Number(e.target.value))}
-                        type="number"
-                        min={1}
-                        max={365}
-                        disabled={settingsLoading}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium" htmlFor="lockout_attempts">
-                        Lockout max attempts
-                      </label>
-                      <input
-                        id="lockout_attempts"
-                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                        value={String(lockoutAttempts)}
-                        onChange={(e) => setLockoutAttempts(Number(e.target.value))}
-                        type="number"
-                        min={1}
-                        max={100}
-                        disabled={settingsLoading}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium" htmlFor="lockout_minutes">
-                        Lockout duration (minutes)
-                      </label>
-                      <input
-                        id="lockout_minutes"
-                        className="w-full rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2 text-sm"
-                        value={String(lockoutMinutes)}
-                        onChange={(e) => setLockoutMinutes(Number(e.target.value))}
-                        type="number"
-                        min={1}
-                        max={1440}
-                        disabled={settingsLoading}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button type="submit" disabled={settingsLoading}>
-                      {settingsLoading ? "Saving..." : "Save policies"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => void onForceLogout()}
-                      disabled={settingsLoading}
-                    >
-                      Force logout all users
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         ) : null}
 

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth";
 
 type DateField = "pickup_date" | "delivery_date" | "next_service_date" | "post_date";
@@ -322,10 +323,24 @@ export default function TenantCalendarPage() {
             </div>
 
             {loading ? (
-              <div className="absolute left-1/2 top-1/2 z-10 w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-4 shadow">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--rb-border)] border-t-[var(--rb-blue)]" />
-                  <div className="text-sm text-zinc-600">Loading calendar events...</div>
+              <div className="absolute inset-0 z-10 rounded-[var(--rb-radius-md)] bg-white/70 p-4 backdrop-blur-[1px]">
+                <div className="mx-auto mt-20 w-full max-w-[640px] rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white p-5 shadow">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Skeleton className="h-4 w-44 rounded-[var(--rb-radius-sm)]" />
+                      <Skeleton className="mt-2 h-4 w-72 rounded-[var(--rb-radius-sm)]" />
+                    </div>
+                    <Skeleton className="h-9 w-24 rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div key={idx} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-3">
+                        <Skeleton className="h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+                        <Skeleton className="mt-2 h-4 w-full rounded-[var(--rb-radius-sm)]" />
+                        <Skeleton className="mt-2 h-3 w-20 rounded-[var(--rb-radius-sm)]" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : null}

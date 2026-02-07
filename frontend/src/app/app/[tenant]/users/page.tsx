@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
+import { Skeleton, TableSkeleton } from "@/components/ui/Skeleton";
 import { useParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -409,6 +410,78 @@ export default function TenantUsersPage() {
     setConfirmMessage(args.message);
     setConfirmAction(() => args.action);
     setConfirmOpen(true);
+  }
+
+  function UsersSkeleton() {
+    return (
+      <div className="space-y-6">
+        <Card className="shadow-none">
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Skeleton className="h-4 w-32 rounded-[var(--rb-radius-sm)]" />
+                <Skeleton className="mt-2 h-4 w-72 rounded-[var(--rb-radius-sm)]" />
+              </div>
+              <Skeleton className="h-9 w-28 rounded-[var(--rb-radius-sm)]" />
+            </div>
+
+            <div className="mt-4 grid gap-6 lg:grid-cols-12">
+              <div className="lg:col-span-7 space-y-3">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <Skeleton className="h-3 w-20 rounded-[var(--rb-radius-sm)]" />
+                    <Skeleton className="h-9 w-full rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                ))}
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-9 w-28 rounded-[var(--rb-radius-sm)]" />
+                  <Skeleton className="h-9 w-20 rounded-[var(--rb-radius-sm)]" />
+                </div>
+              </div>
+              <div className="lg:col-span-5">
+                <div className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-[var(--rb-surface-muted)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Skeleton className="h-4 w-20 rounded-[var(--rb-radius-sm)]" />
+                      <Skeleton className="mt-2 h-3 w-48 rounded-[var(--rb-radius-sm)]" />
+                    </div>
+                    <Skeleton className="h-3 w-20 rounded-[var(--rb-radius-sm)]" />
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div key={idx} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2">
+                        <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <TableSkeleton rows={8} columns={6} />
+      </div>
+    );
+  }
+
+  if (loading && users.length === 0 && roles.length === 0 && branches.length === 0) {
+    return (
+      <RequireAuth requiredPermission="users.manage">
+        <div className="space-y-6">
+          <PageHeader
+            title="Users"
+            description="Manage tenant users and their roles."
+            actions={
+              <Button type="button" disabled>
+                Invite user
+              </Button>
+            }
+          />
+          <UsersSkeleton />
+        </div>
+      </RequireAuth>
+    );
   }
 
   return (

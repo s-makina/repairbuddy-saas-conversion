@@ -5,6 +5,7 @@ import type { Permission, Role } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
@@ -64,6 +65,54 @@ export default function TenantRolesPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function RolesSkeleton() {
+    return (
+      <Card className="shadow-none">
+        <CardContent className="pt-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <Skeleton className="h-4 w-24 rounded-[var(--rb-radius-sm)]" />
+              <Skeleton className="mt-2 h-4 w-64 rounded-[var(--rb-radius-sm)]" />
+            </div>
+            <Skeleton className="h-9 w-28 rounded-[var(--rb-radius-sm)]" />
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div key={idx} className="rounded-[var(--rb-radius-md)] border border-[var(--rb-border)] bg-white px-3 py-2">
+                  <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
+                  <Skeleton className="mt-2 h-3 w-24 rounded-[var(--rb-radius-sm)]" />
+                </div>
+              ))}
+            </div>
+
+            <div className="lg:col-span-2 space-y-4">
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-24 rounded-[var(--rb-radius-sm)]" />
+                <Skeleton className="h-9 w-full rounded-[var(--rb-radius-sm)]" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28 rounded-[var(--rb-radius-sm)]" />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Array.from({ length: 10 }).map((_, idx) => (
+                    <div key={idx} className="rounded-[var(--rb-radius-sm)] border border-[var(--rb-border)] bg-white px-3 py-2">
+                      <Skeleton className="h-4 w-40 rounded-[var(--rb-radius-sm)]" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-9 w-20 rounded-[var(--rb-radius-sm)]" />
+                <Skeleton className="h-9 w-20 rounded-[var(--rb-radius-sm)]" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   useEffect(() => {
@@ -191,9 +240,11 @@ export default function TenantRolesPage() {
               </Button>
             </div>
 
-            {loading ? <div className="mt-3 text-sm text-zinc-600">Loading...</div> : null}
-
-            {!loading ? (
+            {loading ? (
+              <div className="mt-4">
+                <RolesSkeleton />
+              </div>
+            ) : (
               <div className="mt-4 grid gap-4 lg:grid-cols-3">
                 <div className="space-y-2">
                   {roles.length === 0 ? <div className="text-sm text-zinc-600">No roles.</div> : null}
@@ -276,7 +327,7 @@ export default function TenantRolesPage() {
                   )}
                 </div>
               </div>
-            ) : null}
+            )}
           </CardContent>
         </Card>
       </div>
