@@ -53,7 +53,7 @@ class RoleController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, $role)
+    public function update(Request $request, string $tenant, $role)
     {
         $tenantId = TenantContext::tenantId();
 
@@ -108,7 +108,7 @@ class RoleController extends Controller
         ]);
     }
 
-    public function destroy($role)
+    public function destroy(string $tenant, $role)
     {
         $tenantId = TenantContext::tenantId();
 

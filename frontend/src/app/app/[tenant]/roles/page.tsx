@@ -40,7 +40,15 @@ export default function TenantRolesPage() {
   const [editPerms, setEditPerms] = useState<Record<string, boolean>>({});
 
   async function load() {
-    if (typeof tenant !== "string" || tenant.length === 0) return;
+    if (typeof tenant !== "string" || tenant.length === 0) {
+      setRoles([]);
+      setPermissions([]);
+      setSelectedRoleId(null);
+      setError("Workspace not found.");
+      setStatus(null);
+      setLoading(false);
+      return;
+    }
 
     setError(null);
     setStatus(null);
@@ -59,7 +67,10 @@ export default function TenantRolesPage() {
       setPermissions(nextPerms);
 
       const firstRoleId = nextRoles[0]?.id ?? null;
-      setSelectedRoleId((prev) => prev ?? firstRoleId);
+      setSelectedRoleId((prev) => {
+        if (typeof prev === "number" && nextRoles.some((r) => r.id === prev)) return prev;
+        return firstRoleId;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load roles.");
     } finally {
@@ -137,11 +148,15 @@ export default function TenantRolesPage() {
 
     try {
       const roleName = window.prompt("Role name");
-      if (!roleName) return;
+      const trimmed = (roleName ?? "").trim();
+      if (!trimmed) {
+        setBusy(false);
+        return;
+      }
 
       await apiFetch<{ role: Role }>(`/api/${tenant}/app/roles`, {
         method: "POST",
-        body: { name: roleName, permission_names: [] },
+        body: { name: trimmed, permission_names: [] },
       });
 
       setStatus("Role created.");
@@ -166,6 +181,13 @@ export default function TenantRolesPage() {
     setStatus(null);
 
     try {
+      const trimmedName = editName.trim();
+      if (trimmedName.length === 0) {
+        setError("Role name is required.");
+        setBusy(false);
+        return;
+      }
+
       const names = Object.entries(editPerms)
         .filter(([, v]) => v)
         .map(([k]) => k);
@@ -173,7 +195,7 @@ export default function TenantRolesPage() {
       await apiFetch<{ role: Role }>(`/api/${tenant}/app/roles/${selectedRole.id}`, {
         method: "PUT",
         body: {
-          name: editName,
+          name: trimmedName,
           permission_names: names,
         },
       });
@@ -247,7 +269,14 @@ export default function TenantRolesPage() {
             ) : (
               <div className="mt-4 grid gap-4 lg:grid-cols-3">
                 <div className="space-y-2">
-                  {roles.length === 0 ? <div className="text-sm text-zinc-600">No roles.</div> : null}
+                  {roles.length === 0 ? (
+                    <div className="space-y-2">
+                      <div className="text-sm text-zinc-600">No roles.</div>
+                      <Button type="button" variant="outline" onClick={() => void load()} disabled={busy}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : null}
 
                   {roles.map((r) => {
                     const active = r.id === selectedRoleId;
@@ -283,6 +312,7 @@ export default function TenantRolesPage() {
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           required
+                          disabled={busy}
                         />
                       </div>
 
@@ -323,7 +353,7 @@ export default function TenantRolesPage() {
                       </div>
                     </form>
                   ) : (
-                    <div className="text-sm text-zinc-600">Select a role to edit.</div>
+                    <div className="text-sm text-zinc-600">{roles.length > 0 ? "Select a role to edit." : "Create a role to get started."}</div>
                   )}
                 </div>
               </div>
