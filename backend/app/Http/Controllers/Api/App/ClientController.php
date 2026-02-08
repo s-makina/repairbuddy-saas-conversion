@@ -34,8 +34,7 @@ class ClientController extends Controller
             ->where('tenant_id', $tenantId)
             ->where('is_admin', false)
             ->where(function ($sub) use ($tenantId, $branchId) {
-                $sub->whereNull('role_id')
-                    ->orWhere('role', 'customer')
+                $sub->where('role', 'customer')
                     ->orWhereExists(function ($exists) use ($tenantId, $branchId) {
                         $exists->select(DB::raw(1))
                             ->from('rb_jobs')
@@ -175,6 +174,7 @@ class ClientController extends Controller
         $client = User::query()
             ->where('tenant_id', $this->tenantId())
             ->where('is_admin', false)
+            ->where('role', 'customer')
             ->whereKey((int) $clientId)
             ->first();
 
@@ -245,6 +245,7 @@ class ClientController extends Controller
         $client = User::query()
             ->where('tenant_id', $this->tenantId())
             ->where('is_admin', false)
+            ->where('role', 'customer')
             ->whereKey((int) $clientId)
             ->first();
 
@@ -283,6 +284,7 @@ class ClientController extends Controller
         $client = User::query()
             ->where('tenant_id', $this->tenantId())
             ->where('is_admin', false)
+            ->where('role', 'customer')
             ->whereKey((int) $clientId)
             ->first();
 
@@ -314,6 +316,7 @@ class ClientController extends Controller
         $client = User::query()
             ->where('tenant_id', $this->tenantId())
             ->where('is_admin', false)
+            ->where('role', 'customer')
             ->whereKey((int) $clientId)
             ->first();
 

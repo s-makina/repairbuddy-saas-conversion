@@ -342,9 +342,10 @@ export default function TenantDashboardPage() {
           (typeof a.entity_type === "string" && a.entity_type.trim().length > 0 ? `${a.entity_type} #${a.entity_id}` : null);
 
         const visibility = typeof a.visibility === "string" && a.visibility ? a.visibility : "public";
+        const activityType: RecentActivity["type"] = visibility === "private" ? "private" : "public";
         return {
           id: String(a.id),
-          type: visibility === "private" ? "private" : "public",
+          type: activityType,
           title,
           description: desc ?? "",
           occurred_at: timeAgo(a.created_at),

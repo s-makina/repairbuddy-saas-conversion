@@ -29,6 +29,23 @@ type ApiServiceType = {
   name: string;
 };
 
+type ApiPartType = {
+  id: number;
+  name: string;
+};
+
+type ApiPartBrand = {
+  id: number;
+  name: string;
+};
+
+type ApiBranch = {
+  id: number;
+  name: string;
+  code?: string;
+  is_active?: boolean;
+};
+
 type ApiJobStatus = {
   id: number;
   slug: string;
@@ -258,11 +275,16 @@ export default function NewJobPage() {
   const [partsCatalog, setPartsCatalog] = useState<PartDraft[]>([]);
   const [servicesCatalog, setServicesCatalog] = useState<ServiceDraft[]>([]);
   const [serviceTypesCatalog, setServiceTypesCatalog] = useState<ApiServiceType[]>([]);
+  const [partTypesCatalog, setPartTypesCatalog] = useState<ApiPartType[]>([]);
+  const [partBrandsCatalog, setPartBrandsCatalog] = useState<ApiPartBrand[]>([]);
   const [createPartModalOpen, setCreatePartModalOpen] = useState(false);
   const [createPartError, setCreatePartError] = useState<string | null>(null);
   const [createPartName, setCreatePartName] = useState("");
-  const [createPartCode, setCreatePartCode] = useState("");
-  const [createPartCapacity, setCreatePartCapacity] = useState("");
+  const [createPartPrice, setCreatePartPrice] = useState("");
+  const [createPartBrandId, setCreatePartBrandId] = useState<string>("");
+  const [createPartTypeId, setCreatePartTypeId] = useState<string>("");
+  const [createPartManufacturingCode, setCreatePartManufacturingCode] = useState("");
+  const [createPartStockCode, setCreatePartStockCode] = useState("");
 
   const [createServiceModalOpen, setCreateServiceModalOpen] = useState(false);
   const [createServiceError, setCreateServiceError] = useState<string | null>(null);
@@ -307,8 +329,11 @@ export default function NewJobPage() {
   const [technicianCreateError, setTechnicianCreateError] = useState<string | null>(null);
   const [technicianCreateName, setTechnicianCreateName] = useState("");
   const [technicianCreateEmail, setTechnicianCreateEmail] = useState("");
+  const [technicianCreateBranchIds, setTechnicianCreateBranchIds] = useState<number[]>([]);
   const [technicianOption, setTechnicianOption] = useState<TechnicianOption | null>(null);
   const [technicianMode, setTechnicianMode] = useState<"existing" | "new">("existing");
+
+  const [branchesCatalog, setBranchesCatalog] = useState<ApiBranch[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -353,6 +378,15 @@ export default function NewJobPage() {
         } catch {
           if (!alive) return;
           setTechnicians([]);
+        }
+
+        try {
+          const branchesRes = await apiFetch<{ branches: ApiBranch[] }>(`/api/${tenantSlug}/app/branches`);
+          if (!alive) return;
+          setBranchesCatalog(Array.isArray(branchesRes.branches) ? branchesRes.branches : []);
+        } catch {
+          if (!alive) return;
+          setBranchesCatalog([]);
         }
 
         try {
@@ -419,6 +453,24 @@ export default function NewJobPage() {
         }
 
         try {
+          const typesRes = await apiFetch<{ part_types: ApiPartType[] }>(`/api/${tenantSlug}/app/repairbuddy/part-types?limit=200`);
+          if (!alive) return;
+          setPartTypesCatalog(Array.isArray(typesRes.part_types) ? typesRes.part_types : []);
+        } catch {
+          if (!alive) return;
+          setPartTypesCatalog([]);
+        }
+
+        try {
+          const brandsRes = await apiFetch<{ part_brands: ApiPartBrand[] }>(`/api/${tenantSlug}/app/repairbuddy/part-brands?limit=200`);
+          if (!alive) return;
+          setPartBrandsCatalog(Array.isArray(brandsRes.part_brands) ? brandsRes.part_brands : []);
+        } catch {
+          if (!alive) return;
+          setPartBrandsCatalog([]);
+        }
+
+        try {
           const servicesRes = await apiFetch<{ services: ApiService[] }>(`/api/${tenantSlug}/app/repairbuddy/services?limit=200`);
           if (!alive) return;
           const list = Array.isArray(servicesRes.services) ? servicesRes.services : [];
@@ -448,11 +500,14 @@ export default function NewJobPage() {
         setPaymentStatuses([]);
         setClients([]);
         setTechnicians([]);
+        setBranchesCatalog([]);
         setNextServiceEnabled(false);
         setDevices([]);
         setPartsCatalog([]);
         setServicesCatalog([]);
         setServiceTypesCatalog([]);
+        setPartTypesCatalog([]);
+        setPartBrandsCatalog([]);
       } finally {
         if (!alive) return;
         setLoadingLookups(false);
@@ -1467,18 +1522,61 @@ export default function NewJobPage() {
                   return;
                 }
 
+                const rawPrice = createPartPrice.trim();
+                if (rawPrice.length === 0) {
+                  setCreatePartError("Part price is required.");
+                  return;
+                }
+
+                const priceNum = Number(rawPrice);
+                const priceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : null;
+                if (priceAmountCents === null || priceAmountCents < 0) {
+                  setCreatePartError("Part price is invalid.");
+                  return;
+                }
+
+                const typeIdTrimmed = createPartTypeId.trim();
+                const typeIdNum = typeIdTrimmed !== "" ? Number(typeIdTrimmed) : NaN;
+                const partTypeId = Number.isFinite(typeIdNum) && typeIdNum > 0 ? Math.trunc(typeIdNum) : null;
+                if (partTypesCatalog.length > 0 && partTypeId === null) {
+                  setCreatePartError("Part type is required.");
+                  return;
+                }
+
+                const brandIdTrimmed = createPartBrandId.trim();
+                const brandIdNum = brandIdTrimmed !== "" ? Number(brandIdTrimmed) : NaN;
+                const partBrandId = Number.isFinite(brandIdNum) && brandIdNum > 0 ? Math.trunc(brandIdNum) : null;
+                if (partBrandsCatalog.length > 0 && partBrandId === null) {
+                  setCreatePartError("Part brand is required.");
+                  return;
+                }
+
+                const manufacturingCode = createPartManufacturingCode.trim();
+                const stockCode = createPartStockCode.trim();
+
                 setBusy(true);
                 setCreatePartError(null);
 
                 try {
-                  const res = await apiFetch<{ part: { id: number; name: string; manufacturing_code: string | null; capacity: string | null } }>(
+                  const res = await apiFetch<{
+                    part: {
+                      id: number;
+                      name: string;
+                      manufacturing_code: string | null;
+                      stock_code: string | null;
+                      capacity: string | null;
+                    };
+                  }>(
                     `/api/${tenantSlug}/app/repairbuddy/parts`,
                     {
                       method: "POST",
                       body: {
                         name,
-                        manufacturing_code: createPartCode.trim() !== "" ? createPartCode.trim() : null,
-                        capacity: createPartCapacity.trim() !== "" ? createPartCapacity.trim() : null,
+                        price_amount_cents: priceAmountCents,
+                        ...(typeof partTypeId === "number" ? { part_type_id: partTypeId } : {}),
+                        ...(typeof partBrandId === "number" ? { part_brand_id: partBrandId } : {}),
+                        manufacturing_code: manufacturingCode !== "" ? manufacturingCode : null,
+                        stock_code: stockCode !== "" ? stockCode : null,
                       },
                     },
                   );
@@ -1500,8 +1598,11 @@ export default function NewJobPage() {
                   setPartPickerPart({ value: draft.id, label: draft.name, code: draft.code, capacity: draft.capacity });
 
                   setCreatePartName("");
-                  setCreatePartCode("");
-                  setCreatePartCapacity("");
+                  setCreatePartPrice("");
+                  setCreatePartBrandId("");
+                  setCreatePartTypeId("");
+                  setCreatePartManufacturingCode("");
+                  setCreatePartStockCode("");
                   setCreatePartModalOpen(false);
                   notify.success("Part created.");
                 } catch (err) {
@@ -1525,16 +1626,94 @@ export default function NewJobPage() {
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
-              <div className="mb-1 text-xs text-zinc-600">Name</div>
-              <Input value={createPartName} onChange={(e) => setCreatePartName(e.target.value)} />
+              <div className="mb-1 text-xs text-zinc-600">Part name</div>
+              <Input
+                value={createPartName}
+                onChange={(e) => {
+                  setCreatePartError(null);
+                  setCreatePartName(e.target.value);
+                }}
+                disabled={disabled}
+              />
             </div>
+
             <div>
-              <div className="mb-1 text-xs text-zinc-600">Code</div>
-              <Input value={createPartCode} onChange={(e) => setCreatePartCode(e.target.value)} />
+              <div className="mb-1 text-xs text-zinc-600">Part price</div>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={createPartPrice}
+                onChange={(e) => {
+                  setCreatePartError(null);
+                  setCreatePartPrice(e.target.value);
+                }}
+                disabled={disabled}
+              />
             </div>
+
             <div>
-              <div className="mb-1 text-xs text-zinc-600">Capacity</div>
-              <Input value={createPartCapacity} onChange={(e) => setCreatePartCapacity(e.target.value)} />
+              <div className="mb-1 text-xs text-zinc-600">Select brand</div>
+              <select
+                className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                value={createPartBrandId}
+                onChange={(e) => {
+                  setCreatePartError(null);
+                  setCreatePartBrandId(e.target.value);
+                }}
+                disabled={disabled || partBrandsCatalog.length === 0}
+              >
+                <option value="">{partBrandsCatalog.length > 0 ? "Select brand..." : "No brands available"}</option>
+                {partBrandsCatalog.map((b) => (
+                  <option key={b.id} value={String(b.id)}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Select type</div>
+              <select
+                className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                value={createPartTypeId}
+                onChange={(e) => {
+                  setCreatePartError(null);
+                  setCreatePartTypeId(e.target.value);
+                }}
+                disabled={disabled || partTypesCatalog.length === 0}
+              >
+                <option value="">{partTypesCatalog.length > 0 ? "Select type..." : "No types available"}</option>
+                {partTypesCatalog.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Manufacturing code</div>
+              <Input
+                value={createPartManufacturingCode}
+                onChange={(e) => {
+                  setCreatePartError(null);
+                  setCreatePartManufacturingCode(e.target.value);
+                }}
+                disabled={disabled}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Stock code</div>
+              <Input
+                value={createPartStockCode}
+                onChange={(e) => {
+                  setCreatePartError(null);
+                  setCreatePartStockCode(e.target.value);
+                }}
+                disabled={disabled}
+              />
             </div>
           </div>
         </div>
@@ -1683,7 +1862,11 @@ export default function NewJobPage() {
               </Button>
               <Button
                 type="button"
-                onClick={() => {
+                disabled={disabled}
+                onClick={async () => {
+                  if (busy) return;
+                  if (typeof tenantSlug !== "string" || tenantSlug.length === 0) return;
+
                   const name = technicianCreateName.trim();
                   const email = technicianCreateEmail.trim();
                   if (name === "") {
@@ -1695,11 +1878,51 @@ export default function NewJobPage() {
                     return;
                   }
 
+                  const branchIds = technicianCreateBranchIds.filter((x) => typeof x === "number" && x > 0);
+                  if (branchIds.length === 0) {
+                    setTechnicianCreateError("Please select at least one shop.");
+                    return;
+                  }
+
+                  setBusy(true);
                   setTechnicianCreateError(null);
-                  setTechnicianMode("new");
-                  setTechnicianOption({ value: -1, label: `${name} (${email})` });
-                  setAssignedTechnicianIds([]);
-                  setTechnicianCreateOpen(false);
+
+                  try {
+                    const res = await apiFetch<{ user: ApiTechnician }>(`/api/${tenantSlug}/app/technicians`, {
+                      method: "POST",
+                      body: {
+                        name,
+                        email,
+                        branch_ids: branchIds,
+                      },
+                    });
+
+                    const user = res.user;
+                    if (!user || typeof user.id !== "number") {
+                      setTechnicianCreateError("Failed to create technician.");
+                      return;
+                    }
+
+                    setTechnicians((prev) => [user, ...prev.filter((t) => t.id !== user.id)]);
+
+                    setTechnicianMode("existing");
+                    setTechnicianOption(null);
+                    setAssignedTechnicianIds([user.id]);
+
+                    setTechnicianCreateName("");
+                    setTechnicianCreateEmail("");
+                    setTechnicianCreateBranchIds([]);
+                    setTechnicianCreateOpen(false);
+                    notify.success("Technician created.");
+                  } catch (err) {
+                    if (err instanceof ApiError) {
+                      setTechnicianCreateError(err.message);
+                    } else {
+                      setTechnicianCreateError("Failed to create technician.");
+                    }
+                  } finally {
+                    setBusy(false);
+                  }
                 }}
               >
                 Save
@@ -1712,11 +1935,51 @@ export default function NewJobPage() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <div className="mb-1 text-xs text-zinc-600">Name</div>
-                <Input value={technicianCreateName} onChange={(e) => setTechnicianCreateName(e.target.value)} />
+                <Input
+                  value={technicianCreateName}
+                  onChange={(e) => {
+                    setTechnicianCreateError(null);
+                    setTechnicianCreateName(e.target.value);
+                  }}
+                  disabled={disabled}
+                />
               </div>
               <div>
                 <div className="mb-1 text-xs text-zinc-600">Email</div>
-                <Input value={technicianCreateEmail} onChange={(e) => setTechnicianCreateEmail(e.target.value)} />
+                <Input
+                  value={technicianCreateEmail}
+                  onChange={(e) => {
+                    setTechnicianCreateError(null);
+                    setTechnicianCreateEmail(e.target.value);
+                  }}
+                  disabled={disabled}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="mb-1 text-xs text-zinc-600">Shops</div>
+                <select
+                  multiple
+                  className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                  value={technicianCreateBranchIds.map(String)}
+                  onChange={(e) => {
+                    setTechnicianCreateError(null);
+                    const values = Array.from(e.target.selectedOptions)
+                      .map((o) => Number(o.value))
+                      .filter((n) => Number.isFinite(n) && n > 0)
+                      .map((n) => Math.trunc(n));
+                    setTechnicianCreateBranchIds(values);
+                  }}
+                  disabled={disabled || branchesCatalog.length === 0}
+                >
+                  {branchesCatalog.length === 0 ? <option value="">No shops available</option> : null}
+                  {branchesCatalog.map((b) => (
+                    <option key={b.id} value={String(b.id)}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-1 text-xs text-zinc-500">Hold Ctrl / Cmd to select multiple shops.</div>
               </div>
             </div>
           </div>
