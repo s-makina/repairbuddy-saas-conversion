@@ -15,13 +15,18 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/notify";
 import { getRepairBuddySettings } from "@/lib/repairbuddy-settings";
 import { WizardShell } from "@/components/repairbuddy/wizard/WizardShell";
-import { DevicesAdminEditor } from "@/components/repairbuddy/wizard/DevicesAdminEditor";
+import { DevicesAdminEditor, type WizardAdditionalDeviceField } from "@/components/repairbuddy/wizard/DevicesAdminEditor";
 import { CustomerCreateModal } from "@/components/repairbuddy/wizard/CustomerCreateModal";
 import { ItemsStep } from "@/components/repairbuddy/wizard/ItemsStep";
 
 type ApiDevice = {
   id: number;
   model: string;
+};
+
+type ApiServiceType = {
+  id: number;
+  name: string;
 };
 
 type ApiJobStatus = {
@@ -60,6 +65,7 @@ type NewJobDeviceDraft = {
   serial: string;
   pin: string;
   notes: string;
+  extra_fields: Array<{ key: string; label: string; value_text: string }>;
 };
 
 type ApiTechnician = {
@@ -222,6 +228,7 @@ export default function NewJobPage() {
       serial: "",
       pin: "",
       notes: "",
+      extra_fields: [],
     },
   ]);
 
@@ -250,6 +257,7 @@ export default function NewJobPage() {
 
   const [partsCatalog, setPartsCatalog] = useState<PartDraft[]>([]);
   const [servicesCatalog, setServicesCatalog] = useState<ServiceDraft[]>([]);
+  const [serviceTypesCatalog, setServiceTypesCatalog] = useState<ApiServiceType[]>([]);
   const [createPartModalOpen, setCreatePartModalOpen] = useState(false);
   const [createPartError, setCreatePartError] = useState<string | null>(null);
   const [createPartName, setCreatePartName] = useState("");
@@ -259,6 +267,8 @@ export default function NewJobPage() {
   const [createServiceModalOpen, setCreateServiceModalOpen] = useState(false);
   const [createServiceError, setCreateServiceError] = useState<string | null>(null);
   const [createServiceName, setCreateServiceName] = useState("");
+  const [createServiceTypeId, setCreateServiceTypeId] = useState<string>("");
+  const [createServiceCode, setCreateServiceCode] = useState("");
   const [createServiceBasePrice, setCreateServiceBasePrice] = useState("");
 
   const [partPickerModalOpen, setPartPickerModalOpen] = useState(false);
@@ -288,6 +298,9 @@ export default function NewJobPage() {
   const [technicians, setTechnicians] = useState<ApiTechnician[]>([]);
   const [customerDevices, setCustomerDevices] = useState<ApiCustomerDevice[]>([]);
   const [nextServiceEnabled, setNextServiceEnabled] = useState(false);
+  const [additionalDeviceFields, setAdditionalDeviceFields] = useState<WizardAdditionalDeviceField[]>([]);
+  const [pinEnabled, setPinEnabled] = useState(false);
+  const [pinLabel, setPinLabel] = useState("Pin");
   const [devices, setDevices] = useState<ApiDevice[]>([]);
 
   const [technicianCreateOpen, setTechnicianCreateOpen] = useState(false);
@@ -346,9 +359,31 @@ export default function NewJobPage() {
           const settingsRes = await getRepairBuddySettings(String(tenantSlug));
           if (!alive) return;
           setNextServiceEnabled(Boolean(settingsRes.settings?.general?.nextServiceDateEnabled));
+
+          setPinEnabled(Boolean(settingsRes.settings?.devicesBrands?.enablePinCodeField));
+          const rawLabels = settingsRes.settings?.devicesBrands?.labels;
+          const nextPinLabel =
+            rawLabels && typeof rawLabels === "object" && typeof (rawLabels as { pin?: unknown }).pin === "string"
+              ? String((rawLabels as { pin?: unknown }).pin).trim()
+              : "";
+          setPinLabel(nextPinLabel !== "" ? nextPinLabel : "Pin");
+
+          const rawFields = settingsRes.settings?.devicesBrands?.additionalDeviceFields;
+          const mapped: WizardAdditionalDeviceField[] = (Array.isArray(rawFields) ? rawFields : [])
+            .map((f) => {
+              const key = typeof (f as { id?: unknown }).id === "string" ? String((f as { id?: unknown }).id) : "";
+              const label = typeof (f as { label?: unknown }).label === "string" ? String((f as { label?: unknown }).label) : "";
+              if (!key || !label) return null;
+              return { key, label };
+            })
+            .filter((x): x is WizardAdditionalDeviceField => Boolean(x));
+          setAdditionalDeviceFields(mapped);
         } catch {
           if (!alive) return;
           setNextServiceEnabled(false);
+          setAdditionalDeviceFields([]);
+          setPinEnabled(false);
+          setPinLabel("Pin");
         }
 
         const preferredStatus =
@@ -397,6 +432,15 @@ export default function NewJobPage() {
           if (!alive) return;
           setServicesCatalog([]);
         }
+
+        try {
+          const typesRes = await apiFetch<{ service_types: ApiServiceType[] }>(`/api/${tenantSlug}/app/repairbuddy/service-types?limit=200`);
+          if (!alive) return;
+          setServiceTypesCatalog(Array.isArray(typesRes.service_types) ? typesRes.service_types : []);
+        } catch {
+          if (!alive) return;
+          setServiceTypesCatalog([]);
+        }
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to load form data.");
@@ -408,6 +452,7 @@ export default function NewJobPage() {
         setDevices([]);
         setPartsCatalog([]);
         setServicesCatalog([]);
+        setServiceTypesCatalog([]);
       } finally {
         if (!alive) return;
         setLoadingLookups(false);
@@ -666,6 +711,16 @@ export default function NewJobPage() {
                 serial: d.serial.trim() !== "" ? d.serial.trim() : null,
                 pin: d.pin.trim() !== "" ? d.pin.trim() : null,
                 notes: d.notes.trim() !== "" ? d.notes.trim() : null,
+                extra_fields:
+                  Array.isArray(d.extra_fields) && d.extra_fields.length > 0
+                    ? d.extra_fields
+                        .map((x) => ({
+                          key: typeof x?.key === "string" ? x.key : "",
+                          label: typeof x?.label === "string" ? x.label : "",
+                          value_text: typeof x?.value_text === "string" ? x.value_text : "",
+                        }))
+                        .filter((x) => x.key && x.label)
+                    : [],
               }))
             : [],
         case_number: caseNumber.trim() !== "" ? caseNumber.trim() : null,
@@ -1263,6 +1318,16 @@ export default function NewJobPage() {
                   return;
                 }
 
+                const typeIdTrimmed = createServiceTypeId.trim();
+                const typeIdNum = typeIdTrimmed !== "" ? Number(typeIdTrimmed) : NaN;
+                const serviceTypeId = Number.isFinite(typeIdNum) && typeIdNum > 0 ? Math.trunc(typeIdNum) : null;
+                if (serviceTypesCatalog.length > 0 && serviceTypeId === null) {
+                  setCreateServiceError("Service type is required.");
+                  return;
+                }
+
+                const code = createServiceCode.trim();
+
                 setBusy(true);
                 setCreateServiceError(null);
 
@@ -1271,6 +1336,8 @@ export default function NewJobPage() {
                     method: "POST",
                     body: {
                       name,
+                      ...(typeof serviceTypeId === "number" ? { service_type_id: serviceTypeId } : {}),
+                      ...(code !== "" ? { service_code: code } : {}),
                       ...(typeof basePriceAmountCents === "number" ? { base_price_amount_cents: basePriceAmountCents } : {}),
                     },
                   });
@@ -1286,6 +1353,8 @@ export default function NewJobPage() {
                   setServicePickerService({ value: draft.id, label: draft.name });
 
                   setCreateServiceName("");
+                  setCreateServiceTypeId("");
+                  setCreateServiceCode("");
                   setCreateServiceBasePrice("");
                   setCreateServiceModalOpen(false);
                   notify.success("Service created.");
@@ -1310,17 +1379,53 @@ export default function NewJobPage() {
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
-              <div className="mb-1 text-xs text-zinc-600">Name</div>
+              <div className="mb-1 text-xs text-zinc-600">Service name</div>
               <Input value={createServiceName} onChange={(e) => setCreateServiceName(e.target.value)} disabled={disabled} />
             </div>
+
             <div>
-              <div className="mb-1 text-xs text-zinc-600">Base price</div>
+              <div className="mb-1 text-xs text-zinc-600">Select type</div>
+              <select
+                className="w-full rounded-[var(--rb-radius-sm)] border border-zinc-300 bg-white px-3 py-2 text-sm text-[var(--rb-text)]"
+                value={createServiceTypeId}
+                onChange={(e) => {
+                  setCreateServiceError(null);
+                  setCreateServiceTypeId(e.target.value);
+                }}
+                disabled={disabled || serviceTypesCatalog.length === 0}
+              >
+                <option value="">{serviceTypesCatalog.length > 0 ? "Select type..." : "No types available"}</option>
+                {serviceTypesCatalog.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Service code</div>
+              <Input
+                value={createServiceCode}
+                onChange={(e) => {
+                  setCreateServiceError(null);
+                  setCreateServiceCode(e.target.value);
+                }}
+                disabled={disabled}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs text-zinc-600">Service price</div>
               <Input
                 type="number"
                 min={0}
                 step="0.01"
                 value={createServiceBasePrice}
-                onChange={(e) => setCreateServiceBasePrice(e.target.value)}
+                onChange={(e) => {
+                  setCreateServiceError(null);
+                  setCreateServiceBasePrice(e.target.value);
+                }}
                 disabled={disabled}
               />
             </div>
@@ -1853,17 +1958,19 @@ export default function NewJobPage() {
                         loadDeviceOptions={loadDeviceOptions}
                         disabled={disabled}
                         idPrefix="job"
-                        showPin={false}
+                        showPin={pinEnabled}
                         serialLabel="Device ID / IMEI"
-                        pinLabel="Pin"
+                        pinLabel={pinLabel}
                         notesLabel="Device note"
                         addButtonLabel="Add device"
+                        additionalFields={additionalDeviceFields}
                         createEmptyRow={() => ({
                           device_id: null,
                           option: null,
                           serial: "",
                           pin: "",
                           notes: "",
+                          extra_fields: additionalDeviceFields.map((f) => ({ key: f.key, label: f.label, value_text: "" })),
                         })}
                       />
                     </FormRow>

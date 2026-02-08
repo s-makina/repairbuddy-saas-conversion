@@ -16,6 +16,7 @@ import { WizardShell } from "@/components/repairbuddy/wizard/WizardShell";
 import { DevicesAdminEditor } from "@/components/repairbuddy/wizard/DevicesAdminEditor";
 import { CustomerCreateModal } from "@/components/repairbuddy/wizard/CustomerCreateModal";
 import { ItemsStep } from "@/components/repairbuddy/wizard/ItemsStep";
+import { getRepairBuddySettings } from "@/lib/repairbuddy-settings";
 
 type ApiDevice = {
   id: number;
@@ -46,6 +47,7 @@ type NewEstimateDeviceDraft = {
   serial: string;
   pin: string;
   notes: string;
+  extra_fields: Array<{ key: string; label: string; value_text: string }>;
 };
 
 type ApiTechnician = {
@@ -185,12 +187,16 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
       serial: "",
       pin: "",
       notes: "",
+      extra_fields: [],
     },
   ]);
 
   const [customers, setCustomers] = useState<ApiClient[]>([]);
   const [devicesCatalog, setDevicesCatalog] = useState<ApiDevice[]>([]);
   const [technicians, setTechnicians] = useState<ApiTechnician[]>([]);
+
+  const [pinEnabled, setPinEnabled] = useState(false);
+  const [pinLabel, setPinLabel] = useState("Pin");
 
   const [partsCatalog, setPartsCatalog] = useState<PartDraft[]>([]);
   const [servicesCatalog, setServicesCatalog] = useState<ServiceDraft[]>([]);
@@ -314,12 +320,13 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
       try {
         setLoadingLookups(true);
 
-        const [clientsRes, devicesRes, techniciansRes, partsRes, servicesRes] = await Promise.all([
+        const [clientsRes, devicesRes, techniciansRes, partsRes, servicesRes, settingsRes] = await Promise.all([
           apiFetch<{ clients: ApiClient[] }>(`/api/${tenantSlug}/app/clients?limit=200`),
           apiFetch<{ devices: ApiDevice[] }>(`/api/${tenantSlug}/app/repairbuddy/devices?limit=10`),
           apiFetch<{ users: ApiTechnician[] }>(`/api/${tenantSlug}/app/technicians?per_page=100&sort=name&dir=asc`),
           apiFetch<{ parts: ApiPart[] }>(`/api/${tenantSlug}/app/repairbuddy/parts?limit=200`),
           apiFetch<{ services: ApiService[] }>(`/api/${tenantSlug}/app/repairbuddy/services?limit=200`),
+          getRepairBuddySettings(String(tenantSlug)),
         ]);
 
         if (!alive) return;
@@ -327,6 +334,14 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
         setCustomers(Array.isArray(clientsRes.clients) ? clientsRes.clients : []);
         setDevicesCatalog(Array.isArray(devicesRes.devices) ? devicesRes.devices : []);
         setTechnicians(Array.isArray(techniciansRes.users) ? techniciansRes.users : []);
+
+        setPinEnabled(Boolean(settingsRes.settings?.devicesBrands?.enablePinCodeField));
+        const rawLabels = settingsRes.settings?.devicesBrands?.labels;
+        const nextPinLabel =
+          rawLabels && typeof rawLabels === "object" && typeof (rawLabels as { pin?: unknown }).pin === "string"
+            ? String((rawLabels as { pin?: unknown }).pin).trim()
+            : "";
+        setPinLabel(nextPinLabel !== "" ? nextPinLabel : "Pin");
 
         const partsList = Array.isArray(partsRes.parts) ? partsRes.parts : [];
         setPartsCatalog(
@@ -351,7 +366,12 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
           return;
         }
 
-        setError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed to load data.");
+        setError(e instanceof Error ? e.message : "Failed to load form data.");
+        setCustomers([]);
+        setDevicesCatalog([]);
+        setTechnicians([]);
+        setPinEnabled(false);
+        setPinLabel("Pin");
       } finally {
         if (!alive) return;
         setLoadingLookups(false);
@@ -449,7 +469,7 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                 .map((d) => ({
                   device_id: d.device_id as number,
                   serial: d.serial.trim() !== "" ? d.serial.trim() : null,
-                  pin: d.pin.trim() !== "" ? d.pin.trim() : null,
+                  pin: pinEnabled && d.pin.trim() !== "" ? d.pin.trim() : null,
                   notes: d.notes.trim() !== "" ? d.notes.trim() : null,
                 }))
             : [],
@@ -1063,9 +1083,9 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                       loadDeviceOptions={loadDeviceOptions}
                       disabled={disabled}
                       idPrefix="estimate"
-                      showPin={false}
+                      showPin={pinEnabled}
                       serialLabel="Serial / IMEI"
-                      pinLabel="Pin"
+                      pinLabel={pinLabel}
                       notesLabel="Notes"
                       addButtonLabel="Add device"
                       createEmptyRow={() => ({
@@ -1074,6 +1094,7 @@ export function EstimateWizard({ tenantSlug }: { tenantSlug: string }) {
                         serial: "",
                         pin: "",
                         notes: "",
+                        extra_fields: [],
                       })}
                     />
                   </FormRow>

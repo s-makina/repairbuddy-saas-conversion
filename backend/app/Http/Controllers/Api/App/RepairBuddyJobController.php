@@ -287,6 +287,10 @@ class RepairBuddyJobController extends Controller
             'devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.pin' => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'devices.*.extra_fields' => ['sometimes', 'array'],
+            'devices.*.extra_fields.*.key' => ['required_with:devices.*.extra_fields', 'string', 'max:255'],
+            'devices.*.extra_fields.*.label' => ['required_with:devices.*.extra_fields', 'string', 'max:255'],
+            'devices.*.extra_fields.*.value_text' => ['sometimes', 'nullable', 'string', 'max:5000'],
 
             'customer_create' => ['sometimes', 'array'],
             'customer_create.name' => ['required_with:customer_create', 'string', 'max:255'],
@@ -362,6 +366,7 @@ class RepairBuddyJobController extends Controller
                     'serial' => array_key_exists('serial', $entry) && is_string($entry['serial']) ? trim((string) $entry['serial']) : null,
                     'pin' => array_key_exists('pin', $entry) && is_string($entry['pin']) ? trim((string) $entry['pin']) : null,
                     'notes' => array_key_exists('notes', $entry) && is_string($entry['notes']) ? trim((string) $entry['notes']) : null,
+                    'extra_fields' => array_key_exists('extra_fields', $entry) && is_array($entry['extra_fields']) ? $entry['extra_fields'] : [],
                 ];
             }
 
@@ -676,6 +681,30 @@ class RepairBuddyJobController extends Controller
                     $pin = is_string($entry['pin'] ?? null) ? trim((string) $entry['pin']) : '';
                     $notes = is_string($entry['notes'] ?? null) ? trim((string) $entry['notes']) : '';
 
+                    $extraFieldsPayload = is_array($entry['extra_fields'] ?? null) ? $entry['extra_fields'] : [];
+                    $extraFieldsSnapshot = [];
+                    foreach ($extraFieldsPayload as $row) {
+                        if (! is_array($row)) {
+                            continue;
+                        }
+                        $key = is_string($row['key'] ?? null) ? trim((string) $row['key']) : '';
+                        $label = is_string($row['label'] ?? null) ? trim((string) $row['label']) : '';
+                        $valueText = is_string($row['value_text'] ?? null) ? trim((string) $row['value_text']) : '';
+                        if ($key === '' || $label === '' || $valueText === '') {
+                            continue;
+                        }
+                        $extraFieldsSnapshot[] = [
+                            'key' => $key,
+                            'label' => $label,
+                            'type' => 'text',
+                            'show_in_booking' => true,
+                            'show_in_invoice' => true,
+                            'show_in_portal' => true,
+                            'value_text' => $valueText,
+                        ];
+                    }
+                    $extraFieldsSnapshot = array_slice($extraFieldsSnapshot, 0, 50);
+
                     $customerDevice = RepairBuddyCustomerDevice::query()->create([
                         'customer_id' => (int) $job->customer_id,
                         'device_id' => $device->id,
@@ -692,7 +721,7 @@ class RepairBuddyJobController extends Controller
                         'serial_snapshot' => $customerDevice->serial,
                         'pin_snapshot' => $customerDevice->pin,
                         'notes_snapshot' => $customerDevice->notes,
-                        'extra_fields_snapshot_json' => [],
+                        'extra_fields_snapshot_json' => $extraFieldsSnapshot,
                     ]);
                 }
             }
