@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/app/layout,_N_T_/app/get-up-and-glo/layout,_N_T_/app/get-up-and-glo/calendar/layout,_N_T_/app/get-up-and-glo/calendar/page,_N_T_/app/get-up-and-glo/calendar"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/app/get-up-and-glo/calendar/__PAGE__",
+    "/app/get-up-and-glo/calendar",
+    "/app/get-up-and-glo",
+    "/app",
+    "/_index",
+    "/_head"
+  ]
+}
