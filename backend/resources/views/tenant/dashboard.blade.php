@@ -643,3 +643,377 @@
     </div>
   </main>
 @endsection
+
+@push('page-scripts')
+  <script>
+    (function () {
+      if (typeof Chart === 'undefined') return;
+
+      function initRevenueChart() {
+        var el = document.getElementById('revenueChart');
+        if (!el) return;
+
+        var labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        var revenue = [320, 540, 410, 760, 610, 980, 720];
+        var jobs = [2, 4, 3, 5, 4, 7, 6];
+
+        new Chart(el, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Revenue',
+              data: revenue,
+              borderColor: '#0d6efd',
+              backgroundColor: 'rgba(13, 110, 253, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: '#0d6efd',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }, {
+              label: 'Jobs Completed',
+              data: jobs,
+              borderColor: '#198754',
+              backgroundColor: 'rgba(25, 135, 84, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'y1',
+              pointBackgroundColor: '#198754',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  padding: 20
+                }
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                padding: 12,
+                callbacks: {
+                  label: function(context) {
+                    var label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      if (context.datasetIndex === 0) {
+                        return label + new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                      }
+                      return label + Math.round(context.parsed.y) + ' jobs';
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Revenue',
+                  font: { size: 14, weight: 'bold' }
+                },
+                ticks: {
+                  callback: function(value) {
+                    return new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0
+                    }).format(value);
+                  }
+                },
+                grid: { color: 'rgba(0, 0, 0, 0.1)' }
+              },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                title: {
+                  display: true,
+                  text: 'Jobs Completed',
+                  font: { size: 14, weight: 'bold' }
+                },
+                grid: { drawOnChartArea: false },
+                ticks: {
+                  callback: function(value) {
+                    return Math.round(value) + '';
+                  }
+                }
+              },
+              x: {
+                grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                ticks: { maxRotation: 0 }
+              }
+            }
+          }
+        });
+      }
+
+      function initDoughnutChart(canvasId, labels, data, colors) {
+        var el = document.getElementById(canvasId);
+        if (!el) return;
+
+        new Chart(el, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: colors,
+              borderWidth: 3,
+              borderColor: '#fff',
+              hoverBorderWidth: 4,
+              hoverBorderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  font: { size: 13 }
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                padding: 12,
+                callbacks: {
+                  label: function(context) {
+                    var label = context.label || '';
+                    var value = context.raw || 0;
+                    var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                    var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    return label + ': ' + value + ' jobs (' + percentage + '%)';
+                  }
+                }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+
+      function initDeviceTypePieChart() {
+        var el = document.getElementById('deviceTypeChart');
+        if (!el) return;
+        var labels = ['Phones', 'Laptops', 'Tablets', 'PC'];
+        var data = [12, 8, 5, 7];
+        new Chart(el, {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#20c997', '#6610f2', '#6c757d', '#198754'],
+              borderWidth: 3,
+              borderColor: '#fff',
+              hoverBorderWidth: 4,
+              hoverBorderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  font: { size: 13 }
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                padding: 12,
+                callbacks: {
+                  label: function(context) {
+                    var label = context.label || '';
+                    var value = context.raw || 0;
+                    var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                    var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    return label + ': ' + value + ' jobs (' + percentage + '%)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      function initPerformanceChart() {
+        var el = document.getElementById('performanceChart');
+        if (!el) return;
+
+        var labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        var data = [3.2, 2.8, 2.5, 2.1, 1.9, 1.7];
+
+        new Chart(el, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Average Repair Time',
+              data: data,
+              backgroundColor: 'rgba(13, 202, 240, 0.8)',
+              borderColor: 'rgba(13, 202, 240, 1)',
+              borderWidth: 2,
+              borderRadius: 4,
+              hoverBackgroundColor: 'rgba(13, 202, 240, 1)'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                padding: 12,
+                callbacks: {
+                  label: function(context) {
+                    var value = context.parsed.y;
+                    if (value === null || value === undefined) {
+                      return 'No data';
+                    }
+                    return 'Average: ' + value.toFixed(1) + ' days';
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Average Repair Time (Days)',
+                  font: { size: 14, weight: 'bold' }
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toFixed(1) + ' days';
+                  }
+                },
+                grid: { color: 'rgba(0, 0, 0, 0.1)' }
+              },
+              x: {
+                grid: { color: 'rgba(0, 0, 0, 0.1)' }
+              }
+            }
+          }
+        });
+      }
+
+      function initCustomerJobsChart() {
+        var el = document.getElementById('customerJobsChart');
+        if (!el) return;
+
+        var labels = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'];
+        var jobCounts = [1, 0, 2, 1, 1, 0, 1];
+        var completedJobs = [0, 0, 1, 0, 1, 0, 1];
+
+        new Chart(el, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'My Jobs',
+              data: jobCounts,
+              borderColor: '#0d6efd',
+              backgroundColor: 'rgba(13, 110, 253, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4
+            }, {
+              label: 'Jobs Completed',
+              data: completedJobs,
+              borderColor: '#198754',
+              backgroundColor: 'rgba(25, 135, 84, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'y1'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top' },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                  label: function(context) {
+                    var label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y + ' jobs';
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Jobs Created' },
+                ticks: {
+                  callback: function(value) {
+                    return value + ' jobs';
+                  }
+                }
+              },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                title: { display: true, text: 'Jobs Completed' },
+                grid: { drawOnChartArea: false }
+              }
+            }
+          }
+        });
+      }
+
+      // Staff charts
+      initRevenueChart();
+      initDoughnutChart('jobStatusChart', ['Completed', 'In Progress', 'Pending', 'Cancelled'], [11, 9, 5, 2], ['#198754', '#0dcaf0', '#ffc107', '#dc3545']);
+      initDeviceTypePieChart();
+      initPerformanceChart();
+
+      // Customer charts
+      initCustomerJobsChart();
+      initDoughnutChart('customerStatusChart', ['Completed', 'In Progress', 'Pending Estimates', 'Cancelled'], [3, 2, 1, 0], ['#198754', '#0dcaf0', '#ffc107', '#dc3545']);
+    })();
+  </script>
+@endpush
