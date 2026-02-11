@@ -422,6 +422,44 @@ HTML;
             ]);
         }
 
+        if ($screen === 'estimates' || $screen === 'estimates_card') {
+            $current_view = $screen === 'estimates_card' ? 'card' : 'table';
+            $_page = $screen === 'estimates_card' ? 'estimates_card' : 'estimates';
+
+            $view_label = $current_view === 'card' ? 'Table View' : 'Card View';
+
+            $view_url = $tenant?->slug
+                ? route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=' . ($current_view === 'card' ? 'estimates' : 'estimates_card')
+                : '#';
+
+            $baseDashboardUrl = $tenant?->slug
+                ? route('tenant.dashboard', ['business' => $tenant->slug])
+                : '#';
+
+            return view('tenant.estimates', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'estimates',
+                'pageTitle' => 'Estimates',
+                'role' => is_string($user?->role) ? (string) $user->role : null,
+                'current_view' => $current_view,
+                '_page' => $_page,
+                'view_label' => $view_label,
+                'view_url' => $view_url,
+                'license_state' => true,
+                'use_store_select' => false,
+                'clear_filters_url' => $baseDashboardUrl !== '#'
+                    ? ($baseDashboardUrl . '?screen=' . $_page)
+                    : '#',
+                'export_buttons_html' => '',
+                'duplicate_job_front_box_html' => '',
+                'jobs_list' => [
+                    'rows' => '',
+                    'pagination' => '',
+                ],
+            ]);
+        }
+
         if ($screen === 'calendar') {
             return view('tenant.calendar', [
                 'tenant' => $tenant,
@@ -490,6 +528,267 @@ HTML;
                 ],
                 'activity_distribution' => [],
                 'recent_time_logs_html' => '',
+            ]);
+        }
+
+        if ($screen === 'customer-devices') {
+            $mockStatsHtml = <<<'HTML'
+<div class="row g-3 mb-4">
+    <div class="col">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body text-center p-3">
+                <h6 class="card-title text-white-50 mb-1">Devices</h6>
+                <h4 class="mb-0">12</h4>
+                <small class="text-white-50">Total</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body text-center p-3">
+                <h6 class="card-title text-white-50 mb-1">Active</h6>
+                <h4 class="mb-0">9</h4>
+                <small class="text-white-50">In use</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stats-card bg-warning text-dark">
+            <div class="card-body text-center p-3">
+                <h6 class="card-title mb-1">Needs Attention</h6>
+                <h4 class="mb-0">2</h4>
+                <small class="text-muted">Flagged</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stats-card bg-secondary text-white">
+            <div class="card-body text-center p-3">
+                <h6 class="card-title text-white-50 mb-1">Archived</h6>
+                <h4 class="mb-0">1</h4>
+                <small class="text-white-50">Old</small>
+            </div>
+        </div>
+    </div>
+</div>
+HTML;
+
+            $mockFiltersHtml = <<<'HTML'
+<div class="card mb-4"><div class="card-body"></div></div>
+HTML;
+
+            $mockRowsHtml = <<<'HTML'
+HTML;
+
+            $mockPaginationHtml = <<<'HTML'
+HTML;
+
+            $mockAddDeviceFormHtml = <<<'HTML'
+HTML;
+
+            $isAdminUser = (bool) ($user?->is_admin ?? false);
+            $role = is_string($user?->role) ? (string) $user->role : '';
+            if ($role !== '' && $role !== 'customer' && $role !== 'guest') {
+                $isAdminUser = true;
+            }
+
+            return view('tenant.customer_devices', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'customer-devices',
+                'pageTitle' => 'Devices',
+                'is_admin_user' => $isAdminUser,
+                'wc_device_label' => 'Devices',
+                'sing_device_label' => 'Device',
+                'wc_device_id_imei_label' => 'ID/IMEI',
+                'wc_pin_code_label' => 'Pin Code/Password',
+                'devices_data' => [
+                    'stats' => $mockStatsHtml,
+                    'filters' => $mockFiltersHtml,
+                    'rows' => $mockRowsHtml,
+                    'pagination' => $mockPaginationHtml,
+                ],
+                'add_device_form_html' => $mockAddDeviceFormHtml,
+            ]);
+        }
+
+        if ($screen === 'expenses') {
+            $baseDashboardUrl = $tenant?->slug
+                ? route('tenant.dashboard', ['business' => $tenant->slug])
+                : '#';
+
+            return view('tenant.expenses', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'expenses',
+                'pageTitle' => 'Expenses',
+                'userRole' => is_string($user?->role) ? (string) $user->role : 'guest',
+                'licenseState' => true,
+                'search' => is_string($request->query('search')) ? (string) $request->query('search') : '',
+                'category_id' => $request->query('category_id') ?? '',
+                'payment_status' => is_string($request->query('payment_status')) ? (string) $request->query('payment_status') : '',
+                'start_date' => is_string($request->query('start_date')) ? (string) $request->query('start_date') : '',
+                'end_date' => is_string($request->query('end_date')) ? (string) $request->query('end_date') : '',
+                'page' => (int) ($request->query('expenses_page') ?? 1),
+                'limit' => 20,
+                'offset' => 0,
+                'expenses' => [],
+                'total_expenses' => 0,
+                'total_pages' => 0,
+                'stats' => [
+                    'totals' => (object) [
+                        'grand_total' => 0,
+                        'total_count' => 0,
+                        'total_amount' => 0,
+                        'total_tax' => 0,
+                    ],
+                ],
+                'categories' => [],
+                'payment_methods' => [],
+                'payment_statuses' => [],
+                'expense_types' => [],
+                'reset_url' => $baseDashboardUrl !== '#'
+                    ? ($baseDashboardUrl . '?screen=expenses')
+                    : '#',
+                'page_url_prev' => $baseDashboardUrl !== '#'
+                    ? ($baseDashboardUrl . '?screen=expenses')
+                    : '#',
+                'page_url_next' => $baseDashboardUrl !== '#'
+                    ? ($baseDashboardUrl . '?screen=expenses')
+                    : '#',
+                'page_urls' => [],
+            ]);
+        }
+
+        if ($screen === 'expense_categories') {
+            $baseDashboardUrl = $tenant?->slug
+                ? route('tenant.dashboard', ['business' => $tenant->slug])
+                : '#';
+
+            return view('tenant.expense_categories', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'expense_categories',
+                'pageTitle' => 'Expense Categories',
+                'userRole' => is_string($user?->role) ? (string) $user->role : 'guest',
+                'licenseState' => true,
+                'categories' => [
+                    (object) [
+                        'category_id' => 1,
+                        'category_name' => 'Parts & Supplies',
+                        'category_description' => 'Consumables, screws, adhesives, cables, and small parts.',
+                        'color_code' => '#3498db',
+                        'is_active' => 1,
+                        'taxable' => 1,
+                        'tax_rate' => 15,
+                    ],
+                    (object) [
+                        'category_id' => 2,
+                        'category_name' => 'Tools',
+                        'category_description' => 'Equipment and tools purchased for repairs.',
+                        'color_code' => '#2ecc71',
+                        'is_active' => 1,
+                        'taxable' => 0,
+                        'tax_rate' => 0,
+                    ],
+                    (object) [
+                        'category_id' => 3,
+                        'category_name' => 'Utilities',
+                        'category_description' => 'Electricity, water, internet, and phone.',
+                        'color_code' => '#f39c12',
+                        'is_active' => 1,
+                        'taxable' => 1,
+                        'tax_rate' => 5,
+                    ],
+                    (object) [
+                        'category_id' => 4,
+                        'category_name' => 'Marketing',
+                        'category_description' => '',
+                        'color_code' => '#9b59b6',
+                        'is_active' => 0,
+                        'taxable' => 0,
+                        'tax_rate' => 0,
+                    ],
+                ],
+                'nonce' => csrf_token(),
+            ]);
+        }
+
+        if ($screen === 'reviews') {
+            $role = is_string($user?->role) ? (string) $user->role : 'guest';
+            $userRoles = [$role];
+            if (($user?->is_admin ?? false) === true) {
+                $userRoles[] = 'administrator';
+            }
+            if ($role !== 'customer' && $role !== 'guest') {
+                $userRoles[] = 'store_manager';
+                $userRoles[] = 'technician';
+            }
+            $userRoles = array_values(array_unique(array_filter($userRoles)));
+
+            $isAdminUser = ! empty(array_intersect(['administrator', 'store_manager', 'technician'], $userRoles));
+            $baseDashboardUrl = $tenant?->slug
+                ? route('tenant.dashboard', ['business' => $tenant->slug])
+                : '#';
+
+            $mockStatsHtml = <<<'HTML'
+<div class="row g-3 mb-4"><div class="col"><div class="card stats-card bg-primary text-white"><div class="card-body text-center p-3"><div class="mb-2"><i class="bi bi-star-fill fs-1 opacity-75"></i></div><h6 class="card-title mb-1 text-white">Total Reviews</h6><h3 class="mb-0 text-white">0</h3></div></div></div><div class="col"><div class="card stats-card bg-success text-white"><div class="card-body text-center p-3"><div class="mb-2"><i class="bi bi-graph-up fs-1 opacity-75"></i></div><h6 class="card-title mb-1 text-white">Avg. Rating</h6><h3 class="mb-0 text-white">0/5</h3></div></div></div><div class="col"><div class="card stats-card bg-warning text-white"><div class="card-body text-center p-3"><div class="mb-2"><i class="bi bi-star-fill fs-1 opacity-75"></i><i class="bi bi-star-fill fs-1 opacity-75"></i><i class="bi bi-star-fill fs-1 opacity-75"></i><i class="bi bi-star-fill fs-1 opacity-75"></i><i class="bi bi-star-fill fs-1 opacity-75"></i></div><h6 class="card-title mb-1 text-white">5 Stars</h6><h3 class="mb-0 text-white">0</h3></div></div></div><div class="col"><div class="card stats-card bg-danger text-white"><div class="card-body text-center p-3"><div class="mb-2"><i class="bi bi-star-fill fs-1 opacity-75"></i></div><h6 class="card-title mb-1 text-white">1 Star</h6><h3 class="mb-0 text-white">0</h3></div></div></div></div>
+HTML;
+
+            $mockFiltersHtml = '';
+            if ($isAdminUser) {
+                $resetUrl = $baseDashboardUrl !== '#'
+                    ? ($baseDashboardUrl . '?screen=reviews')
+                    : '#';
+
+                $mockFiltersHtml = '<div class="card mb-4"><div class="card-body"><form method="get" action="" class="row g-3">'
+                    . '<input type="hidden" name="screen" value="reviews" />'
+                    . '<div class="col-md-4"><div class="input-group">'
+                    . '<span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>'
+                    . '<input type="text" class="form-control border-start-0" name="review_search" id="reviewSearch" value="" placeholder="Search...">'
+                    . '</div></div>'
+                    . '<div class="col-md-3"><select name="rating_filter" class="form-select">'
+                    . '<option value="all">All Ratings</option>'
+                    . '<option value="5" >★★★★★ (5 stars)</option>'
+                    . '<option value="4" >★★★★ (4 stars)</option>'
+                    . '<option value="3" >★★★ (3 stars)</option>'
+                    . '<option value="2" >★★ (2 stars)</option>'
+                    . '<option value="1" >★ (1 stars)</option>'
+                    . '</select></div>'
+                    . '<div class="col-md-2"><div class="d-flex gap-2">'
+                    . '<a href="' . $resetUrl . '" class="btn btn-outline-secondary" id="clearReviewFilters"><i class="bi bi-arrow-clockwise"></i></a>'
+                    . '<button type="submit" class="btn btn-primary" id="applyReviewFilters"><i class="bi bi-funnel"></i> Filter</button>'
+                    . '</div></div>'
+                    . '</form></div></div>';
+            }
+
+            $mockRowsHtml = '';
+            if ($isAdminUser) {
+                $mockRowsHtml .= '<tr><td colspan="9" class="text-center py-5">'
+                    . '<i class="bi bi-star display-1 text-muted"></i>'
+                    . '<h4 class="text-muted mt-3">No reviews found!</h4>'
+                    . '</td></tr>';
+            } else {
+                $mockRowsHtml .= '<tr><td colspan="8" class="text-center py-5">'
+                    . '<i class="bi bi-star display-1 text-muted"></i>'
+                    . '<h4 class="text-muted mt-3">No reviews found!</h4>'
+                    . '</td></tr>';
+            }
+
+            return view('tenant.reviews', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'reviews',
+                'pageTitle' => 'Reviews',
+                'userRole' => $role,
+                'is_admin_user' => $isAdminUser,
+                'sing_device_label' => 'Device',
+                'reviews_data' => [
+                    'stats' => $mockStatsHtml,
+                    'filters' => $mockFiltersHtml,
+                    'rows' => $mockRowsHtml,
+                    'pagination' => '',
+                ],
             ]);
         }
 
