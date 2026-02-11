@@ -14,6 +14,8 @@ class ResolveTenant
     {
         $resolution = config('tenancy.resolution');
 
+        $expectsJson = $request->expectsJson();
+
         $tenantSlug = null;
 
         if ($resolution === 'path') {
@@ -28,6 +30,10 @@ class ResolveTenant
         if (! is_string($tenantSlug) || $tenantSlug === '') {
             TenantContext::set(null);
 
+            if (! $expectsJson) {
+                abort(400, 'Business is missing.');
+            }
+
             return response()->json([
                 'message' => 'Business is missing.',
             ], 400);
@@ -40,6 +46,10 @@ class ResolveTenant
 
         if (! $tenant) {
             TenantContext::set(null);
+
+            if (! $expectsJson) {
+                abort(404, 'Business is invalid.');
+            }
 
             return response()->json([
                 'message' => 'Business is invalid.',

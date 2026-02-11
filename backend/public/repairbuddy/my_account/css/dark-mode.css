@@ -1,0 +1,88 @@
+/* Dark Mode Specific Styles */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #1a1d23;
+    --bs-body-color: #e9ecef;
+    --bs-border-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: #2d3035 !important;
+}
+
+[data-bs-theme="dark"] .text-dark {
+    color: #e9ecef !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #8b949e !important;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #2d3035;
+    border-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .card-header {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-bottom-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .top-bar {
+    background-color: #2d3035;
+    border-bottom-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #2d3035;
+    border-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: #3d4046;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+    border-color: #5a6268;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .activity-timeline::before {
+    background: #3d4046;
+}
+
+[data-bs-theme="dark"] .border-bottom {
+    border-bottom-color: #3d4046 !important;
+}
+
+[data-bs-theme="dark"] .progress {
+    background-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .table {
+    --bs-table-color: #e9ecef;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: #3d4046;
+}
+
+[data-bs-theme="dark"] .form-control {
+    background-color: #2d3035;
+    border-color: #3d4046;
+    color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: #2d3035;
+    border-color: #0d6efd;
+    color: #e9ecef;
+}
