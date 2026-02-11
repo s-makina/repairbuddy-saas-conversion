@@ -45,4 +45,7 @@ Route::prefix('t/{business}')
     ->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');
+
+        Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
+            ->name('tenant.calendar.events');
     });

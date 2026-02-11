@@ -34,6 +34,9 @@
          * Initialize Select2 for customer search
          */
         initializeSelect2() {
+            if (typeof $.fn.select2 !== 'function') {
+                return;
+            }
             // Initialize Select2 for any existing elements outside modals
             $('.wcrb_select_customers').not('#addDeviceModal .wcrb_select_customers').select2({
                 ajax: {

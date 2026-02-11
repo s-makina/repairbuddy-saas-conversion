@@ -109,6 +109,43 @@ jQuery(document).ready(function($) {
                     const statusClass = 'status-' + info.event.extendedProps.status.toLowerCase().replace(/\s+/g, '');
                     info.el.classList.add(statusClass);
                 }
+
+                // Inline event styling to ensure it always applies
+                try {
+                    info.el.style.border = '0';
+                    info.el.style.borderRadius = '0.375rem';
+                    info.el.style.padding = '0.2rem 0.35rem';
+                    info.el.style.margin = '0.15rem 0';
+                    info.el.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+                    info.el.style.textDecoration = 'none';
+
+                    const isWarning = info.el.classList.contains('bg-warning') || info.el.classList.contains('bg-light');
+                    const mainColor = isWarning ? '#212529' : '#ffffff';
+                    info.el.style.color = mainColor;
+
+                    const titleEl = info.el.querySelector('.fc-event-title');
+                    if (titleEl) {
+                        titleEl.style.maxWidth = '100%';
+                        titleEl.style.overflow = 'hidden';
+                        titleEl.style.textOverflow = 'ellipsis';
+                        titleEl.style.wordBreak = 'break-word';
+                        titleEl.style.display = '-webkit-box';
+                        titleEl.style.webkitLineClamp = '2';
+                        titleEl.style.webkitBoxOrient = 'vertical';
+                        titleEl.style.color = mainColor;
+                    }
+
+                    const statusEl = info.el.querySelector('.fc-event-status');
+                    if (statusEl) {
+                        statusEl.style.maxWidth = '100%';
+                        statusEl.style.overflow = 'hidden';
+                        statusEl.style.textOverflow = 'ellipsis';
+                        statusEl.style.whiteSpace = 'nowrap';
+                        statusEl.style.color = isWarning ? 'rgba(33, 37, 41, 0.8)' : 'rgba(255, 255, 255, 0.85)';
+                    }
+                } catch (e) {
+                    // ignore
+                }
             },
             eventClick: function(info) {
                 if (info.event.url) {
