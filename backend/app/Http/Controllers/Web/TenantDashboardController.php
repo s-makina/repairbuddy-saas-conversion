@@ -2587,6 +2587,16 @@ class TenantDashboardController extends Controller
             if (class_exists(\Symfony\Component\Intl\Countries::class)) {
                 $countries = \Symfony\Component\Intl\Countries::getNames('en');
             }
+            if (empty($countries) && class_exists(\ResourceBundle::class)) {
+                $bundle = \ResourceBundle::create('en', 'ICUDATA-region');
+                if ($bundle) {
+                    foreach ($bundle as $code => $name) {
+                        if (is_string($code) && preg_match('/^[A-Z]{2}$/', $code) && is_string($name) && $name !== '') {
+                            $countries[$code] = $name;
+                        }
+                    }
+                }
+            }
             if (empty($countries)) {
                 $countries = [
                     'US' => 'United States',
@@ -3507,10 +3517,21 @@ HTML;
                 $countries = \Symfony\Component\Intl\Countries::getNames('en');
             }
 
+            if (empty($countries) && class_exists(\ResourceBundle::class)) {
+                $bundle = \ResourceBundle::create('en', 'ICUDATA-region');
+                if ($bundle) {
+                    foreach ($bundle as $code => $name) {
+                        if (is_string($code) && preg_match('/^[A-Z]{2}$/', $code) && is_string($name) && $name !== '') {
+                            $countries[$code] = $name;
+                        }
+                    }
+                }
+            }
+
             if (empty($countries)) {
                 $countries = [
-                    'AF' => 'Afghanistan',
-                    'AX' => 'Aland Islands',
+                    'US' => 'United States',
+                    'GB' => 'United Kingdom',
                     'AL' => 'Albania',
                     'DZ' => 'Algeria',
                     'AS' => 'American Samoa',

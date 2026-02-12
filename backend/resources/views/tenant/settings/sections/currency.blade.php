@@ -5,7 +5,7 @@ role="tabpanel" aria-hidden="true" aria-labelledby="panel1-label">
 				{{ __( 'Currency Settings' ) }}
 			</h2>
 
-		<form data-async data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.currency.update', ['business' => $tenant->slug]) }}" data-success-class=".currency_setting_success_class">
+		<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.currency.update', ['business' => $tenant->slug]) }}" data-success-class=".currency_setting_success_class">
 			@csrf
 			<table class="form-table">
 			<tbody>

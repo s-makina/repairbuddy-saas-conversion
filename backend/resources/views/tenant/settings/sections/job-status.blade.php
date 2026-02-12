@@ -36,7 +36,7 @@
 		<h2>{{ __( 'Status settings' ) }}</h2>
 		<div class="job_status_settings_msg"></div>
 
-		<form data-async data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.job_status.update', ['business' => $tenant->slug]) }}" data-success-class=".job_status_settings_msg">
+		<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.job_status.update', ['business' => $tenant->slug]) }}" data-success-class=".job_status_settings_msg">
 			@csrf
 			<table class="form-table border">
 				<tbody>

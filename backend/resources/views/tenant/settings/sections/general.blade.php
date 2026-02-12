@@ -2,22 +2,10 @@
 	<div class="wrap">
 		<h2>{{ __('Settings') }}</h2>
 
-		<form data-async data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.general.update', ['business' => $tenant->slug]) }}" data-success-class=".main_setting_success_class">
+		<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.general.update', ['business' => $tenant->slug]) }}" data-success-class=".main_setting_success_class">
 			@csrf
 			<table cellpadding="5" cellspacing="5" class="form-table">
 				<tr>
-					<td>
-						<x-settings.field for="menu_name" :label="__('Menu Name e.g Computer Repair')">
-							<x-settings.input
-								name="menu_name"
-								id="menu_name"
-								class="regular-text"
-								:value="old('menu_name', $menu_name_p)"
-								type="text"
-								:placeholder="__('Enter Menu Name Default Computer Repair')"
-							/>
-						</x-settings.field>
-					</td>
 					<td>
 						<x-settings.field for="wc_rb_business_name" :label="__('Business Name')" :help="__('Name will be used in reports/invoices')">
 							<x-settings.input
@@ -29,9 +17,6 @@
 							/>
 						</x-settings.field>
 					</td>
-				</tr>
-
-				<tr>
 					<td>
 						<x-settings.field for="wc_rb_business_phone" :label="__('Business Phone')" :help="__('Phone will be used in reports/invoices')">
 							<x-settings.input
@@ -43,6 +28,9 @@
 							/>
 						</x-settings.field>
 					</td>
+				</tr>
+
+				<tr>
 					<td>
 						<x-settings.field for="wc_rb_business_address" :label="__('Business Address')" :help="__('Address will be used in reports/invoices')">
 							<x-settings.input
@@ -54,6 +42,7 @@
 							/>
 						</x-settings.field>
 					</td>
+					<td></td>
 				</tr>
 
 				<tr>
@@ -179,11 +168,13 @@
 					<label for="wc_primary_country">{{ __( 'Default Country' ) }}</label>
 				</th>
 				<td>
-					<select name="wc_primary_country" id="wc_primary_country" class="form-control">
-						@foreach (($countries ?? []) as $code => $name)
-							<option value="{{ $code }}" {{ (string) old('wc_primary_country', $wc_primary_country) === (string) $code ? 'selected' : '' }}>{{ $name }}</option>
-						@endforeach
-					</select>
+					<x-settings.select
+						name="wc_primary_country"
+						id="wc_primary_country"
+						class="form-control"
+						:options="($countries ?? [])"
+						:value="(string) old('wc_primary_country', $wc_primary_country)"
+					/>
 				</td>
 			</tr>
 

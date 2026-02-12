@@ -2,7 +2,7 @@
 	<div class="wrap">
 		<h2>{{ __('Reports & Invoices Settings') }}</h2>
 
-		<form data-async data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.invoices.update', ['business' => $tenant->slug]) }}" data-success-class=".report_setting_success_class">
+		<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.invoices.update', ['business' => $tenant->slug]) }}" data-success-class=".report_setting_success_class">
 			@csrf
 			<table cellpadding="5" cellspacing="5" class="form-table">
 				<tr>
