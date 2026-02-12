@@ -1121,6 +1121,26 @@ class TenantDashboardController extends Controller
                 $taxSettings = [];
             }
 
+            $estimatesSettings = $repairBuddySettings['estimates'] ?? [];
+            if (! is_array($estimatesSettings)) {
+                $estimatesSettings = [];
+            }
+
+            $smsSettings = $repairBuddySettings['sms'] ?? [];
+            if (! is_array($smsSettings)) {
+                $smsSettings = [];
+            }
+
+            $accountSettings = $repairBuddySettings['account'] ?? [];
+            if (! is_array($accountSettings)) {
+                $accountSettings = [];
+            }
+
+            $signatureSettings = $repairBuddySettings['signature'] ?? [];
+            if (! is_array($signatureSettings)) {
+                $signatureSettings = [];
+            }
+
             $bookingSettings = $repairBuddySettings['bookings'] ?? [];
             if (! is_array($bookingSettings)) {
                 $bookingSettings = [];
@@ -1178,6 +1198,71 @@ class TenantDashboardController extends Controller
             $oldAmounts = old('wc_prices_inclu_exclu');
             if (is_string($oldAmounts) && in_array($oldAmounts, ['exclusive', 'inclusive'], true)) {
                 $taxInvoiceAmounts = $oldAmounts;
+            }
+
+            $estimatesEnabledUi = (bool) ($estimatesSettings['enabled'] ?? false);
+            $estimatesValidDaysUi = is_int($estimatesSettings['validDays'] ?? null) ? (int) $estimatesSettings['validDays'] : 30;
+            $oldEstimatesEnabled = old('estimates_enabled');
+            if ($oldEstimatesEnabled !== null) {
+                $estimatesEnabledUi = (string) $oldEstimatesEnabled === 'on';
+            }
+            $oldValidDays = old('estimate_valid_days');
+            if ($oldValidDays !== null && is_numeric($oldValidDays)) {
+                $estimatesValidDaysUi = (int) $oldValidDays;
+            }
+
+            $smsEnabledUi = (bool) ($smsSettings['enabled'] ?? false);
+            $smsApiKeyUi = is_string($smsSettings['apiKey'] ?? null) ? (string) $smsSettings['apiKey'] : '';
+            $smsSenderIdUi = is_string($smsSettings['senderId'] ?? null) ? (string) $smsSettings['senderId'] : '';
+            $oldSmsEnabled = old('sms_enabled');
+            if ($oldSmsEnabled !== null) {
+                $smsEnabledUi = (string) $oldSmsEnabled === 'on';
+            }
+            $oldSmsApiKey = old('sms_api_key');
+            if ($oldSmsApiKey !== null) {
+                $smsApiKeyUi = is_string($oldSmsApiKey) ? $oldSmsApiKey : '';
+            }
+            $oldSmsSenderId = old('sms_sender_id');
+            if ($oldSmsSenderId !== null) {
+                $smsSenderIdUi = is_string($oldSmsSenderId) ? $oldSmsSenderId : '';
+            }
+
+            $customerRegistrationUi = (bool) ($accountSettings['customerRegistration'] ?? false);
+            $accountApprovalRequiredUi = (bool) ($accountSettings['accountApprovalRequired'] ?? false);
+            $defaultCustomerRoleUi = (string) ($accountSettings['defaultCustomerRole'] ?? 'customer');
+            if (! in_array($defaultCustomerRoleUi, ['customer', 'vip_customer'], true)) {
+                $defaultCustomerRoleUi = 'customer';
+            }
+            $oldCustomerRegistration = old('customer_registration');
+            if ($oldCustomerRegistration !== null) {
+                $customerRegistrationUi = (string) $oldCustomerRegistration === 'on';
+            }
+            $oldAccountApprovalRequired = old('account_approval_required');
+            if ($oldAccountApprovalRequired !== null) {
+                $accountApprovalRequiredUi = (string) $oldAccountApprovalRequired === 'on';
+            }
+            $oldDefaultCustomerRole = old('default_customer_role');
+            if (is_string($oldDefaultCustomerRole) && in_array($oldDefaultCustomerRole, ['customer', 'vip_customer'], true)) {
+                $defaultCustomerRoleUi = $oldDefaultCustomerRole;
+            }
+
+            $signatureRequiredUi = (bool) ($signatureSettings['required'] ?? false);
+            $signatureTypeUi = (string) ($signatureSettings['type'] ?? 'draw');
+            if (! in_array($signatureTypeUi, ['draw', 'type', 'upload'], true)) {
+                $signatureTypeUi = 'draw';
+            }
+            $signatureTermsUi = is_string($signatureSettings['terms'] ?? null) ? (string) $signatureSettings['terms'] : '';
+            $oldSignatureRequired = old('signature_required');
+            if ($oldSignatureRequired !== null) {
+                $signatureRequiredUi = (string) $oldSignatureRequired === 'on';
+            }
+            $oldSignatureType = old('signature_type');
+            if (is_string($oldSignatureType) && in_array($oldSignatureType, ['draw', 'type', 'upload'], true)) {
+                $signatureTypeUi = $oldSignatureType;
+            }
+            $oldSignatureTerms = old('signature_terms');
+            if ($oldSignatureTerms !== null) {
+                $signatureTermsUi = is_string($oldSignatureTerms) ? $oldSignatureTerms : '';
             }
             $oldDefault = old('wc_primary_tax');
             if ($oldDefault !== null && ctype_digit((string) $oldDefault)) {
@@ -2126,6 +2211,99 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '</tbody></table>';
                     $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
                     $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wcrb_estimates_tab') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_estimates_tab" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_estimates_tab-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                    $settingsTabBodyHtml .= '<p>' . e(__('Estimates settings allow you to configure how estimates and quotes are managed in your repair shop.')) . '</p>';
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Estimate Settings')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.estimates.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="estimates_enabled">' . e(__('Enable Estimates')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($estimatesEnabledUi ? 'checked="checked"' : '') . ' name="estimates_enabled" id="estimates_enabled" /> ' . e(__('Allow customers to request estimates')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="estimate_valid_days">' . e(__('Estimate Validity (Days)')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="number" name="estimate_valid_days" id="estimate_valid_days" class="regular-text" value="' . e((string) $estimatesValidDaysUi) . '" min="1" /> ' . e(__('Days estimate is valid')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_page_sms_IDENTIFIER') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_page_sms_IDENTIFIER" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_page_sms_IDENTIFIER-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                    $settingsTabBodyHtml .= '<p>' . e(__('Configure SMS notifications for your repair shop. You will need to configure an SMS gateway service.')) . '</p>';
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('SMS Settings')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.sms.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_enabled">' . e(__('Enable SMS')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($smsEnabledUi ? 'checked="checked"' : '') . ' name="sms_enabled" id="sms_enabled" /> ' . e(__('Enable SMS notifications')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_api_key">' . e(__('SMS API Key')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="text" name="sms_api_key" id="sms_api_key" class="regular-text" value="' . e($smsApiKeyUi) . '" /> ' . e(__('Your SMS provider API key')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_sender_id">' . e(__('Sender ID')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="text" name="sms_sender_id" id="sms_sender_id" class="regular-text" value="' . e($smsSenderIdUi) . '" /> ' . e(__('Sender name or number')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_manage_account') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_manage_account" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_manage_account-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                    $settingsTabBodyHtml .= '<p>' . e(__('Configure customer account settings and portal access.')) . '</p>';
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Account Settings')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.account.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="customer_registration">' . e(__('Customer Registration')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($customerRegistrationUi ? 'checked="checked"' : '') . ' name="customer_registration" id="customer_registration" /> ' . e(__('Allow customers to register accounts')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="account_approval_required">' . e(__('Account Approval Required')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($accountApprovalRequiredUi ? 'checked="checked"' : '') . ' name="account_approval_required" id="account_approval_required" /> ' . e(__('Require admin approval for new accounts')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="default_customer_role">' . e(__('Default Customer Role')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><select name="default_customer_role" id="default_customer_role" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="customer"' . ($defaultCustomerRoleUi === 'customer' ? ' selected' : '') . '>' . e(__('Customer')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="vip_customer"' . ($defaultCustomerRoleUi === 'vip_customer' ? ' selected' : '') . '>' . e(__('VIP Customer')) . '</option>';
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wcrb_signature_workflow') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_signature_workflow" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_signature_workflow-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                    $settingsTabBodyHtml .= '<p>' . e(__('Configure digital signature workflow for repair orders and customer approvals.')) . '</p>';
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Signature Settings')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.signature.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="signature_required">' . e(__('Require Signature')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($signatureRequiredUi ? 'checked="checked"' : '') . ' name="signature_required" id="signature_required" /> ' . e(__('Require customer signature on repair orders')) . '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="signature_type">' . e(__('Signature Type')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><select name="signature_type" id="signature_type" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="draw"' . ($signatureTypeUi === 'draw' ? ' selected' : '') . '>' . e(__('Draw Signature')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="type"' . ($signatureTypeUi === 'type' ? ' selected' : '') . '>' . e(__('Type Signature')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="upload"' . ($signatureTypeUi === 'upload' ? ' selected' : '') . '>' . e(__('Upload Signature')) . '</option>';
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="signature_terms">' . e(__('Signature Terms')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><textarea name="signature_terms" id="signature_terms" rows="4" class="large-text" placeholder="' . e(__('I agree to the terms and conditions of the repair service.')) . '">' . e($signatureTermsUi) . '</textarea></td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
                 } else {
@@ -3362,5 +3540,163 @@ HTML;
             'success' => true,
             'data' => $events,
         ]);
+    }
+
+    public function updateEstimatesSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'estimates_enabled' => ['nullable', 'in:on'],
+            'estimate_valid_days' => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $estimates = $repairBuddySettings['estimates'] ?? [];
+        if (! is_array($estimates)) {
+            $estimates = [];
+        }
+
+        $estimates['enabled'] = array_key_exists('estimates_enabled', $validated);
+        $estimates['validDays'] = array_key_exists('estimate_valid_days', $validated) ? (int) $validated['estimate_valid_days'] : 30;
+
+        $repairBuddySettings['estimates'] = $estimates;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wcrb_estimates_tab')
+            ->with('status', 'Estimates settings updated.')
+            ->withInput();
+    }
+
+    public function updateSmsSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'sms_enabled' => ['nullable', 'in:on'],
+            'sms_api_key' => ['nullable', 'string', 'max:255'],
+            'sms_sender_id' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $sms = $repairBuddySettings['sms'] ?? [];
+        if (! is_array($sms)) {
+            $sms = [];
+        }
+
+        $sms['enabled'] = array_key_exists('sms_enabled', $validated);
+        $sms['apiKey'] = $validated['sms_api_key'] ?? null;
+        $sms['senderId'] = $validated['sms_sender_id'] ?? null;
+
+        $repairBuddySettings['sms'] = $sms;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_page_sms_IDENTIFIER')
+            ->with('status', 'SMS settings updated.')
+            ->withInput();
+    }
+
+    public function updateAccountSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'customer_registration' => ['nullable', 'in:on'],
+            'account_approval_required' => ['nullable', 'in:on'],
+            'default_customer_role' => ['nullable', 'in:customer,vip_customer'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $account = $repairBuddySettings['account'] ?? [];
+        if (! is_array($account)) {
+            $account = [];
+        }
+
+        $account['customerRegistration'] = array_key_exists('customer_registration', $validated);
+        $account['accountApprovalRequired'] = array_key_exists('account_approval_required', $validated);
+        $account['defaultCustomerRole'] = $validated['default_customer_role'] ?? 'customer';
+
+        $repairBuddySettings['account'] = $account;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_account')
+            ->with('status', 'Account settings updated.')
+            ->withInput();
+    }
+
+    public function updateSignatureSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'signature_required' => ['nullable', 'in:on'],
+            'signature_type' => ['nullable', 'in:draw,type,upload'],
+            'signature_terms' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $signature = $repairBuddySettings['signature'] ?? [];
+        if (! is_array($signature)) {
+            $signature = [];
+        }
+
+        $signature['required'] = array_key_exists('signature_required', $validated);
+        $signature['type'] = $validated['signature_type'] ?? 'draw';
+        $signature['terms'] = $validated['signature_terms'] ?? null;
+
+        $repairBuddySettings['signature'] = $signature;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wcrb_signature_workflow')
+            ->with('status', 'Signature settings updated.')
+            ->withInput();
     }
 }

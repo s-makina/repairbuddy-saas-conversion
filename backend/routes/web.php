@@ -106,6 +106,18 @@ Route::prefix('t/{business}')
         Route::post('/settings/reviews', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateReviewSettings'])
             ->name('tenant.settings.reviews.update');
 
+        Route::post('/settings/estimates', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateEstimatesSettings'])
+            ->name('tenant.settings.estimates.update');
+
+        Route::post('/settings/sms', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateSmsSettings'])
+            ->name('tenant.settings.sms.update');
+
+        Route::post('/settings/account', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateAccountSettings'])
+            ->name('tenant.settings.account.update');
+
+        Route::post('/settings/signature', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateSignatureSettings'])
+            ->name('tenant.settings.signature.update');
+
         Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
             ->name('tenant.jobs.create');
 
