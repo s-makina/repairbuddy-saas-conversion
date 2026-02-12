@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyDeviceBrand;
 use App\Models\RepairBuddyTax;
 use App\Models\Tenant;
+use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -596,6 +597,157 @@ class TenantDashboardController extends Controller
             ->withInput();
     }
 
+    public function updateTimeLogSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'disable_timelog' => ['sometimes', 'nullable', 'in:on'],
+            'default_tax_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'job_status_include' => ['sometimes', 'array'],
+            'job_status_include.*' => ['string', 'max:64'],
+            'activities' => ['sometimes', 'nullable', 'string', 'max:5000'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $timeLog = $repairBuddySettings['timeLog'] ?? [];
+        if (! is_array($timeLog)) {
+            $timeLog = [];
+        }
+
+        $timeLog['disabled'] = array_key_exists('disable_timelog', $validated);
+        if (array_key_exists('default_tax_id', $validated)) {
+            $timeLog['defaultTaxId'] = is_int($validated['default_tax_id']) ? (string) $validated['default_tax_id'] : null;
+        }
+        if (array_key_exists('job_status_include', $validated)) {
+            $timeLog['jobStatusInclude'] = array_values(array_filter($validated['job_status_include'] ?? [], fn ($v) => is_string($v) && $v !== ''));
+        }
+        if (array_key_exists('activities', $validated)) {
+            $timeLog['activities'] = is_string($validated['activities']) ? $validated['activities'] : '';
+        }
+
+        $repairBuddySettings['timeLog'] = $timeLog;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wcrb_timelog_tab')
+            ->with('status', 'Time log settings updated.')
+            ->withInput();
+    }
+
+    public function updateStylingSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'delivery_date_label' => ['nullable', 'string', 'max:255'],
+            'pickup_date_label' => ['nullable', 'string', 'max:255'],
+            'nextservice_date_label' => ['nullable', 'string', 'max:255'],
+            'casenumber_label' => ['nullable', 'string', 'max:255'],
+            'primary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'secondary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $styling = $repairBuddySettings['styling'] ?? [];
+        if (! is_array($styling)) {
+            $styling = [];
+        }
+
+        foreach (['delivery_date_label', 'pickup_date_label', 'nextservice_date_label', 'casenumber_label'] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $styling[$k] = $validated[$k];
+            }
+        }
+
+        if (array_key_exists('primary_color', $validated)) {
+            $styling['primary_color'] = $validated['primary_color'];
+        }
+        if (array_key_exists('secondary_color', $validated)) {
+            $styling['secondary_color'] = $validated['secondary_color'];
+        }
+
+        $repairBuddySettings['styling'] = $styling;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wcrb_styling')
+            ->with('status', 'Styling updated.')
+            ->withInput();
+    }
+
+    public function updateReviewSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'request_by_sms' => ['sometimes', 'nullable', 'in:on'],
+            'request_by_email' => ['sometimes', 'nullable', 'in:on'],
+            'get_feedback_page_url' => ['nullable', 'string', 'max:2048'],
+            'send_request_job_status' => ['nullable', 'string', 'max:64'],
+            'auto_request_interval' => ['nullable', 'in:disabled,one-notification,two-notifications'],
+            'email_subject' => ['nullable', 'string', 'max:255'],
+            'email_message' => ['nullable', 'string', 'max:5000'],
+            'sms_message' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $reviews = $repairBuddySettings['reviews'] ?? [];
+        if (! is_array($reviews)) {
+            $reviews = [];
+        }
+
+        $reviews['requestBySms'] = array_key_exists('request_by_sms', $validated);
+        $reviews['requestByEmail'] = array_key_exists('request_by_email', $validated);
+
+        foreach (['get_feedback_page_url', 'send_request_job_status', 'auto_request_interval', 'email_subject', 'email_message', 'sms_message'] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $reviews[$k] = $validated[$k];
+            }
+        }
+
+        $repairBuddySettings['reviews'] = $reviews;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $setupState])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wcrb_reviews_tab')
+            ->with('status', 'Review settings updated.')
+            ->withInput();
+    }
+
     public function updatePagesSetup(Request $request)
     {
         $tenant = TenantContext::tenant();
@@ -823,6 +975,8 @@ class TenantDashboardController extends Controller
     public function show(Request $request)
     {
         $tenant = TenantContext::tenant();
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
         $user = $request->user();
 
         if (! $user) {
@@ -977,13 +1131,30 @@ class TenantDashboardController extends Controller
                 $serviceSettings = [];
             }
 
+            $timeLogSettings = $repairBuddySettings['timeLog'] ?? [];
+            if (! is_array($timeLogSettings)) {
+                $timeLogSettings = [];
+            }
+
+            $stylingSettings = $repairBuddySettings['styling'] ?? [];
+            if (! is_array($stylingSettings)) {
+                $stylingSettings = [];
+            }
+
+            $reviewsSettings = $repairBuddySettings['reviews'] ?? [];
+            if (! is_array($reviewsSettings)) {
+                $reviewsSettings = [];
+            }
+
             $paymentStatuses = \App\Models\RepairBuddyPaymentStatus::query()->orderBy('id')->get();
-            $paymentStatusOverrides = \App\Models\TenantStatusOverride::query()
-                ->where('tenant_id', $tenantId)
-                ->where('branch_id', $branchId)
-                ->where('domain', 'payment')
-                ->get()
-                ->keyBy('code');
+            $paymentStatusOverrides = ($tenantId && $branchId)
+                ? \App\Models\TenantStatusOverride::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('branch_id', $branchId)
+                    ->where('domain', 'payment')
+                    ->get()
+                    ->keyBy('code')
+                : collect();
 
             $maintenanceReminders = \App\Models\RepairBuddyMaintenanceReminder::query()
                 ->with(['deviceType', 'deviceBrand'])
@@ -1654,6 +1825,193 @@ class TenantDashboardController extends Controller
                     }
 
                     $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wcrb_timelog_tab') {
+                    $disabled = (bool) ($timeLogSettings['disabled'] ?? false);
+                    $defaultTaxId = $timeLogSettings['defaultTaxId'] ?? null;
+                    $includedStatuses = $timeLogSettings['jobStatusInclude'] ?? [];
+                    if (! is_array($includedStatuses)) {
+                        $includedStatuses = [];
+                    }
+                    $activities = is_string($timeLogSettings['activities'] ?? null)
+                        ? (string) $timeLogSettings['activities']
+                        : "Repair\nDiagnostic\nTesting\nCleaning\nConsultation\nOther";
+
+                    $taxes = RepairBuddyTax::query()->orderBy('id')->limit(500)->get();
+                    $jobStatuses = \App\Models\RepairBuddyJobStatus::query()->orderBy('id')->limit(500)->get();
+
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_timelog_tab" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_timelog_tab-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e(route('tenant.settings.time_log.update', ['business' => $tenant->slug])) . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $checkedDisabled = (old('disable_timelog') !== null)
+                        ? (old('disable_timelog') === 'on')
+                        : $disabled;
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="disable_timelog">' . e(__('Disable Time Log Completely')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($checkedDisabled ? 'checked="checked"' : '') . ' name="disable_timelog" id="disable_timelog" />';
+                    $settingsTabBodyHtml .= ' <label for="disable_timelog">' . e(__('Disable Time Log Completely')) . '</label></td></tr>';
+
+                    $selectedTax = (string) old('default_tax_id', $defaultTaxId);
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="default_tax_id">' . e(__('Default tax for hours')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="default_tax_id" id="default_tax_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select tax')) . '</option>';
+                    foreach ($taxes as $tax) {
+                        $sel = $selectedTax !== '' && $selectedTax === (string) $tax->id ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $tax->id) . '"' . $sel . '>' . e((string) $tax->name) . ' (' . e((string) $tax->rate) . '%)</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $included = old('job_status_include', $includedStatuses);
+                    if (! is_array($included)) {
+                        $included = [];
+                    }
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Enable time log')) . '</th><td>';
+                    $settingsTabBodyHtml .= '<fieldset class="fieldset"><legend>' . e(__('Select job status to include')) . '</legend>';
+                    foreach ($jobStatuses as $st) {
+                        $isChecked = in_array((string) $st->slug, array_map('strval', $included), true);
+                        $settingsTabBodyHtml .= '<label style="display:block" for="job_status_' . e((string) $st->slug) . '">';
+                        $settingsTabBodyHtml .= '<input type="checkbox" id="job_status_' . e((string) $st->slug) . '" name="job_status_include[]" value="' . e((string) $st->slug) . '" ' . ($isChecked ? 'checked="checked"' : '') . '> ' . e((string) $st->label);
+                        $settingsTabBodyHtml .= '</label>';
+                    }
+                    $settingsTabBodyHtml .= '<p>' . e(__('To make time log work make sure to create correct my account page in page settings.')) . '</p>';
+                    $settingsTabBodyHtml .= '</fieldset>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="activities">' . e(__('Time Log Activities')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<fieldset class="fieldset"><legend>' . e(__('Define activities for time log')) . '</legend>';
+                    $settingsTabBodyHtml .= '<textarea name="activities" id="activities" rows="5" cols="50" class="large-text code">' . e(old('activities', $activities)) . '</textarea>';
+                    $settingsTabBodyHtml .= '<p>' . e(__('Define activities for time log, one per line.')) . '</p>';
+                    $settingsTabBodyHtml .= '</fieldset>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wcrb_styling') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_styling" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_styling-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e(route('tenant.settings.styling.update', ['business' => $tenant->slug])) . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $deliveryLabel = (string) ($stylingSettings['delivery_date_label'] ?? __('Delivery Date'));
+                    $pickupLabel = (string) ($stylingSettings['pickup_date_label'] ?? __('Pickup Date'));
+                    $nextServiceLabel = (string) ($stylingSettings['nextservice_date_label'] ?? __('Next Service Date'));
+                    $caseNumberLabel = (string) ($stylingSettings['casenumber_label'] ?? __('Case Number'));
+                    $primaryColor = (string) ($stylingSettings['primary_color'] ?? '#063e70');
+                    $secondaryColor = (string) ($stylingSettings['secondary_color'] ?? '#fd6742');
+
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Labels')) . '</h2>';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><td><label for="delivery_date_label">' . e(__('Delivery Date label')) . '<input type="text" id="delivery_date_label" class="form-control" name="delivery_date_label" value="' . e(old('delivery_date_label', $deliveryLabel)) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '<td><label for="pickup_date_label">' . e(__('Pickup Date label')) . '<input type="text" id="pickup_date_label" class="form-control" name="pickup_date_label" value="' . e(old('pickup_date_label', $pickupLabel)) . '" /></label></td></tr>';
+                    $settingsTabBodyHtml .= '<tr><td><label for="nextservice_date_label">' . e(__('Next Service Date label')) . '<input type="text" id="nextservice_date_label" class="form-control" name="nextservice_date_label" value="' . e(old('nextservice_date_label', $nextServiceLabel)) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '<td><label for="casenumber_label">' . e(__('Case Number label')) . '<input type="text" id="casenumber_label" class="form-control" name="casenumber_label" value="' . e(old('casenumber_label', $caseNumberLabel)) . '" /></label></td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Styling')) . '</h2>';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="primary_color">' . e(__('Primary Color')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="color" id="primary_color" class="form-control" name="primary_color" value="' . e(old('primary_color', $primaryColor)) . '" />';
+                    $settingsTabBodyHtml .= '</td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="secondary_color">' . e(__('Secondary Color')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="color" id="secondary_color" class="form-control" name="secondary_color" value="' . e(old('secondary_color', $secondaryColor)) . '" />';
+                    $settingsTabBodyHtml .= '</td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wcrb_reviews_tab') {
+                    $requestBySms = (bool) ($reviewsSettings['requestBySms'] ?? false);
+                    $requestByEmail = (bool) ($reviewsSettings['requestByEmail'] ?? false);
+                    $feedbackPageUrl = (string) ($reviewsSettings['get_feedback_page_url'] ?? '');
+                    $sendOnStatus = (string) ($reviewsSettings['send_request_job_status'] ?? '');
+                    $interval = (string) ($reviewsSettings['auto_request_interval'] ?? 'disabled');
+                    if (! in_array($interval, ['disabled', 'one-notification', 'two-notifications'], true)) {
+                        $interval = 'disabled';
+                    }
+                    $emailSubject = (string) ($reviewsSettings['email_subject'] ?? __('How would you rate the service you received?'));
+                    $emailMessage = (string) ($reviewsSettings['email_message'] ?? '');
+                    $smsMessage = (string) ($reviewsSettings['sms_message'] ?? '');
+
+                    $jobStatuses = \App\Models\RepairBuddyJobStatus::query()->orderBy('id')->limit(500)->get();
+
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_reviews_tab" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_reviews_tab-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e(route('tenant.settings.reviews.update', ['business' => $tenant->slug])) . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+
+                    $checkedSms = (old('request_by_sms') !== null) ? (old('request_by_sms') === 'on') : $requestBySms;
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="request_by_sms">' . e(__('Request Feedback by SMS')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="checkbox" ' . ($checkedSms ? 'checked="checked"' : '') . ' name="request_by_sms" id="request_by_sms" /> ';
+                    $settingsTabBodyHtml .= '<label for="request_by_sms">' . e(__('Enable SMS notification for feedback request')) . '</label></td></tr>';
+
+                    $checkedEmail = (old('request_by_email') !== null) ? (old('request_by_email') === 'on') : $requestByEmail;
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="request_by_email">' . e(__('Request Feedback by Email')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="checkbox" ' . ($checkedEmail ? 'checked="checked"' : '') . ' name="request_by_email" id="request_by_email" /> ';
+                    $settingsTabBodyHtml .= '<label for="request_by_email">' . e(__('Enable Email notification for feedback request')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="get_feedback_page_url">' . e(__('Get feedback on job page URL')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="text" id="get_feedback_page_url" name="get_feedback_page_url" class="regular-text" value="' . e(old('get_feedback_page_url', $feedbackPageUrl)) . '" />';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page that contains the review form. This will be used to send link to customers so they can leave feedback on jobs.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $selectedStatus = (string) old('send_request_job_status', $sendOnStatus);
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="send_request_job_status">' . e(__('Send review request if job status is')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="send_request_job_status" class="form-control" id="send_request_job_status">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select job status to send review request')) . '</option>';
+                    foreach ($jobStatuses as $st) {
+                        $sel = $selectedStatus !== '' && $selectedStatus === (string) $st->slug ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $st->slug) . '"' . $sel . '>' . e((string) $st->label) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('When job has the status you selected above only then you can auto or manually request feedback.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $selectedInterval = (string) old('auto_request_interval', $interval);
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="auto_request_interval">' . e(__('Auto feedback request')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="auto_request_interval" class="form-control" id="auto_request_interval">';
+                    $settingsTabBodyHtml .= '<option value="disabled"' . ($selectedInterval === 'disabled' ? ' selected' : '') . '>' . e(__('Disabled')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="one-notification"' . ($selectedInterval === 'one-notification' ? ' selected' : '') . '>' . e(__('1 Notification - After 24 Hours')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="two-notifications"' . ($selectedInterval === 'two-notifications' ? ' selected' : '') . '>' . e(__('2 Notifications - After 24 Hrs and 48 Hrs')) . '</option>';
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A request for customer feedback will be sent automatically.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="email_message">' . e(__('Email message to request feedback')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<p class="description">' . e(__('Available keywords')) . ': {{st_feedback_anch}} {{end_feedback_anch}} {{feedback_link}} {{job_id}} {{customer_device_label}} {{case_number}} {{customer_full_name}}</p>';
+                    $settingsTabBodyHtml .= '<textarea rows="6" name="email_message" id="email_message" class="large-text">' . e(old('email_message', $emailMessage)) . '</textarea>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="email_subject">' . e(__('Email subject to request feedback')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="text" class="regular-text" name="email_subject" value="' . e(old('email_subject', $emailSubject)) . '" id="email_subject" />';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_message">' . e(__('SMS message to request feedback')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<p class="description">' . e(__('Available keywords')) . ': {{feedback_link}} {{job_id}} {{customer_device_label}} {{case_number}} {{customer_full_name}}</p>';
+                    $settingsTabBodyHtml .= '<textarea rows="3" name="sms_message" id="sms_message" class="large-text">' . e(old('sms_message', $smsMessage)) . '</textarea>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><td colspan="2">' . e(__('You should have set a review page with correct shortcode.')) . '</td></tr>';
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
                 } elseif ($tabId === 'wc_rb_manage_taxes') {

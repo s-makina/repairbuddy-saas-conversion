@@ -284,6 +284,10 @@ class RepairBuddyJobController extends Controller
             'job_devices.*.serial' => ['sometimes', 'nullable', 'string', 'max:255'],
             'job_devices.*.pin' => ['sometimes', 'nullable', 'string', 'max:255'],
             'job_devices.*.notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'job_devices.*.extra_fields' => ['sometimes', 'array'],
+            'job_devices.*.extra_fields.*.key' => ['required', 'string', 'max:64'],
+            'job_devices.*.extra_fields.*.label' => ['required', 'string', 'max:255'],
+            'job_devices.*.extra_fields.*.value_text' => ['required', 'string', 'max:5000'],
 
             // Plugin WP-admin parity: multiple devices added as an array of catalog devices.
             'devices' => ['sometimes', 'array'],
@@ -1092,26 +1096,24 @@ class RepairBuddyJobController extends Controller
                     ]);
                 }
 
-                $ids = [];
-                foreach ($validated['job_devices'] as $row) {
-                    if (! is_array($row) || ! is_numeric($row['customer_device_id'] ?? null)) {
-                        continue;
-                    }
-                    $ids[] = (int) $row['customer_device_id'];
-                }
-                $ids = array_values(array_unique($ids));
+                $jobDevicesPayload = $validated['job_devices'];
 
-                if (count($ids) > 0) {
-                    $count = RepairBuddyCustomerDevice::query()
-                        ->whereIn('id', $ids)
-                        ->where('customer_id', (int) $jobCustomerId)
-                        ->count();
+                $ids = collect($jobDevicesPayload)
+                    ->map(fn ($row) => (int) ($row['customer_device_id'] ?? 0))
+                    ->filter(fn ($id) => $id > 0)
+                    ->values()
+                    ->all();
 
-                    if ((int) $count !== count($ids)) {
-                        throw ValidationException::withMessages([
-                            'job_devices' => ['One or more devices are invalid.'],
-                        ]);
-                    }
+                $customerDevices = RepairBuddyCustomerDevice::query()
+                    ->where('customer_id', (int) $jobCustomerId)
+                    ->whereIn('id', $ids)
+                    ->get()
+                    ->keyBy('id');
+
+                if (count($customerDevices) !== count($ids)) {
+                    throw ValidationException::withMessages([
+                        'job_devices' => ['One or more devices are invalid.'],
+                    ]);
                 }
 
                 RepairBuddyJobDevice::query()->where('job_id', $job->id)->delete();
@@ -1121,45 +1123,80 @@ class RepairBuddyJobController extends Controller
                     ->orderBy('id', 'asc')
                     ->get();
 
-                foreach ($ids as $customerDeviceId) {
-                    $cd = RepairBuddyCustomerDevice::query()->whereKey($customerDeviceId)->first();
+                foreach ($jobDevicesPayload as $entry) {
+                    if (! is_array($entry)) {
+                        continue;
+                    }
+
+                    $customerDeviceId = (int) ($entry['customer_device_id'] ?? 0);
+                    $cd = $customerDevices->get($customerDeviceId);
                     if (! $cd) {
                         continue;
                     }
 
-                    $values = RepairBuddyCustomerDeviceFieldValue::query()
-                        ->where('customer_device_id', $cd->id)
-                        ->get()
-                        ->keyBy('field_definition_id');
+                    $serialOverride = is_string($entry['serial'] ?? null) ? trim((string) $entry['serial']) : '';
+                    $pinOverride = is_string($entry['pin'] ?? null) ? trim((string) $entry['pin']) : '';
+                    $notesOverride = is_string($entry['notes'] ?? null) ? trim((string) $entry['notes']) : '';
 
+                    $extraFieldsPayload = is_array($entry['extra_fields'] ?? null) ? $entry['extra_fields'] : [];
                     $extraFieldsSnapshot = [];
-                    foreach ($definitions as $def) {
-                        $value = $values->get($def->id);
-                        if (! $value) {
-                            continue;
+
+                    if (count($extraFieldsPayload) > 0) {
+                        foreach ($extraFieldsPayload as $row) {
+                            if (! is_array($row)) {
+                                continue;
+                            }
+                            $key = is_string($row['key'] ?? null) ? trim((string) $row['key']) : '';
+                            $label = is_string($row['label'] ?? null) ? trim((string) $row['label']) : '';
+                            $valueText = is_string($row['value_text'] ?? null) ? trim((string) $row['value_text']) : '';
+                            if ($key === '' || $label === '' || $valueText === '') {
+                                continue;
+                            }
+                            $extraFieldsSnapshot[] = [
+                                'key' => $key,
+                                'label' => $label,
+                                'type' => 'text',
+                                'show_in_booking' => true,
+                                'show_in_invoice' => true,
+                                'show_in_portal' => true,
+                                'value_text' => $valueText,
+                            ];
                         }
-                        $rawText = is_string($value->value_text) ? trim((string) $value->value_text) : '';
-                        if ($rawText === '') {
-                            continue;
+                        $extraFieldsSnapshot = array_slice($extraFieldsSnapshot, 0, 50);
+                    } else {
+                        $values = RepairBuddyCustomerDeviceFieldValue::query()
+                            ->where('customer_device_id', $cd->id)
+                            ->get()
+                            ->keyBy('field_definition_id');
+
+                        foreach ($definitions as $def) {
+                            $value = $values->get($def->id);
+                            if (! $value) {
+                                continue;
+                            }
+                            $rawText = is_string($value->value_text) ? trim((string) $value->value_text) : '';
+                            if ($rawText === '') {
+                                continue;
+                            }
+                            $extraFieldsSnapshot[] = [
+                                'key' => $def->key,
+                                'label' => $def->label,
+                                'type' => $def->type,
+                                'show_in_booking' => (bool) $def->show_in_booking,
+                                'show_in_invoice' => (bool) $def->show_in_invoice,
+                                'show_in_portal' => (bool) $def->show_in_portal,
+                                'value_text' => $rawText,
+                            ];
                         }
-                        $extraFieldsSnapshot[] = [
-                            'key' => $def->key,
-                            'label' => $def->label,
-                            'type' => $def->type,
-                            'show_in_booking' => (bool) $def->show_in_booking,
-                            'show_in_invoice' => (bool) $def->show_in_invoice,
-                            'show_in_portal' => (bool) $def->show_in_portal,
-                            'value_text' => $rawText,
-                        ];
                     }
 
                     RepairBuddyJobDevice::query()->create([
                         'job_id' => $job->id,
                         'customer_device_id' => $cd->id,
                         'label_snapshot' => $cd->label,
-                        'serial_snapshot' => $cd->serial,
-                        'pin_snapshot' => $cd->pin,
-                        'notes_snapshot' => $cd->notes,
+                        'serial_snapshot' => $serialOverride !== '' ? $serialOverride : $cd->serial,
+                        'pin_snapshot' => $pinOverride !== '' ? $pinOverride : $cd->pin,
+                        'notes_snapshot' => $notesOverride !== '' ? $notesOverride : $cd->notes,
                         'extra_fields_snapshot_json' => $extraFieldsSnapshot,
                     ]);
                 }

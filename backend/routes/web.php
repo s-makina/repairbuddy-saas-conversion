@@ -97,6 +97,15 @@ Route::prefix('t/{business}')
             ->where(['reminder' => '[0-9]+' ])
             ->name('tenant.settings.maintenance_reminders.delete');
 
+        Route::post('/settings/time-log', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateTimeLogSettings'])
+            ->name('tenant.settings.time_log.update');
+
+        Route::post('/settings/styling', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateStylingSettings'])
+            ->name('tenant.settings.styling.update');
+
+        Route::post('/settings/reviews', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateReviewSettings'])
+            ->name('tenant.settings.reviews.update');
+
         Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
             ->name('tenant.jobs.create');
 

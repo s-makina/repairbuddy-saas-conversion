@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('tenant.jobs.store', ['business' => $tenantSlug]) }}">
+    <form method="POST" action="{{ route('tenant.jobs.store', ['business' => $tenantSlug]) }}" enctype="multipart/form-data">
         @csrf
 
         <div class="row g-4">
@@ -50,10 +50,11 @@
 
                             <div class="col-md-4">
                                 <label class="form-label">{{ __('Status') }}</label>
-                                <select name="status_slug" class="form-select" required>
-                                    <option value="" {{ old('status_slug') === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
+                                @php $statusOld = old('status_slug', 'neworder'); @endphp
+                                <select name="status_slug" class="form-select">
+                                    <option value="" {{ $statusOld === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
                                     @foreach ($jobStatuses as $s)
-                                        <option value="{{ $s->slug }}" {{ old('status_slug') === $s->slug ? 'selected' : '' }}>
+                                        <option value="{{ $s->slug }}" {{ $statusOld === $s->slug ? 'selected' : '' }}>
                                             {{ $s->label }}
                                         </option>
                                     @endforeach
@@ -63,10 +64,11 @@
 
                             <div class="col-md-4">
                                 <label class="form-label">{{ __('Payment Status') }}</label>
+                                @php $payOld = old('payment_status_slug', 'nostatus'); @endphp
                                 <select name="payment_status_slug" class="form-select">
-                                    <option value="" {{ old('payment_status_slug') === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
+                                    <option value="" {{ $payOld === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
                                     @foreach ($paymentStatuses as $ps)
-                                        <option value="{{ $ps->slug }}" {{ old('payment_status_slug') === $ps->slug ? 'selected' : '' }}>
+                                        <option value="{{ $ps->slug }}" {{ $payOld === $ps->slug ? 'selected' : '' }}>
                                             {{ $ps->label }}
                                         </option>
                                     @endforeach
@@ -83,6 +85,17 @@
                                     <option value="urgent" {{ $p === 'urgent' ? 'selected' : '' }}>{{ __('Urgent') }}</option>
                                 </select>
                                 @error('priority')<div class="text-danger small">{{ $message }}</div>@enderror
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">{{ __('Tax Mode') }}</label>
+                                @php $taxMode = old('prices_inclu_exclu'); @endphp
+                                <select name="prices_inclu_exclu" class="form-select">
+                                    <option value="" {{ $taxMode === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
+                                    <option value="exclusive" {{ $taxMode === 'exclusive' ? 'selected' : '' }}>{{ __('Exclusive') }}</option>
+                                    <option value="inclusive" {{ $taxMode === 'inclusive' ? 'selected' : '' }}>{{ __('Inclusive') }}</option>
+                                </select>
+                                @error('prices_inclu_exclu')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="col-md-6">
@@ -133,6 +146,18 @@
                                 <textarea name="case_detail" class="form-control" rows="4" placeholder="{{ __('Enter details about job.') }}">{{ old('case_detail') }}</textarea>
                                 @error('case_detail')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('Order Notes') }}</label>
+                                <textarea name="wc_order_note" class="form-control" rows="3" placeholder="{{ __('Visible to customer.') }}">{{ old('wc_order_note') }}</textarea>
+                                @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('File Attachment') }}</label>
+                                <input type="file" name="job_file" class="form-control" />
+                                @error('job_file')<div class="text-danger small">{{ $message }}</div>@enderror
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -142,27 +167,116 @@
                         <h5 class="card-title mb-0">{{ __('Devices') }}</h5>
                     </div>
                     <div class="card-body">
-                        <div class="text-muted small mb-2">{{ __('Select customer devices to attach (optional).') }}</div>
-                        <select name="customer_device_ids[]" class="form-select" multiple>
-                            @foreach ($customerDevices as $cd)
-                                @php
-                                    $label = $cd->label;
-                                    $cname = $cd->customer?->name;
-                                    $serial = $cd->serial;
-                                    $text = $label;
-                                    if (is_string($cname) && $cname !== '') {
-                                        $text .= ' — ' . $cname;
-                                    }
-                                    if (is_string($serial) && $serial !== '') {
-                                        $text .= ' (' . $serial . ')';
-                                    }
-                                @endphp
-                                <option value="{{ $cd->id }}" {{ in_array((string) $cd->id, array_map('strval', (array) old('customer_device_ids', [])), true) ? 'selected' : '' }}>
-                                    {{ $text }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('customer_device_ids')<div class="text-danger small">{{ $message }}</div>@enderror
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted small">{{ __('Attach customer devices (optional).') }}</div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addDeviceLine">{{ __('Add Device') }}</button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle" id="devicesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>{{ __('Customer Device') }}</th>
+                                        <th style="width:180px">{{ __('Serial / ID') }}</th>
+                                        <th style="width:140px">{{ __('Pin') }}</th>
+                                        <th>{{ __('Notes') }}</th>
+                                        <th style="width:70px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        $oldDevIds = (array) old('job_device_customer_device_id', []);
+                                        $oldDevSerials = (array) old('job_device_serial', []);
+                                        $oldDevPins = (array) old('job_device_pin', []);
+                                        $oldDevNotes = (array) old('job_device_notes', []);
+                                        $devRows = max(count($oldDevIds), count($oldDevSerials), count($oldDevPins), count($oldDevNotes), 1);
+                                    @endphp
+                                    @for ($i = 0; $i < $devRows; $i++)
+                                        <tr>
+                                            <td>
+                                                <select name="job_device_customer_device_id[]" class="form-select form-select-sm">
+                                                    <option value="">{{ __('Select...') }}</option>
+                                                    @foreach ($customerDevices as $cd)
+                                                        @php
+                                                            $label = $cd->label;
+                                                            $cname = $cd->customer?->name;
+                                                            $serial = $cd->serial;
+                                                            $text = $label;
+                                                            if (is_string($cname) && $cname !== '') {
+                                                                $text .= ' — ' . $cname;
+                                                            }
+                                                            if (is_string($serial) && $serial !== '') {
+                                                                $text .= ' (' . $serial . ')';
+                                                            }
+                                                            $sel = (string) ($oldDevIds[$i] ?? '') === (string) $cd->id;
+                                                        @endphp
+                                                        <option value="{{ $cd->id }}" {{ $sel ? 'selected' : '' }}>{{ $text }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td><input type="text" name="job_device_serial[]" class="form-control form-control-sm" value="{{ $oldDevSerials[$i] ?? '' }}" /></td>
+                                            <td><input type="text" name="job_device_pin[]" class="form-control form-control-sm" value="{{ $oldDevPins[$i] ?? '' }}" /></td>
+                                            <td><input type="text" name="job_device_notes[]" class="form-control form-control-sm" value="{{ $oldDevNotes[$i] ?? '' }}" /></td>
+                                            <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm removeDeviceLine">{{ __('X') }}</button></td>
+                                        </tr>
+                                    @endfor
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @error('job_device_customer_device_id')<div class="text-danger small">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">{{ __('Attach Fields & Files') }}</h5>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="addExtraLine">{{ __('Add Field') }}</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle" id="extraTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:160px">{{ __('Date') }}</th>
+                                        <th style="width:220px">{{ __('Label') }}</th>
+                                        <th>{{ __('Data') }}</th>
+                                        <th>{{ __('Description') }}</th>
+                                        <th style="width:140px">{{ __('Visibility') }}</th>
+                                        <th style="width:220px">{{ __('File') }}</th>
+                                        <th style="width:70px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        $oldExDates = (array) old('extra_item_occurred_at', []);
+                                        $oldExLabels = (array) old('extra_item_label', []);
+                                        $oldExData = (array) old('extra_item_data_text', []);
+                                        $oldExDesc = (array) old('extra_item_description', []);
+                                        $oldExVis = (array) old('extra_item_visibility', []);
+                                        $exRows = max(count($oldExLabels), count($oldExData), count($oldExDesc), count($oldExVis), count($oldExDates), 1);
+                                    @endphp
+                                    @for ($i = 0; $i < $exRows; $i++)
+                                        <tr>
+                                            <td><input type="date" name="extra_item_occurred_at[]" class="form-control form-control-sm" value="{{ $oldExDates[$i] ?? '' }}" /></td>
+                                            <td><input type="text" name="extra_item_label[]" class="form-control form-control-sm" value="{{ $oldExLabels[$i] ?? '' }}" /></td>
+                                            <td><input type="text" name="extra_item_data_text[]" class="form-control form-control-sm" value="{{ $oldExData[$i] ?? '' }}" /></td>
+                                            <td><input type="text" name="extra_item_description[]" class="form-control form-control-sm" value="{{ $oldExDesc[$i] ?? '' }}" /></td>
+                                            @php $vis = is_string($oldExVis[$i] ?? null) ? (string) $oldExVis[$i] : 'private'; @endphp
+                                            <td>
+                                                <select name="extra_item_visibility[]" class="form-select form-select-sm">
+                                                    <option value="private" {{ $vis === 'private' ? 'selected' : '' }}>{{ __('Private') }}</option>
+                                                    <option value="public" {{ $vis === 'public' ? 'selected' : '' }}>{{ __('Public') }}</option>
+                                                </select>
+                                            </td>
+                                            <td><input type="file" name="extra_item_file[]" class="form-control form-control-sm" /></td>
+                                            <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm removeExtraLine">{{ __('X') }}</button></td>
+                                        </tr>
+                                    @endfor
+                                </tbody>
+                            </table>
+                        </div>
+                        @error('extra_item_label')<div class="text-danger small">{{ $message }}</div>@enderror
                     </div>
                 </div>
 
@@ -286,6 +400,105 @@
 
     if (table) {
         table.addEventListener('click', removeHandler);
+    }
+
+    var deviceAddBtn = document.getElementById('addDeviceLine');
+    var devicesTable = document.getElementById('devicesTable');
+
+    function deviceRemoveHandler(e) {
+        var btn = e.target.closest('.removeDeviceLine');
+        if (!btn) return;
+        var tr = btn.closest('tr');
+        if (!tr) return;
+        var tbody = tr.parentElement;
+        tr.remove();
+        if (tbody && tbody.children.length === 0) {
+            addDeviceLine();
+        }
+    }
+
+    function addDeviceLine() {
+        if (!devicesTable) return;
+        var tbody = devicesTable.querySelector('tbody');
+        if (!tbody) return;
+
+        var optionsHtml = '<option value="">Select...</option>';
+        @foreach ($customerDevices as $cd)
+            @php
+                $label = $cd->label;
+                $cname = $cd->customer?->name;
+                $serial = $cd->serial;
+                $text = $label;
+                if (is_string($cname) && $cname !== '') {
+                    $text .= ' — ' . $cname;
+                }
+                if (is_string($serial) && $serial !== '') {
+                    $text .= ' (' . $serial . ')';
+                }
+            @endphp
+            optionsHtml += '<option value="{{ $cd->id }}">{!! e($text) !!}</option>';
+        @endforeach
+
+        var tr = document.createElement('tr');
+        tr.innerHTML = ''
+          + '<td><select name="job_device_customer_device_id[]" class="form-select form-select-sm">' + optionsHtml + '</select></td>'
+          + '<td><input type="text" name="job_device_serial[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td><input type="text" name="job_device_pin[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td><input type="text" name="job_device_notes[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm removeDeviceLine">X</button></td>';
+        tbody.appendChild(tr);
+    }
+
+    if (deviceAddBtn) {
+        deviceAddBtn.addEventListener('click', function () {
+            addDeviceLine();
+        });
+    }
+
+    if (devicesTable) {
+        devicesTable.addEventListener('click', deviceRemoveHandler);
+    }
+
+    var extraAddBtn = document.getElementById('addExtraLine');
+    var extraTable = document.getElementById('extraTable');
+
+    function extraRemoveHandler(e) {
+        var btn = e.target.closest('.removeExtraLine');
+        if (!btn) return;
+        var tr = btn.closest('tr');
+        if (!tr) return;
+        var tbody = tr.parentElement;
+        tr.remove();
+        if (tbody && tbody.children.length === 0) {
+            addExtraLine();
+        }
+    }
+
+    function addExtraLine() {
+        if (!extraTable) return;
+        var tbody = extraTable.querySelector('tbody');
+        if (!tbody) return;
+
+        var tr = document.createElement('tr');
+        tr.innerHTML = ''
+          + '<td><input type="date" name="extra_item_occurred_at[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td><input type="text" name="extra_item_label[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td><input type="text" name="extra_item_data_text[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td><input type="text" name="extra_item_description[]" class="form-control form-control-sm" value="" /></td>'
+          + '<td><select name="extra_item_visibility[]" class="form-select form-select-sm"><option value="private">Private</option><option value="public">Public</option></select></td>'
+          + '<td><input type="file" name="extra_item_file[]" class="form-control form-control-sm" /></td>'
+          + '<td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm removeExtraLine">X</button></td>';
+        tbody.appendChild(tr);
+    }
+
+    if (extraAddBtn) {
+        extraAddBtn.addEventListener('click', function () {
+            addExtraLine();
+        });
+    }
+
+    if (extraTable) {
+        extraTable.addEventListener('click', extraRemoveHandler);
     }
 })();
 </script>
