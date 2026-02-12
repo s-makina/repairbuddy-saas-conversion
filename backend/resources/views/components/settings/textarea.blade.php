@@ -14,5 +14,5 @@
 	rows="{{ $rows }}"
 	@if($required) required @endif
 	@if($placeholder) placeholder="{{ $placeholder }}" @endif
-	{{ $attributes }}
+	{{ $attributes->class(['wcrb-settings-input']) }}
 >{{ $value }}</textarea>

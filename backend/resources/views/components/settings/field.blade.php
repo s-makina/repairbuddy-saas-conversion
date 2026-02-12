@@ -8,12 +8,12 @@
 <div {{ $attributes }}>
 	@if ($label !== null)
 		<label @if($for) for="{{ $for }}" @endif>
-			{{ $label }}
+			<span class="wcrb-settings-label-text">{{ $label }}</span>
 			@if ($help)
 				<small>{{ $help }}</small>
 			@endif
-			{{ $slot }}
 		</label>
+		{{ $slot }}
 	@else
 		{{ $slot }}
 	@endif

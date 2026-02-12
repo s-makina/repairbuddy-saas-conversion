@@ -752,420 +752,127 @@ ul.wc_service_radio li label span:last-child {
 .wcrbfd .tabs-content .form-table td fieldset label {
 	margin-right:0.5em !important;
 }
-.wcrbfd .medium-2.sidebarmenu {
-	max-width:200px;
+.wcrb-settings-form {
+	max-width: 980px;
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	padding: 18px;
 }
-.wcrbfd.computer-repair .tabs-panel {
-	padding:30px;
+.wcrb-settings-field {
+	margin-bottom: 16px;
 }
-.wcrbfd.computer-repair li.external-title a h2,
-.wcrbfd.computer-repair li.tabs-title a h2 {
-	font-size:14px;
-	color:#FFF;
-	text-decoration: none;
-	margin-top:0px;
-	margin-bottom:0px;
+.wcrb-settings-field > label {
+	font-weight: 600;
+	color: #0a0a0a;
 }
-.tabs-content.vertical .wc_menu li,
-.tabs-content.vertical .wc_menu.horizontal li,
-.wcrbfd.computer-repair li.external-title,
-.wcrbfd.computer-repair li.tabs-title {
-	margin-bottom:0px;
-	list-style: none !important;
-}
-.tabs-content.vertical .wc_menu,
-.tabs-content.vertical .wc_menu.horizontal {
-	margin: 0 !important;	
-}
-.wcrbfd.computer-repair li.external-title a,
-.wcrbfd.computer-repair li.tabs-title a {
-	padding:0.875rem 1rem;
-	display:block;
-	text-decoration: none;
-}
-.wcrbfd.computer-repair li.external-title > a:hover,
-.wcrbfd.computer-repair .tabs-title > a:hover,
-.wcrbfd.computer-repair .tabs-title > a:focus, 
-.wcrbfd.computer-repair .tabs-title > a[aria-selected='true'] {
-	background-color:#fd6742;
-}
-.wcrbfd.computer-repair .tabs {
-	border:0px;	
-	margin: 0 !important;
-	padding-left:0px;
-}
-.wcrbfd .thebluebg {
-	background-color:#063e70;
-}
-.wcrbfd .thewhitebg {
-	background-color:#FFFFFF;
-}
-.mt-25 {
-	margin-top:25px !important;
-}
-.wcrb_review_form .alignleft {
-	text-align: left;
-}
-.wcrb_review_form .alignright {
-	text-align: right;
-}
-.wcrb_review_form table td {
-	padding:15px;
-	margin-bottom: 0px !important;
-}
-.aligncenter {
-    display: block;
-    margin: 0 auto;
-    text-align: center;
-}
-img.company_logo {
-	max-width:100%;
-	max-height:95px;
-}
-.note_public p.meta {
-	margin-bottom:0px;
-}
-.jobAttachments {
-	background-color:#FFF;
-	border:1px solid #ededed;
-	padding:15px;
-	margin:15px 0px;
-	border-radius:10px;
-}
-.jobAttachments img {
-	width:40px;
-	height:auto;
-	margin:0px 15px;
-}
-.wcrb-btn-grp-services .button {
-	display:inline-block !important;
-	margin:5px !important;
-}
-.wcrb-btn-grp-services {
-	display:inline-block;
-	float:right;
-}
-.clearfix:after {
-	clear:both;
-	display:table;
-	width:100%;
-	content:'';
-}
-ul li.wcrb-other-color {
-	background-color:#8a8a8a;
-}
-ul li.wcrb-other-color a,
-ul li.wcrb-other-color a h3 {
-	color:#FFF;
-}
-.width-hundred {
-	width:95px;
-}
-@media screen and (max-width:425px) {
-	.store_selector_radio_output li {
-		width: 100%;
-		flex: 0 0 100%;
-	}
-	ul.dtypes_list, ul.manufacture_list {
-		flex-wrap: wrap;
-	}
-	ul.dtypes_list li,
-    ul.manufacture_list li {
-		display: inline-block;
-		background-color: #FFF;
-		border-radius: 20px;
-		margin-left: 5px;
-		margin-right: 5px;
-		margin-top: 15px;
-		margin-bottom: 15px;
-	}
-	ul.dtypes_list, ul.manufacture_list {
-		padding: 0px;
-		margin: 0px;
-		list-style: none;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-}
-.wcrb_module {
-	margin-top:70px;
-	margin-bottom:70px;
-}
-.wcrb_widget_wrap {
+.wcrb-settings-label-text {
 	display: block;
-    background: #fff;
-    width: 100%;
-    border-radius: 3px;
-    -webkit-box-shadow: 0 1px 3px rgba(0,0,0,.1);
-    box-shadow: 0 1px 3px rgba(0,0,0,.1);
-    margin: 0 0 24px;
-    overflow: hidden;
+	max-width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
-.wcrb_widget_title h2 {
-	background: #063e70;
-    padding: 15px 20px;
-    color: #fff;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-}
-.wcrb_widget_content {
-	padding:20px;
-}
-.wcrb_widget_content:after {
-	clear:both;
-	display:table;
-	width:100%;
-	content:'';
-}	
-.wcrb_widget_content ul {
-	margin-left:0px;
-	padding-left:0px;
-	margin-right:0px;
-	padding-left:0px;
-}
-
-.wcrb_widget_content .accordion-title {
-	background-color:#fd6742;
-	color:#fff;
-	font-size:1rem;
-	width:100%;
-	padding:15px;
-	margin-top:8px;
-	margin-bottom:8px;
-}
-.wcrb_widget_content .accordion-title::before {
-	right:10px;
-}
-.wcrb_widget_content .accordion-title:hover,
-.wcrb_widget_content .is-active>.accordion-title {
-	background-color:#063e70;
-}
-.wcrb_widget_content .accordion-content {
-	width:100%;
-	padding:10px;
-}
-.textright {
-	text-align: right;
-}
-h2.wc_service_booking_heading {
-	margin-top:60px;
-	background-color:#063e70;
-	text-align:center;
-	color:#FFF;
-	margin-bottom:0px;
-	padding:15px 0px;
-	border-radius:7px 7px 0px 0px;
-}
-.booking-on-service-page .wc_rb_mb_head h2 {
-	text-align: center;
-}
-.wcrb_service_thumb_price {
-	background-color: #063e70;
-    color: #FFF;
-    font-weight: 600;
-    display: inline-block;
-    padding: 5px 10px;
-	position: absolute;
-	bottom:0px;
-	right:0px;
-	font-size:16px;
-}
-.wcrb_dev_service_wrap:after,
-.wcrb_dev_service_head:after,
-.wcrb_service_thumbwrap:after,
-.wcrb_service_thumb_price:after {
-	clear:both;
-	display:block;
-	content:"";
-}
-.wcrb_service_thumbwrap {
-	padding:2px;
-	background:#ededed;
-	position: relative;
-}
-.priceRangeWCRB {
-	background-color: #063e70;
-    color: #FFF;
-    font-weight: 600;
-    display: inline-block;
-    padding: 5px 10px;
-	margin:auto;
-	width:100%;
-	text-align:center;
-	margin-top:15px;
-}
-.spacer-sixtypx {
-	margin-bottom:60px;
-}
-.wcrb_dev_service_wrap {
+.wcrb-settings-field > label > small {
 	display: block;
-    background: #fff;
-    width: 100%;
-    border-radius: 7px;
-    -webkit-box-shadow: 0 1px 3px rgba(0,0,0,.1);
-    box-shadow: 0 1px 3px rgba(0,0,0,.1);
-    margin: 0px;
-    overflow: hidden;
-	padding:15px;
+	font-weight: 400;
+	color: #6b7280;
+	margin-top: 4px;
+	margin-bottom: 8px;
 }
-.wcrb_dev_service_head {
-	background-color: #063e70;
-	padding:0px;
-	border-radius:80px 0px 0px 80px;
+.wcrb-settings-input {
+	width: 100%;
+	max-width: 100%;
+	background-color: #fff;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	padding: 10px 12px;
+	height: auto;
+	margin-bottom: 0;
+	box-shadow: none;
 }
-.wcrb_dev_service_head .imageWrap {
-	background-color:#fd6742;
-	border-radius: 100%;
-	width:80px;
-	height:80px;
-	text-align: center;
-	padding:15px;
-	float:left;
+.wcrb-settings-input:focus {
+	border-color: #063e70;
+	box-shadow: 0 0 0 3px rgba(6, 62, 112, 0.15);
 }
-.wcrb_dev_service_head img {
-	height:50px;
-	width:auto;
-	max-width: 50px;
-	line-height: 60px;
-	object-fit: contain;
-    padding: 2px;
+.wcrb-settings-card {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	margin-top: 18px;
 }
-.wcrb_dev_service_head h3 {
-    margin-bottom: 0px;
-    float: right;
-    width: calc(100% - 90px);
-    padding-left: 10px;
-	font-size:20px;
+.wcrb-settings-card + .wcrb-settings-card {
+	border-top: 1px solid #eef0f2;
+	padding-top: 18px;
 }
-.wcrb_dev_service_head h3 a {
-	color: #FFF;
+.wcrb-settings-card-title {
+	font-size: 16px;
+	font-weight: 700;
+	color: #063e70;
+	margin-top: 0;
+	margin-bottom: 12px;
 }
-.wcrb_dev_price_tag {
-	padding-top:15px;
-	text-align: center;
+.wcrb-settings-card-body {
+	margin-top: 0;
 }
-.wcrb_dev_price_tag a {
-	font-size:30px;
-	text-align: center;
+.wcrb-settings-option {
+	padding: 10px 0;
+	border-bottom: 1px solid #eef0f2;
 }
-.margintopthirty {
-	margin-top:30px !important;
+.wcrb-settings-option .description {
+	margin-top: 6px;
+	margin-bottom: 0;
 }
-.wcrb_close {
-	position: absolute;
-    right: -2px;
-    top:33px;
-    width: 27px;
-    height: 32px;
-    opacity: 1;
-    color: #FFF !important;
-    background-color: #fd6742;
-    padding: 5px;
-    text-align: center;
-    font-size: 22px;
-    line-height: 23px;
-	text-decoration: none !important;
+.wcrb-settings-option:last-child {
+	border-bottom: 0;
 }
-.wcrb_close:hover {
-	opacity: 1;
-	background-color: #063e70;
+.wcrb-settings-option-title {
+	font-weight: 600;
+	display: block;
+	margin-bottom: 6px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
-.device-booking-row {
-	position: relative;
-	padding-right:30px;
+.wcrb-settings-option-control {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: 0 1 auto;
 }
-.select_store_wrapper {
-	margin-top:35px;
-	margin-bottom:35px;
+.wcrb-settings-toggle {
+	transform: scale(1.35);
+	transform-origin: left center;
+	margin: 0;
 }
-.store_selector_radio_output li {
-    width: 50%;
-    flex: 0 0 45%;
+.wcrb-settings-actions {
+	margin-top: 22px;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
 }
-.store_selector_radio_output span.radioHolder {
-	max-width:60px;
+.wcrb-settings-option-head {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	flex-wrap: nowrap;
+	gap: 14px;
 }
-.store_selector_radio_output span.theServiceTitle {
-	width:calc(100% - 60px);
+.wcrb-settings-option-head .wcrb-settings-option-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
-.device-booking-row.SdisplayNone select,
-.wc_rb_mb_body.final_customer_message textarea,
-.wc_rb_mb_body.final_customer_message input,
-.device-booking-row.SdisplayNone input {
-	width: 100% !important;
-}
-.wc_rb_mb_body.final_customer_message textarea {
-    height: 80px;
-	min-height: 80px;
-}
-.wc_rb_mb_body.final_customer_message .show-for-sr, 
-.wc_rb_mb_body.final_customer_message .show-on-focus {
-	visibility: hidden;
-	height: 0;
-}
-.wc_rb_mb_body.final_customer_message label>[type=checkbox], 
-.wc_rb_mb_body.final_customer_message label>[type=radio] {
-	width: auto !important;
-}
-.wc_rb_mb_body.final_customer_message input.button.button-primary.primary {
-    width: auto !important;
-}
-.wc_rb_mb_body label.button.button-primary:hover,
-.wc_rb_mb_body .button.primary:focus, 
-.wc_rb_mb_body .button.primary:hover {
-    background-color: #fd6742;
-    color: #fefefe;
-}
-.wc_rb_mb_body label.button.button-primary,
-.wc_rb_mb_body .button.primary {
-    background-color: #063e70;
-    color: #fefefe;
-}
-
-ul.manufacture_list.wc_service_radio label {
-    cursor: pointer;
-}
-
-.startNewJob .select2-container--default .select2-selection--single ,
-.startNewJob .select2-container--default .select2-selection--single .select2-selection__rendered {
-    height: 40px;
-	line-height: 40px;
-}
-.startNewJob .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 36px;
-}
-.startNewJob textarea.form-control {
-    min-height: 80px;
-}
-#WCstartJob button.close-button {
-    position: absolute;
-    border: 0;
-    cursor: pointer;
-}
-#WCstartJob button.close-button span {
-    font-size: 2rem;
-}
-.grid-container .wcrb_widget_wrap table.wp-list-table.widefat.fixed.striped.posts {
-	position: relative !important;
-}
-.booking-on-service-page .wcrb_dev_service_head {
-    display: flex;
-    align-items: center;
-}
-.booking-on-service-page .wcrb_dev_price_tag a ,
-.booking-on-service-page .wcrb_dev_service_head h3 a {
-    font-size: 20px;
-}
-.textleft {
-	text-align:left !important;
-}
-
-ul.wc_service_radio li {
-    width: 45%;
+.wcrb-settings-option-head .wcrb-settings-option-control {
+	flex: 0 0 auto;
+	line-height: 1;
 }
 
 @media screen and (max-width:700px) {
