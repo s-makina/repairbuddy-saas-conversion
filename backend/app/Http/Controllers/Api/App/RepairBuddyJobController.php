@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCaseCounter;
+use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyCustomerDeviceFieldValue;
 use App\Models\RepairBuddyDevice;
@@ -12,6 +13,7 @@ use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobAttachment;
 use App\Models\RepairBuddyJobDevice;
+use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyJobStatus;
 use App\Models\User;
@@ -264,7 +266,9 @@ class RepairBuddyJobController extends Controller
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'prices_inclu_exclu' => ['sometimes', 'nullable', 'string', 'in:inclusive,exclusive'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'can_review_it' => ['sometimes', 'nullable', 'boolean'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
             'plugin_device_post_id' => ['sometimes', 'nullable', 'integer'],
             'plugin_device_id_text' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -312,7 +316,7 @@ class RepairBuddyJobController extends Controller
 
         $statusSlug = is_string($validated['status_slug'] ?? null) && $validated['status_slug'] !== ''
             ? $validated['status_slug']
-            : 'new';
+            : 'neworder';
 
         $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
         if (! $statusExists && $statusSlug === 'new') {
@@ -333,6 +337,23 @@ class RepairBuddyJobController extends Controller
 
         $requestedCaseNumber = is_string($validated['case_number'] ?? null) ? trim((string) $validated['case_number']) : '';
         $caseNumber = $requestedCaseNumber !== '' ? $requestedCaseNumber : $this->generateCaseNumber();
+
+        $requestedPaymentStatus = is_string($validated['payment_status_slug'] ?? null) ? trim((string) $validated['payment_status_slug']) : '';
+        $paymentStatusSlug = $requestedPaymentStatus !== '' ? $requestedPaymentStatus : 'nostatus';
+
+        $requestedPriority = is_string($validated['priority'] ?? null) ? trim((string) $validated['priority']) : '';
+        $priority = $requestedPriority !== '' ? $requestedPriority : 'normal';
+
+        $canReviewIt = array_key_exists('can_review_it', $validated) ? (bool) $validated['can_review_it'] : true;
+
+        $pricesIncluExclu = is_string($validated['prices_inclu_exclu'] ?? null) ? trim((string) $validated['prices_inclu_exclu']) : '';
+        if (! in_array($pricesIncluExclu, ['inclusive', 'exclusive'], true)) {
+            $settings = data_get($this->tenant()->setup_state ?? [], 'repairbuddy_settings');
+            $invoiceAmounts = is_array($settings) ? data_get($settings, 'taxes.invoiceAmounts') : null;
+            $invoiceAmounts = is_string($invoiceAmounts) ? trim((string) $invoiceAmounts) : '';
+            $pricesIncluExclu = in_array($invoiceAmounts, ['inclusive', 'exclusive'], true) ? $invoiceAmounts : '';
+        }
+        $pricesIncluExclu = in_array($pricesIncluExclu, ['inclusive', 'exclusive'], true) ? $pricesIncluExclu : null;
 
         $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
         if ($title === '') {
@@ -474,7 +495,7 @@ class RepairBuddyJobController extends Controller
         $createdCustomer = null;
         $createdCustomerOneTimePassword = null;
 
-        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $devicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $title) {
+        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $devicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $title, $paymentStatusSlug, $priority, $canReviewIt, $pricesIncluExclu) {
             if ($shouldCreateCustomer) {
                 $cc = $validated['customer_create'];
 
@@ -528,12 +549,17 @@ class RepairBuddyJobController extends Controller
                 $createdCustomerOneTimePassword = $oneTimePassword;
             }
 
+            $jobNumber = $this->nextJobNumber();
+
             $job = RepairBuddyJob::query()->create([
+                'job_number' => $jobNumber,
                 'case_number' => $caseNumber,
                 'title' => $title,
                 'status_slug' => $statusSlug,
-                'payment_status_slug' => $validated['payment_status_slug'] ?? null,
-                'priority' => $validated['priority'] ?? null,
+                'payment_status_slug' => $paymentStatusSlug,
+                'prices_inclu_exclu' => $pricesIncluExclu,
+                'priority' => $priority,
+                'can_review_it' => $canReviewIt,
                 'customer_id' => $customerId,
                 'created_by' => $request->user()?->id,
                 'opened_at' => now(),
@@ -828,7 +854,9 @@ class RepairBuddyJobController extends Controller
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'prices_inclu_exclu' => ['sometimes', 'nullable', 'string', 'in:inclusive,exclusive'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'can_review_it' => ['sometimes', 'nullable', 'boolean'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
             'pickup_date' => ['sometimes', 'nullable', 'date'],
             'delivery_date' => ['sometimes', 'nullable', 'date'],
@@ -900,7 +928,9 @@ class RepairBuddyJobController extends Controller
             'title' => array_key_exists('title', $validated) ? $validated['title'] : $job->title,
             'status_slug' => array_key_exists('status_slug', $validated) ? ($validated['status_slug'] ?: null) : $job->status_slug,
             'payment_status_slug' => array_key_exists('payment_status_slug', $validated) ? $validated['payment_status_slug'] : $job->payment_status_slug,
+            'prices_inclu_exclu' => array_key_exists('prices_inclu_exclu', $validated) ? $validated['prices_inclu_exclu'] : $job->prices_inclu_exclu,
             'priority' => array_key_exists('priority', $validated) ? $validated['priority'] : $job->priority,
+            'can_review_it' => array_key_exists('can_review_it', $validated) ? (bool) $validated['can_review_it'] : $job->can_review_it,
             'customer_id' => array_key_exists('customer_id', $validated) ? $validated['customer_id'] : $job->customer_id,
             'pickup_date' => array_key_exists('pickup_date', $validated) ? $validated['pickup_date'] : $job->pickup_date,
             'delivery_date' => array_key_exists('delivery_date', $validated) ? $validated['delivery_date'] : $job->delivery_date,
@@ -913,6 +943,338 @@ class RepairBuddyJobController extends Controller
 
         return response()->json([
             'job' => $this->serializeJob($job),
+        ]);
+    }
+
+    public function aggregateUpdate(Request $request, string $business, $jobId)
+    {
+        if (! is_numeric($jobId)) {
+            return response()->json([
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        $job = RepairBuddyJob::query()->whereKey((int) $jobId)->first();
+
+        if (! $job) {
+            return response()->json([
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'prices_inclu_exclu' => ['sometimes', 'nullable', 'string', 'in:inclusive,exclusive'],
+            'can_review_it' => ['sometimes', 'nullable', 'boolean'],
+
+            'customer_id' => ['sometimes', 'nullable', 'integer'],
+            'pickup_date' => ['sometimes', 'nullable', 'date'],
+            'delivery_date' => ['sometimes', 'nullable', 'date'],
+            'next_service_date' => ['sometimes', 'nullable', 'date'],
+            'case_detail' => ['sometimes', 'nullable', 'string', 'max:5000'],
+
+            'assigned_technician_ids' => ['sometimes', 'array'],
+            'assigned_technician_ids.*' => ['integer'],
+
+            'job_devices' => ['sometimes', 'array'],
+            'job_devices.*.customer_device_id' => ['required', 'integer'],
+
+            'items' => ['sometimes', 'array'],
+            'items.*.item_type' => ['required', 'string', 'max:32'],
+            'items.*.ref_id' => ['sometimes', 'nullable', 'integer'],
+            'items.*.name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'items.*.qty' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9999'],
+            'items.*.unit_price_amount_cents' => ['required', 'integer', 'min:-1000000000', 'max:1000000000'],
+            'items.*.unit_price_currency' => ['sometimes', 'nullable', 'string', 'size:3'],
+            'items.*.tax_id' => ['sometimes', 'nullable', 'integer'],
+            'items.*.meta' => ['sometimes', 'nullable', 'array'],
+
+            'extra_items' => ['sometimes', 'array'],
+            'extra_items.*.occurred_at' => ['sometimes', 'nullable', 'date'],
+            'extra_items.*.label' => ['required', 'string', 'max:255'],
+            'extra_items.*.data_text' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'extra_items.*.description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'extra_items.*.item_type' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'extra_items.*.visibility' => ['sometimes', 'nullable', 'string', 'in:public,private'],
+            'extra_items.*.meta' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        $before = $job->only([
+            'title',
+            'status_slug',
+            'payment_status_slug',
+            'priority',
+            'prices_inclu_exclu',
+            'can_review_it',
+            'customer_id',
+            'pickup_date',
+            'delivery_date',
+            'next_service_date',
+            'case_detail',
+        ]);
+
+        $updated = DB::transaction(function () use ($before, $job, $request, $validated) {
+            $newCustomerId = array_key_exists('customer_id', $validated) ? $validated['customer_id'] : $job->customer_id;
+
+            $nextStatus = array_key_exists('status_slug', $validated) ? $validated['status_slug'] : $job->status_slug;
+            if (is_string($nextStatus) && $nextStatus !== '') {
+                $statusExists = RepairBuddyJobStatus::query()->where('slug', $nextStatus)->exists();
+                if (! $statusExists && $nextStatus === 'new') {
+                    $nextStatus = 'neworder';
+                    $statusExists = RepairBuddyJobStatus::query()->where('slug', $nextStatus)->exists();
+                }
+                if (! $statusExists) {
+                    throw ValidationException::withMessages([
+                        'status_slug' => ['Job status is invalid.'],
+                    ]);
+                }
+            }
+
+            $job->forceFill([
+                'title' => array_key_exists('title', $validated) ? ((is_string($validated['title']) && trim((string) $validated['title']) !== '') ? trim((string) $validated['title']) : $job->case_number) : $job->title,
+                'status_slug' => $nextStatus,
+                'payment_status_slug' => array_key_exists('payment_status_slug', $validated)
+                    ? ((is_string($validated['payment_status_slug']) && trim((string) $validated['payment_status_slug']) !== '') ? trim((string) $validated['payment_status_slug']) : 'nostatus')
+                    : $job->payment_status_slug,
+                'priority' => array_key_exists('priority', $validated)
+                    ? ((is_string($validated['priority']) && trim((string) $validated['priority']) !== '') ? trim((string) $validated['priority']) : 'normal')
+                    : $job->priority,
+                'prices_inclu_exclu' => array_key_exists('prices_inclu_exclu', $validated) ? $validated['prices_inclu_exclu'] : $job->prices_inclu_exclu,
+                'can_review_it' => array_key_exists('can_review_it', $validated) ? (bool) $validated['can_review_it'] : $job->can_review_it,
+                'customer_id' => $newCustomerId,
+                'pickup_date' => array_key_exists('pickup_date', $validated) ? $validated['pickup_date'] : $job->pickup_date,
+                'delivery_date' => array_key_exists('delivery_date', $validated) ? $validated['delivery_date'] : $job->delivery_date,
+                'next_service_date' => array_key_exists('next_service_date', $validated) ? $validated['next_service_date'] : $job->next_service_date,
+                'case_detail' => array_key_exists('case_detail', $validated) ? $validated['case_detail'] : $job->case_detail,
+            ])->save();
+
+            if (array_key_exists('assigned_technician_ids', $validated) && is_array($validated['assigned_technician_ids'])) {
+                $assignedTechnicianIds = array_values(array_unique(array_map('intval', $validated['assigned_technician_ids'])));
+
+                if (count($assignedTechnicianIds) > 0) {
+                    $validTechnicianIds = User::query()
+                        ->where('tenant_id', $this->tenantId())
+                        ->where('is_admin', false)
+                        ->whereIn('id', $assignedTechnicianIds)
+                        ->pluck('id')
+                        ->map(fn ($id) => (int) $id)
+                        ->all();
+
+                    sort($assignedTechnicianIds);
+                    sort($validTechnicianIds);
+
+                    if ($assignedTechnicianIds !== $validTechnicianIds) {
+                        throw ValidationException::withMessages([
+                            'assigned_technician_ids' => ['Assigned technicians are invalid.'],
+                        ]);
+                    }
+                }
+
+                $sync = [];
+                foreach ($assignedTechnicianIds as $id) {
+                    $sync[$id] = [
+                        'tenant_id' => $this->tenantId(),
+                        'branch_id' => $this->branchId(),
+                    ];
+                }
+
+                $job->technicians()->sync($sync);
+            }
+
+            if (array_key_exists('job_devices', $validated) && is_array($validated['job_devices'])) {
+                $jobCustomerId = $job->customer_id;
+                if (! is_numeric($jobCustomerId)) {
+                    throw ValidationException::withMessages([
+                        'job_devices' => ['Job customer is required before attaching devices.'],
+                    ]);
+                }
+
+                $ids = [];
+                foreach ($validated['job_devices'] as $row) {
+                    if (! is_array($row) || ! is_numeric($row['customer_device_id'] ?? null)) {
+                        continue;
+                    }
+                    $ids[] = (int) $row['customer_device_id'];
+                }
+                $ids = array_values(array_unique($ids));
+
+                if (count($ids) > 0) {
+                    $count = RepairBuddyCustomerDevice::query()
+                        ->whereIn('id', $ids)
+                        ->where('customer_id', (int) $jobCustomerId)
+                        ->count();
+
+                    if ((int) $count !== count($ids)) {
+                        throw ValidationException::withMessages([
+                            'job_devices' => ['One or more devices are invalid.'],
+                        ]);
+                    }
+                }
+
+                RepairBuddyJobDevice::query()->where('job_id', $job->id)->delete();
+
+                $definitions = RepairBuddyDeviceFieldDefinition::query()
+                    ->where('is_active', true)
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($ids as $customerDeviceId) {
+                    $cd = RepairBuddyCustomerDevice::query()->whereKey($customerDeviceId)->first();
+                    if (! $cd) {
+                        continue;
+                    }
+
+                    $values = RepairBuddyCustomerDeviceFieldValue::query()
+                        ->where('customer_device_id', $cd->id)
+                        ->get()
+                        ->keyBy('field_definition_id');
+
+                    $extraFieldsSnapshot = [];
+                    foreach ($definitions as $def) {
+                        $value = $values->get($def->id);
+                        if (! $value) {
+                            continue;
+                        }
+                        $rawText = is_string($value->value_text) ? trim((string) $value->value_text) : '';
+                        if ($rawText === '') {
+                            continue;
+                        }
+                        $extraFieldsSnapshot[] = [
+                            'key' => $def->key,
+                            'label' => $def->label,
+                            'type' => $def->type,
+                            'show_in_booking' => (bool) $def->show_in_booking,
+                            'show_in_invoice' => (bool) $def->show_in_invoice,
+                            'show_in_portal' => (bool) $def->show_in_portal,
+                            'value_text' => $rawText,
+                        ];
+                    }
+
+                    RepairBuddyJobDevice::query()->create([
+                        'job_id' => $job->id,
+                        'customer_device_id' => $cd->id,
+                        'label_snapshot' => $cd->label,
+                        'serial_snapshot' => $cd->serial,
+                        'pin_snapshot' => $cd->pin,
+                        'notes_snapshot' => $cd->notes,
+                        'extra_fields_snapshot_json' => $extraFieldsSnapshot,
+                    ]);
+                }
+            }
+
+            if (array_key_exists('items', $validated) && is_array($validated['items'])) {
+                RepairBuddyJobItem::query()->where('job_id', $job->id)->delete();
+
+                foreach ($validated['items'] as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+
+                    $itemType = (string) ($row['item_type'] ?? '');
+                    if (! in_array($itemType, ['service', 'part', 'fee', 'discount'], true)) {
+                        throw ValidationException::withMessages([
+                            'items' => ['Item type is invalid.'],
+                        ]);
+                    }
+
+                    $refId = array_key_exists('ref_id', $row) && is_numeric($row['ref_id']) ? (int) $row['ref_id'] : null;
+                    $name = is_string($row['name'] ?? null) ? trim((string) $row['name']) : '';
+                    $qty = is_numeric($row['qty'] ?? null) ? (int) $row['qty'] : 1;
+
+                    $currency = is_string($row['unit_price_currency'] ?? null) && $row['unit_price_currency'] !== ''
+                        ? strtoupper((string) $row['unit_price_currency'])
+                        : (string) ($this->tenant()->currency ?? 'USD');
+
+                    RepairBuddyJobItem::query()->create([
+                        'job_id' => $job->id,
+                        'item_type' => $itemType,
+                        'ref_id' => $refId,
+                        'name_snapshot' => $name !== '' ? $name : (string) $itemType,
+                        'qty' => max(1, $qty),
+                        'unit_price_amount_cents' => (int) $row['unit_price_amount_cents'],
+                        'unit_price_currency' => $currency,
+                        'tax_id' => array_key_exists('tax_id', $row) && is_numeric($row['tax_id']) ? (int) $row['tax_id'] : null,
+                        'meta_json' => is_array($row['meta'] ?? null) ? $row['meta'] : null,
+                    ]);
+                }
+            }
+
+            if (array_key_exists('extra_items', $validated) && is_array($validated['extra_items'])) {
+                RepairBuddyJobExtraItem::query()->where('job_id', $job->id)->delete();
+
+                foreach ($validated['extra_items'] as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+
+                    $label = is_string($row['label'] ?? null) ? trim((string) $row['label']) : '';
+                    if ($label === '') {
+                        continue;
+                    }
+
+                    RepairBuddyJobExtraItem::query()->create([
+                        'job_id' => $job->id,
+                        'occurred_at' => array_key_exists('occurred_at', $row) ? $row['occurred_at'] : null,
+                        'label' => $label,
+                        'data_text' => is_string($row['data_text'] ?? null) ? trim((string) $row['data_text']) : null,
+                        'description' => is_string($row['description'] ?? null) ? trim((string) $row['description']) : null,
+                        'item_type' => is_string($row['item_type'] ?? null) && trim((string) $row['item_type']) !== '' ? trim((string) $row['item_type']) : 'text',
+                        'visibility' => is_string($row['visibility'] ?? null) ? trim((string) $row['visibility']) : 'private',
+                        'meta_json' => is_array($row['meta'] ?? null) ? $row['meta'] : null,
+                    ]);
+                }
+            }
+
+            $after = $job->fresh();
+
+            $changed = [];
+            foreach (array_keys($before) as $k) {
+                $old = $before[$k] ?? null;
+                $new = $after->{$k} ?? null;
+                if ((string) ($old ?? '') !== (string) ($new ?? '')) {
+                    $changed[$k] = ['from' => $old, 'to' => $new];
+                }
+            }
+
+            if (count($changed) > 0) {
+                RepairBuddyEvent::query()->create([
+                    'actor_user_id' => $request->user()?->id,
+                    'entity_type' => 'job',
+                    'entity_id' => $job->id,
+                    'visibility' => 'private',
+                    'event_type' => 'job.updated',
+                    'payload_json' => [
+                        'title' => 'Job updated',
+                        'changed' => $changed,
+                    ],
+                ]);
+            }
+
+            if (array_key_exists('status_slug', $changed)) {
+                RepairBuddyEvent::query()->create([
+                    'actor_user_id' => $request->user()?->id,
+                    'entity_type' => 'job',
+                    'entity_id' => $job->id,
+                    'visibility' => 'private',
+                    'event_type' => 'job.status_changed',
+                    'payload_json' => [
+                        'title' => 'Job status changed',
+                        'from' => $changed['status_slug']['from'] ?? null,
+                        'to' => $changed['status_slug']['to'] ?? null,
+                    ],
+                ]);
+            }
+
+            return $job->fresh();
+        });
+
+        $updated->load(['customer', 'technicians', 'jobDevices']);
+
+        return response()->json([
+            'job' => $this->serializeJob($updated, includeTimeline: true),
         ]);
     }
 
@@ -977,7 +1339,14 @@ class RepairBuddyJobController extends Controller
                     'created_at' => $e->created_at,
                 ];
             })->all();
+
         }
+
+        $extraItems = RepairBuddyJobExtraItem::query()
+            ->where('job_id', $job->id)
+            ->orderBy('id', 'asc')
+            ->limit(1000)
+            ->get();
 
         $attachments = RepairBuddyJobAttachment::query()
             ->where('job_id', $job->id)
@@ -1050,13 +1419,17 @@ class RepairBuddyJobController extends Controller
 
         return [
             'id' => $job->id,
+            'job_number' => $job->job_number,
+            'formatted_job_number' => is_numeric($job->job_number) ? str_pad((string) $job->job_number, 4, '0', STR_PAD_LEFT) : null,
             'case_number' => $job->case_number,
             'plugin_device_post_id' => $job->plugin_device_post_id,
             'plugin_device_id_text' => $job->plugin_device_id_text,
             'title' => $job->title,
             'status' => $job->status_slug,
             'payment_status' => $job->payment_status_slug,
+            'prices_inclu_exclu' => $job->prices_inclu_exclu,
             'priority' => $job->priority,
+            'can_review_it' => (bool) $job->can_review_it,
             'customer_id' => $job->customer_id,
             'pickup_date' => $job->pickup_date,
             'delivery_date' => $job->delivery_date,
@@ -1089,6 +1462,19 @@ class RepairBuddyJobController extends Controller
             'updated_at' => $job->updated_at,
             'timeline' => $timeline,
             'items' => $serializedItems,
+            'extra_items' => $extraItems->map(function (RepairBuddyJobExtraItem $x) {
+                return [
+                    'id' => (string) $x->id,
+                    'occurred_at' => $x->occurred_at,
+                    'label' => $x->label,
+                    'data_text' => $x->data_text,
+                    'description' => $x->description,
+                    'item_type' => $x->item_type,
+                    'visibility' => $x->visibility,
+                    'meta' => is_array($x->meta_json) ? $x->meta_json : null,
+                    'created_at' => $x->created_at,
+                ];
+            })->values()->all(),
             'totals' => [
                 'currency' => $currency,
                 'subtotal_cents' => $subtotalCents,

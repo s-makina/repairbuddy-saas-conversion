@@ -3,12 +3,823 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyTax;
+use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TenantDashboardController extends Controller
 {
+    public function updateDevicesBrandsSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'enablePinCodeField' => ['nullable', 'in:on'],
+            'showPinCodeInDocuments' => ['nullable', 'in:on'],
+            'useWooProductsAsDevices' => ['nullable', 'in:on'],
+
+            'labels' => ['sometimes', 'array'],
+            'labels.note' => ['nullable', 'string', 'max:255'],
+            'labels.pin' => ['nullable', 'string', 'max:255'],
+            'labels.device' => ['nullable', 'string', 'max:255'],
+            'labels.deviceBrand' => ['nullable', 'string', 'max:255'],
+            'labels.deviceType' => ['nullable', 'string', 'max:255'],
+            'labels.imei' => ['nullable', 'string', 'max:255'],
+
+            'additionalDeviceFields' => ['sometimes', 'array'],
+            'additionalDeviceFields.*.id' => ['nullable', 'string', 'max:255'],
+            'additionalDeviceFields.*.label' => ['nullable', 'string', 'max:255'],
+            'additionalDeviceFields.*.type' => ['nullable', 'in:text'],
+            'additionalDeviceFields.*.displayInBookingForm' => ['nullable', 'in:1'],
+            'additionalDeviceFields.*.displayInInvoice' => ['nullable', 'in:1'],
+            'additionalDeviceFields.*.displayForCustomer' => ['nullable', 'in:1'],
+
+            'pickupDeliveryEnabled' => ['nullable', 'in:on'],
+            'pickupCharge' => ['nullable', 'string', 'max:64'],
+            'deliveryCharge' => ['nullable', 'string', 'max:64'],
+            'rentalEnabled' => ['nullable', 'in:on'],
+            'rentalPerDay' => ['nullable', 'string', 'max:64'],
+            'rentalPerWeek' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $devicesBrands = $repairBuddySettings['devicesBrands'] ?? [];
+        if (! is_array($devicesBrands)) {
+            $devicesBrands = [];
+        }
+
+        $devicesBrands['enablePinCodeField'] = array_key_exists('enablePinCodeField', $validated);
+        $devicesBrands['showPinCodeInDocuments'] = array_key_exists('showPinCodeInDocuments', $validated);
+        $devicesBrands['useWooProductsAsDevices'] = array_key_exists('useWooProductsAsDevices', $validated);
+
+        $labels = $devicesBrands['labels'] ?? [];
+        if (! is_array($labels)) {
+            $labels = [];
+        }
+
+        if (array_key_exists('labels', $validated) && is_array($validated['labels'])) {
+            foreach (['note', 'pin', 'device', 'deviceBrand', 'deviceType', 'imei'] as $k) {
+                if (array_key_exists($k, $validated['labels'])) {
+                    $val = $validated['labels'][$k];
+                    if (is_string($val)) {
+                        $val = trim($val);
+                    }
+                    $labels[$k] = ($val === '') ? null : $val;
+                }
+            }
+        }
+
+        $devicesBrands['labels'] = $labels;
+
+        $additionalDeviceFields = [];
+        if (array_key_exists('additionalDeviceFields', $validated) && is_array($validated['additionalDeviceFields'])) {
+            foreach ($validated['additionalDeviceFields'] as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $label = $row['label'] ?? null;
+                if (! is_string($label) || trim($label) === '') {
+                    continue;
+                }
+
+                $additionalDeviceFields[] = [
+                    'id' => (isset($row['id']) && is_string($row['id']) && trim($row['id']) !== '') ? trim($row['id']) : null,
+                    'label' => trim($label),
+                    'type' => 'text',
+                    'displayInBookingForm' => array_key_exists('displayInBookingForm', $row),
+                    'displayInInvoice' => array_key_exists('displayInInvoice', $row),
+                    'displayForCustomer' => array_key_exists('displayForCustomer', $row),
+                ];
+            }
+        }
+        $devicesBrands['additionalDeviceFields'] = $additionalDeviceFields;
+
+        $devicesBrands['pickupDeliveryEnabled'] = array_key_exists('pickupDeliveryEnabled', $validated);
+        $devicesBrands['pickupCharge'] = array_key_exists('pickupCharge', $validated) ? $validated['pickupCharge'] : null;
+        $devicesBrands['deliveryCharge'] = array_key_exists('deliveryCharge', $validated) ? $validated['deliveryCharge'] : null;
+
+        $devicesBrands['rentalEnabled'] = array_key_exists('rentalEnabled', $validated);
+        $devicesBrands['rentalPerDay'] = array_key_exists('rentalPerDay', $validated) ? $validated['rentalPerDay'] : null;
+        $devicesBrands['rentalPerWeek'] = array_key_exists('rentalPerWeek', $validated) ? $validated['rentalPerWeek'] : null;
+
+        $repairBuddySettings['devicesBrands'] = $devicesBrands;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_devices')
+            ->with('status', 'Settings updated.')
+            ->withInput();
+    }
+
+    public function storeDeviceBrand(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $name = trim((string) $validated['name']);
+        if ($name === '') {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_manage_devices')
+                ->withErrors(['name' => 'Brand name is required.'])
+                ->withInput();
+        }
+
+        if (RepairBuddyDeviceBrand::query()->where('name', $name)->exists()) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_manage_devices')
+                ->withErrors(['name' => 'Device brand already exists.'])
+                ->withInput();
+        }
+
+        RepairBuddyDeviceBrand::query()->create([
+            'name' => $name,
+            'is_active' => true,
+        ]);
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_devices')
+            ->with('status', 'Brand added.')
+            ->withInput();
+    }
+
+    public function setDeviceBrandActive(Request $request, int $brand)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $brandModel = RepairBuddyDeviceBrand::query()->whereKey($brand)->firstOrFail();
+        $brandModel->forceFill([
+            'is_active' => (bool) $validated['is_active'],
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_devices')
+            ->with('status', 'Brand updated.')
+            ->withInput();
+    }
+
+    public function deleteDeviceBrand(Request $request, int $brand)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $brandModel = RepairBuddyDeviceBrand::query()->whereKey($brand)->firstOrFail();
+
+        if ($brandModel->devices()->exists()) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_manage_devices')
+                ->withErrors(['brand' => 'Device brand is in use and cannot be deleted.'])
+                ->withInput();
+        }
+
+        $brandModel->delete();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_devices')
+            ->with('status', 'Brand deleted.')
+            ->withInput();
+    }
+
+    public function updateBookingSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'booking_email_subject_to_customer' => ['nullable', 'string', 'max:255'],
+            'booking_email_body_to_customer' => ['nullable', 'string', 'max:5000'],
+            'booking_email_subject_to_admin' => ['nullable', 'string', 'max:255'],
+            'booking_email_body_to_admin' => ['nullable', 'string', 'max:5000'],
+
+            'wcrb_turn_booking_forms_to_jobs' => ['nullable', 'in:on'],
+            'wcrb_turn_off_other_device_brands' => ['nullable', 'in:on'],
+            'wcrb_turn_off_other_service' => ['nullable', 'in:on'],
+            'wcrb_turn_off_service_price' => ['nullable', 'in:on'],
+            'wcrb_turn_off_idimei_booking' => ['nullable', 'in:on'],
+
+            'wc_booking_default_type' => ['nullable', 'integer', 'min:1'],
+            'wc_booking_default_brand' => ['nullable', 'integer', 'min:1'],
+            'wc_booking_default_device' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $bookings = $repairBuddySettings['bookings'] ?? [];
+        if (! is_array($bookings)) {
+            $bookings = [];
+        }
+
+        foreach (['booking_email_subject_to_customer', 'booking_email_body_to_customer', 'booking_email_subject_to_admin', 'booking_email_body_to_admin'] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $val = $validated[$k];
+                $bookings[$k] = is_string($val) ? $val : null;
+            }
+        }
+
+        foreach (['wc_booking_default_type', 'wc_booking_default_brand', 'wc_booking_default_device'] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $val = $validated[$k];
+                $bookings[$k] = is_int($val) ? (string) $val : null;
+            }
+        }
+
+        $bookings['turnBookingFormsToJobs'] = array_key_exists('wcrb_turn_booking_forms_to_jobs', $validated);
+        $bookings['turnOffOtherDeviceBrands'] = array_key_exists('wcrb_turn_off_other_device_brands', $validated);
+        $bookings['turnOffOtherService'] = array_key_exists('wcrb_turn_off_other_service', $validated);
+        $bookings['turnOffServicePrice'] = array_key_exists('wcrb_turn_off_service_price', $validated);
+        $bookings['turnOffIdImeiBooking'] = array_key_exists('wcrb_turn_off_idimei_booking', $validated);
+
+        $repairBuddySettings['bookings'] = $bookings;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $setupState,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_bookings')
+            ->with('status', 'Booking settings updated.')
+            ->withInput();
+    }
+
+    public function updateServiceSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'wc_service_sidebar_description' => ['nullable', 'string', 'max:1000'],
+            'wc_booking_on_service_page_status' => ['nullable', 'in:on'],
+            'wc_service_booking_heading' => ['nullable', 'string', 'max:255'],
+            'wc_service_booking_form' => ['nullable', 'in:with_type,without_type,warranty_booking'],
+        ]);
+
+        $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $services = $repairBuddySettings['services'] ?? [];
+        if (! is_array($services)) {
+            $services = [];
+        }
+
+        if (array_key_exists('wc_service_sidebar_description', $validated)) {
+            $services['wc_service_sidebar_description'] = $validated['wc_service_sidebar_description'];
+        }
+        if (array_key_exists('wc_service_booking_heading', $validated)) {
+            $services['wc_service_booking_heading'] = $validated['wc_service_booking_heading'];
+        }
+        if (array_key_exists('wc_service_booking_form', $validated)) {
+            $services['wc_service_booking_form'] = $validated['wc_service_booking_form'];
+        }
+        $services['disableBookingOnServicePage'] = array_key_exists('wc_booking_on_service_page_status', $validated);
+
+        $repairBuddySettings['services'] = $services;
+        $setupState['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $setupState,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_service')
+            ->with('status', 'Service settings updated.')
+            ->withInput();
+    }
+
+    public function updatePaymentStatusDisplay(Request $request, string $slug)
+    {
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
+        $tenant = TenantContext::tenant();
+
+        if (! $tenantId || ! $branchId || ! $tenant instanceof Tenant) {
+            abort(400, 'Tenant or branch context is missing.');
+        }
+
+        $validated = $request->validate([
+            'label' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'color' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000'],
+        ]);
+
+        $status = \App\Models\RepairBuddyPaymentStatus::query()->where('slug', $slug)->first();
+        if (! $status) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_payment_status')
+                ->with('status', 'Payment status not found.')
+                ->withInput();
+        }
+
+        $override = \App\Models\TenantStatusOverride::query()
+            ->where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
+            ->where('domain', 'payment')
+            ->where('code', $slug)
+            ->first();
+
+        if (! $override) {
+            \App\Models\TenantStatusOverride::query()->create([
+                'tenant_id' => $tenantId,
+                'branch_id' => $branchId,
+                'domain' => 'payment',
+                'code' => $slug,
+                'label' => $validated['label'] ?? null,
+                'color' => $validated['color'] ?? null,
+                'sort_order' => $validated['sort_order'] ?? null,
+            ]);
+        } else {
+            $override->forceFill([
+                'label' => array_key_exists('label', $validated) ? $validated['label'] : $override->label,
+                'color' => array_key_exists('color', $validated) ? $validated['color'] : $override->color,
+                'sort_order' => array_key_exists('sort_order', $validated) ? $validated['sort_order'] : $override->sort_order,
+            ])->save();
+        }
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_payment_status')
+            ->with('status', 'Payment status updated.')
+            ->withInput();
+    }
+
+    public function storeMaintenanceReminder(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:1024'],
+            'interval_days' => ['required', 'integer', 'min:1', 'max:3650'],
+            'device_type_id' => ['sometimes', 'nullable', 'integer'],
+            'device_brand_id' => ['sometimes', 'nullable', 'integer'],
+            'email_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'sms_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'reminder_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'email_body' => ['sometimes', 'nullable', 'string'],
+            'sms_body' => ['sometimes', 'nullable', 'string'],
+        ]);
+
+        $emailEnabled = array_key_exists('email_enabled', $validated);
+        $smsEnabled = array_key_exists('sms_enabled', $validated);
+        $reminderEnabled = array_key_exists('reminder_enabled', $validated);
+
+        if ($emailEnabled && (! is_string($validated['email_body'] ?? null) || trim((string) $validated['email_body']) === '')) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['email_body' => 'Email body is required when email is enabled.'])
+                ->withInput();
+        }
+
+        if ($smsEnabled && (! is_string($validated['sms_body'] ?? null) || trim((string) $validated['sms_body']) === '')) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['sms_body' => 'SMS body is required when SMS is enabled.'])
+                ->withInput();
+        }
+
+        $typeId = array_key_exists('device_type_id', $validated) ? (int) ($validated['device_type_id'] ?? 0) : 0;
+        $brandId = array_key_exists('device_brand_id', $validated) ? (int) ($validated['device_brand_id'] ?? 0) : 0;
+        $typeId = $typeId > 0 ? $typeId : null;
+        $brandId = $brandId > 0 ? $brandId : null;
+
+        if ($typeId !== null && ! \App\Models\RepairBuddyDeviceType::query()->whereKey($typeId)->exists()) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['device_type_id' => 'Device type is invalid.'])
+                ->withInput();
+        }
+
+        if ($brandId !== null && ! \App\Models\RepairBuddyDeviceBrand::query()->whereKey($brandId)->exists()) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['device_brand_id' => 'Device brand is invalid.'])
+                ->withInput();
+        }
+
+        \App\Models\RepairBuddyMaintenanceReminder::query()->create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'interval_days' => (int) $validated['interval_days'],
+            'device_type_id' => $typeId,
+            'device_brand_id' => $brandId,
+            'email_enabled' => $emailEnabled,
+            'sms_enabled' => $smsEnabled,
+            'reminder_enabled' => $reminderEnabled,
+            'email_body' => is_string($validated['email_body'] ?? null) ? (string) $validated['email_body'] : null,
+            'sms_body' => is_string($validated['sms_body'] ?? null) ? (string) $validated['sms_body'] : null,
+            'created_by_user_id' => $request->user()?->id,
+            'updated_by_user_id' => $request->user()?->id,
+        ]);
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_maintenance_reminder')
+            ->with('status', 'Maintenance reminder added.')
+            ->withInput();
+    }
+
+    public function updateMaintenanceReminder(Request $request, int $reminder)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $model = \App\Models\RepairBuddyMaintenanceReminder::query()->whereKey($reminder)->first();
+        if (! $model) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->with('status', 'Reminder not found.')
+                ->withInput();
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:1024'],
+            'interval_days' => ['required', 'integer', 'min:1', 'max:3650'],
+            'device_type_id' => ['sometimes', 'nullable', 'integer'],
+            'device_brand_id' => ['sometimes', 'nullable', 'integer'],
+            'email_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'sms_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'reminder_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'email_body' => ['sometimes', 'nullable', 'string'],
+            'sms_body' => ['sometimes', 'nullable', 'string'],
+        ]);
+
+        $emailEnabled = array_key_exists('email_enabled', $validated);
+        $smsEnabled = array_key_exists('sms_enabled', $validated);
+        $reminderEnabled = array_key_exists('reminder_enabled', $validated);
+
+        if ($emailEnabled && (! is_string($validated['email_body'] ?? null) || trim((string) $validated['email_body']) === '')) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['email_body' => 'Email body is required when email is enabled.'])
+                ->withInput();
+        }
+
+        if ($smsEnabled && (! is_string($validated['sms_body'] ?? null) || trim((string) $validated['sms_body']) === '')) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['sms_body' => 'SMS body is required when SMS is enabled.'])
+                ->withInput();
+        }
+
+        $typeId = array_key_exists('device_type_id', $validated) ? (int) ($validated['device_type_id'] ?? 0) : 0;
+        $brandId = array_key_exists('device_brand_id', $validated) ? (int) ($validated['device_brand_id'] ?? 0) : 0;
+        $typeId = $typeId > 0 ? $typeId : null;
+        $brandId = $brandId > 0 ? $brandId : null;
+
+        if ($typeId !== null && ! \App\Models\RepairBuddyDeviceType::query()->whereKey($typeId)->exists()) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['device_type_id' => 'Device type is invalid.'])
+                ->withInput();
+        }
+
+        if ($brandId !== null && ! \App\Models\RepairBuddyDeviceBrand::query()->whereKey($brandId)->exists()) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_maintenance_reminder')
+                ->withErrors(['device_brand_id' => 'Device brand is invalid.'])
+                ->withInput();
+        }
+
+        $model->forceFill([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'interval_days' => (int) $validated['interval_days'],
+            'device_type_id' => $typeId,
+            'device_brand_id' => $brandId,
+            'email_enabled' => $emailEnabled,
+            'sms_enabled' => $smsEnabled,
+            'reminder_enabled' => $reminderEnabled,
+            'email_body' => is_string($validated['email_body'] ?? null) ? (string) $validated['email_body'] : null,
+            'sms_body' => is_string($validated['sms_body'] ?? null) ? (string) $validated['sms_body'] : null,
+            'updated_by_user_id' => $request->user()?->id,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_maintenance_reminder')
+            ->with('status', 'Maintenance reminder updated.')
+            ->withInput();
+    }
+
+    public function deleteMaintenanceReminder(Request $request, int $reminder)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $model = \App\Models\RepairBuddyMaintenanceReminder::query()->whereKey($reminder)->first();
+        if ($model) {
+            $model->delete();
+        }
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_maintenance_reminder')
+            ->with('status', 'Maintenance reminder deleted.')
+            ->withInput();
+    }
+
+    public function updatePagesSetup(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'wc_rb_my_account_page_id' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_status_check_page_id' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_get_feedback_page_id' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_device_booking_page_id' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_list_services_page_id' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_list_parts_page_id' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_customer_login_page' => ['nullable', 'string', 'max:2048'],
+            'wc_rb_turn_registration_on' => ['nullable', 'in:on'],
+        ]);
+
+        $state = $tenant->setup_state;
+        if (! is_array($state)) {
+            $state = [];
+        }
+
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $pages = $repairBuddySettings['pages'] ?? [];
+        if (! is_array($pages)) {
+            $pages = [];
+        }
+
+        foreach ([
+            'wc_rb_my_account_page_id',
+            'wc_rb_status_check_page_id',
+            'wc_rb_get_feedback_page_id',
+            'wc_rb_device_booking_page_id',
+            'wc_rb_list_services_page_id',
+            'wc_rb_list_parts_page_id',
+            'wc_rb_customer_login_page',
+        ] as $key) {
+            $value = array_key_exists($key, $validated) ? $validated[$key] : null;
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+            $pages[$key] = ($value === '') ? null : $value;
+        }
+
+        $pages['wc_rb_turn_registration_on'] = array_key_exists('wc_rb_turn_registration_on', $validated)
+            ? 'on'
+            : 'off';
+
+        $repairBuddySettings['pages'] = $pages;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_page_settings')
+            ->with('status', 'Settings updated.')
+            ->withInput();
+    }
+
+    public function storeTax(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'tax_name' => ['required', 'string', 'max:255'],
+            'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'tax_status' => ['nullable', 'in:active,inactive'],
+            'tax_is_default' => ['nullable', 'in:on'],
+        ]);
+
+        $isActive = ($validated['tax_status'] ?? 'active') === 'active';
+        $isDefault = array_key_exists('tax_is_default', $validated);
+
+        DB::transaction(function () use ($validated, $isDefault, $isActive) {
+            if ($isDefault) {
+                RepairBuddyTax::query()
+                    ->where('is_default', true)
+                    ->update(['is_default' => false]);
+            }
+
+            RepairBuddyTax::query()->create([
+                'name' => $validated['tax_name'],
+                'rate' => $validated['tax_rate'],
+                'is_default' => $isDefault,
+                'is_active' => $isActive,
+            ]);
+        });
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_taxes')
+            ->with('status', 'Tax added.')
+            ->withInput();
+    }
+
+    public function setTaxActive(Request $request, int $tax)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $taxModel = RepairBuddyTax::query()->whereKey($tax)->firstOrFail();
+        $taxModel->forceFill([
+            'is_active' => (bool) $validated['is_active'],
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_taxes')
+            ->with('status', 'Tax updated.')
+            ->withInput();
+    }
+
+    public function setTaxDefault(Request $request, int $tax)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $taxModel = RepairBuddyTax::query()->whereKey($tax)->firstOrFail();
+
+        DB::transaction(function () use ($taxModel) {
+            RepairBuddyTax::query()->where('is_default', true)->update(['is_default' => false]);
+            $taxModel->forceFill(['is_default' => true])->save();
+        });
+
+        $tenant->refresh();
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+        $taxSettings = $repairBuddySettings['taxes'] ?? [];
+        if (! is_array($taxSettings)) {
+            $taxSettings = [];
+        }
+        $taxSettings['defaultTaxId'] = (string) $taxModel->id;
+        $repairBuddySettings['taxes'] = $taxSettings;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+        $tenant->forceFill(['setup_state' => $state])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_taxes')
+            ->with('status', 'Default tax updated.')
+            ->withInput();
+    }
+
+    public function updateTaxSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'wc_use_taxes' => ['nullable', 'in:on'],
+            'wc_primary_tax' => ['nullable', 'integer', 'min:1'],
+            'wc_prices_inclu_exclu' => ['required', 'in:exclusive,inclusive'],
+        ]);
+
+        $defaultTaxId = array_key_exists('wc_primary_tax', $validated) ? $validated['wc_primary_tax'] : null;
+        if (is_int($defaultTaxId)) {
+            $exists = RepairBuddyTax::query()->whereKey($defaultTaxId)->exists();
+            if (! $exists) {
+                return redirect()
+                    ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                    ->withFragment('wc_rb_manage_taxes')
+                    ->withErrors(['wc_primary_tax' => 'Selected tax is invalid.'])
+                    ->withInput();
+            }
+        }
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $taxSettings = $repairBuddySettings['taxes'] ?? [];
+        if (! is_array($taxSettings)) {
+            $taxSettings = [];
+        }
+
+        $taxSettings['enableTaxes'] = array_key_exists('wc_use_taxes', $validated);
+        $taxSettings['defaultTaxId'] = is_int($defaultTaxId) ? (string) $defaultTaxId : null;
+        $taxSettings['invoiceAmounts'] = $validated['wc_prices_inclu_exclu'];
+
+        $repairBuddySettings['taxes'] = $taxSettings;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_manage_taxes')
+            ->with('status', 'Tax settings updated.')
+            ->withInput();
+    }
+
     public function show(Request $request)
     {
         $tenant = TenantContext::tenant();
@@ -59,6 +870,187 @@ class TenantDashboardController extends Controller
             $settingsTabMenuItemsHtml = '';
             $settingsTabBodyHtml = '';
 
+            $setupState = $tenant?->setup_state;
+            if (! is_array($setupState)) {
+                $setupState = [];
+            }
+
+            $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
+            if (! is_array($repairBuddySettings)) {
+                $repairBuddySettings = [];
+            }
+
+            $pagesSettings = $repairBuddySettings['pages'] ?? [];
+            if (! is_array($pagesSettings)) {
+                $pagesSettings = [];
+            }
+
+            $pagesSetupValues = [
+                'wc_rb_my_account_page_id' => $pagesSettings['wc_rb_my_account_page_id'] ?? null,
+                'wc_rb_status_check_page_id' => $pagesSettings['wc_rb_status_check_page_id'] ?? null,
+                'wc_rb_get_feedback_page_id' => $pagesSettings['wc_rb_get_feedback_page_id'] ?? null,
+                'wc_rb_device_booking_page_id' => $pagesSettings['wc_rb_device_booking_page_id'] ?? null,
+                'wc_rb_list_services_page_id' => $pagesSettings['wc_rb_list_services_page_id'] ?? null,
+                'wc_rb_list_parts_page_id' => $pagesSettings['wc_rb_list_parts_page_id'] ?? null,
+                'wc_rb_customer_login_page' => $pagesSettings['wc_rb_customer_login_page'] ?? null,
+                'wc_rb_turn_registration_on' => ($pagesSettings['wc_rb_turn_registration_on'] ?? 'off') === 'on',
+            ];
+
+            $taxes = RepairBuddyTax::query()
+                ->orderByDesc('is_default')
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->limit(200)
+                ->get();
+
+            $deviceBrands = RepairBuddyDeviceBrand::query()
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->limit(200)
+                ->get();
+
+            $devicesBrandsSettings = $repairBuddySettings['devicesBrands'] ?? [];
+            if (! is_array($devicesBrandsSettings)) {
+                $devicesBrandsSettings = [];
+            }
+
+            $deviceLabels = $devicesBrandsSettings['labels'] ?? [];
+            if (! is_array($deviceLabels)) {
+                $deviceLabels = [];
+            }
+
+            $additionalDeviceFields = $devicesBrandsSettings['additionalDeviceFields'] ?? [];
+            if (! is_array($additionalDeviceFields)) {
+                $additionalDeviceFields = [];
+            }
+
+            $pickupDeliveryEnabled = (bool) ($devicesBrandsSettings['pickupDeliveryEnabled'] ?? false);
+            $pickupCharge = is_string($devicesBrandsSettings['pickupCharge'] ?? null) ? (string) $devicesBrandsSettings['pickupCharge'] : '';
+            $deliveryCharge = is_string($devicesBrandsSettings['deliveryCharge'] ?? null) ? (string) $devicesBrandsSettings['deliveryCharge'] : '';
+
+            $rentalEnabled = (bool) ($devicesBrandsSettings['rentalEnabled'] ?? false);
+            $rentalPerDay = is_string($devicesBrandsSettings['rentalPerDay'] ?? null) ? (string) $devicesBrandsSettings['rentalPerDay'] : '';
+            $rentalPerWeek = is_string($devicesBrandsSettings['rentalPerWeek'] ?? null) ? (string) $devicesBrandsSettings['rentalPerWeek'] : '';
+
+            $devicesBrandsUi = [
+                'enablePinCodeField' => (bool) ($devicesBrandsSettings['enablePinCodeField'] ?? false),
+                'showPinCodeInDocuments' => (bool) ($devicesBrandsSettings['showPinCodeInDocuments'] ?? false),
+                'useWooProductsAsDevices' => (bool) ($devicesBrandsSettings['useWooProductsAsDevices'] ?? false),
+                'labels' => [
+                    'note' => $deviceLabels['note'] ?? null,
+                    'pin' => $deviceLabels['pin'] ?? null,
+                    'device' => $deviceLabels['device'] ?? null,
+                    'deviceBrand' => $deviceLabels['deviceBrand'] ?? null,
+                    'deviceType' => $deviceLabels['deviceType'] ?? null,
+                    'imei' => $deviceLabels['imei'] ?? null,
+                ],
+            ];
+
+            if (old('enablePinCodeField') !== null) {
+                $devicesBrandsUi['enablePinCodeField'] = (string) old('enablePinCodeField') === 'on';
+            }
+            if (old('showPinCodeInDocuments') !== null) {
+                $devicesBrandsUi['showPinCodeInDocuments'] = (string) old('showPinCodeInDocuments') === 'on';
+            }
+            if (old('useWooProductsAsDevices') !== null) {
+                $devicesBrandsUi['useWooProductsAsDevices'] = (string) old('useWooProductsAsDevices') === 'on';
+            }
+            foreach (['note', 'pin', 'device', 'deviceBrand', 'deviceType', 'imei'] as $k) {
+                $oldLabel = old('labels.' . $k);
+                if ($oldLabel !== null) {
+                    $devicesBrandsUi['labels'][$k] = is_string($oldLabel) ? $oldLabel : null;
+                }
+            }
+
+            $taxSettings = $repairBuddySettings['taxes'] ?? [];
+            if (! is_array($taxSettings)) {
+                $taxSettings = [];
+            }
+
+            $bookingSettings = $repairBuddySettings['bookings'] ?? [];
+            if (! is_array($bookingSettings)) {
+                $bookingSettings = [];
+            }
+
+            $serviceSettings = $repairBuddySettings['services'] ?? [];
+            if (! is_array($serviceSettings)) {
+                $serviceSettings = [];
+            }
+
+            $paymentStatuses = \App\Models\RepairBuddyPaymentStatus::query()->orderBy('id')->get();
+            $paymentStatusOverrides = \App\Models\TenantStatusOverride::query()
+                ->where('tenant_id', $tenantId)
+                ->where('branch_id', $branchId)
+                ->where('domain', 'payment')
+                ->get()
+                ->keyBy('code');
+
+            $maintenanceReminders = \App\Models\RepairBuddyMaintenanceReminder::query()
+                ->with(['deviceType', 'deviceBrand'])
+                ->orderByDesc('id')
+                ->limit(200)
+                ->get();
+
+            $taxEnable = (bool) ($taxSettings['enableTaxes'] ?? false);
+            $taxInvoiceAmounts = is_string($taxSettings['invoiceAmounts'] ?? null) ? (string) $taxSettings['invoiceAmounts'] : 'exclusive';
+            $taxDefaultId = $taxSettings['defaultTaxId'] ?? null;
+            if (is_string($taxDefaultId) && $taxDefaultId !== '' && ctype_digit($taxDefaultId)) {
+                $taxDefaultId = (int) $taxDefaultId;
+            } else {
+                $taxDefaultId = null;
+            }
+
+            $oldUseTaxes = old('wc_use_taxes');
+            if ($oldUseTaxes !== null) {
+                $taxEnable = (string) $oldUseTaxes === 'on';
+            }
+            $oldAmounts = old('wc_prices_inclu_exclu');
+            if (is_string($oldAmounts) && in_array($oldAmounts, ['exclusive', 'inclusive'], true)) {
+                $taxInvoiceAmounts = $oldAmounts;
+            }
+            $oldDefault = old('wc_primary_tax');
+            if ($oldDefault !== null && ctype_digit((string) $oldDefault)) {
+                $taxDefaultId = (int) $oldDefault;
+            }
+
+            foreach (array_keys($pagesSetupValues) as $key) {
+                $old = old($key);
+                if ($old !== null) {
+                    if ($key === 'wc_rb_turn_registration_on') {
+                        $pagesSetupValues[$key] = (string) $old === 'on';
+                    } else {
+                        $pagesSetupValues[$key] = is_string($old) ? $old : null;
+                    }
+                }
+            }
+
+            $pagesSetupOptions = [
+                'dashboard' => [
+                    'label' => __('Tenant Dashboard (Settings screen)'),
+                    'value' => $tenant?->slug ? route('tenant.dashboard', ['business' => $tenant->slug]) : '#',
+                ],
+                'public_status' => [
+                    'label' => __('Public Status Check (API endpoint)'),
+                    'value' => $tenant?->slug ? url('/api/t/'.$tenant->slug.'/status/lookup') : '#',
+                ],
+                'public_booking' => [
+                    'label' => __('Public Booking (API endpoint)'),
+                    'value' => $tenant?->slug ? url('/api/t/'.$tenant->slug.'/booking/config') : '#',
+                ],
+                'public_services' => [
+                    'label' => __('Public Services (API endpoint)'),
+                    'value' => $tenant?->slug ? url('/api/t/'.$tenant->slug.'/services') : '#',
+                ],
+                'public_parts' => [
+                    'label' => __('Public Parts (API endpoint)'),
+                    'value' => $tenant?->slug ? url('/api/t/'.$tenant->slug.'/parts') : '#',
+                ],
+                'public_portal_tickets' => [
+                    'label' => __('Public Portal Tickets (API endpoint)'),
+                    'value' => $tenant?->slug ? url('/api/t/'.$tenant->slug.'/portal/tickets') : '#',
+                ],
+            ];
+
             $settingsTabs = [
                 ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'heading' => __('Pages Setup')],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
@@ -87,11 +1079,704 @@ class TenantDashboardController extends Controller
                 $settingsTabMenuItemsHtml .= '</a>';
                 $settingsTabMenuItemsHtml .= '</li>';
 
-                $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="' . e($tabId) . '" role="tabpanel" aria-hidden="true" aria-labelledby="' . e($tabId) . '-label">';
-                $settingsTabBodyHtml .= '<div class="wrap">';
-                $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
-                $settingsTabBodyHtml .= '</div>';
-                $settingsTabBodyHtml .= '</div>';
+                if ($tabId === 'wc_rb_page_settings') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="' . e($tabId) . '" role="tabpanel" aria-hidden="true" aria-labelledby="' . e($tabId) . '-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap"><div class="form-message"></div>';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('You may change pages which have related shortcodes.')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.pages_setup.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table cellpadding="5" cellspacing="5" class="form-table border"><tbody>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_my_account_page_id"><strong>' . e(__('Select Dashboard Page')) . '</strong></label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_my_account_page_id" id="wc_rb_my_account_page_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select my account page')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_my_account_page_id'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page for customers, technicians, store managers and administrators to perform various tasks page with shortcode ')) . '<strong>[wc_cr_my_account]</strong></label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_status_check_page_id">' . e(__('Select Status Check Page')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_status_check_page_id" id="wc_rb_status_check_page_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select status page')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_status_check_page_id'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page that have shortcode ')) . '<strong>[wc_order_status_form]</strong> ' . e(__('If set this would be used to send link to customers for status check in email and other notification mediums.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_get_feedback_page_id">' . e(__('Get feedback on job page')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_get_feedback_page_id" id="wc_rb_get_feedback_page_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select job review page')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_get_feedback_page_id'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page that have shortcode ')) . '<strong>[wc_get_order_feedback]</strong> ' . e(__('If set this would be used to send link to customers so they can leave feedback on jobs.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_device_booking_page_id">' . e(__('Select Device Booking Page')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_device_booking_page_id" id="wc_rb_device_booking_page_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select booking page')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_device_booking_page_id'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page for booking process with shortcode ')) . '<strong>[wc_book_my_service]</strong></label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_list_services_page_id">' . e(__('Select Services Page')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_list_services_page_id" id="wc_rb_list_services_page_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select services page')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_list_services_page_id'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page lists services should have shortcode ')) . '<strong>[wc_list_services]</strong></label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_list_parts_page_id">' . e(__('Select Parts Page')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_list_parts_page_id" id="wc_rb_list_parts_page_id" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select parts page')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_list_parts_page_id'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page lists parts should have shortcode ')) . '<strong>[wc_list_products]</strong> ' . e(__('If you are using WooCommerce products as parts then its not needed.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Redirect user after login.')) . '</h3>';
+                    $settingsTabBodyHtml .= '<table cellpadding="5" cellspacing="5" class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_customer_login_page">' . e(__('Select Page for customer to redirect after login')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_rb_customer_login_page" id="wc_rb_customer_login_page" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select customer page after login')) . '</option>';
+                    foreach ($pagesSetupOptions as $opt) {
+                        $selected = ((string) ($pagesSetupValues['wc_rb_customer_login_page'] ?? '') === (string) $opt['value']) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($opt['value']) . '"' . $selected . '>' . e($opt['label']) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('A page that have shortcode ')) . '<strong>[wc_cr_my_account]</strong> ' . e(__('If you want to use WooCommerce My Account page please select that.')) . '</label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $checked = ($pagesSetupValues['wc_rb_turn_registration_on'] ?? false) ? ' checked="checked"' : '';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_rb_turn_registration_on">' . e(__('Turn on Customer Registration on My Account Page')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="checkbox"' . $checked . ' name="wc_rb_turn_registration_on" id="wc_rb_turn_registration_on" />';
+                    $settingsTabBodyHtml .= '<label for="wc_rb_turn_registration_on">' . e(__('If checked customer registration form will appear in my account page which have shortcode ')) . '<strong>[wc_cr_my_account]</strong></label>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><td colspan="2"><button class="button button-primary" type="submit">' . e(__('Submit')) . '</button></td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_manage_devices') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_manage_devices" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_manage_devices-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Brands & Devices')) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Device Settings')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.devices_brands.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="enablePinCodeField">' . e(__('Enable Pin Code Field in Jobs page')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($devicesBrandsUi['enablePinCodeField'] ? 'checked="checked"' : '') . ' name="enablePinCodeField" id="enablePinCodeField" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="showPinCodeInDocuments">' . e(__('Show Pin Code in Invoices/Emails/Status Check')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($devicesBrandsUi['showPinCodeInDocuments'] ? 'checked="checked"' : '') . ' name="showPinCodeInDocuments" id="showPinCodeInDocuments" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="useWooProductsAsDevices">' . e(__('Replace devices & brands with WooCommerce products')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($devicesBrandsUi['useWooProductsAsDevices'] ? 'checked="checked"' : '') . ' name="useWooProductsAsDevices" id="useWooProductsAsDevices" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Other Labels')) . '</th>';
+                    $settingsTabBodyHtml .= '<td><table class="form-table no-padding-table"><tr>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Note label like Device Note'));
+                    $settingsTabBodyHtml .= '<input name="labels[note]" class="regular-text" value="' . e((string) ($devicesBrandsUi['labels']['note'] ?? '')) . '" type="text" placeholder="' . e(__('Note')) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Pin Code/Password Label'));
+                    $settingsTabBodyHtml .= '<input name="labels[pin]" class="regular-text" value="' . e((string) ($devicesBrandsUi['labels']['pin'] ?? '')) . '" type="text" placeholder="' . e(__('Pin Code/Password')) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '</tr></table></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Device Label')) . '</th>';
+                    $settingsTabBodyHtml .= '<td><table class="form-table no-padding-table"><tr>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Singular device label'));
+                    $settingsTabBodyHtml .= '<input name="labels[device]" class="regular-text" value="' . e((string) ($devicesBrandsUi['labels']['device'] ?? '')) . '" type="text" placeholder="' . e(__('Device')) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '</tr></table></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Device Brand Label')) . '</th>';
+                    $settingsTabBodyHtml .= '<td><table class="form-table no-padding-table"><tr>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Singular device brand label'));
+                    $settingsTabBodyHtml .= '<input name="labels[deviceBrand]" class="regular-text" value="' . e((string) ($devicesBrandsUi['labels']['deviceBrand'] ?? '')) . '" type="text" placeholder="' . e(__('Device Brand')) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '</tr></table></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Device Type Label')) . '</th>';
+                    $settingsTabBodyHtml .= '<td><table class="form-table no-padding-table"><tr>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Singular device type label'));
+                    $settingsTabBodyHtml .= '<input name="labels[deviceType]" class="regular-text" value="' . e((string) ($devicesBrandsUi['labels']['deviceType'] ?? '')) . '" type="text" placeholder="' . e(__('Device Type')) . '" /></label></td>';
+                    $settingsTabBodyHtml .= '</tr></table></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="labels_imei">' . e(__('ID/IMEI Label')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input name="labels[imei]" id="labels_imei" class="regular-text" value="' . e((string) ($devicesBrandsUi['labels']['imei'] ?? '')) . '" type="text" placeholder="' . e(__('ID/IMEI')) . '" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="pickupDeliveryEnabled">' . e(__('Offer pickup and delivery?')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($pickupDeliveryEnabled ? 'checked="checked"' : '') . ' name="pickupDeliveryEnabled" id="pickupDeliveryEnabled" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="pickupCharge">' . e(__('Pick up charge')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input name="pickupCharge" id="pickupCharge" class="regular-text" value="' . e($pickupCharge) . '" type="text" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="deliveryCharge">' . e(__('Delivery charge')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input name="deliveryCharge" id="deliveryCharge" class="regular-text" value="' . e($deliveryCharge) . '" type="text" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="rentalEnabled">' . e(__('Offer device rental?')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($rentalEnabled ? 'checked="checked"' : '') . ' name="rentalEnabled" id="rentalEnabled" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Device rent')) . '</th><td>';
+                    $settingsTabBodyHtml .= '<table class="form-table no-padding-table"><tr>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Device rent per day'));
+                    $settingsTabBodyHtml .= '<input name="rentalPerDay" class="regular-text" value="' . e($rentalPerDay) . '" type="text" /></label></td>';
+                    $settingsTabBodyHtml .= '<td><label>' . e(__('Device rent per week'));
+                    $settingsTabBodyHtml .= '<input name="rentalPerWeek" class="regular-text" value="' . e($rentalPerWeek) . '" type="text" /></label></td>';
+                    $settingsTabBodyHtml .= '</tr></table>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $maxRows = max(1, min(10, count($additionalDeviceFields) + 1));
+                    for ($i = 0; $i < $maxRows; $i++) {
+                        $row = $additionalDeviceFields[$i] ?? [];
+                        $rowId = is_array($row) && is_string($row['id'] ?? null) ? (string) $row['id'] : '';
+                        $rowLabel = is_array($row) && is_string($row['label'] ?? null) ? (string) $row['label'] : '';
+                        $dBooking = is_array($row) && ($row['displayInBookingForm'] ?? false) ? ' checked="checked"' : '';
+                        $dInvoice = is_array($row) && ($row['displayInInvoice'] ?? false) ? ' checked="checked"' : '';
+                        $dCustomer = is_array($row) && ($row['displayForCustomer'] ?? false) ? ' checked="checked"' : '';
+
+                        $settingsTabBodyHtml .= '<tr>';
+                        $settingsTabBodyHtml .= '<td><label>' . e(__('Field label'));
+                        $settingsTabBodyHtml .= '<input class="regular-text" name="additionalDeviceFields[' . e((string) $i) . '][label]" value="' . e($rowLabel) . '" type="text" /></label>';
+                        $settingsTabBodyHtml .= '<input type="hidden" name="additionalDeviceFields[' . e((string) $i) . '][id]" value="' . e($rowId) . '" />';
+                        $settingsTabBodyHtml .= '<input type="hidden" name="additionalDeviceFields[' . e((string) $i) . '][type]" value="text" />';
+                        $settingsTabBodyHtml .= '</td>';
+                        $settingsTabBodyHtml .= '<td><label>' . e(__('In booking form?')) . '<input type="checkbox" name="additionalDeviceFields[' . e((string) $i) . '][displayInBookingForm]" value="1"' . $dBooking . ' /></label></td>';
+                        $settingsTabBodyHtml .= '<td><label>' . e(__('In invoice?')) . '<input type="checkbox" name="additionalDeviceFields[' . e((string) $i) . '][displayInInvoice]" value="1"' . $dInvoice . ' /></label></td>';
+                        $settingsTabBodyHtml .= '<td><label>' . e(__('In customer output?')) . '<input type="checkbox" name="additionalDeviceFields[' . e((string) $i) . '][displayForCustomer]" value="1"' . $dCustomer . ' /></label></td>';
+                        $settingsTabBodyHtml .= '</tr>';
+                    }
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Manage Brands')) . '</h3>';
+
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.device_brands.store', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="rb_brand_name">' . e(__('Add brand')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input name="name" id="rb_brand_name" class="regular-text" value="" type="text" placeholder="' . e(__('Brand name')) . '" required /> ';
+                    $settingsTabBodyHtml .= '<button class="button button-primary" type="submit">' . e(__('Add')) . '</button></td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</form>';
+
+                    $settingsTabBodyHtml .= '<table class="wp-list-table widefat fixed striped posts"><thead><tr>';
+                    $settingsTabBodyHtml .= '<th class="column-id">' . e(__('ID')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Name')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Status')) . '</th>';
+                    $settingsTabBodyHtml .= '<th class="column-action">' . e(__('Actions')) . '</th>';
+                    $settingsTabBodyHtml .= '</tr></thead><tbody>';
+
+                    if ($deviceBrands->count() > 0) {
+                        foreach ($deviceBrands as $b) {
+                            $settingsTabBodyHtml .= '<tr>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $b->id) . '</td>';
+                            $settingsTabBodyHtml .= '<td><strong>' . e((string) $b->name) . '</strong></td>';
+                            $settingsTabBodyHtml .= '<td>' . e($b->is_active ? 'active' : 'inactive') . '</td>';
+                            $settingsTabBodyHtml .= '<td>';
+
+                            $settingsTabBodyHtml .= '<form method="post" style="display:inline;" action="' . e($tenant?->slug ? route('tenant.settings.device_brands.active', ['business' => $tenant->slug, 'brand' => $b->id]) : '#') . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="is_active" value="' . e($b->is_active ? '0' : '1') . '">';
+                            $settingsTabBodyHtml .= '<button type="submit" class="button button-small">' . e(__('Change Status')) . '</button>';
+                            $settingsTabBodyHtml .= '</form> ';
+
+                            $settingsTabBodyHtml .= '<form method="post" style="display:inline;" action="' . e($tenant?->slug ? route('tenant.settings.device_brands.delete', ['business' => $tenant->slug, 'brand' => $b->id]) : '#') . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                            $settingsTabBodyHtml .= '<button type="submit" class="button button-small">' . e(__('Delete')) . '</button>';
+                            $settingsTabBodyHtml .= '</form>';
+
+                            $settingsTabBodyHtml .= '</td>';
+                            $settingsTabBodyHtml .= '</tr>';
+                        }
+                    } else {
+                        $settingsTabBodyHtml .= '<tr><td colspan="4">' . e(__('No brands yet.')) . '</td></tr>';
+                    }
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_manage_bookings') {
+                    $menuName = $tenant?->name ?: 'RepairBuddy';
+
+                    $emailSubjectCustomer = (string) ($bookingSettings['booking_email_subject_to_customer'] ?? ('We have received your booking order! | ' . $menuName));
+                    $emailBodyCustomer = (string) ($bookingSettings['booking_email_body_to_customer'] ?? '');
+                    $emailSubjectAdmin = (string) ($bookingSettings['booking_email_subject_to_admin'] ?? ('You have new booking order | ' . $menuName));
+                    $emailBodyAdmin = (string) ($bookingSettings['booking_email_body_to_admin'] ?? '');
+
+                    $turnBookingFormsToJobs = (bool) ($bookingSettings['turnBookingFormsToJobs'] ?? false);
+                    $turnOffOtherDeviceBrands = (bool) ($bookingSettings['turnOffOtherDeviceBrands'] ?? false);
+                    $turnOffOtherService = (bool) ($bookingSettings['turnOffOtherService'] ?? false);
+                    $turnOffServicePrice = (bool) ($bookingSettings['turnOffServicePrice'] ?? false);
+                    $turnOffIdImeiBooking = (bool) ($bookingSettings['turnOffIdImeiBooking'] ?? false);
+
+                    $defaultTypeId = $bookingSettings['wc_booking_default_type'] ?? null;
+                    $defaultBrandId = $bookingSettings['wc_booking_default_brand'] ?? null;
+                    $defaultDeviceId = $bookingSettings['wc_booking_default_device'] ?? null;
+
+                    $deviceTypes = \App\Models\RepairBuddyDeviceType::query()->orderBy('name')->limit(200)->get();
+                    $deviceBrands = \App\Models\RepairBuddyDeviceBrand::query()->orderBy('name')->limit(200)->get();
+                    $devices = \App\Models\RepairBuddyDevice::query()->orderBy('model')->limit(200)->get();
+
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_manage_bookings" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_manage_bookings-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Booking Email To Customer')) . '</h2>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.bookings.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="booking_email_subject_to_customer">' . e(__('Email subject')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="text" id="booking_email_subject_to_customer" name="booking_email_subject_to_customer" class="regular-text" value="' . e(old('booking_email_subject_to_customer', $emailSubjectCustomer)) . '" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="booking_email_body_to_customer">' . e(__('Email body')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><textarea id="booking_email_body_to_customer" name="booking_email_body_to_customer" rows="6" class="large-text">' . e(old('booking_email_body_to_customer', $emailBodyCustomer)) . '</textarea>';
+                    $settingsTabBodyHtml .= '<p class="description">' . e(__('Available Keywords')) . ' {{customer_full_name}} {{customer_device_label}} {{status_check_link}} {{start_anch_status_check_link}} {{end_anch_status_check_link}} {{order_invoice_details}} {{job_id}} {{case_number}}</p>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Booking email to administrator')) . '</h2>';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="booking_email_subject_to_admin">' . e(__('Email subject')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="text" id="booking_email_subject_to_admin" name="booking_email_subject_to_admin" class="regular-text" value="' . e(old('booking_email_subject_to_admin', $emailSubjectAdmin)) . '" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="booking_email_body_to_admin">' . e(__('Email body')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><textarea id="booking_email_body_to_admin" name="booking_email_body_to_admin" rows="6" class="large-text">' . e(old('booking_email_body_to_admin', $emailBodyAdmin)) . '</textarea>';
+                    $settingsTabBodyHtml .= '<p class="description">' . e(__('Available Keywords')) . ' {{customer_full_name}} {{customer_device_label}} {{status_check_link}} {{start_anch_status_check_link}} {{end_anch_status_check_link}} {{order_invoice_details}} {{job_id}} {{case_number}}</p>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wcrb_turn_booking_forms_to_jobs">' . e(__('Booking & Quote Forms')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ((old('wcrb_turn_booking_forms_to_jobs') !== null ? old('wcrb_turn_booking_forms_to_jobs') === 'on' : $turnBookingFormsToJobs) ? 'checked="checked"' : '') . ' name="wcrb_turn_booking_forms_to_jobs" id="wcrb_turn_booking_forms_to_jobs" /> ';
+                    $settingsTabBodyHtml .= '<label for="wcrb_turn_booking_forms_to_jobs">' . e(__('Send booking forms & quote forms to jobs instead of estimates')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wcrb_turn_off_other_device_brands">' . e(__('Other Devices & Brands')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ((old('wcrb_turn_off_other_device_brands') !== null ? old('wcrb_turn_off_other_device_brands') === 'on' : $turnOffOtherDeviceBrands) ? 'checked="checked"' : '') . ' name="wcrb_turn_off_other_device_brands" id="wcrb_turn_off_other_device_brands" /> ';
+                    $settingsTabBodyHtml .= '<label for="wcrb_turn_off_other_device_brands">' . e(__('Turn off other option for devices and brands')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wcrb_turn_off_other_service">' . e(__('Other Service')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ((old('wcrb_turn_off_other_service') !== null ? old('wcrb_turn_off_other_service') === 'on' : $turnOffOtherService) ? 'checked="checked"' : '') . ' name="wcrb_turn_off_other_service" id="wcrb_turn_off_other_service" /> ';
+                    $settingsTabBodyHtml .= '<label for="wcrb_turn_off_other_service">' . e(__('Turn off other service option')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wcrb_turn_off_service_price">' . e(__('Disable Service Prices')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ((old('wcrb_turn_off_service_price') !== null ? old('wcrb_turn_off_service_price') === 'on' : $turnOffServicePrice) ? 'checked="checked"' : '') . ' name="wcrb_turn_off_service_price" id="wcrb_turn_off_service_price" /> ';
+                    $settingsTabBodyHtml .= '<label for="wcrb_turn_off_service_price">' . e(__('Turn off prices from services')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wcrb_turn_off_idimei_booking">' . e(__('Disable ID/IMEI Field')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ((old('wcrb_turn_off_idimei_booking') !== null ? old('wcrb_turn_off_idimei_booking') === 'on' : $turnOffIdImeiBooking) ? 'checked="checked"' : '') . ' name="wcrb_turn_off_idimei_booking" id="wcrb_turn_off_idimei_booking" /> ';
+                    $settingsTabBodyHtml .= '<label for="wcrb_turn_off_idimei_booking">' . e(__('Turn off id/imei field from booking form')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_booking_default_type">' . e(__('Default Device Type')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_booking_default_type" id="wc_booking_default_type" class="regular-text">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select')) . '</option>';
+                    foreach ($deviceTypes as $dt) {
+                        $selected = (string) old('wc_booking_default_type', $defaultTypeId) === (string) $dt->id ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $dt->id) . '"' . $selected . '>' . e((string) $dt->name) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_booking_default_brand">' . e(__('Default Device Brand')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_booking_default_brand" id="wc_booking_default_brand" class="regular-text">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select')) . '</option>';
+                    foreach ($deviceBrands as $db) {
+                        $selected = (string) old('wc_booking_default_brand', $defaultBrandId) === (string) $db->id ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $db->id) . '"' . $selected . '>' . e((string) $db->name) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_booking_default_device">' . e(__('Default Device')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select name="wc_booking_default_device" id="wc_booking_default_device" class="regular-text">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select')) . '</option>';
+                    foreach ($devices as $d) {
+                        $label = trim((string) ($d->model ?? ''));
+                        if ($label === '') {
+                            $label = 'Device #' . $d->id;
+                        }
+                        $selected = (string) old('wc_booking_default_device', $defaultDeviceId) === (string) $d->id ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $d->id) . '"' . $selected . '>' . e($label) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+                    $settingsTabBodyHtml .= '</tbody></table>';
+
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_manage_service') {
+                    $sidebarDescription = (string) ($serviceSettings['wc_service_sidebar_description'] ?? __('Below you can check price by type or brand and to get accurate value check devices.'));
+                    $bookingHeading = (string) ($serviceSettings['wc_service_booking_heading'] ?? __('Book Service'));
+                    $disableBookingOnServicePage = (bool) ($serviceSettings['disableBookingOnServicePage'] ?? false);
+                    $bookingForm = (string) ($serviceSettings['wc_service_booking_form'] ?? 'without_type');
+                    if (! in_array($bookingForm, ['with_type', 'without_type', 'warranty_booking'], true)) {
+                        $bookingForm = 'without_type';
+                    }
+
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_manage_service" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_manage_service-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.services.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_service_sidebar_description">' . e(__('Single Service Price Sidebar')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<label>' . e(__('Add some description for prices on single service page sidebar')) . '</label>';
+                    $settingsTabBodyHtml .= '<textarea class="form-control" name="wc_service_sidebar_description" id="wc_service_sidebar_description">' . e(old('wc_service_sidebar_description', $sidebarDescription)) . '</textarea>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $checked = (old('wc_booking_on_service_page_status') !== null)
+                        ? (old('wc_booking_on_service_page_status') === 'on')
+                        : $disableBookingOnServicePage;
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_booking_on_service_page_status">' . e(__('Disable Booking on Service Page?')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($checked ? 'checked="checked"' : '') . ' name="wc_booking_on_service_page_status" id="wc_booking_on_service_page_status" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_service_booking_heading">' . e(__('Single Service Price Sidebar')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<input type="text" class="form-control" name="wc_service_booking_heading" id="wc_service_booking_heading" value="' . e(old('wc_service_booking_heading', $bookingHeading)) . '" />';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $selected = (string) old('wc_service_booking_form', $bookingForm);
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_service_booking_form">' . e(__('Booking Form')) . '</label></th><td>';
+                    $settingsTabBodyHtml .= '<select class="form-control" name="wc_service_booking_form" id="wc_service_booking_form">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select booking form')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="with_type"' . ($selected === 'with_type' ? ' selected' : '') . '>' . e(__('Booking with type, manufacture, device and grouped services')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="without_type"' . ($selected === 'without_type' ? ' selected' : '') . '>' . e(__('Booking with manufacture, device and services no types')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="warranty_booking"' . ($selected === 'warranty_booking' ? ' selected' : '') . '>' . e(__('Booking without service selection')) . '</option>';
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '</td></tr>';
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_payment_status') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_payment_status" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_payment_status-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+
+                    $settingsTabBodyHtml .= '<table class="wp-list-table widefat fixed striped posts">';
+                    $settingsTabBodyHtml .= '<thead><tr>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Slug')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Default Label')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Display Label')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Color')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Sort Order')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Actions')) . '</th>';
+                    $settingsTabBodyHtml .= '</tr></thead><tbody>';
+
+                    if ($paymentStatuses->count() === 0) {
+                        $settingsTabBodyHtml .= '<tr><td colspan="6">' . e(__('No payment statuses found.')) . '</td></tr>';
+                    } else {
+                        foreach ($paymentStatuses as $ps) {
+                            $override = $paymentStatusOverrides[$ps->slug] ?? null;
+                            $displayLabel = (is_string($override?->label) && $override->label !== '') ? $override->label : $ps->label;
+                            $displayColor = is_string($override?->color) ? $override->color : '';
+                            $displaySort = is_numeric($override?->sort_order) ? (string) (int) $override->sort_order : '';
+
+                            $settingsTabBodyHtml .= '<tr>';
+                            $settingsTabBodyHtml .= '<td><code>' . e((string) $ps->slug) . '</code></td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $ps->label) . '</td>';
+
+                            $settingsTabBodyHtml .= '<td>';
+                            $settingsTabBodyHtml .= '<form method="post" action="' . e(route('tenant.settings.payment_status.update', ['business' => $tenant->slug, 'slug' => $ps->slug])) . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                            $settingsTabBodyHtml .= '<input type="text" class="regular-text" name="label" value="' . e(old('label', $displayLabel)) . '">';
+                            $settingsTabBodyHtml .= '</td>';
+
+                            $settingsTabBodyHtml .= '<td><input type="text" style="width:110px" name="color" value="' . e(old('color', $displayColor)) . '" placeholder="#000000"></td>';
+                            $settingsTabBodyHtml .= '<td><input type="number" style="width:110px" name="sort_order" value="' . e(old('sort_order', $displaySort)) . '" min="0"></td>';
+                            $settingsTabBodyHtml .= '<td><button class="button button-primary button-small" type="submit">' . e(__('Save')) . '</button></form></td>';
+                            $settingsTabBodyHtml .= '</tr>';
+                        }
+                    }
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_maintenance_reminder') {
+                    $deviceTypes = \App\Models\RepairBuddyDeviceType::query()->orderBy('name')->limit(200)->get();
+                    $deviceBrands = \App\Models\RepairBuddyDeviceBrand::query()->orderBy('name')->limit(200)->get();
+
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_maintenance_reminder" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_maintenance_reminder-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                    $settingsTabBodyHtml .= '<p>' . e(__('Jobs should have delivery date set for reminders to work')) . '</p>';
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Add New Maintenance Reminder')) . '</h3>';
+                    $settingsTabBodyHtml .= '<form method="post" action="' . e(route('tenant.settings.maintenance_reminders.store', ['business' => $tenant->slug])) . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_name">' . e(__('Reminder Name')) . '</label></th><td><input id="mr_name" type="text" name="name" class="regular-text" value="' . e(old('name', '')) . '"></td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_interval_days">' . e(__('Run After (days)')) . '</label></th><td><input id="mr_interval_days" type="number" name="interval_days" min="1" max="3650" value="' . e(old('interval_days', '30')) . '"></td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_description">' . e(__('Description')) . '</label></th><td><input id="mr_description" type="text" name="description" class="regular-text" value="' . e(old('description', '')) . '"></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_device_type_id">' . e(__('Device Type')) . '</label></th><td><select id="mr_device_type_id" name="device_type_id" class="regular-text">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('All')) . '</option>';
+                    foreach ($deviceTypes as $dt) {
+                        $selected = (string) old('device_type_id', '') === (string) $dt->id ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $dt->id) . '"' . $selected . '>' . e((string) $dt->name) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_device_brand_id">' . e(__('Brand')) . '</label></th><td><select id="mr_device_brand_id" name="device_brand_id" class="regular-text">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('All')) . '</option>';
+                    foreach ($deviceBrands as $db) {
+                        $selected = (string) old('device_brand_id', '') === (string) $db->id ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $db->id) . '"' . $selected . '>' . e((string) $db->name) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Email')) . '</th><td><label><input type="checkbox" name="email_enabled" ' . (old('email_enabled') ? 'checked="checked"' : '') . '> ' . e(__('Enable')) . '</label></td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_email_body">' . e(__('Email Message')) . '</label></th><td><textarea id="mr_email_body" name="email_body" rows="5" class="large-text">' . e(old('email_body', '')) . '</textarea><p class="description">' . e(__('Keywords')) . ': {{device_name}} {{customer_name}} {{unsubscribe_device}}</p></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('SMS')) . '</th><td><label><input type="checkbox" name="sms_enabled" ' . (old('sms_enabled') ? 'checked="checked"' : '') . '> ' . e(__('Enable')) . '</label></td></tr>';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="mr_sms_body">' . e(__('SMS Message')) . '</label></th><td><textarea id="mr_sms_body" name="sms_body" rows="3" class="large-text">' . e(old('sms_body', '')) . '</textarea><p class="description">' . e(__('Keywords')) . ': {{device_name}} {{customer_name}} {{unsubscribe_device}}</p></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row">' . e(__('Reminder')) . '</th><td><label><input type="checkbox" name="reminder_enabled" ' . (old('reminder_enabled', 'on') ? 'checked="checked"' : '') . '> ' . e(__('Active')) . '</label></td></tr>';
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Add Reminder')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<h3>' . e(__('Existing Reminders')) . '</h3>';
+                    $settingsTabBodyHtml .= '<table class="wp-list-table widefat fixed striped posts">';
+                    $settingsTabBodyHtml .= '<thead><tr>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('ID')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Name')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Interval')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Device Type')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Brand')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Email')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('SMS')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Reminder')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Last Run')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Actions')) . '</th>';
+                    $settingsTabBodyHtml .= '</tr></thead><tbody>';
+
+                    if ($maintenanceReminders->count() === 0) {
+                        $settingsTabBodyHtml .= '<tr><td colspan="10">' . e(__('No reminders yet.')) . '</td></tr>';
+                    } else {
+                        foreach ($maintenanceReminders as $r) {
+                            $settingsTabBodyHtml .= '<tr>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $r->id) . '</td>';
+                            $settingsTabBodyHtml .= '<td><strong>' . e((string) $r->name) . '</strong></td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $r->interval_days) . ' ' . e(__('days')) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) ($r->deviceType?->name ?? __('All'))) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) ($r->deviceBrand?->name ?? __('All'))) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e($r->email_enabled ? __('Active') : __('Inactive')) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e($r->sms_enabled ? __('Active') : __('Inactive')) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e($r->reminder_enabled ? __('Active') : __('Inactive')) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e($r->last_executed_at ? (string) $r->last_executed_at : '-') . '</td>';
+                            $settingsTabBodyHtml .= '<td>';
+
+                            $settingsTabBodyHtml .= '<details><summary>' . e(__('Edit')) . '</summary>';
+                            $settingsTabBodyHtml .= '<form method="post" action="' . e(route('tenant.settings.maintenance_reminders.update', ['business' => $tenant->slug, 'reminder' => $r->id])) . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('Name')) . '<br><input type="text" name="name" value="' . e((string) $r->name) . '" class="regular-text"></label></p>';
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('Interval days')) . '<br><input type="number" name="interval_days" min="1" max="3650" value="' . e((string) $r->interval_days) . '"></label></p>';
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('Description')) . '<br><input type="text" name="description" value="' . e((string) ($r->description ?? '')) . '" class="regular-text"></label></p>';
+
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('Device Type')) . '<br><select name="device_type_id" class="regular-text">';
+                            $settingsTabBodyHtml .= '<option value="">' . e(__('All')) . '</option>';
+                            foreach ($deviceTypes as $dt) {
+                                $selected = (string) ($r->device_type_id ?? '') === (string) $dt->id ? ' selected' : '';
+                                $settingsTabBodyHtml .= '<option value="' . e((string) $dt->id) . '"' . $selected . '>' . e((string) $dt->name) . '</option>';
+                            }
+                            $settingsTabBodyHtml .= '</select></label></p>';
+
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('Brand')) . '<br><select name="device_brand_id" class="regular-text">';
+                            $settingsTabBodyHtml .= '<option value="">' . e(__('All')) . '</option>';
+                            foreach ($deviceBrands as $db) {
+                                $selected = (string) ($r->device_brand_id ?? '') === (string) $db->id ? ' selected' : '';
+                                $settingsTabBodyHtml .= '<option value="' . e((string) $db->id) . '"' . $selected . '>' . e((string) $db->name) . '</option>';
+                            }
+                            $settingsTabBodyHtml .= '</select></label></p>';
+
+                            $settingsTabBodyHtml .= '<p><label><input type="checkbox" name="email_enabled" ' . ($r->email_enabled ? 'checked="checked"' : '') . '> ' . e(__('Email enabled')) . '</label></p>';
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('Email body')) . '<br><textarea name="email_body" rows="4" class="large-text">' . e((string) ($r->email_body ?? '')) . '</textarea></label></p>';
+                            $settingsTabBodyHtml .= '<p><label><input type="checkbox" name="sms_enabled" ' . ($r->sms_enabled ? 'checked="checked"' : '') . '> ' . e(__('SMS enabled')) . '</label></p>';
+                            $settingsTabBodyHtml .= '<p><label>' . e(__('SMS body')) . '<br><textarea name="sms_body" rows="3" class="large-text">' . e((string) ($r->sms_body ?? '')) . '</textarea></label></p>';
+                            $settingsTabBodyHtml .= '<p><label><input type="checkbox" name="reminder_enabled" ' . ($r->reminder_enabled ? 'checked="checked"' : '') . '> ' . e(__('Reminder enabled')) . '</label></p>';
+
+                            $settingsTabBodyHtml .= '<p><button type="submit" class="button button-primary button-small">' . e(__('Save')) . '</button></p>';
+                            $settingsTabBodyHtml .= '</form>';
+
+                            $settingsTabBodyHtml .= '<form method="post" action="' . e(route('tenant.settings.maintenance_reminders.delete', ['business' => $tenant->slug, 'reminder' => $r->id])) . '" onsubmit="return confirm(\'' . e(__('Delete this reminder?')) . '\');">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                            $settingsTabBodyHtml .= '<button type="submit" class="button button-secondary button-small">' . e(__('Delete')) . '</button>';
+                            $settingsTabBodyHtml .= '</form>';
+                            $settingsTabBodyHtml .= '</details>';
+
+                            $settingsTabBodyHtml .= '</td>';
+                            $settingsTabBodyHtml .= '</tr>';
+                        }
+                    }
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } elseif ($tabId === 'wc_rb_manage_taxes') {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="' . e($tabId) . '" role="tabpanel" aria-hidden="true" aria-labelledby="' . e($tabId) . '-label">';
+                    $settingsTabBodyHtml .= '<p class="help-text"><a class="button button-primary button-small" data-open="taxFormReveal">' . e(__('Add New Tax')) . '</a></p>';
+
+                    $settingsTabBodyHtml .= '<div class="small reveal" id="taxFormReveal" data-reveal>';
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Add new tax')) . '</h2>';
+                    $settingsTabBodyHtml .= '<div class="form-message"></div>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.taxes.store', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Tax Name')) . '*';
+                    $settingsTabBodyHtml .= '<input name="tax_name" type="text" class="form-control login-field" value="" required id="tax_name" />';
+                    $settingsTabBodyHtml .= '</label></div>';
+
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Tax Rate')) . '*';
+                    $settingsTabBodyHtml .= '<input name="tax_rate" type="number" step="any" class="form-control login-field" value="" id="tax_rate" required />';
+                    $settingsTabBodyHtml .= '</label></div>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Tax Status'));
+                    $settingsTabBodyHtml .= '<select class="form-control" name="tax_status">';
+                    $settingsTabBodyHtml .= '<option value="active">' . e(__('Active')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="inactive">' . e(__('Inactive')) . '</option>';
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '</label></div>';
+
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Default Tax'));
+                    $settingsTabBodyHtml .= '<input type="checkbox" name="tax_is_default" id="tax_is_default" />';
+                    $settingsTabBodyHtml .= '</label></div>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x"><fieldset class="cell medium-6">';
+                    $settingsTabBodyHtml .= '<button class="button" type="submit">' . e(__('Add Tax')) . '</button>';
+                    $settingsTabBodyHtml .= '</fieldset></div>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '<button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<div id="poststuff_wrapper">';
+                    $settingsTabBodyHtml .= '<table id="poststuff" class="wp-list-table widefat fixed striped posts">';
+                    $settingsTabBodyHtml .= '<thead><tr>';
+                    $settingsTabBodyHtml .= '<th class="column-id">' . e(__('ID')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Name')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Rate (%)')) . '</th>';
+                    $settingsTabBodyHtml .= '<th class="column-id">' . e(__('Status')) . '</th>';
+                    $settingsTabBodyHtml .= '<th class="column-action">' . e(__('Actions')) . '</th>';
+                    $settingsTabBodyHtml .= '</tr></thead><tbody>';
+
+                    if ($taxes->count() > 0) {
+                        foreach ($taxes as $t) {
+                            $settingsTabBodyHtml .= '<tr>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $t->id) . '</td>';
+                            $settingsTabBodyHtml .= '<td><strong>' . e((string) $t->name) . '</strong>' . ($t->is_default ? ' <span class="dashicons dashicons-yes"></span>' : '') . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $t->rate) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e($t->is_active ? 'active' : 'inactive') . '</td>';
+                            $settingsTabBodyHtml .= '<td>';
+
+                            $settingsTabBodyHtml .= '<form method="post" style="display:inline;" action="' . e($tenant?->slug ? route('tenant.settings.taxes.active', ['business' => $tenant->slug, 'tax' => $t->id]) : '#') . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                            $settingsTabBodyHtml .= '<input type="hidden" name="is_active" value="' . e($t->is_active ? '0' : '1') . '">';
+                            $settingsTabBodyHtml .= '<button type="submit" class="button button-small">' . e(__('Change Status')) . '</button>';
+                            $settingsTabBodyHtml .= '</form> ';
+
+                            if (! $t->is_default) {
+                                $settingsTabBodyHtml .= '<form method="post" style="display:inline;" action="' . e($tenant?->slug ? route('tenant.settings.taxes.default', ['business' => $tenant->slug, 'tax' => $t->id]) : '#') . '">';
+                                $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                                $settingsTabBodyHtml .= '<button type="submit" class="button button-small">' . e(__('Set Default')) . '</button>';
+                                $settingsTabBodyHtml .= '</form>';
+                            }
+
+                            $settingsTabBodyHtml .= '</td>';
+                            $settingsTabBodyHtml .= '</tr>';
+                        }
+                    } else {
+                        $settingsTabBodyHtml .= '<tr><td colspan="5">' . e(__('Please add a tax rate by clicking add new tax button above')) . '</td></tr>';
+                    }
+
+                    $settingsTabBodyHtml .= '</tbody></table></div>';
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Tax Settings')) . '</h2>';
+                    $settingsTabBodyHtml .= '<div class="wc_rb_manage_taxes"></div>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.taxes.settings', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_add_taxes">' . e(__('Enable Taxes')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($taxEnable ? 'checked="checked"' : '') . ' name="wc_use_taxes" id="wc_add_taxes" /></td></tr>';
+
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_primary_tax">' . e(__('Default Tax')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><select name="wc_primary_tax" id="wc_primary_tax" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="">' . e(__('Select tax')) . '</option>';
+                    foreach ($taxes as $t) {
+                        $selected = ($taxDefaultId !== null && (int) $taxDefaultId === (int) $t->id) ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e((string) $t->id) . '"' . $selected . '>' . e((string) $t->name) . '</option>';
+                    }
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $inclusive = $taxInvoiceAmounts === 'inclusive' ? ' selected' : '';
+                    $exclusive = $taxInvoiceAmounts === 'exclusive' ? ' selected' : '';
+                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="wc_prices_inclu_exclu">' . e(__('Invoice Amounts Are')) . '</label></th>';
+                    $settingsTabBodyHtml .= '<td><select name="wc_prices_inclu_exclu" id="wc_prices_inclu_exclu" class="form-control">';
+                    $settingsTabBodyHtml .= '<option value="exclusive"' . $exclusive . '>' . e(__('Exclusive of Tax')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="inclusive"' . $inclusive . '>' . e(__('Inclusive of Tax')) . '</option>';
+                    $settingsTabBodyHtml .= '</select></td></tr>';
+
+                    $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                } else {
+                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="' . e($tabId) . '" role="tabpanel" aria-hidden="true" aria-labelledby="' . e($tabId) . '-label">';
+                    $settingsTabBodyHtml .= '<div class="wrap">';
+                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                }
             }
 
             return view('tenant.settings', [

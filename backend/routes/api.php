@@ -556,6 +556,7 @@ Route::prefix('{business}')
                     Route::get('/jobs/stats', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'stats']);
                     Route::get('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'show'])->whereNumber('jobId');
                     Route::patch('/jobs/{jobId}', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'update'])->whereNumber('jobId');
+                    Route::put('/jobs/{jobId}/aggregate', [\App\Http\Controllers\Api\App\RepairBuddyJobController::class, 'aggregateUpdate'])->whereNumber('jobId');
 
                     Route::post('/jobs/{jobId}/items', [\App\Http\Controllers\Api\App\RepairBuddyJobItemController::class, 'store'])->whereNumber('jobId');
                     Route::delete('/jobs/{jobId}/items/{itemId}', [\App\Http\Controllers\Api\App\RepairBuddyJobItemController::class, 'destroy'])

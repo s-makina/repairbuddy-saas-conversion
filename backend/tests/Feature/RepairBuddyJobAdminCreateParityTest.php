@@ -157,7 +157,7 @@ class RepairBuddyJobAdminCreateParityTest extends TestCase
             ->postJson('/api/'.$tenant->slug.'/app/repairbuddy/jobs', []);
 
         $res->assertStatus(201);
-        $res->assertJsonPath('job.status', 'new');
+        $res->assertJsonPath('job.status', 'neworder');
 
         $jobId = $res->json('job.id');
         $this->assertIsInt($jobId);
@@ -165,7 +165,7 @@ class RepairBuddyJobAdminCreateParityTest extends TestCase
             'id' => $jobId,
             'tenant_id' => $tenant->id,
             'branch_id' => $branchId,
-            'status_slug' => 'new',
+            'status_slug' => 'neworder',
         ]);
     }
 

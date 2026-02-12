@@ -199,16 +199,22 @@ export default function NewJobPage() {
   const params = useParams() as { tenant?: string; business?: string };
   const tenantSlug = params.business ?? params.tenant;
 
+  const [caseNumberSeed, setCaseNumberSeed] = useState<{ prefix: string; length: number } | null>(null);
+
   const defaultCaseNumber = useMemo(() => {
-    const now = new Date();
-    const yyyy = String(now.getFullYear());
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
-    const hh = String(now.getHours()).padStart(2, "0");
-    const min = String(now.getMinutes()).padStart(2, "0");
-    const ss = String(now.getSeconds()).padStart(2, "0");
-    return `RB-${yyyy}${mm}${dd}-${hh}${min}${ss}`;
-  }, []);
+    const prefix = caseNumberSeed?.prefix?.trim() ? caseNumberSeed.prefix.trim() : "WC_";
+    const lengthRaw = typeof caseNumberSeed?.length === "number" ? caseNumberSeed.length : 6;
+    const length = Number.isFinite(lengthRaw) ? Math.max(1, Math.min(32, Math.round(lengthRaw))) : 6;
+
+    const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let random = "";
+    for (let i = 0; i < length; i++) {
+      random += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    const epochSeconds = Math.floor(Date.now() / 1000);
+    const candidate = `${prefix}${random}${epochSeconds}`;
+    return candidate.length > 64 ? candidate.slice(0, 64) : candidate;
+  }, [caseNumberSeed]);
 
   const [loadingLookups, setLoadingLookups] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -257,6 +263,8 @@ export default function NewJobPage() {
 
   const [orderNote, setOrderNote] = useState("");
   const [jobFile, setJobFile] = useState<File | null>(null);
+
+  const [pricesIncluExclu, setPricesIncluExclu] = useState<string>("");
 
   const [assignedTechnicianIds, setAssignedTechnicianIds] = useState<number[]>([]);
   const [jobDevices, setJobDevices] = useState<JobDeviceDraft[]>([]);
@@ -394,6 +402,16 @@ export default function NewJobPage() {
           if (!alive) return;
           setNextServiceEnabled(Boolean(settingsRes.settings?.general?.nextServiceDateEnabled));
 
+          const prefixRaw = settingsRes.settings?.general?.caseNumberPrefix;
+          const lengthRaw = settingsRes.settings?.general?.caseNumberLength;
+          const prefix = typeof prefixRaw === "string" ? prefixRaw.trim() : "";
+          const length = typeof lengthRaw === "number" ? lengthRaw : Number(lengthRaw);
+          setCaseNumberSeed({ prefix: prefix !== "" ? prefix : "WC_", length: Number.isFinite(length) ? Number(length) : 6 });
+
+          const invoiceAmounts = settingsRes.settings?.taxes?.invoiceAmounts;
+          const taxMode = typeof invoiceAmounts === "string" ? invoiceAmounts.trim() : "";
+          setPricesIncluExclu(taxMode === "inclusive" || taxMode === "exclusive" ? taxMode : "");
+
           setPinEnabled(Boolean(settingsRes.settings?.devicesBrands?.enablePinCodeField));
           const rawLabels = settingsRes.settings?.devicesBrands?.labels;
           const nextPinLabel =
@@ -421,9 +439,9 @@ export default function NewJobPage() {
         }
 
         const preferredStatus =
-          nextStatuses.find((s) => s.slug === "new")?.slug ?? nextStatuses.find((s) => s.slug === "neworder")?.slug;
+          nextStatuses.find((s) => s.slug === "neworder")?.slug ?? nextStatuses.find((s) => s.slug === "new")?.slug;
         setStatusSlug(preferredStatus ?? (nextStatuses.length > 0 ? nextStatuses[0].slug : ""));
-        setPaymentStatusSlug("");
+        setPaymentStatusSlug(nextPayment.find((p) => p.slug === "nostatus")?.slug ?? "nostatus");
 
         try {
           const clientsRes = await apiFetch<{ clients: ApiClient[] }>(`/api/${tenantSlug}/app/clients?limit=200`);
@@ -782,6 +800,7 @@ export default function NewJobPage() {
         title: trimmedTitle !== "" ? trimmedTitle : null,
         status_slug: statusSlug.trim() !== "" ? statusSlug : null,
         payment_status_slug: paymentStatusSlug.trim() !== "" ? paymentStatusSlug : null,
+        prices_inclu_exclu: pricesIncluExclu.trim() !== "" ? pricesIncluExclu : null,
         priority: priority.trim() !== "" ? priority.trim() : null,
         customer_id: !shouldCreateCustomer && typeof customerId === "number" ? customerId : null,
         pickup_date: pickupDate.trim() !== "" ? pickupDate : null,
@@ -831,6 +850,8 @@ export default function NewJobPage() {
       const nextId = res.job?.id;
       if (typeof nextId === "number") {
         try {
+          const aggregateItems: Array<Record<string, unknown>> = [];
+
           for (const line of jobServices) {
             const qtyNum = Math.round(Number(line.qty));
             const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
@@ -839,16 +860,36 @@ export default function NewJobPage() {
             const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
             const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
 
-            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/items`, {
-              method: "POST",
-              body: {
-                item_type: "service",
-                ref_id: line.service_id,
-                qty,
-                ...(typeof unitPriceAmountCents === "number" ? { unit_price_amount_cents: unitPriceAmountCents } : {}),
-                meta: {
-                  ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
-                },
+            if (typeof unitPriceAmountCents !== "number") continue;
+
+            aggregateItems.push({
+              item_type: "service",
+              ref_id: line.service_id,
+              qty,
+              unit_price_amount_cents: unitPriceAmountCents,
+              meta: {
+                ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
+              },
+            });
+          }
+
+          for (const line of jobParts) {
+            const qtyNum = Math.round(Number(line.qty));
+            const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
+
+            const rawPrice = line.price.trim();
+            const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
+            const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
+
+            if (typeof unitPriceAmountCents !== "number") continue;
+
+            aggregateItems.push({
+              item_type: "part",
+              ref_id: line.part_id,
+              qty,
+              unit_price_amount_cents: unitPriceAmountCents,
+              meta: {
+                ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
               },
             });
           }
@@ -865,40 +906,62 @@ export default function NewJobPage() {
             const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
             if (typeof unitPriceAmountCents !== "number") continue;
 
-            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/items`, {
-              method: "POST",
-              body: {
-                item_type: unitPriceAmountCents < 0 ? "discount" : "fee",
-                name,
-                qty,
-                unit_price_amount_cents: unitPriceAmountCents,
-              },
+            aggregateItems.push({
+              item_type: unitPriceAmountCents < 0 ? "discount" : "fee",
+              name,
+              qty,
+              unit_price_amount_cents: unitPriceAmountCents,
             });
           }
 
-          for (const line of jobParts) {
-            const qtyNum = Math.round(Number(line.qty));
-            const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
+          const extraItemsPayload = extraFields
+            .map((f) => {
+              const label = typeof f.label === "string" ? f.label.trim() : "";
+              if (!label) return null;
 
-            const rawPrice = line.price.trim();
-            const priceNum = rawPrice.length > 0 ? Number(rawPrice) : NaN;
-            const unitPriceAmountCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : undefined;
+              const occurredAt = typeof f.datetime === "string" && f.datetime.trim() !== "" ? f.datetime.trim() : null;
+              const dataText = typeof f.data === "string" && f.data.trim() !== "" ? f.data.trim() : null;
+              const description = typeof f.description === "string" && f.description.trim() !== "" ? f.description.trim() : null;
+              const visibility = f.visibility === "customer" ? "public" : "private";
 
-            await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/items`, {
-              method: "POST",
-              body: {
-                item_type: "part",
-                ref_id: line.part_id,
-                qty,
-                ...(typeof unitPriceAmountCents === "number" ? { unit_price_amount_cents: unitPriceAmountCents } : {}),
-                meta: {
-                  ...(typeof line.device_id === "number" ? { device_id: line.device_id } : {}),
-                },
-              },
-            });
-          }
+              return {
+                occurred_at: occurredAt,
+                label,
+                data_text: dataText,
+                description,
+                item_type: "text",
+                visibility,
+              };
+            })
+            .filter((x): x is NonNullable<typeof x> => Boolean(x));
+
+          await apiFetch(`/api/${tenantSlug}/app/repairbuddy/jobs/${nextId}/aggregate`, {
+            method: "PUT",
+            body: {
+              title: trimmedTitle !== "" ? trimmedTitle : null,
+              status_slug: statusSlug.trim() !== "" ? statusSlug : null,
+              payment_status_slug: paymentStatusSlug.trim() !== "" ? paymentStatusSlug : null,
+              prices_inclu_exclu: pricesIncluExclu.trim() !== "" ? pricesIncluExclu : null,
+              priority: priority.trim() !== "" ? priority.trim() : null,
+              can_review_it: true,
+              customer_id: !shouldCreateCustomer && typeof customerId === "number" ? customerId : undefined,
+              pickup_date: pickupDate.trim() !== "" ? pickupDate : null,
+              delivery_date: deliveryDate.trim() !== "" ? deliveryDate : null,
+              next_service_date: nextServiceEnabled && nextServiceDate.trim() !== "" ? nextServiceDate : null,
+              case_detail: caseDetail.trim() !== "" ? caseDetail.trim() : null,
+              assigned_technician_ids: assignedTechnicianIds,
+              job_devices:
+                jobDevices.length > 0
+                  ? jobDevices.map((d) => ({
+                      customer_device_id: d.customer_device_id,
+                    }))
+                  : [],
+              items: aggregateItems,
+              extra_items: extraItemsPayload,
+            },
+          });
         } catch (err) {
-          notify.error(err instanceof ApiError ? err.message : "Job created, but failed to attach items.");
+          notify.error(err instanceof ApiError ? err.message : "Job created, but failed to save items/extra fields.");
         }
 
         notify.success("Job created.");

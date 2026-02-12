@@ -19,13 +19,16 @@ class RepairBuddyJob extends Model
     protected $fillable = [
         'tenant_id',
         'branch_id',
+        'job_number',
         'case_number',
         'plugin_device_post_id',
         'plugin_device_id_text',
         'title',
         'status_slug',
         'payment_status_slug',
+        'prices_inclu_exclu',
         'priority',
+        'can_review_it',
         'customer_id',
         'created_by',
         'opened_at',
@@ -41,6 +44,7 @@ class RepairBuddyJob extends Model
     protected function casts(): array
     {
         return [
+            'job_number' => 'integer',
             'customer_id' => 'integer',
             'created_by' => 'integer',
             'opened_at' => 'datetime',
@@ -51,6 +55,8 @@ class RepairBuddyJob extends Model
             'maintenance_reminders_opted_out_at' => 'datetime',
             'assigned_technician_id' => 'integer',
             'plugin_device_post_id' => 'integer',
+            'can_review_it' => 'boolean',
+            'prices_inclu_exclu' => 'string',
         ];
     }
 
