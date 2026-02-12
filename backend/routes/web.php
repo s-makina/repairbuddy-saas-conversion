@@ -41,10 +41,20 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
 
 Route::prefix('t/{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
-    ->middleware(['web', 'tenant', 'auth'])
+    ->middleware(['web', 'tenant', 'branch.web', 'auth'])
     ->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');
+
+        Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
+            ->name('tenant.jobs.create');
+
+        Route::get('/jobs/{jobId}', [\App\Http\Controllers\Web\TenantJobController::class, 'show'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.jobs.show');
+
+        Route::post('/jobs', [\App\Http\Controllers\Web\TenantJobController::class, 'store'])
+            ->name('tenant.jobs.store');
 
         Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
             ->name('tenant.calendar.events');

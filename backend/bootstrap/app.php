@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.member' => \App\Http\Middleware\EnsureTenantMember::class,
             'branch.active' => \App\Http\Middleware\EnsureActiveBranch::class,
             'branch.public' => \App\Http\Middleware\EnsurePublicBranch::class,
+            'branch.web' => \App\Http\Middleware\EnsureWebBranch::class,
             'mfa.enforce' => \App\Http\Middleware\EnforceTenantMfa::class,
             'tenant.session' => \App\Http\Middleware\EnforceTenantSessionPolicy::class,
             'onboarding.gate' => \App\Http\Middleware\EnforceOnboardingGate::class,

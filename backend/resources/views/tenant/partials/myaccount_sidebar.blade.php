@@ -121,19 +121,19 @@
       'access' => ['administrator', 'store_manager'],
     ],
     [
+      'id' => 'settings',
+      'title' => 'Settings',
+      'icon' => 'bi bi-gear',
+      'url' => $screenUrl('settings'),
+      'access' => ['all'],
+    ],
+    [
       'id' => 'profile',
       'title' => 'Profile',
       'icon' => 'bi bi-person-circle',
       'url' => $screenUrl('profile'),
       'access' => ['all'],
       'extra_class' => 'mt-3',
-    ],
-    [
-      'id' => 'settings',
-      'title' => 'Settings',
-      'icon' => 'bi bi-gear',
-      'url' => $screenUrl('settings'),
-      'access' => ['administrator'],
     ],
     [
       'id' => 'support',

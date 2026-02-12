@@ -1,0 +1,260 @@
+@charset "utf-8";
+/* CSS Document */
+
+.wcrb_order_ID {
+	background-color:#063e70;
+	padding:10px 15px;
+	margin-bottom:7.5px;
+	border-radius:5px;
+	color:#FFF;
+	font-size:14px;
+	font-weight:bold;
+}
+.clearfix:after,
+.wcrb_order_ID:after {
+	clear:both;
+	display:table;
+	content:'';
+	width:100%;
+}
+.wcrb_order_ID .wcrb_id,
+.wcrb_order_ID .wcrb_label {
+	float:left;
+	width:50%;
+	text-align:right;
+}
+.wc-product { 
+	background-color:#F8F0F1;
+	padding:5px;
+	margin-bottom:12px;
+}
+.wc-product img {
+	width:100%;
+	height:auto; 
+}
+.wc-product .wc-product-title {
+	font-size:18px;
+	margin-top:5px;
+	margin-bottom:5px;
+}
+.post-type-rep_jobs #normal-sortables {
+	display:none;
+}																																
+.post-type-rep_jobs #post-body-content {
+	margin-bottom:0px;																																		
+}
+#addPart {
+	margin-top:4px;
+}
+.orange-bg {
+	background-color:#fd6742 !important;
+	color:#FFF !important;
+}
+.blue-bg {
+	background-color:#063e70 !important;
+	color:#FFF !important;
+}
+.grey-bg {
+	background-color:#f7f7f7;
+	width:100%;
+}
+.close-button, .close-button.medium {
+	right: 0px;
+    top: 0px;
+    padding: 1px;
+    font-size: 1.5em;
+    background-color: #063e70;
+    border: 2px solid #FFF;
+    color: #FFF;
+}
+tr.wcrb_payment_cancelled {
+	opacity:0.5;
+}
+.color-orange, 
+.color-orange th,
+.color-orange td {
+	color:#fd6742 !important;
+}
+.color-blue,
+.color-blue th,
+.color-blue td {
+	color:#063e70 !important;
+}
+.wc_table th {
+	text-align:left;
+	padding:4px;
+	border:1px solid #f1f1f1;
+	background:#f1f1f1;
+}
+.wc_table td {
+	text-align:left;
+	padding:6px;
+	background:#fff;
+	border:1px solid #fff;
+}
+.wc_table tr {
+	position: relative;
+}
+.iti--inline-dropdown {
+	width:100%;
+}
+.invoice-box.ticket-box div.titlelogo img.company_logo, 
+div.titlelogo img.company_logo {
+	max-height:55px;
+	width:auto;
+	max-width:auto;
+	margin-bottom:7px;
+}
+div.title img,
+td.title img {
+	height:55px;
+	width:auto;
+}
+.paymentReciept div.title img {
+	height:35px;
+	width:auto;
+}
+.editme {
+	display: inline-block; 
+	margin-right:15px; 
+	color: #000; 
+	text-decoration: none; 
+	background: #EEEEEE; 
+	font-weight: bold; 
+	padding: 0px 1px; 
+	border: 1px solid; 
+	font-size: 12px; 
+}
+.wcrb_additional_device_fields_wrap input,
+.wcrb_additional_device_fields_wrap select {
+	margin-bottom:0px !important;
+}
+.wcrb_additional_device_fields_wrap table tr td.wc_device_name {
+	position:relative;
+}
+.wcrb_additional_device_fields_wrap .delme {
+	position: absolute;
+	left: -13px;
+	bottom: 26px;
+}
+.delme { 
+	display: inline-block; 
+	margin-right:15px; 
+	color: #000; 
+	text-decoration: none; 
+	background: #EEEEEE; 
+	font-weight: bold; 
+	padding: 0px 3px; 
+	border: 1px solid; 
+	font-size: 12px; 
+}
+.delmextrafield,
+.delmewedit {
+	margin-right:4px;
+	padding: 0px 1px;
+}
+input.wc_special_input {
+	max-width: 100px;
+    margin-bottom: 0px;
+    margin-right: 0px;
+    height: 30px;
+    padding: 5px;
+    border-color: #f7f7f7;
+	background:#f7f7f7;
+	margin:auto;
+}
+.wc_extra_qty input.wc_special_input,
+.wc_service_qty input.wc_special_input,
+.wc_qty input.wc_special_input {
+	max-width:56px;
+}
+.wc_extra_name input.wc_special_input {
+	max-width:calc(100% - 35px);
+	display:inline-block;
+}
+.wc_product_price_total,
+.wc_extra_price_total,
+.wc_service_price_total,
+.wc_price_total {
+	font-weight:bold;
+}
+.wc_grand_total_wrap {
+	font-weight:bold;
+	text-align:right;
+}
+.wc_grandtotal {
+    font-weight: bold;
+    font-size: 22px;
+    color: #007cba;
+}
+.order_totals_calculations {
+	width:100%;
+	text-align:right;
+	background:#f7f7f7;
+	border:1px solid #ededed;
+	padding:16px;
+	border-radius:2px;
+}
+.order_totals_calculations tr td, .order_totals_calculations tr th {
+	border-bottom:1px solid #ededed;
+}
+.order_totals_calculations td {
+	font-size:16px;
+}
+.wc_order_status_wrap select {
+	margin-bottom:0px;
+}
+.invoice-box table.paymentRecieptTable td  p strong,
+.invoice-box table.paymentRecieptTable td  p span {
+	margin-right:8px;
+}
+.invoice-box table.paymentRecieptTable td  p {
+	padding:0px;
+	margin:0px;
+	border-bottom:1px solid #000;
+}
+.invoice-box table.paymentRecieptTable tr td:nth-child(2) {
+	text-align:left;
+}
+.invoice-box table.paymentRecieptTable td {
+	margin:0px;
+	padding:10px 10px;
+}
+.true_pre_image {
+	display:block;
+	margin-bottom:7px;
+	margin-top:8px;
+}
+.wcrb_ticket_head {
+	background-color: #000;
+    font-size: 15px;
+    font-weight: 600;
+    color: #FFF;
+    text-align: center;
+    padding: 3px;
+    margin: 3px;
+    letter-spacing: 1px;
+}
+.qr_Code_label__ {
+	background-color:#000;
+	color:#FFF;
+	font-size:13px;
+	text-align: center;
+	padding:2px;
+}
+.border-top-ten {
+	border-top:10px solid #000 !important;
+}
+.border-bottom-five {
+	border-bottom:5px solid #000 !important;
+}
+.actionswrapperjobs a {
+	text-decoration: none;
+}
+.actionswrapperjobs a span.dashicons {
+	width: 23px;
+    height: 23px;
+    font-size: 23px;
+	margin-left:2px;
+	margin-right:2px;
+}

@@ -22,6 +22,157 @@ class TenantDashboardController extends Controller
             ? (string) $request->query('screen')
             : 'dashboard';
 
+        if ($screen === 'settings') {
+            $updateStatus = $request->query('update_status');
+
+            if (isset($updateStatus) && (string) $updateStatus !== '') {
+                $class_settings = '';
+                $class_activation = '';
+                $class_status = ' is-active';
+            } else {
+                $class_settings = ' is-active';
+                $class_status = '';
+                $class_activation = '';
+            }
+
+            $class_general_settings = ($request->input('wc_rep_settings') === '1') ? ' is-active' : '';
+            $class_settings = empty($class_general_settings) ? $class_settings : '';
+
+            $class_invoices_settings = ($request->input('wc_rep_labels_submit') === '1') ? ' is-active' : '';
+            $class_settings = empty($class_invoices_settings) ? $class_settings : '';
+
+            $class_currency_settings = ($request->input('wc_rep_currency_submit') === '1') ? ' is-active' : '';
+            $class_settings = empty($class_currency_settings) ? $class_settings : '';
+
+            $updatePaymentStatus = $request->query('update_payment_status');
+            if (isset($updatePaymentStatus) && (string) $updatePaymentStatus !== '') {
+                $class_settings = '';
+                $class_status = '';
+            }
+
+            $unselect = $request->query('unselect');
+            if (isset($unselect) && (string) $unselect !== '') {
+                $class_settings = '';
+                $class_status = '';
+            }
+
+            $settingsTabMenuItemsHtml = '';
+            $settingsTabBodyHtml = '';
+
+            $settingsTabs = [
+                ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'heading' => __('Pages Setup')],
+                ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
+                ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'heading' => __('Booking Settings')],
+                ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'heading' => __('Service Settings')],
+                ['id' => 'wcrb_estimates_tab', 'label' => __('Estimates'), 'heading' => __('Estimates')],
+                ['id' => 'wc_rb_payment_status', 'label' => __('Payment Status'), 'heading' => __('Payment Status')],
+                ['id' => 'wc_rb_manage_taxes', 'label' => __('Manage Taxes'), 'heading' => __('Tax Settings')],
+                ['id' => 'wc_rb_maintenance_reminder', 'label' => __('Maintenance Reminders'), 'heading' => __('Maintenance Reminders')],
+                ['id' => 'wcrb_timelog_tab', 'label' => __('Time Log Settings'), 'heading' => __('Time Log Settings')],
+                ['id' => 'wcrb_styling', 'label' => __('Styling & Labels'), 'heading' => __('Styling & Labels')],
+                ['id' => 'wcrb_reviews_tab', 'label' => __('Job Reviews'), 'heading' => __('Job Reviews')],
+                ['id' => 'wc_rb_page_sms_IDENTIFIER', 'label' => __('SMS'), 'heading' => __('SMS')],
+                ['id' => 'wc_rb_manage_account', 'label' => __('My Account Settings'), 'heading' => __('My Account Settings')],
+                ['id' => 'wcrb_signature_workflow', 'label' => __('Signature Workflow'), 'heading' => __('Digital Signature Workflow')],
+            ];
+
+            foreach ($settingsTabs as $tab) {
+                $tabId = $tab['id'];
+                $tabLabel = $tab['label'];
+                $heading = $tab['heading'];
+
+                $settingsTabMenuItemsHtml .= '<li class="tabs-title" role="presentation">';
+                $settingsTabMenuItemsHtml .= '<a href="#' . e($tabId) . '" role="tab" aria-controls="' . e($tabId) . '" aria-selected="true" id="' . e($tabId) . '-label">';
+                $settingsTabMenuItemsHtml .= '<h2>' . e($tabLabel) . '</h2>';
+                $settingsTabMenuItemsHtml .= '</a>';
+                $settingsTabMenuItemsHtml .= '</li>';
+
+                $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="' . e($tabId) . '" role="tabpanel" aria-hidden="true" aria-labelledby="' . e($tabId) . '-label">';
+                $settingsTabBodyHtml .= '<div class="wrap">';
+                $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
+                $settingsTabBodyHtml .= '</div>';
+                $settingsTabBodyHtml .= '</div>';
+            }
+
+            return view('tenant.settings', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'settings',
+                'pageTitle' => 'Settings',
+                'class_settings' => $class_settings,
+                'class_general_settings' => $class_general_settings,
+                'class_currency_settings' => $class_currency_settings,
+                'class_invoices_settings' => $class_invoices_settings,
+                'class_status' => $class_status,
+                'class_activation' => $class_activation,
+                'logoURL' => 'https://www.webfulcreations.com/products/crm-wordpress-plugin-repairbuddy/',
+                'logolink' => '/brand/repair-buddy-logo.png',
+                'contactURL' => 'https://www.webfulcreations.com/contact-us/',
+                'repairbuddy_whitelabel' => false,
+                'menu_name_p' => '',
+                'wc_rb_business_name' => $tenant?->name ?? '',
+                'wc_rb_business_phone' => $tenant?->contact_phone ?? '',
+                'wc_rb_business_address' => is_string($tenant?->billing_address_json) ? $tenant?->billing_address_json : '',
+                'computer_repair_logo' => is_string($tenant?->logo_url) ? $tenant?->logo_url : '',
+                'computer_repair_email' => $tenant?->contact_email ?? '',
+                'wc_rb_gdpr_acceptance_link' => '',
+                'wc_rb_gdpr_acceptance_link_label' => 'Privacy policy',
+                'wc_rb_gdpr_acceptance' => 'I understand that I will be contacted by a representative regarding this request and I agree to the privacy policy.',
+                'case_number_length' => 6,
+                'case_number_prefix' => 'WC_',
+                'wc_primary_country' => '',
+                'useWooProducts' => '',
+                'disableStatusCheckSerial' => '',
+                'disableNextServiceDate' => '',
+                'send_notice' => '',
+                'attach_pdf' => '',
+                'wc_cr_selected_currency' => '',
+                'wc_cr_currency_position' => '',
+                'wc_cr_thousand_separator' => ',',
+                'wc_cr_decimal_separator' => '.',
+                'wc_cr_number_of_decimals' => '0',
+                'wc_cr_currency_options_html' => '',
+                'wc_cr_currency_position_options_html' => '',
+                'wc_repair_order_print_size' => '',
+                'repair_order_type' => '',
+                'wb_rb_invoice_type' => '',
+                'business_terms' => '',
+                'wc_rb_ro_thanks_msg' => '',
+                'wc_rb_io_thanks_msg' => '',
+                'wc_rb_cr_display_add_on_ro' => '',
+                'wc_rb_cr_display_add_on_ro_cu' => '',
+                'wcrb_add_invoice_qr_code' => '',
+                'pickupdate_checked' => '',
+                'deliverydate_checked' => '',
+                'nextservicedate_checked' => '',
+                'wcrb_invoice_disclaimer_html' => '',
+                'job_status_rows_html' => '',
+                'wc_inventory_management_status' => false,
+                'job_status_delivered' => 'delivered',
+                'job_status_cancelled' => 'cancelled',
+                'status_options_delivered_html' => '',
+                'status_options_cancelled_html' => '',
+                'settings_tab_menu_items_html' => $settingsTabMenuItemsHtml,
+                'settings_tab_body_html' => $settingsTabBodyHtml,
+                'add_status_form_footer_html' => '',
+                'activation_form_html' => '',
+                'nonce_main_setting_html' => '',
+                'nonce_currency_setting_html' => '',
+                'nonce_report_setting_html' => '',
+                'nonce_delivered_status_html' => '',
+                'dashoutput_html' => '',
+                'countries_options_html' => '',
+                'rb_ms_version_defined' => false,
+                'rb_qb_version_defined' => false,
+                'casenumber_label_first' => 'Case',
+                'casenumber_label_none' => 'Case',
+                'woocommerce_activated' => true,
+                'pickup_date_label_none' => 'pickup_date',
+                'delivery_date_label_none' => 'delivery_date',
+                'nextservice_date_label_none' => 'nextservice_date',
+            ]);
+        }
+
         if ($screen === 'jobs' || $screen === 'jobs_card') {
             $current_view = $screen === 'jobs_card' ? 'card' : 'table';
             $_page = $screen === 'jobs_card' ? 'jobs_card' : 'jobs';
@@ -36,10 +187,13 @@ class TenantDashboardController extends Controller
                 ? route('tenant.dashboard', ['business' => $tenant->slug])
                 : '#';
 
+            $jobShowUrl101 = $tenant?->slug ? route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => 101]) : '#';
+            $jobShowUrl102 = $tenant?->slug ? route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => 102]) : '#';
+
             $mockJobRowsTable = <<<'HTML'
 <tr class="job_id_101 job_status_in_process">
-    <td  class="ps-4" data-label="ID"><a href="#" target="_blank"><strong>00101</a></strong></th>
-    <td data-label="Case Number/Tech"><a href="#" target="_blank">WC_ABC123</a><br><strong class="text-primary">Tech: Alex</strong></td>
+    <td  class="ps-4" data-label="ID"><a href="__JOB_SHOW_URL_101__" target="_blank"><strong>00101</a></strong></th>
+    <td data-label="Case Number/Tech"><a href="__JOB_SHOW_URL_101__" target="_blank">WC_ABC123</a><br><strong class="text-primary">Tech: Alex</strong></td>
     <td data-label="Customer">John Smith<br><strong>P</strong>: (555) 111-2222<br><strong>E</strong>: john@example.com</td>
     <td data-label="Devices">Dell Inspiron 15 (D-1001)</td>
     <td data-bs-toggle="tooltip" data-bs-title="P: = Pickup date D: = Delivery date N: = Next service date " data-label="Dates"><strong>P</strong>:02/10/2026<br><strong>D</strong>:02/12/2026<br><strong>N</strong>:02/15/2026</td>
@@ -119,14 +273,14 @@ class TenantDashboardController extends Controller
                         <i class="bi bi-files text-warning me-2"></i>Duplicate job
                     </a>
                 </li>
-                <li><a class="dropdown-item" href="#" target="_blank"><i class="bi bi-pencil-square text-primary me-2"></i>Edit</a></li>
+                <li><a class="dropdown-item" href="__JOB_SHOW_URL_101__" target="_blank"><i class="bi bi-pencil-square text-primary me-2"></i>Edit</a></li>
             </ul>
         </div>
     </td>
 </tr>
 <tr class="job_id_102 job_status_completed">
-    <td  class="ps-4" data-label="ID"><a href="#" target="_blank"><strong>00102</a></strong></th>
-    <td data-label="Case Number/Tech"><a href="#" target="_blank">WC_DEF456</a><br><strong class="text-primary">Tech: Sam</strong></td>
+    <td  class="ps-4" data-label="ID"><a href="__JOB_SHOW_URL_102__" target="_blank"><strong>00102</a></strong></th>
+    <td data-label="Case Number/Tech"><a href="__JOB_SHOW_URL_102__" target="_blank">WC_DEF456</a><br><strong class="text-primary">Tech: Sam</strong></td>
     <td data-label="Customer">Sarah Johnson<br><strong>P</strong>: (555) 333-4444<br><strong>E</strong>: sarah@example.com</td>
     <td data-label="Devices">iPhone 13 (IP-2233)</td>
     <td data-bs-toggle="tooltip" data-bs-title="P: = Pickup date D: = Delivery date N: = Next service date " data-label="Dates"><strong>P</strong>:02/09/2026<br><strong>D</strong>:02/11/2026</td>
@@ -206,12 +360,18 @@ class TenantDashboardController extends Controller
                         <i class="bi bi-files text-warning me-2"></i>Duplicate job
                     </a>
                 </li>
-                <li><a class="dropdown-item" href="#" target="_blank"><i class="bi bi-pencil-square text-primary me-2"></i>Edit</a></li>
+                <li><a class="dropdown-item" href="__JOB_SHOW_URL_102__" target="_blank"><i class="bi bi-pencil-square text-primary me-2"></i>Edit</a></li>
             </ul>
         </div>
     </td>
 </tr>
 HTML;
+
+            $mockJobRowsTable = str_replace(
+                ['__JOB_SHOW_URL_101__', '__JOB_SHOW_URL_102__'],
+                [$jobShowUrl101, $jobShowUrl102],
+                $mockJobRowsTable
+            );
 
             $mockJobRowsCard = <<<'HTML'
 <div class="row g-3 p-3">
@@ -252,8 +412,8 @@ HTML;
             </div>
             <div class="card-footer bg-transparent border-top-0 pt-0">
                 <div class="btn-group w-100">
-                    <a href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View</a>
-                    <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
+                    <a href="__JOB_SHOW_URL_101__" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View</a>
+                    <a href="__JOB_SHOW_URL_101__" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
                     <a href="#" target="_blank" class="btn btn-outline-info btn-sm"><i class="bi bi-printer me-1"></i></a>
                 </div>
             </div>
@@ -296,8 +456,8 @@ HTML;
             </div>
             <div class="card-footer bg-transparent border-top-0 pt-0">
                 <div class="btn-group w-100">
-                    <a href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View</a>
-                    <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
+                    <a href="__JOB_SHOW_URL_102__" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View</a>
+                    <a href="__JOB_SHOW_URL_102__" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
                     <a href="#" target="_blank" class="btn btn-outline-info btn-sm"><i class="bi bi-printer me-1"></i></a>
                 </div>
             </div>
@@ -305,6 +465,12 @@ HTML;
     </div>
 </div>
 HTML;
+
+            $mockJobRowsCard = str_replace(
+                ['__JOB_SHOW_URL_101__', '__JOB_SHOW_URL_102__'],
+                [$jobShowUrl101, $jobShowUrl102],
+                $mockJobRowsCard
+            );
 
             $mockPagination = <<<'HTML'
 <div class="card-footer">
@@ -789,6 +955,315 @@ HTML;
                     'rows' => $mockRowsHtml,
                     'pagination' => '',
                 ],
+            ]);
+        }
+
+        if ($screen === 'profile') {
+            $dateTime = '';
+            if ($user?->created_at) {
+                $dateTime = $user->created_at->format('F j, Y');
+            }
+
+            $userRoleLabel = 'Customer';
+            if (is_string($user?->role) && $user->role !== '') {
+                $userRoleLabel = ucfirst($user->role);
+            }
+
+            $countryCode = is_string($user?->country) ? (string) $user->country : '';
+            $countries = [];
+            if (class_exists(\Symfony\Component\Intl\Countries::class)) {
+                $countries = \Symfony\Component\Intl\Countries::getNames('en');
+            }
+
+            if (empty($countries)) {
+                $countries = [
+                    'AF' => 'Afghanistan',
+                    'AX' => 'Aland Islands',
+                    'AL' => 'Albania',
+                    'DZ' => 'Algeria',
+                    'AS' => 'American Samoa',
+                    'AD' => 'Andorra',
+                    'AO' => 'Angola',
+                    'AI' => 'Anguilla',
+                    'AQ' => 'Antarctica',
+                    'AG' => 'Antigua and Barbuda',
+                    'AR' => 'Argentina',
+                    'AM' => 'Armenia',
+                    'AW' => 'Aruba',
+                    'AU' => 'Australia',
+                    'AT' => 'Austria',
+                    'AZ' => 'Azerbaijan',
+                    'BS' => 'Bahamas',
+                    'BH' => 'Bahrain',
+                    'BD' => 'Bangladesh',
+                    'BB' => 'Barbados',
+                    'BY' => 'Belarus',
+                    'BE' => 'Belgium',
+                    'BZ' => 'Belize',
+                    'BJ' => 'Benin',
+                    'BM' => 'Bermuda',
+                    'BT' => 'Bhutan',
+                    'BO' => 'Bolivia',
+                    'BQ' => 'Bonaire, Sint Eustatius and Saba',
+                    'BA' => 'Bosnia and Herzegovina',
+                    'BW' => 'Botswana',
+                    'BV' => 'Bouvet Island',
+                    'BR' => 'Brazil',
+                    'IO' => 'British Indian Ocean Territory',
+                    'BN' => 'Brunei Darussalam',
+                    'BG' => 'Bulgaria',
+                    'BF' => 'Burkina Faso',
+                    'BI' => 'Burundi',
+                    'KH' => 'Cambodia',
+                    'CM' => 'Cameroon',
+                    'CA' => 'Canada',
+                    'CV' => 'Cape Verde',
+                    'KY' => 'Cayman Islands',
+                    'CF' => 'Central African Republic',
+                    'TD' => 'Chad',
+                    'CL' => 'Chile',
+                    'CN' => 'China',
+                    'CX' => 'Christmas Island',
+                    'CC' => 'Cocos (Keeling) Islands',
+                    'CO' => 'Colombia',
+                    'KM' => 'Comoros',
+                    'CG' => 'Congo',
+                    'CD' => 'Congo, Democratic Republic of the Congo',
+                    'CK' => 'Cook Islands',
+                    'CR' => 'Costa Rica',
+                    'CI' => "Cote D'Ivoire",
+                    'HR' => 'Croatia',
+                    'CU' => 'Cuba',
+                    'CW' => 'Curacao',
+                    'CY' => 'Cyprus',
+                    'CZ' => 'Czech Republic',
+                    'DK' => 'Denmark',
+                    'DJ' => 'Djibouti',
+                    'DM' => 'Dominica',
+                    'DO' => 'Dominican Republic',
+                    'EC' => 'Ecuador',
+                    'EG' => 'Egypt',
+                    'SV' => 'El Salvador',
+                    'GQ' => 'Equatorial Guinea',
+                    'ER' => 'Eritrea',
+                    'EE' => 'Estonia',
+                    'ET' => 'Ethiopia',
+                    'FK' => 'Falkland Islands (Malvinas)',
+                    'FO' => 'Faroe Islands',
+                    'FJ' => 'Fiji',
+                    'FI' => 'Finland',
+                    'FR' => 'France',
+                    'GF' => 'French Guiana',
+                    'PF' => 'French Polynesia',
+                    'TF' => 'French Southern Territories',
+                    'GA' => 'Gabon',
+                    'GM' => 'Gambia',
+                    'GE' => 'Georgia',
+                    'DE' => 'Germany',
+                    'GH' => 'Ghana',
+                    'GI' => 'Gibraltar',
+                    'GR' => 'Greece',
+                    'GL' => 'Greenland',
+                    'GD' => 'Grenada',
+                    'GP' => 'Guadeloupe',
+                    'GU' => 'Guam',
+                    'GT' => 'Guatemala',
+                    'GG' => 'Guernsey',
+                    'GN' => 'Guinea',
+                    'GW' => 'Guinea-Bissau',
+                    'GY' => 'Guyana',
+                    'HT' => 'Haiti',
+                    'HM' => 'Heard Island and Mcdonald Islands',
+                    'VA' => 'Holy See (Vatican City State)',
+                    'HN' => 'Honduras',
+                    'HK' => 'Hong Kong',
+                    'HU' => 'Hungary',
+                    'IS' => 'Iceland',
+                    'IN' => 'India',
+                    'ID' => 'Indonesia',
+                    'IR' => 'Iran, Islamic Republic of',
+                    'IQ' => 'Iraq',
+                    'IE' => 'Ireland',
+                    'IM' => 'Isle of Man',
+                    'IL' => 'Israel',
+                    'IT' => 'Italy',
+                    'JM' => 'Jamaica',
+                    'JP' => 'Japan',
+                    'JE' => 'Jersey',
+                    'JO' => 'Jordan',
+                    'KZ' => 'Kazakhstan',
+                    'KE' => 'Kenya',
+                    'KI' => 'Kiribati',
+                    'KP' => "Korea, Democratic People's Republic of",
+                    'KR' => 'Korea, Republic of',
+                    'XK' => 'Kosovo',
+                    'KW' => 'Kuwait',
+                    'KG' => 'Kyrgyzstan',
+                    'LA' => "Lao People's Democratic Republic",
+                    'LV' => 'Latvia',
+                    'LB' => 'Lebanon',
+                    'LS' => 'Lesotho',
+                    'LR' => 'Liberia',
+                    'LY' => 'Libyan Arab Jamahiriya',
+                    'LI' => 'Liechtenstein',
+                    'LT' => 'Lithuania',
+                    'LU' => 'Luxembourg',
+                    'MO' => 'Macao',
+                    'MK' => 'Macedonia, the Former Yugoslav Republic of',
+                    'MG' => 'Madagascar',
+                    'MW' => 'Malawi',
+                    'MY' => 'Malaysia',
+                    'MV' => 'Maldives',
+                    'ML' => 'Mali',
+                    'MT' => 'Malta',
+                    'MH' => 'Marshall Islands',
+                    'MQ' => 'Martinique',
+                    'MR' => 'Mauritania',
+                    'MU' => 'Mauritius',
+                    'YT' => 'Mayotte',
+                    'MX' => 'Mexico',
+                    'FM' => 'Micronesia, Federated States of',
+                    'MD' => 'Moldova, Republic of',
+                    'MC' => 'Monaco',
+                    'MN' => 'Mongolia',
+                    'ME' => 'Montenegro',
+                    'MS' => 'Montserrat',
+                    'MA' => 'Morocco',
+                    'MZ' => 'Mozambique',
+                    'MM' => 'Myanmar',
+                    'NA' => 'Namibia',
+                    'NR' => 'Nauru',
+                    'NP' => 'Nepal',
+                    'NL' => 'Netherlands',
+                    'AN' => 'Netherlands Antilles',
+                    'NC' => 'New Caledonia',
+                    'NZ' => 'New Zealand',
+                    'NI' => 'Nicaragua',
+                    'NE' => 'Niger',
+                    'NG' => 'Nigeria',
+                    'NU' => 'Niue',
+                    'NF' => 'Norfolk Island',
+                    'MP' => 'Northern Mariana Islands',
+                    'NO' => 'Norway',
+                    'OM' => 'Oman',
+                    'PK' => 'Pakistan',
+                    'PW' => 'Palau',
+                    'PS' => 'Palestinian Territory, Occupied',
+                    'PA' => 'Panama',
+                    'PG' => 'Papua New Guinea',
+                    'PY' => 'Paraguay',
+                    'PE' => 'Peru',
+                    'PH' => 'Philippines',
+                    'PN' => 'Pitcairn',
+                    'PL' => 'Poland',
+                    'PT' => 'Portugal',
+                    'PR' => 'Puerto Rico',
+                    'QA' => 'Qatar',
+                    'RE' => 'Reunion',
+                    'RO' => 'Romania',
+                    'RU' => 'Russian Federation',
+                    'RW' => 'Rwanda',
+                    'BL' => 'Saint Barthelemy',
+                    'SH' => 'Saint Helena',
+                    'KN' => 'Saint Kitts and Nevis',
+                    'LC' => 'Saint Lucia',
+                    'MF' => 'Saint Martin',
+                    'PM' => 'Saint Pierre and Miquelon',
+                    'VC' => 'Saint Vincent and the Grenadines',
+                    'WS' => 'Samoa',
+                    'SM' => 'San Marino',
+                    'ST' => 'Sao Tome and Principe',
+                    'SA' => 'Saudi Arabia',
+                    'SN' => 'Senegal',
+                    'RS' => 'Serbia',
+                    'SC' => 'Seychelles',
+                    'SL' => 'Sierra Leone',
+                    'SG' => 'Singapore',
+                    'SX' => 'Sint Maarten',
+                    'SK' => 'Slovakia',
+                    'SI' => 'Slovenia',
+                    'SB' => 'Solomon Islands',
+                    'SO' => 'Somalia',
+                    'ZA' => 'South Africa',
+                    'GS' => 'South Georgia and the South Sandwich Islands',
+                    'SS' => 'South Sudan',
+                    'ES' => 'Spain',
+                    'LK' => 'Sri Lanka',
+                    'SD' => 'Sudan',
+                    'SR' => 'Suriname',
+                    'SJ' => 'Svalbard and Jan Mayen',
+                    'SZ' => 'Swaziland',
+                    'SE' => 'Sweden',
+                    'CH' => 'Switzerland',
+                    'SY' => 'Syrian Arab Republic',
+                    'TW' => 'Taiwan, Province of China',
+                    'TJ' => 'Tajikistan',
+                    'TZ' => 'Tanzania, United Republic of',
+                    'TH' => 'Thailand',
+                    'TL' => 'Timor-Leste',
+                    'TG' => 'Togo',
+                    'TK' => 'Tokelau',
+                    'TO' => 'Tonga',
+                    'TT' => 'Trinidad and Tobago',
+                    'TN' => 'Tunisia',
+                    'TR' => 'Turkey',
+                    'TM' => 'Turkmenistan',
+                    'TC' => 'Turks and Caicos Islands',
+                    'TV' => 'Tuvalu',
+                    'UG' => 'Uganda',
+                    'UA' => 'Ukraine',
+                    'AE' => 'United Arab Emirates',
+                    'GB' => 'United Kingdom',
+                    'US' => 'United States',
+                    'UM' => 'United States Minor Outlying Islands',
+                    'UY' => 'Uruguay',
+                    'UZ' => 'Uzbekistan',
+                    'VU' => 'Vanuatu',
+                    'VE' => 'Venezuela',
+                    'VN' => 'Viet Nam',
+                    'VG' => 'Virgin Islands, British',
+                    'VI' => 'Virgin Islands, U.S.',
+                    'WF' => 'Wallis and Futuna',
+                    'EH' => 'Western Sahara',
+                    'YE' => 'Yemen',
+                    'ZM' => 'Zambia',
+                    'ZW' => 'Zimbabwe',
+                ];
+            }
+            ksort($countries);
+            $optionsGenerated = '';
+            foreach ($countries as $code => $name) {
+                $selected = ($countryCode !== '' && strtoupper($code) === strtoupper($countryCode)) ? ' selected' : '';
+                $optionsGenerated .= '<option value="' . e($code) . '"' . $selected . '>' . e($name) . '</option>';
+            }
+
+            return view('tenant.profile', [
+                'tenant' => $tenant,
+                'user' => $user,
+                'activeNav' => 'profile',
+                'pageTitle' => 'Profile',
+                'first_name' => is_string($user?->first_name) ? (string) $user->first_name : '',
+                'last_name' => is_string($user?->last_name) ? (string) $user->last_name : '',
+                'user_email' => is_string($user?->email) ? (string) $user->email : '',
+                'phone_number' => is_string($user?->phone_number) ? (string) $user->phone_number : '',
+                'company' => is_string($user?->company) ? (string) $user->company : '',
+                'billing_tax' => is_string($user?->billing_tax) ? (string) $user->billing_tax : '',
+                'address' => is_string($user?->address) ? (string) $user->address : '',
+                'city' => is_string($user?->city) ? (string) $user->city : '',
+                'zip_code' => is_string($user?->zip_code) ? (string) $user->zip_code : '',
+                'state' => is_string($user?->state) ? (string) $user->state : '',
+                'country' => $countryCode,
+                'optionsGenerated' => $optionsGenerated,
+                'current_avatar' => '',
+                '_jobs_count' => 0,
+                '_estimates_count' => 0,
+                'lifetime_value_formatted' => '$0.00',
+                'dateTime' => $dateTime,
+                'userRole' => $userRoleLabel,
+                'wcrb_updateuser_nonce_post' => '',
+                'wcrb_updatepassword_nonce_post' => '',
+                'wcrb_profile_photo_nonce' => '',
+                'wp_http_referer' => '',
             ]);
         }
 

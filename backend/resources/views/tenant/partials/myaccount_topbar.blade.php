@@ -54,8 +54,7 @@
               </ul>
             </div>
 
-            <!-- New Job Button (placeholder for now) -->
-            <a class="btn btn-primary btn-sm" href="#">
+            <a class="btn btn-primary btn-sm" href="{{ route('tenant.jobs.create', ['business' => $tenantSlug]) }}">
               <i class="bi bi-plus-circle me-1"></i>New Job
             </a>
 

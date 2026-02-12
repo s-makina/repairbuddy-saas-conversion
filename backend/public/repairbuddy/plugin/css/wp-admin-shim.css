@@ -1,0 +1,133 @@
+.dashicons {
+  font-family: dashicons;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.wp-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wp-list-table thead th,
+.wp-list-table tfoot th {
+  font-weight: 600;
+}
+
+.wp-list-table.widefat {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+}
+
+.wp-list-table.widefat th,
+.wp-list-table.widefat td {
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.wp-list-table.widefat thead th {
+  border-bottom: 1px solid #c3c4c7;
+}
+
+.wp-list-table.widefat tbody td,
+.wp-list-table.widefat tbody th {
+  border-bottom: 1px solid #f0f0f1;
+}
+
+.wp-list-table.widefat.striped > tbody > :nth-child(odd) {
+  background-color: #f6f7f7;
+}
+
+.form-table th {
+  text-align: left;
+  width: 200px;
+}
+
+.form-table td {
+  vertical-align: top;
+}
+
+.computer-repair .thebluebg {
+  background-color: #063e70;
+}
+
+.computer-repair .thewhitebg {
+  background-color: #ffffff;
+}
+
+.computer-repair li.external-title a h2,
+.computer-repair li.tabs-title a h2 {
+  font-size: 14px;
+  color: #fff;
+  text-decoration: none;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.computer-repair li.external-title,
+.computer-repair li.tabs-title {
+  margin-bottom: 0;
+  list-style: none;
+}
+
+.computer-repair li.external-title a,
+.computer-repair li.tabs-title a {
+  padding: 0.875rem 1rem;
+  display: block;
+  text-decoration: none;
+}
+
+.computer-repair li.external-title > a:hover,
+.computer-repair .tabs-title > a:hover,
+.computer-repair .tabs-title > a:focus,
+.computer-repair .tabs-title > a[aria-selected='true'] {
+  background-color: #fd6742;
+}
+
+.computer-repair .tabs {
+  border: 0;
+}
+
+.computer-repair .thespacer hr {
+  border-top: 0;
+  border-bottom: 1px solid rgba(247, 247, 247, 0.3);
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+.computer-repair .the-brand-logo {
+  padding: 15px;
+  background-color: #fff;
+  margin-bottom: 5px;
+  border: 1px solid #e6e6e6;
+  overflow: hidden;
+}
+
+.computer-repair .the-brand-logo img {
+  max-width: 100%;
+  height: auto;
+  max-height: 60px;
+  object-fit: contain;
+  display: block;
+}
+
+.computer-repair ul.vertical.tabs {
+  margin-left: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.computer-repair ul.vertical.tabs > li {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.computer-repair .medium-2.sidebarmenu {
+  max-width: 200px;
+}
