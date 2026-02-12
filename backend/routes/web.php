@@ -46,6 +46,18 @@ Route::prefix('t/{business}')
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');
 
+        Route::post('/settings/general', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateGeneralSettings'])
+            ->name('tenant.settings.general.update');
+
+        Route::post('/settings/currency', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateCurrencySettings'])
+            ->name('tenant.settings.currency.update');
+
+        Route::post('/settings/invoices', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateInvoicesSettings'])
+            ->name('tenant.settings.invoices.update');
+
+        Route::post('/settings/job-status', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateJobStatusSettings'])
+            ->name('tenant.settings.job_status.update');
+
         Route::post('/settings/pages-setup', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePagesSetup'])
             ->name('tenant.settings.pages_setup.update');
 

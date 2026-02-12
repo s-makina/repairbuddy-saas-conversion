@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyJobStatus;
 use App\Models\RepairBuddyTax;
 use App\Models\Tenant;
 use App\Support\BranchContext;
@@ -14,6 +15,253 @@ use Illuminate\Support\Facades\DB;
 
 class TenantDashboardController extends Controller
 {
+    public function updateGeneralSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'menu_name' => ['nullable', 'string', 'max:255'],
+            'wc_rb_business_name' => ['nullable', 'string', 'max:255'],
+            'wc_rb_business_phone' => ['nullable', 'string', 'max:255'],
+            'wc_rb_business_address' => ['nullable', 'string', 'max:255'],
+            'computer_repair_logo' => ['nullable', 'string', 'max:2048'],
+            'computer_repair_email' => ['nullable', 'string', 'max:255'],
+            'case_number_prefix' => ['nullable', 'string', 'max:32'],
+            'case_number_length' => ['nullable', 'integer', 'min:1', 'max:32'],
+            'wc_job_status_cr_notice' => ['nullable', 'boolean'],
+            'wcrb_attach_pdf_in_customer_emails' => ['nullable', 'boolean'],
+            'wcrb_next_service_date' => ['nullable', 'boolean'],
+            'wc_rb_gdpr_acceptance' => ['nullable', 'string', 'max:255'],
+            'wc_rb_gdpr_acceptance_link_label' => ['nullable', 'string', 'max:255'],
+            'wc_rb_gdpr_acceptance_link' => ['nullable', 'string', 'max:2048'],
+            'wc_primary_country' => ['nullable', 'string', 'size:2'],
+            'wc_enable_woo_products' => ['nullable', 'boolean'],
+            'wcrb_disable_statuscheck_serial' => ['nullable', 'boolean'],
+        ]);
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $general = $repairBuddySettings['general'] ?? [];
+        if (! is_array($general)) {
+            $general = [];
+        }
+
+        foreach ([
+            'menu_name',
+            'wc_rb_business_phone',
+            'wc_rb_business_address',
+            'computer_repair_logo',
+            'computer_repair_email',
+            'case_number_prefix',
+            'case_number_length',
+            'wc_rb_gdpr_acceptance',
+            'wc_rb_gdpr_acceptance_link_label',
+            'wc_rb_gdpr_acceptance_link',
+            'wc_primary_country',
+        ] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $general[$k] = $validated[$k];
+            }
+        }
+
+        foreach ([
+            'wc_job_status_cr_notice',
+            'wcrb_attach_pdf_in_customer_emails',
+            'wcrb_next_service_date',
+            'wc_enable_woo_products',
+            'wcrb_disable_statuscheck_serial',
+        ] as $k) {
+            $general[$k] = (bool) ($validated[$k] ?? false);
+        }
+
+        $repairBuddySettings['general'] = $general;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        if (array_key_exists('wc_rb_business_name', $validated) && is_string($validated['wc_rb_business_name'])) {
+            $tenant->forceFill([
+                'name' => $validated['wc_rb_business_name'],
+            ]);
+        }
+        $tenant->forceFill([
+            'contact_phone' => array_key_exists('wc_rb_business_phone', $validated) ? ($validated['wc_rb_business_phone'] ?? null) : $tenant->contact_phone,
+            'contact_email' => array_key_exists('computer_repair_email', $validated) ? ($validated['computer_repair_email'] ?? null) : $tenant->contact_email,
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('panel1')
+            ->with('status', 'Settings updated.')
+            ->withInput();
+    }
+
+    public function updateCurrencySettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'wc_cr_selected_currency' => ['nullable', 'string', 'max:8'],
+            'wc_cr_currency_position' => ['nullable', 'string', 'max:32'],
+            'wc_cr_thousand_separator' => ['nullable', 'string', 'max:8'],
+            'wc_cr_decimal_separator' => ['nullable', 'string', 'max:8'],
+            'wc_cr_number_of_decimals' => ['nullable', 'integer', 'min:0', 'max:8'],
+        ]);
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $currency = $repairBuddySettings['currency'] ?? [];
+        if (! is_array($currency)) {
+            $currency = [];
+        }
+
+        foreach (array_keys($validated) as $k) {
+            $currency[$k] = $validated[$k];
+        }
+
+        $repairBuddySettings['currency'] = $currency;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        if (array_key_exists('wc_cr_selected_currency', $validated) && is_string($validated['wc_cr_selected_currency']) && $validated['wc_cr_selected_currency'] !== '') {
+            $tenant->forceFill([
+                'currency' => $validated['wc_cr_selected_currency'],
+            ]);
+        }
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('currencyFormatting')
+            ->with('status', 'Currency settings updated.')
+            ->withInput();
+    }
+
+    public function updateInvoicesSettings(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'wcrb_add_invoice_qr_code' => ['nullable', 'boolean'],
+            'wc_rb_io_thanks_msg' => ['nullable', 'string', 'max:255'],
+            'wb_rb_invoice_type' => ['nullable', 'in:default,by_device,by_items'],
+            'pickupdate' => ['nullable', 'in:show'],
+            'deliverydate' => ['nullable', 'in:show'],
+            'nextservicedate' => ['nullable', 'in:show'],
+            'repair_order_type' => ['nullable', 'in:pos_type,invoice_type'],
+            'business_terms' => ['nullable', 'string', 'max:2048'],
+            'wc_repair_order_print_size' => ['nullable', 'in:default,a4,a5'],
+            'wc_rb_cr_display_add_on_ro' => ['nullable', 'boolean'],
+            'wc_rb_cr_display_add_on_ro_cu' => ['nullable', 'boolean'],
+            'wc_rb_ro_thanks_msg' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $invoices = $repairBuddySettings['invoices'] ?? [];
+        if (! is_array($invoices)) {
+            $invoices = [];
+        }
+
+        foreach (['wc_rb_io_thanks_msg', 'wb_rb_invoice_type', 'repair_order_type', 'business_terms', 'wc_repair_order_print_size', 'wc_rb_ro_thanks_msg'] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $invoices[$k] = $validated[$k];
+            }
+        }
+
+        $invoices['wcrb_add_invoice_qr_code'] = (bool) ($validated['wcrb_add_invoice_qr_code'] ?? false);
+        $invoices['wc_rb_cr_display_add_on_ro'] = (bool) ($validated['wc_rb_cr_display_add_on_ro'] ?? false);
+        $invoices['wc_rb_cr_display_add_on_ro_cu'] = (bool) ($validated['wc_rb_cr_display_add_on_ro_cu'] ?? false);
+
+        $invoices['pickupdate'] = (string) ($validated['pickupdate'] ?? '') === 'show';
+        $invoices['deliverydate'] = (string) ($validated['deliverydate'] ?? '') === 'show';
+        $invoices['nextservicedate'] = (string) ($validated['nextservicedate'] ?? '') === 'show';
+
+        $repairBuddySettings['invoices'] = $invoices;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('reportsAInvoices')
+            ->with('status', 'Invoice settings updated.')
+            ->withInput();
+    }
+
+    public function updateJobStatusSettings(Request $request)
+    {
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
+        $tenant = TenantContext::tenant();
+
+        if (! $tenantId || ! $branchId || ! $tenant instanceof Tenant) {
+            abort(400, 'Tenant or branch context is missing.');
+        }
+
+        $validated = $request->validate([
+            'wcrb_job_status_delivered' => ['nullable', 'string', 'max:64'],
+            'wcrb_job_status_cancelled' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $jobStatus = $repairBuddySettings['jobStatus'] ?? [];
+        if (! is_array($jobStatus)) {
+            $jobStatus = [];
+        }
+
+        foreach (['wcrb_job_status_delivered', 'wcrb_job_status_cancelled'] as $k) {
+            if (array_key_exists($k, $validated)) {
+                $jobStatus[$k] = $validated[$k];
+            }
+        }
+
+        $repairBuddySettings['jobStatus'] = $jobStatus;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('panel3')
+            ->with('status', 'Job status settings updated.')
+            ->withInput();
+    }
+
     public function updateDevicesBrandsSettings(Request $request)
     {
         $tenant = TenantContext::tenant();
@@ -2315,7 +2563,66 @@ class TenantDashboardController extends Controller
                 }
             }
 
-            return view('tenant.settings', [
+            $generalSettings = $repairBuddySettings['general'] ?? [];
+            if (! is_array($generalSettings)) {
+                $generalSettings = [];
+            }
+
+            $currencySettings = $repairBuddySettings['currency'] ?? [];
+            if (! is_array($currencySettings)) {
+                $currencySettings = [];
+            }
+
+            $invoiceSettings = $repairBuddySettings['invoices'] ?? [];
+            if (! is_array($invoiceSettings)) {
+                $invoiceSettings = [];
+            }
+
+            $jobStatusSettings = $repairBuddySettings['jobStatus'] ?? [];
+            if (! is_array($jobStatusSettings)) {
+                $jobStatusSettings = [];
+            }
+
+            $countries = [];
+            if (class_exists(\Symfony\Component\Intl\Countries::class)) {
+                $countries = \Symfony\Component\Intl\Countries::getNames('en');
+            }
+            if (empty($countries)) {
+                $countries = [
+                    'US' => 'United States',
+                    'GB' => 'United Kingdom',
+                    'CA' => 'Canada',
+                    'AU' => 'Australia',
+                ];
+            }
+            ksort($countries);
+
+            $currencyOptions = [
+                'USD' => 'USD',
+                'EUR' => 'EUR',
+                'GBP' => 'GBP',
+                'ZAR' => 'ZAR',
+            ];
+            $tenantCurrency = is_string($tenant?->currency) ? (string) $tenant?->currency : '';
+            if ($tenantCurrency !== '' && ! array_key_exists($tenantCurrency, $currencyOptions)) {
+                $currencyOptions[$tenantCurrency] = $tenantCurrency;
+            }
+
+            $currencyPositionOptions = [
+                'left' => __('Left'),
+                'right' => __('Right'),
+                'left_space' => __('Left with space'),
+                'right_space' => __('Right with space'),
+            ];
+
+            $jobStatusOptions = RepairBuddyJobStatus::query()
+                ->orderBy('label')
+                ->limit(200)
+                ->get()
+                ->mapWithKeys(fn ($s) => [(string) $s->slug => (string) $s->label])
+                ->all();
+
+            return view('tenant.settings.index', [
                 'tenant' => $tenant,
                 'user' => $user,
                 'activeNav' => 'settings',
@@ -2330,47 +2637,47 @@ class TenantDashboardController extends Controller
                 'logolink' => '/brand/repair-buddy-logo.png',
                 'contactURL' => 'https://www.webfulcreations.com/contact-us/',
                 'repairbuddy_whitelabel' => false,
-                'menu_name_p' => '',
+                'menu_name_p' => (string) ($generalSettings['menu_name'] ?? ''),
                 'wc_rb_business_name' => $tenant?->name ?? '',
-                'wc_rb_business_phone' => $tenant?->contact_phone ?? '',
-                'wc_rb_business_address' => is_string($tenant?->billing_address_json) ? $tenant?->billing_address_json : '',
-                'computer_repair_logo' => is_string($tenant?->logo_url) ? $tenant?->logo_url : '',
-                'computer_repair_email' => $tenant?->contact_email ?? '',
-                'wc_rb_gdpr_acceptance_link' => '',
-                'wc_rb_gdpr_acceptance_link_label' => 'Privacy policy',
-                'wc_rb_gdpr_acceptance' => 'I understand that I will be contacted by a representative regarding this request and I agree to the privacy policy.',
-                'case_number_length' => 6,
-                'case_number_prefix' => 'WC_',
-                'wc_primary_country' => '',
-                'useWooProducts' => '',
-                'disableStatusCheckSerial' => '',
-                'disableNextServiceDate' => '',
-                'send_notice' => '',
-                'attach_pdf' => '',
-                'wc_cr_selected_currency' => '',
-                'wc_cr_currency_position' => '',
-                'wc_cr_thousand_separator' => ',',
-                'wc_cr_decimal_separator' => '.',
-                'wc_cr_number_of_decimals' => '0',
+                'wc_rb_business_phone' => (string) ($generalSettings['wc_rb_business_phone'] ?? ($tenant?->contact_phone ?? '')),
+                'wc_rb_business_address' => (string) ($generalSettings['wc_rb_business_address'] ?? ''),
+                'computer_repair_logo' => (string) ($generalSettings['computer_repair_logo'] ?? (is_string($tenant?->logo_url) ? $tenant?->logo_url : '')),
+                'computer_repair_email' => (string) ($generalSettings['computer_repair_email'] ?? ($tenant?->contact_email ?? '')),
+                'wc_rb_gdpr_acceptance_link' => (string) ($generalSettings['wc_rb_gdpr_acceptance_link'] ?? ''),
+                'wc_rb_gdpr_acceptance_link_label' => (string) ($generalSettings['wc_rb_gdpr_acceptance_link_label'] ?? 'Privacy policy'),
+                'wc_rb_gdpr_acceptance' => (string) ($generalSettings['wc_rb_gdpr_acceptance'] ?? 'I understand that I will be contacted by a representative regarding this request and I agree to the privacy policy.'),
+                'case_number_length' => (int) ($generalSettings['case_number_length'] ?? 6),
+                'case_number_prefix' => (string) ($generalSettings['case_number_prefix'] ?? 'WC_'),
+                'wc_primary_country' => (string) ($generalSettings['wc_primary_country'] ?? ''),
+                'useWooProducts' => ($generalSettings['wc_enable_woo_products'] ?? false) ? 'checked' : '',
+                'disableStatusCheckSerial' => ($generalSettings['wcrb_disable_statuscheck_serial'] ?? false) ? 'checked' : '',
+                'disableNextServiceDate' => ($generalSettings['wcrb_next_service_date'] ?? false) ? 'checked' : '',
+                'send_notice' => ($generalSettings['wc_job_status_cr_notice'] ?? false) ? 'checked' : '',
+                'attach_pdf' => ($generalSettings['wcrb_attach_pdf_in_customer_emails'] ?? false) ? 'checked' : '',
+                'wc_cr_selected_currency' => (string) ($currencySettings['wc_cr_selected_currency'] ?? ($tenant?->currency ?? '')),
+                'wc_cr_currency_position' => (string) ($currencySettings['wc_cr_currency_position'] ?? 'left'),
+                'wc_cr_thousand_separator' => (string) ($currencySettings['wc_cr_thousand_separator'] ?? ','),
+                'wc_cr_decimal_separator' => (string) ($currencySettings['wc_cr_decimal_separator'] ?? '.'),
+                'wc_cr_number_of_decimals' => (string) ($currencySettings['wc_cr_number_of_decimals'] ?? '0'),
                 'wc_cr_currency_options_html' => '',
                 'wc_cr_currency_position_options_html' => '',
-                'wc_repair_order_print_size' => '',
-                'repair_order_type' => '',
-                'wb_rb_invoice_type' => '',
-                'business_terms' => '',
-                'wc_rb_ro_thanks_msg' => '',
-                'wc_rb_io_thanks_msg' => '',
-                'wc_rb_cr_display_add_on_ro' => '',
-                'wc_rb_cr_display_add_on_ro_cu' => '',
-                'wcrb_add_invoice_qr_code' => '',
-                'pickupdate_checked' => '',
-                'deliverydate_checked' => '',
-                'nextservicedate_checked' => '',
+                'wc_repair_order_print_size' => (string) ($invoiceSettings['wc_repair_order_print_size'] ?? 'default'),
+                'repair_order_type' => (string) ($invoiceSettings['repair_order_type'] ?? 'pos_type'),
+                'wb_rb_invoice_type' => (string) ($invoiceSettings['wb_rb_invoice_type'] ?? 'default'),
+                'business_terms' => (string) ($invoiceSettings['business_terms'] ?? ''),
+                'wc_rb_ro_thanks_msg' => (string) ($invoiceSettings['wc_rb_ro_thanks_msg'] ?? ''),
+                'wc_rb_io_thanks_msg' => (string) ($invoiceSettings['wc_rb_io_thanks_msg'] ?? ''),
+                'wc_rb_cr_display_add_on_ro' => (bool) ($invoiceSettings['wc_rb_cr_display_add_on_ro'] ?? false),
+                'wc_rb_cr_display_add_on_ro_cu' => (bool) ($invoiceSettings['wc_rb_cr_display_add_on_ro_cu'] ?? false),
+                'wcrb_add_invoice_qr_code' => (bool) ($invoiceSettings['wcrb_add_invoice_qr_code'] ?? false),
+                'pickupdate_checked' => ($invoiceSettings['pickupdate'] ?? false) ? 'checked' : '',
+                'deliverydate_checked' => ($invoiceSettings['deliverydate'] ?? false) ? 'checked' : '',
+                'nextservicedate_checked' => ($invoiceSettings['nextservicedate'] ?? false) ? 'checked' : '',
                 'wcrb_invoice_disclaimer_html' => '',
                 'job_status_rows_html' => '',
                 'wc_inventory_management_status' => false,
-                'job_status_delivered' => 'delivered',
-                'job_status_cancelled' => 'cancelled',
+                'job_status_delivered' => (string) ($jobStatusSettings['wcrb_job_status_delivered'] ?? 'delivered'),
+                'job_status_cancelled' => (string) ($jobStatusSettings['wcrb_job_status_cancelled'] ?? 'cancelled'),
                 'status_options_delivered_html' => '',
                 'status_options_cancelled_html' => '',
                 'settings_tab_menu_items_html' => $settingsTabMenuItemsHtml,
@@ -2383,6 +2690,10 @@ class TenantDashboardController extends Controller
                 'nonce_delivered_status_html' => '',
                 'dashoutput_html' => '',
                 'countries_options_html' => '',
+                'countries' => $countries,
+                'currencyOptions' => $currencyOptions,
+                'currencyPositionOptions' => $currencyPositionOptions,
+                'jobStatusOptions' => $jobStatusOptions,
                 'rb_ms_version_defined' => false,
                 'rb_qb_version_defined' => false,
                 'casenumber_label_first' => 'Case',
