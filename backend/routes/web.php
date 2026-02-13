@@ -101,6 +101,12 @@ Route::prefix('t/{business}')
         Route::post('/settings/payment-status/{slug}', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePaymentStatusDisplay'])
             ->name('tenant.settings.payment_status.update');
 
+        Route::post('/settings/payment-status', [\App\Http\Controllers\Web\TenantDashboardController::class, 'savePaymentStatus'])
+            ->name('tenant.settings.payment_status.save');
+
+        Route::post('/settings/payment-methods', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePaymentMethods'])
+            ->name('tenant.settings.payment_methods.update');
+
         Route::post('/settings/maintenance-reminders', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeMaintenanceReminder'])
             ->name('tenant.settings.maintenance_reminders.store');
 

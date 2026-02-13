@@ -37,6 +37,7 @@ return new class extends Migration
 
             $table->string('slug', 64);
             $table->string('label', 255);
+            $table->string('description', 255)->nullable();
             $table->text('email_template')->nullable();
             $table->boolean('is_active')->default(true);
 

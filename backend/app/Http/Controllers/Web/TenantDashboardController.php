@@ -19,13 +19,13 @@ use Illuminate\Support\Str;
 
 class TenantDashboardController extends Controller
 {
-    private function ensureDefaultRepairBuddyStatuses(int $tenantId, int $branchId): void
+    private function ensureDefaultRepairBuddyStatuses(int $tenantId, ?int $branchId = null): void
     {
         if (! Schema::hasTable('rb_job_statuses') || ! Schema::hasTable('rb_payment_statuses')) {
             return;
         }
 
-        DB::transaction(function () use ($tenantId, $branchId) {
+        DB::transaction(function () use ($tenantId) {
             $jobDefaults = [
                 ['slug' => 'new', 'label' => 'New Order', 'invoice_label' => 'Invoice'],
                 ['slug' => 'quote', 'label' => 'Quote', 'invoice_label' => 'Quote'],
@@ -46,7 +46,6 @@ class TenantDashboardController extends Controller
             foreach ($jobDefaults as $s) {
                 DB::table('rb_job_statuses')->updateOrInsert([
                     'tenant_id' => $tenantId,
-                    'branch_id' => $branchId,
                     'slug' => $s['slug'],
                 ], [
                     'label' => $s['label'],
@@ -63,7 +62,6 @@ class TenantDashboardController extends Controller
             foreach ($paymentDefaults as $s) {
                 DB::table('rb_payment_statuses')->updateOrInsert([
                     'tenant_id' => $tenantId,
-                    'branch_id' => $branchId,
                     'slug' => $s['slug'],
                 ], [
                     'label' => $s['label'],
@@ -74,6 +72,168 @@ class TenantDashboardController extends Controller
                 ]);
             }
         });
+    }
+
+    public function savePaymentStatus(Request $request)
+    {
+        $tenantId = TenantContext::tenantId();
+        $tenant = TenantContext::tenant();
+
+        if (! $tenantId || ! $tenant instanceof Tenant) {
+            abort(400, 'Tenant context is missing.');
+        }
+
+        $validated = $request->validate([
+            'payment_status_name' => ['required', 'string', 'max:255'],
+            'payment_status_slug' => ['required', 'string', 'max:64'],
+            'payment_status_status' => ['sometimes', 'in:active,inactive'],
+            'form_type_status_payment' => ['sometimes', 'in:add,update'],
+            'status_id' => ['sometimes', 'integer', 'min:1'],
+        ]);
+
+        $slug = Str::of((string) $validated['payment_status_slug'])
+            ->trim()
+            ->lower()
+            ->replace(' ', '_')
+            ->replace('-', '_')
+            ->replaceMatches('/[^a-z0-9_]/', '')
+            ->toString();
+
+        if ($slug === '') {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_payment_status')
+                ->withErrors(['payment_status_slug' => 'Status slug is invalid.'])
+                ->withInput();
+        }
+
+        $statusValue = (string) ($validated['payment_status_status'] ?? 'active');
+        $isActive = $statusValue === 'active';
+
+        $mode = (string) ($validated['form_type_status_payment'] ?? 'add');
+
+        if ($mode === 'update') {
+            $id = (int) ($validated['status_id'] ?? 0);
+            if ($id <= 0) {
+                return redirect()
+                    ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                    ->withFragment('wc_rb_payment_status')
+                    ->withErrors(['status_id' => 'Payment status id is missing.'])
+                    ->withInput();
+            }
+
+            $existing = \App\Models\RepairBuddyPaymentStatus::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->whereKey($id)
+                ->first();
+
+            if (! $existing) {
+                return redirect()
+                    ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                    ->withFragment('wc_rb_payment_status')
+                    ->withErrors(['status_id' => 'Payment status not found.'])
+                    ->withInput();
+            }
+
+            $slugExists = \App\Models\RepairBuddyPaymentStatus::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('slug', $slug)
+                ->whereKeyNot($existing->id)
+                ->exists();
+
+            if ($slugExists) {
+                return redirect()
+                    ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                    ->withFragment('wc_rb_payment_status')
+                    ->withErrors(['payment_status_slug' => 'This status slug already exists.'])
+                    ->withInput();
+            }
+
+            $existing->forceFill([
+                'label' => (string) $validated['payment_status_name'],
+                'slug' => $slug,
+                'is_active' => $isActive,
+            ])->save();
+        } else {
+            $slugExists = \App\Models\RepairBuddyPaymentStatus::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('slug', $slug)
+                ->exists();
+
+            if ($slugExists) {
+                return redirect()
+                    ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                    ->withFragment('wc_rb_payment_status')
+                    ->withErrors(['payment_status_slug' => 'This status slug already exists.'])
+                    ->withInput();
+            }
+
+            \App\Models\RepairBuddyPaymentStatus::query()->create([
+                'tenant_id' => $tenantId,
+                'label' => (string) $validated['payment_status_name'],
+                'slug' => $slug,
+                'email_template' => null,
+                'is_active' => $isActive,
+            ]);
+        }
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_payment_status')
+            ->with('status', 'Payment status updated.')
+            ->withInput();
+    }
+
+    public function updatePaymentMethods(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'wc_rb_payment_method' => ['sometimes', 'array'],
+            'wc_rb_payment_method.*' => ['string', 'max:64'],
+        ]);
+
+        $methods = [];
+        if (array_key_exists('wc_rb_payment_method', $validated) && is_array($validated['wc_rb_payment_method'])) {
+            foreach ($validated['wc_rb_payment_method'] as $m) {
+                if (! is_string($m)) {
+                    continue;
+                }
+                $m = trim($m);
+                if ($m === '') {
+                    continue;
+                }
+                $methods[] = $m;
+            }
+        }
+
+        $methods = array_values(array_unique($methods));
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+
+        $repairBuddySettings['payment_methods_active'] = $methods;
+        $state['repairbuddy_settings'] = $repairBuddySettings;
+
+        $tenant->forceFill([
+            'setup_state' => $state,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('wc_rb_payment_status')
+            ->with('status', 'Payment methods updated.')
+            ->withInput();
     }
 
     public function updateGeneralSettings(Request $request)
@@ -168,11 +328,10 @@ class TenantDashboardController extends Controller
     {
         $tenant = TenantContext::tenant();
         $tenantId = TenantContext::tenantId();
-        $branchId = BranchContext::branchId();
 
-        if (! $tenant || ! $tenantId || ! $branchId) {
+        if (! $tenant || ! $tenantId) {
             return back()
-                ->withErrors(['status_name' => 'Tenant or branch context is missing.'])
+                ->withErrors(['status_name' => 'Tenant context is missing.'])
                 ->withInput();
         }
 
@@ -202,7 +361,6 @@ class TenantDashboardController extends Controller
         $suffix = 2;
         while (RepairBuddyJobStatus::query()->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('branch_id', $branchId)
             ->where('slug', $slug)
             ->exists()) {
             $slug = $slugBase.'_'.$suffix;
@@ -731,11 +889,10 @@ class TenantDashboardController extends Controller
     public function updatePaymentStatusDisplay(Request $request, string $slug)
     {
         $tenantId = TenantContext::tenantId();
-        $branchId = BranchContext::branchId();
         $tenant = TenantContext::tenant();
 
-        if (! $tenantId || ! $branchId || ! $tenant instanceof Tenant) {
-            abort(400, 'Tenant or branch context is missing.');
+        if (! $tenantId || ! $tenant instanceof Tenant) {
+            abort(400, 'Tenant context is missing.');
         }
 
         $validated = $request->validate([
@@ -755,7 +912,6 @@ class TenantDashboardController extends Controller
 
         $override = \App\Models\TenantStatusOverride::query()
             ->where('tenant_id', $tenantId)
-            ->where('branch_id', $branchId)
             ->where('domain', 'payment')
             ->where('code', $slug)
             ->first();
@@ -763,7 +919,6 @@ class TenantDashboardController extends Controller
         if (! $override) {
             \App\Models\TenantStatusOverride::query()->create([
                 'tenant_id' => $tenantId,
-                'branch_id' => $branchId,
                 'domain' => 'payment',
                 'code' => $slug,
                 'label' => $validated['label'] ?? null,
@@ -1372,8 +1527,8 @@ class TenantDashboardController extends Controller
             : 'dashboard';
 
         if ($screen === 'settings') {
-            if (is_int($tenantId) && $tenantId > 0 && is_int($branchId) && $branchId > 0) {
-                $this->ensureDefaultRepairBuddyStatuses($tenantId, $branchId);
+            if (is_int($tenantId) && $tenantId > 0) {
+                $this->ensureDefaultRepairBuddyStatuses($tenantId);
             }
 
             $updateStatus = $request->query('update_status');
@@ -1555,10 +1710,9 @@ class TenantDashboardController extends Controller
             }
 
             $paymentStatuses = \App\Models\RepairBuddyPaymentStatus::query()->orderBy('id')->get();
-            $paymentStatusOverrides = ($tenantId && $branchId)
+            $paymentStatusOverrides = $tenantId
                 ? \App\Models\TenantStatusOverride::query()
                     ->where('tenant_id', $tenantId)
-                    ->where('branch_id', $branchId)
                     ->where('domain', 'payment')
                     ->get()
                     ->keyBy('code')
@@ -1696,6 +1850,7 @@ class TenantDashboardController extends Controller
             ];
 
             $settingsTabs = [
+                ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'heading' => __('Pages Setup')],
                 ['id' => 'wc_rb_payment_status', 'label' => __('Payment Status'), 'heading' => __('Payment Status')],
                 ['id' => 'wc_rb_page_sms_IDENTIFIER', 'label' => __('SMS'), 'heading' => __('SMS')],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
