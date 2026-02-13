@@ -19,7 +19,7 @@ class RepairBuddyPaymentStatusController extends Controller
         if (! $tenantId || ! $branchId) {
             return response()->json([
                 'message' => 'Tenant or branch context is missing.',
-            ], 400);
+            ], 428);
         }
 
         $overrides = TenantStatusOverride::query()
@@ -60,7 +60,7 @@ class RepairBuddyPaymentStatusController extends Controller
         if (! $tenantId || ! $branchId) {
             return response()->json([
                 'message' => 'Tenant or branch context is missing.',
-            ], 400);
+            ], 428);
         }
 
         $validated = $request->validate([

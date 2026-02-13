@@ -14,10 +14,68 @@ use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class TenantDashboardController extends Controller
 {
+    private function ensureDefaultRepairBuddyStatuses(int $tenantId, int $branchId): void
+    {
+        if (! Schema::hasTable('rb_job_statuses') || ! Schema::hasTable('rb_payment_statuses')) {
+            return;
+        }
+
+        DB::transaction(function () use ($tenantId, $branchId) {
+            $jobDefaults = [
+                ['slug' => 'new', 'label' => 'New Order', 'invoice_label' => 'Invoice'],
+                ['slug' => 'quote', 'label' => 'Quote', 'invoice_label' => 'Quote'],
+                ['slug' => 'cancelled', 'label' => 'Cancelled', 'invoice_label' => 'Cancelled'],
+                ['slug' => 'inprocess', 'label' => 'In Process', 'invoice_label' => 'Work Order'],
+                ['slug' => 'inservice', 'label' => 'In Service', 'invoice_label' => 'Work Order'],
+                ['slug' => 'ready_complete', 'label' => 'Ready/Complete', 'invoice_label' => 'Invoice'],
+                ['slug' => 'delivered', 'label' => 'Delivered', 'invoice_label' => 'Invoice'],
+            ];
+
+            $paymentDefaults = [
+                ['slug' => 'nostatus', 'label' => 'No Status'],
+                ['slug' => 'credit', 'label' => 'Credit'],
+                ['slug' => 'paid', 'label' => 'Paid'],
+                ['slug' => 'partial', 'label' => 'Partially Paid'],
+            ];
+
+            foreach ($jobDefaults as $s) {
+                DB::table('rb_job_statuses')->updateOrInsert([
+                    'tenant_id' => $tenantId,
+                    'branch_id' => $branchId,
+                    'slug' => $s['slug'],
+                ], [
+                    'label' => $s['label'],
+                    'email_enabled' => false,
+                    'email_template' => null,
+                    'sms_enabled' => false,
+                    'invoice_label' => $s['invoice_label'],
+                    'is_active' => true,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            foreach ($paymentDefaults as $s) {
+                DB::table('rb_payment_statuses')->updateOrInsert([
+                    'tenant_id' => $tenantId,
+                    'branch_id' => $branchId,
+                    'slug' => $s['slug'],
+                ], [
+                    'label' => $s['label'],
+                    'email_template' => null,
+                    'is_active' => true,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]);
+            }
+        });
+    }
+
     public function updateGeneralSettings(Request $request)
     {
         $tenant = TenantContext::tenant();
@@ -120,14 +178,13 @@ class TenantDashboardController extends Controller
 
         $validated = $request->validate([
             'status_name' => ['required', 'string', 'max:255'],
-            'status_slug' => ['required', 'string', 'max:64'],
             'status_description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'invoice_label' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status_status' => ['sometimes', 'in:active,inactive'],
             'statusEmailMessage' => ['sometimes', 'nullable', 'string', 'max:10000'],
         ]);
 
-        $slug = Str::of((string) $validated['status_slug'])
+        $slugBase = Str::of((string) $validated['status_name'])
             ->trim()
             ->lower()
             ->replace(' ', '_')
@@ -135,22 +192,26 @@ class TenantDashboardController extends Controller
             ->replaceMatches('/[^a-z0-9_]/', '')
             ->toString();
 
-        if ($slug === '') {
+        if ($slugBase === '') {
             return back()
-                ->withErrors(['status_slug' => 'Status slug is invalid.'])
+                ->withErrors(['status_name' => 'Status name is invalid.'])
                 ->withInput();
         }
 
-        $exists = RepairBuddyJobStatus::query()->withoutGlobalScopes()
+        $slug = $slugBase;
+        $suffix = 2;
+        while (RepairBuddyJobStatus::query()->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('branch_id', $branchId)
             ->where('slug', $slug)
-            ->exists();
-
-        if ($exists) {
-            return back()
-                ->withErrors(['status_slug' => 'This status slug already exists.'])
-                ->withInput();
+            ->exists()) {
+            $slug = $slugBase.'_'.$suffix;
+            $suffix++;
+            if ($suffix > 200) {
+                return back()
+                    ->withErrors(['status_name' => 'Unable to generate a unique status slug.'])
+                    ->withInput();
+            }
         }
 
         $emailTemplate = array_key_exists('statusEmailMessage', $validated) ? $validated['statusEmailMessage'] : null;
@@ -1311,6 +1372,10 @@ class TenantDashboardController extends Controller
             : 'dashboard';
 
         if ($screen === 'settings') {
+            if (is_int($tenantId) && $tenantId > 0 && is_int($branchId) && $branchId > 0) {
+                $this->ensureDefaultRepairBuddyStatuses($tenantId, $branchId);
+            }
+
             $updateStatus = $request->query('update_status');
 
             if (isset($updateStatus) && (string) $updateStatus !== '') {
@@ -1631,17 +1696,17 @@ class TenantDashboardController extends Controller
             ];
 
             $settingsTabs = [
+                ['id' => 'wc_rb_payment_status', 'label' => __('Payment Status'), 'heading' => __('Payment Status')],
+                ['id' => 'wc_rb_page_sms_IDENTIFIER', 'label' => __('SMS'), 'heading' => __('SMS')],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
                 ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'heading' => __('Booking Settings')],
                 ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'heading' => __('Service Settings')],
                 ['id' => 'wcrb_estimates_tab', 'label' => __('Estimates'), 'heading' => __('Estimates')],
-                ['id' => 'wc_rb_payment_status', 'label' => __('Payment Status'), 'heading' => __('Payment Status')],
                 ['id' => 'wc_rb_manage_taxes', 'label' => __('Manage Taxes'), 'heading' => __('Tax Settings')],
                 ['id' => 'wc_rb_maintenance_reminder', 'label' => __('Maintenance Reminders'), 'heading' => __('Maintenance Reminders')],
                 ['id' => 'wcrb_timelog_tab', 'label' => __('Time Log Settings'), 'heading' => __('Time Log Settings')],
                 ['id' => 'wcrb_styling', 'label' => __('Styling & Labels'), 'heading' => __('Styling & Labels')],
                 ['id' => 'wcrb_reviews_tab', 'label' => __('Job Reviews'), 'heading' => __('Job Reviews')],
-                ['id' => 'wc_rb_page_sms_IDENTIFIER', 'label' => __('SMS'), 'heading' => __('SMS')],
                 ['id' => 'wc_rb_manage_account', 'label' => __('My Account Settings'), 'heading' => __('My Account Settings')],
                 ['id' => 'wcrb_signature_workflow', 'label' => __('Signature Workflow'), 'heading' => __('Digital Signature Workflow')],
             ];
@@ -2071,43 +2136,159 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '<div class="wrap">';
                     $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
 
-                    $settingsTabBodyHtml .= '<table class="wp-list-table widefat fixed striped posts">';
+                    $settingsTabBodyHtml .= '<p class="help-text">';
+                    $settingsTabBodyHtml .= '<a class="button button-primary button-small" data-open="paymentStatusFormReveal">' . e(__('Add New Payment Status')) . '</a>';
+                    $settingsTabBodyHtml .= '</p>';
+
+                    $settingsTabBodyHtml .= '<div id="payment_status_wrapper">';
+                    $settingsTabBodyHtml .= '<table id="paymentStatus_poststuff" class="wp-list-table widefat fixed striped posts">';
                     $settingsTabBodyHtml .= '<thead><tr>';
+                    $settingsTabBodyHtml .= '<th class="column-id">' . e(__('ID')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Name')) . '</th>';
                     $settingsTabBodyHtml .= '<th>' . e(__('Slug')) . '</th>';
-                    $settingsTabBodyHtml .= '<th>' . e(__('Default Label')) . '</th>';
-                    $settingsTabBodyHtml .= '<th>' . e(__('Display Label')) . '</th>';
-                    $settingsTabBodyHtml .= '<th>' . e(__('Color')) . '</th>';
-                    $settingsTabBodyHtml .= '<th>' . e(__('Sort Order')) . '</th>';
-                    $settingsTabBodyHtml .= '<th>' . e(__('Actions')) . '</th>';
+                    $settingsTabBodyHtml .= '<th>' . e(__('Description')) . '</th>';
+                    $settingsTabBodyHtml .= '<th class="column-id">' . e(__('Status')) . '</th>';
+                    $settingsTabBodyHtml .= '<th class="column-id">' . e(__('Actions')) . '</th>';
                     $settingsTabBodyHtml .= '</tr></thead><tbody>';
 
                     if ($paymentStatuses->count() === 0) {
                         $settingsTabBodyHtml .= '<tr><td colspan="6">' . e(__('No payment statuses found.')) . '</td></tr>';
                     } else {
                         foreach ($paymentStatuses as $ps) {
-                            $override = $paymentStatusOverrides[$ps->slug] ?? null;
-                            $displayLabel = (is_string($override?->label) && $override->label !== '') ? $override->label : $ps->label;
-                            $displayColor = is_string($override?->color) ? $override->color : '';
-                            $displaySort = is_numeric($override?->sort_order) ? (string) (int) $override->sort_order : '';
+                            $editLink = $tenant?->slug
+                                ? (route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings&update_payment_status=' . urlencode((string) $ps->id) . '#wc_rb_payment_status')
+                                : '#';
 
                             $settingsTabBodyHtml .= '<tr>';
-                            $settingsTabBodyHtml .= '<td><code>' . e((string) $ps->slug) . '</code></td>';
-                            $settingsTabBodyHtml .= '<td>' . e((string) $ps->label) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $ps->id) . '</td>';
+                            $settingsTabBodyHtml .= '<td><strong>' . e((string) $ps->label) . '</strong></td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) $ps->slug) . '</td>';
+                            $settingsTabBodyHtml .= '<td>' . e((string) ($ps->description ?? '')) . '</td>';
 
                             $settingsTabBodyHtml .= '<td>';
-                            $settingsTabBodyHtml .= '<form method="post" action="' . e(route('tenant.settings.payment_status.update', ['business' => $tenant->slug, 'slug' => $ps->slug])) . '">';
-                            $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
-                            $settingsTabBodyHtml .= '<input type="text" class="regular-text" name="label" value="' . e(old('label', $displayLabel)) . '">';
+                            $settingsTabBodyHtml .= '<a href="#" title="' . e(__('Change Status')) . '" class="change_tax_status" data-type="paymentStatus" data-value="' . e((string) $ps->id) . '">' . e($ps->is_active ? 'active' : 'inactive') . '</a>';
                             $settingsTabBodyHtml .= '</td>';
 
-                            $settingsTabBodyHtml .= '<td><input type="text" style="width:110px" name="color" value="' . e(old('color', $displayColor)) . '" placeholder="#000000"></td>';
-                            $settingsTabBodyHtml .= '<td><input type="number" style="width:110px" name="sort_order" value="' . e(old('sort_order', $displaySort)) . '" min="0"></td>';
-                            $settingsTabBodyHtml .= '<td><button class="button button-primary button-small" type="submit">' . e(__('Save')) . '</button></form></td>';
+                            $settingsTabBodyHtml .= '<td>';
+                            $settingsTabBodyHtml .= '<a href="' . e($editLink) . '" class="update_tax_status" data-type="status" data-value="' . e((string) $ps->id) . '">' . e(__('Edit')) . '</a>';
+                            $settingsTabBodyHtml .= '</td>';
                             $settingsTabBodyHtml .= '</tr>';
                         }
                     }
 
                     $settingsTabBodyHtml .= '</tbody></table>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $updatePaymentStatusId = $request->query('update_payment_status');
+                    $selectedPaymentStatus = null;
+                    if (is_string($updatePaymentStatusId) && $updatePaymentStatusId !== '') {
+                        $selectedPaymentStatus = $paymentStatuses->firstWhere('id', (int) $updatePaymentStatusId);
+                    }
+
+                    $modalLabel = $selectedPaymentStatus ? __('Update') : __('Add new');
+                    $buttonLabel = $modalLabel;
+                    $statusName = $selectedPaymentStatus?->label ?? '';
+                    $statusSlug = $selectedPaymentStatus?->slug ?? '';
+                    $statusDescription = $selectedPaymentStatus?->description ?? '';
+                    $statusStatus = ($selectedPaymentStatus?->is_active ?? true) ? 'active' : 'inactive';
+
+                    $settingsTabBodyHtml .= '<div class="small reveal" id="paymentStatusFormReveal" data-reveal>';
+                    $settingsTabBodyHtml .= '<h2>' . e($modalLabel) . ' ' . e(__('Payment status')) . '</h2>';
+                    $settingsTabBodyHtml .= '<div class="form-message"></div>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.payment_status.save', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
+                    $settingsTabBodyHtml .= '<div class="cell"><div data-abide-error class="alert callout" style="display:none;"><p>' . e(__('There are some errors in your form.')) . '</p></div></div>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Status Name')) . '*';
+                    $settingsTabBodyHtml .= '<input name="payment_status_name" type="text" class="form-control login-field" value="' . e(old('payment_status_name', $statusName)) . '" required id="payment_status_name" />';
+                    $settingsTabBodyHtml .= '<span class="form-error">' . e(__('Name the status to recognize.')) . '</span>';
+                    $settingsTabBodyHtml .= '</label></div>';
+
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Status Slug')) . '*';
+                    $settingsTabBodyHtml .= '<input name="payment_status_slug" type="text" class="form-control login-field" value="' . e(old('payment_status_slug', $statusSlug)) . '" required id="payment_status_slug" />';
+                    $settingsTabBodyHtml .= '<span class="form-error">' . e(__('Slug is required to recognize the status make sure to not change it.')) . '</span>';
+                    $settingsTabBodyHtml .= '</label></div>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Description'));
+                    $settingsTabBodyHtml .= '<input name="payment_status_description" type="text" class="form-control login-field" value="' . e(old('payment_status_description', $statusDescription)) . '" id="payment_status_description" />';
+                    $settingsTabBodyHtml .= '</label></div>';
+
+                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Status'));
+                    $settingsTabBodyHtml .= '<select class="form-control form-select" name="payment_status_status">';
+                    $settingsTabBodyHtml .= '<option value="active"' . ((string) old('payment_status_status', $statusStatus) === 'active' ? ' selected' : '') . '>' . e(__('Active')) . '</option>';
+                    $settingsTabBodyHtml .= '<option value="inactive"' . ((string) old('payment_status_status', $statusStatus) === 'inactive' ? ' selected' : '') . '>' . e(__('Inactive')) . '</option>';
+                    $settingsTabBodyHtml .= '</select>';
+                    $settingsTabBodyHtml .= '</label></div>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    $settingsTabBodyHtml .= '<input name="form_type" type="hidden" value="payment_status_form" />';
+                    if ($selectedPaymentStatus) {
+                        $settingsTabBodyHtml .= '<input name="form_type_status_payment" type="hidden" value="update" />';
+                        $settingsTabBodyHtml .= '<input name="status_id" type="hidden" value="' . e((string) $selectedPaymentStatus->id) . '" />';
+                    } else {
+                        $settingsTabBodyHtml .= '<input name="form_type_status_payment" type="hidden" value="add" />';
+                    }
+
+                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
+                    $settingsTabBodyHtml .= '<fieldset class="cell medium-6">';
+                    $settingsTabBodyHtml .= '<button class="button" type="submit">' . e($buttonLabel) . '</button>';
+                    $settingsTabBodyHtml .= '</fieldset>';
+                    $settingsTabBodyHtml .= '<small>(*) ' . e(__('fields are required')) . '</small>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '<button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>';
+                    $settingsTabBodyHtml .= '</div>';
+
+                    if ($selectedPaymentStatus) {
+                        $settingsTabBodyHtml .= '<div id="updatePaymentStatus"></div>';
+                    }
+
+                    $settingsTabBodyHtml .= '<div class="wc-rb-payment-methods">';
+                    $settingsTabBodyHtml .= '<h2>' . e(__('Payment Methods')) . '</h2>';
+                    $settingsTabBodyHtml .= '<div class="methods_success_msg"></div>';
+                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.payment_methods.update', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+                    $settingsTabBodyHtml .= '<fieldset class="fieldset">';
+                    $settingsTabBodyHtml .= '<legend>' . e(__('Select Payment Methods')) . '</legend>';
+
+                    $defaultMethods = $repairBuddySettings['payment_methods_active'] ?? [];
+                    if (! is_array($defaultMethods)) {
+                        $defaultMethods = [];
+                    }
+
+                    $receiveArray = [
+                        ['name' => 'cash', 'label' => __('Cash'), 'description' => ''],
+                        ['name' => 'card', 'label' => __('Card'), 'description' => ''],
+                        ['name' => 'bank', 'label' => __('Bank Transfer'), 'description' => ''],
+                        ['name' => 'woocommerce', 'label' => __('WooCommerce'), 'description' => ''],
+                    ];
+
+                    foreach ($receiveArray as $m) {
+                        $theName = (string) ($m['name'] ?? '');
+                        $theLabel = (string) ($m['label'] ?? '');
+                        $theDescription = (string) ($m['description'] ?? '');
+                        if ($theName === '' || $theLabel === '') {
+                            continue;
+                        }
+                        $checked = in_array($theName, $defaultMethods, true) ? ' checked' : '';
+                        $settingsTabBodyHtml .= ($theDescription !== '') ? '<br>' : '';
+                        $settingsTabBodyHtml .= '<label for="' . e($theName) . '"><input' . $checked . ' id="' . e($theName) . '" name="wc_rb_payment_method[]" value="' . e($theName) . '" type="checkbox">' . e($theLabel);
+                        $settingsTabBodyHtml .= ($theDescription !== '') ? ' <small>' . e($theDescription) . '</small>' : '';
+                        $settingsTabBodyHtml .= '</label>';
+                    }
+
+                    $settingsTabBodyHtml .= '</fieldset>';
+                    $settingsTabBodyHtml .= '<input type="hidden" name="form_type" value="wc_rb_update_methods_ac" />';
+                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary" data-type="rbsubmitmethods">' . e(__('Update Methods')) . '</button>';
+                    $settingsTabBodyHtml .= '</form>';
+                    $settingsTabBodyHtml .= '</div>';
+
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
                 } elseif ($tabId === 'wc_rb_maintenance_reminder') {
@@ -2722,6 +2903,11 @@ class TenantDashboardController extends Controller
                 ->mapWithKeys(fn ($s) => [(string) $s->slug => (string) $s->label])
                 ->all();
 
+            $jobStatuses = RepairBuddyJobStatus::query()
+                ->orderBy('id')
+                ->limit(500)
+                ->get();
+
             $tenantIdForDashboard = TenantContext::tenantId();
             $branchIdForDashboard = BranchContext::branchId();
 
@@ -2824,6 +3010,7 @@ class TenantDashboardController extends Controller
                 'nextservicedate_checked' => ($invoiceSettings['nextservicedate'] ?? false) ? 'checked' : '',
                 'wcrb_invoice_disclaimer_html' => '',
                 'job_status_rows_html' => '',
+                'jobStatuses' => $jobStatuses,
                 'wc_inventory_management_status' => false,
                 'job_status_delivered' => (string) ($jobStatusSettings['wcrb_job_status_delivered'] ?? 'delivered'),
                 'job_status_cancelled' => (string) ($jobStatusSettings['wcrb_job_status_cancelled'] ?? 'cancelled'),

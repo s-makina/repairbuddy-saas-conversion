@@ -24,11 +24,6 @@
 								</x-settings.field>
 							</div>
 							<div class="col-md-6">
-								<x-settings.field for="status_slug" :label="__( 'Status Slug' )" class="wcrb-settings-field">
-									<x-settings.input name="status_slug" id="status_slug" :required="true" :value="old('status_slug', '')" />
-								</x-settings.field>
-							</div>
-							<div class="col-md-6">
 								<x-settings.field for="status_description" :label="__( 'Description' )" class="wcrb-settings-field">
 									<x-settings.input name="status_description" id="status_description" :value="old('status_description', '')" />
 								</x-settings.field>
@@ -81,7 +76,6 @@
 				<tr>
 					<th  class="column-id">{{ __( 'ID' ) }}</th>
 					<th>{{ __( 'Name' ) }}</th>
-					<th>{{ __( 'Slug' ) }}</th>
 					<th>{{ __( 'Description' ) }}</th>
 					<th>{{ __( 'Invoice Label' ) }}</th>
 
@@ -94,7 +88,28 @@
 			</thead>
 
 			<tbody>
-				{!! $job_status_rows_html !!}
+				@if (isset($jobStatuses) && $jobStatuses instanceof \Illuminate\Support\Collection)
+					@forelse ($jobStatuses as $s)
+						<tr>
+							<td class="column-id">{{ $s->id }}</td>
+							<td>{{ $s->label }}</td>
+							<td>—</td>
+							<td>{{ $s->invoice_label ?: '—' }}</td>
+
+							@if ($wc_inventory_management_status)
+							<td>—</td>
+							@endif
+							<td class="column-id">{{ $s->is_active ? __( 'Active' ) : __( 'Inactive' ) }}</td>
+							<td class="column-id">—</td>
+						</tr>
+					@empty
+						<tr>
+							<td colspan="{{ $wc_inventory_management_status ? 8 : 7 }}" class="text-center text-muted">{{ __( 'No statuses found.' ) }}</td>
+						</tr>
+					@endforelse
+				@else
+					{!! $job_status_rows_html !!}
+				@endif
 			</tbody>
 		</table>
 		<!-- Let's produce the form for status to consider completed and cancelled /-->
