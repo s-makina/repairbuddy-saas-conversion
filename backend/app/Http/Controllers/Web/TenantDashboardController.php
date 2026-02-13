@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class TenantDashboardController extends Controller
@@ -381,6 +382,7 @@ class TenantDashboardController extends Controller
         }
 
         RepairBuddyJobStatus::query()->create([
+            'tenant_id' => $tenantId,
             'slug' => $slug,
             'label' => (string) $validated['status_name'],
             'invoice_label' => array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null,
@@ -397,10 +399,17 @@ class TenantDashboardController extends Controller
             ->withInput();
     }
 
-    public function updateJobStatus(Request $request, int $status)
+    public function updateJobStatus(Request $request, $status)
     {
         $tenant = TenantContext::tenant();
         $tenantId = TenantContext::tenantId();
+
+        $statusId = (int) $status;
+        if ($statusId <= 0) {
+            return back()
+                ->withErrors(['status_name' => 'Job status id is missing.'])
+                ->withInput();
+        }
 
         if (! $tenant || ! $tenantId) {
             return back()
@@ -410,7 +419,7 @@ class TenantDashboardController extends Controller
 
         $jobStatus = RepairBuddyJobStatus::query()
             ->where('tenant_id', $tenantId)
-            ->where('id', $status)
+            ->where('id', $statusId)
             ->first();
 
         if (! $jobStatus) {
@@ -447,6 +456,72 @@ class TenantDashboardController extends Controller
             ->withFragment('panel3')
             ->with('status', 'Job status updated.')
             ->withInput();
+    }
+
+    public function deleteJobStatus(Request $request, $status)
+    {
+        $tenant = TenantContext::tenant();
+        $tenantId = TenantContext::tenantId();
+
+        $statusId = (int) $status;
+        if ($statusId <= 0) {
+            return back()->withErrors(['status_name' => 'Job status id is missing.']);
+        }
+
+        if (! $tenant || ! $tenantId) {
+            return back()
+                ->withErrors(['status_name' => 'Tenant context is missing.']);
+        }
+
+        $jobStatus = RepairBuddyJobStatus::query()
+            ->where('tenant_id', $tenantId)
+            ->where('id', $statusId)
+            ->first();
+
+        if (! $jobStatus) {
+            return back()
+                ->withErrors(['status_name' => 'Job status not found.']);
+        }
+
+        $slug = (string) $jobStatus->slug;
+
+        $inUseByJobs = RepairBuddyJob::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status_slug', $slug)
+            ->exists();
+
+        if ($inUseByJobs) {
+            return back()
+                ->withErrors(['status_name' => 'Cannot delete a status that is used by existing jobs.']);
+        }
+
+        $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
+        $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
+        if (! is_array($repairBuddySettings)) {
+            $repairBuddySettings = [];
+        }
+        $jobStatusSettings = $repairBuddySettings['jobStatus'] ?? [];
+        if (! is_array($jobStatusSettings)) {
+            $jobStatusSettings = [];
+        }
+
+        $blockedBySettings = in_array($slug, [
+            (string) ($jobStatusSettings['wcrb_job_status_delivered'] ?? ''),
+            (string) ($jobStatusSettings['wcrb_job_status_cancelled'] ?? ''),
+        ], true);
+
+        if ($blockedBySettings) {
+            return back()
+                ->withErrors(['status_name' => 'Cannot delete a status that is selected in status settings.']);
+        }
+
+        $jobStatus->delete();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('panel3')
+            ->with('status', 'Job status deleted.');
     }
 
     public function updateCurrencySettings(Request $request)
@@ -571,10 +646,26 @@ class TenantDashboardController extends Controller
             abort(400, 'Tenant context is missing.');
         }
 
-        $validated = $request->validate([
+        $wantsJson = $request->expectsJson() || $request->ajax();
+        $rules = [
             'wcrb_job_status_delivered' => ['nullable', 'string', 'max:64'],
             'wcrb_job_status_cancelled' => ['nullable', 'string', 'max:64'],
-        ]);
+        ];
+
+        if ($wantsJson) {
+            $validator = Validator::make($request->all(), $rules);
+            if ($validator->fails()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $validated = $validator->validated();
+        } else {
+            $validated = $request->validate($rules);
+        }
 
         $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
         $repairBuddySettings = $state['repairbuddy_settings'] ?? [];
@@ -624,6 +715,17 @@ class TenantDashboardController extends Controller
         $tenant->forceFill([
             'setup_state' => $state,
         ])->save();
+
+        if ($wantsJson) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Job status settings updated.',
+                'data' => [
+                    'wcrb_job_status_delivered' => $jobStatus['wcrb_job_status_delivered'] ?? null,
+                    'wcrb_job_status_cancelled' => $jobStatus['wcrb_job_status_cancelled'] ?? null,
+                ],
+            ]);
+        }
 
         return redirect()
             ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
@@ -1829,20 +1931,66 @@ class TenantDashboardController extends Controller
                 $estimatesValidDaysUi = (int) $oldValidDays;
             }
 
-            $smsEnabledUi = (bool) ($smsSettings['enabled'] ?? false);
-            $smsApiKeyUi = is_string($smsSettings['apiKey'] ?? null) ? (string) $smsSettings['apiKey'] : '';
-            $smsSenderIdUi = is_string($smsSettings['senderId'] ?? null) ? (string) $smsSettings['senderId'] : '';
-            $oldSmsEnabled = old('sms_enabled');
-            if ($oldSmsEnabled !== null) {
-                $smsEnabledUi = (string) $oldSmsEnabled === 'on';
+            $smsActiveUi = (bool) ($smsSettings['activateSmsForSelectiveStatuses'] ?? false);
+            if (! $smsActiveUi) {
+                $smsActiveUi = (bool) ($smsSettings['enabled'] ?? false);
             }
-            $oldSmsApiKey = old('sms_api_key');
-            if ($oldSmsApiKey !== null) {
-                $smsApiKeyUi = is_string($oldSmsApiKey) ? $oldSmsApiKey : '';
+
+            $smsGatewayUi = is_string($smsSettings['gateway'] ?? null) ? (string) $smsSettings['gateway'] : '';
+            $smsGatewayAccountSidUi = is_string($smsSettings['gatewayAccountSid'] ?? null) ? (string) $smsSettings['gatewayAccountSid'] : '';
+            $smsGatewayAuthTokenUi = is_string($smsSettings['gatewayAuthToken'] ?? null) ? (string) $smsSettings['gatewayAuthToken'] : '';
+            $smsGatewayFromNumberUi = is_string($smsSettings['gatewayFromNumber'] ?? null) ? (string) $smsSettings['gatewayFromNumber'] : '';
+            $smsSendWhenStatusChangedToIdsUi = $smsSettings['sendWhenStatusChangedToIds'] ?? [];
+            if (! is_array($smsSendWhenStatusChangedToIdsUi)) {
+                $smsSendWhenStatusChangedToIdsUi = [];
             }
-            $oldSmsSenderId = old('sms_sender_id');
-            if ($oldSmsSenderId !== null) {
-                $smsSenderIdUi = is_string($oldSmsSenderId) ? $oldSmsSenderId : '';
+            $smsSendWhenStatusChangedToIdsUi = collect($smsSendWhenStatusChangedToIdsUi)
+                ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                ->map(fn ($v) => trim($v))
+                ->unique()
+                ->values()
+                ->all();
+
+            $smsTestNumberUi = is_string($smsSettings['testNumber'] ?? null) ? (string) $smsSettings['testNumber'] : '';
+            $smsTestMessageUi = is_string($smsSettings['testMessage'] ?? null) ? (string) $smsSettings['testMessage'] : '';
+
+            $oldSmsActive = old('wc_rb_sms_active');
+            if ($oldSmsActive !== null) {
+                $smsActiveUi = (string) $oldSmsActive === 'YES' || (string) $oldSmsActive === 'on';
+            }
+            $oldSmsGateway = old('wc_rb_sms_gateway');
+            if ($oldSmsGateway !== null) {
+                $smsGatewayUi = is_string($oldSmsGateway) ? $oldSmsGateway : '';
+            }
+            foreach (['sms_gateway_account_sid', 'sms_gateway_auth_token', 'sms_gateway_from_number'] as $field) {
+                $old = old($field);
+                if ($old === null) {
+                    continue;
+                }
+                if ($field === 'sms_gateway_account_sid') {
+                    $smsGatewayAccountSidUi = is_string($old) ? $old : '';
+                } elseif ($field === 'sms_gateway_auth_token') {
+                    $smsGatewayAuthTokenUi = is_string($old) ? $old : '';
+                } elseif ($field === 'sms_gateway_from_number') {
+                    $smsGatewayFromNumberUi = is_string($old) ? $old : '';
+                }
+            }
+            $oldStatusIncludes = old('wc_rb_job_status_include');
+            if (is_array($oldStatusIncludes)) {
+                $smsSendWhenStatusChangedToIdsUi = collect($oldStatusIncludes)
+                    ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                    ->map(fn ($v) => trim($v))
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+            $oldTestNumber = old('sms_test_number');
+            if ($oldTestNumber !== null) {
+                $smsTestNumberUi = is_string($oldTestNumber) ? $oldTestNumber : '';
+            }
+            $oldTestMessage = old('sms_test_message');
+            if ($oldTestMessage !== null) {
+                $smsTestMessageUi = is_string($oldTestMessage) ? $oldTestMessage : '';
             }
 
             $customerRegistrationUi = (bool) ($accountSettings['customerRegistration'] ?? false);
@@ -1927,7 +2075,6 @@ class TenantDashboardController extends Controller
 
             $settingsTabs = [
                 ['id' => 'wc_rb_payment_status', 'label' => __('Payment Status'), 'heading' => __('Payment Status')],
-                ['id' => 'wc_rb_page_sms_IDENTIFIER', 'label' => __('SMS'), 'heading' => __('SMS')],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
                 ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'heading' => __('Booking Settings')],
                 ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'heading' => __('Service Settings')],
@@ -2367,7 +2514,7 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
 
                     $settingsTabBodyHtml .= '<p class="help-text">';
-                    $settingsTabBodyHtml .= '<a class="button button-primary button-small" data-bs-toggle="modal" data-bs-target="#paymentStatusFormModal">' . e(__('Add New Payment Status')) . '</a>';
+                    $settingsTabBodyHtml .= '<a href="#" class="button button-primary button-small" data-bs-toggle="modal" data-bs-target="#paymentStatusFormModal" data-payment-status-mode="add">' . e(__('Add New Payment Status')) . '</a>';
                     $settingsTabBodyHtml .= '</p>';
 
                     $settingsTabBodyHtml .= '<div id="payment_status_wrapper">';
@@ -2385,10 +2532,6 @@ class TenantDashboardController extends Controller
                         $settingsTabBodyHtml .= '<tr><td colspan="6">' . e(__('No payment statuses found.')) . '</td></tr>';
                     } else {
                         foreach ($paymentStatuses as $ps) {
-                            $editLink = $tenant?->slug
-                                ? (route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings&update_payment_status=' . urlencode((string) $ps->id) . '#wc_rb_payment_status')
-                                : '#';
-
                             $settingsTabBodyHtml .= '<tr>';
                             $settingsTabBodyHtml .= '<td>' . e((string) $ps->id) . '</td>';
                             $settingsTabBodyHtml .= '<td><strong>' . e((string) $ps->label) . '</strong></td>';
@@ -2400,7 +2543,7 @@ class TenantDashboardController extends Controller
                             $settingsTabBodyHtml .= '</td>';
 
                             $settingsTabBodyHtml .= '<td>';
-                            $settingsTabBodyHtml .= '<a href="' . e($editLink) . '" class="update_tax_status" data-type="status" data-value="' . e((string) $ps->id) . '">' . e(__('Edit')) . '</a>';
+                            $settingsTabBodyHtml .= '<a href="#" class="update_tax_status" data-bs-toggle="modal" data-bs-target="#paymentStatusFormModal" data-payment-status-mode="update" data-payment-status-id="' . e((string) $ps->id) . '" data-payment-status-name="' . e((string) $ps->label) . '" data-payment-status-slug="' . e((string) $ps->slug) . '" data-payment-status-active="' . e($ps->is_active ? 'active' : 'inactive') . '">' . e(__('Edit')) . '</a>';
                             $settingsTabBodyHtml .= '</td>';
                             $settingsTabBodyHtml .= '</tr>';
                         }
@@ -2409,32 +2552,26 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '</tbody></table>';
                     $settingsTabBodyHtml .= '</div>';
 
-                    $updatePaymentStatusId = $request->query('update_payment_status');
-                    $selectedPaymentStatus = null;
-                    if (is_string($updatePaymentStatusId) && $updatePaymentStatusId !== '') {
-                        $selectedPaymentStatus = $paymentStatuses->firstWhere('id', (int) $updatePaymentStatusId);
-                    }
-
-                    $modalLabel = $selectedPaymentStatus ? __('Update') : __('Add new');
+                    $modalLabel = __('Add new');
                     $buttonLabel = $modalLabel;
-                    $statusName = $selectedPaymentStatus?->label ?? '';
-                    $statusSlug = $selectedPaymentStatus?->slug ?? '';
+                    $statusName = '';
+                    $statusSlug = '';
                     $statusDescription = '';
-                    $statusStatus = ($selectedPaymentStatus?->is_active ?? true) ? 'active' : 'inactive';
+                    $statusStatus = 'active';
 
                     $settingsTabBodyHtml .= '<div class="modal fade" id="paymentStatusFormModal" tabindex="-1" aria-hidden="true">';
-                    $settingsTabBodyHtml .= '<div class="modal-dialog modal-lg">';
+                    $settingsTabBodyHtml .= '<div class="modal-dialog modal-md">';
                     $settingsTabBodyHtml .= '<div class="modal-content">';
-                    $settingsTabBodyHtml .= '<div class="modal-header">';
+                    $settingsTabBodyHtml .= '<div class="modal-header py-2 px-3">';
                     $settingsTabBodyHtml .= '<h5 class="modal-title">' . e($modalLabel) . ' ' . e(__('Payment status')) . '</h5>';
                     $settingsTabBodyHtml .= '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>';
                     $settingsTabBodyHtml .= '</div>';
-                    $settingsTabBodyHtml .= '<div class="modal-body">';
+                    $settingsTabBodyHtml .= '<div class="modal-body p-3">';
                     $settingsTabBodyHtml .= '<div class="form-message"></div>';
                     $settingsTabBodyHtml .= '<form class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.payment_status.save', ['business' => $tenant->slug]) : '#') . '">';
                     $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
 
-                    $settingsTabBodyHtml .= '<div class="row g-3">';
+                    $settingsTabBodyHtml .= '<div class="row g-2">';
                     $settingsTabBodyHtml .= '<div class="col-md-6">';
                     $settingsTabBodyHtml .= '<label for="payment_status_name" class="form-label">' . e(__('Status Name')) . ' *</label>';
                     $settingsTabBodyHtml .= '<input name="payment_status_name" type="text" class="form-control" value="' . e(old('payment_status_name', $statusName)) . '" required id="payment_status_name" />';
@@ -2457,14 +2594,10 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '</div>';
 
                     $settingsTabBodyHtml .= '<input name="form_type" type="hidden" value="payment_status_form" />';
-                    if ($selectedPaymentStatus) {
-                        $settingsTabBodyHtml .= '<input name="form_type_status_payment" type="hidden" value="update" />';
-                        $settingsTabBodyHtml .= '<input name="status_id" type="hidden" value="' . e((string) $selectedPaymentStatus->id) . '" />';
-                    } else {
-                        $settingsTabBodyHtml .= '<input name="form_type_status_payment" type="hidden" value="add" />';
-                    }
+                    $settingsTabBodyHtml .= '<input id="payment_status_form_mode" name="form_type_status_payment" type="hidden" value="add" />';
+                    $settingsTabBodyHtml .= '<input id="payment_status_form_id" name="status_id" type="hidden" value="" />';
 
-                    $settingsTabBodyHtml .= '<div class="mt-3 d-flex justify-content-end gap-2">';
+                    $settingsTabBodyHtml .= '<div class="mt-2 d-flex justify-content-end gap-2">';
                     $settingsTabBodyHtml .= '<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">' . e(__('Cancel')) . '</button>';
                     $settingsTabBodyHtml .= '<button class="btn btn-primary" type="submit">' . e($buttonLabel) . '</button>';
                     $settingsTabBodyHtml .= '</div>';
@@ -2474,18 +2607,46 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
 
-                    if ($selectedPaymentStatus) {
-                        $settingsTabBodyHtml .= '<script>';
-                        $settingsTabBodyHtml .= 'document.addEventListener("DOMContentLoaded", function () {';
-                        $settingsTabBodyHtml .= '  try {';
-                        $settingsTabBodyHtml .= '    if (typeof bootstrap !== "undefined" && bootstrap.Modal) {';
-                        $settingsTabBodyHtml .= '      var el = document.getElementById("paymentStatusFormModal");';
-                        $settingsTabBodyHtml .= '      if (el) { bootstrap.Modal.getOrCreateInstance(el).show(); }';
-                        $settingsTabBodyHtml .= '    }';
-                        $settingsTabBodyHtml .= '  } catch (e) {}';
-                        $settingsTabBodyHtml .= '});';
-                        $settingsTabBodyHtml .= '</script>';
-                    }
+                    $settingsTabBodyHtml .= '<script>';
+                    $settingsTabBodyHtml .= '(function(){';
+                    $settingsTabBodyHtml .= '  var modal = document.getElementById("paymentStatusFormModal");';
+                    $settingsTabBodyHtml .= '  if (!modal) { return; }';
+                    $settingsTabBodyHtml .= '  var title = modal.querySelector(".modal-title");';
+                    $settingsTabBodyHtml .= '  var btnPrimary = modal.querySelector("button.btn.btn-primary");';
+                    $settingsTabBodyHtml .= '  var inputName = document.getElementById("payment_status_name");';
+                    $settingsTabBodyHtml .= '  var inputSlug = document.getElementById("payment_status_slug");';
+                    $settingsTabBodyHtml .= '  var inputDesc = document.getElementById("payment_status_description");';
+                    $settingsTabBodyHtml .= '  var selectStatus = modal.querySelector("select[name=\\"payment_status_status\\"]");';
+                    $settingsTabBodyHtml .= '  var modeInput = document.getElementById("payment_status_form_mode");';
+                    $settingsTabBodyHtml .= '  var idInput = document.getElementById("payment_status_form_id");';
+                    $settingsTabBodyHtml .= '  var setMode = function(mode, data){';
+                    $settingsTabBodyHtml .= '    var isUpdate = mode === "update";';
+                    $settingsTabBodyHtml .= '    if (title) { title.textContent = (isUpdate ? "' . e(__('Update')) . '" : "' . e(__('Add new')) . '") + " ' . e(__('Payment status')) . '"; }';
+                    $settingsTabBodyHtml .= '    if (btnPrimary) { btnPrimary.textContent = isUpdate ? "' . e(__('Update')) . '" : "' . e(__('Add new')) . '"; }';
+                    $settingsTabBodyHtml .= '    if (modeInput) { modeInput.value = isUpdate ? "update" : "add"; }';
+                    $settingsTabBodyHtml .= '    if (idInput) { idInput.value = isUpdate ? (data.id || "") : ""; }';
+                    $settingsTabBodyHtml .= '    if (inputName) { inputName.value = isUpdate ? (data.name || "") : ""; }';
+                    $settingsTabBodyHtml .= '    if (inputSlug) { inputSlug.value = isUpdate ? (data.slug || "") : ""; }';
+                    $settingsTabBodyHtml .= '    if (inputDesc) { inputDesc.value = ""; }';
+                    $settingsTabBodyHtml .= '    if (selectStatus) { selectStatus.value = isUpdate ? (data.active || "active") : "active"; }';
+                    $settingsTabBodyHtml .= '  };';
+                    $settingsTabBodyHtml .= '  document.addEventListener("click", function(e){';
+                    $settingsTabBodyHtml .= '    var t = e.target;';
+                    $settingsTabBodyHtml .= '    if (!(t instanceof Element)) { return; }';
+                    $settingsTabBodyHtml .= '    var trigger = t.closest("[data-bs-target=\\"#paymentStatusFormModal\\"]");';
+                    $settingsTabBodyHtml .= '    if (!trigger) { return; }';
+                    $settingsTabBodyHtml .= '    e.preventDefault();';
+                    $settingsTabBodyHtml .= '    var mode = trigger.getAttribute("data-payment-status-mode") || "add";';
+                    $settingsTabBodyHtml .= '    setMode(mode, {';
+                    $settingsTabBodyHtml .= '      id: trigger.getAttribute("data-payment-status-id"),';
+                    $settingsTabBodyHtml .= '      name: trigger.getAttribute("data-payment-status-name"),';
+                    $settingsTabBodyHtml .= '      slug: trigger.getAttribute("data-payment-status-slug"),';
+                    $settingsTabBodyHtml .= '      active: trigger.getAttribute("data-payment-status-active")';
+                    $settingsTabBodyHtml .= '    });';
+                    $settingsTabBodyHtml .= '    try { if (typeof bootstrap !== "undefined" && bootstrap.Modal) { bootstrap.Modal.getOrCreateInstance(modal).show(); } } catch (err) {}';
+                    $settingsTabBodyHtml .= '  });';
+                    $settingsTabBodyHtml .= '})();';
+                    $settingsTabBodyHtml .= '</script>';
 
                     $settingsTabBodyHtml .= '<div class="wc-rb-payment-methods">';
                     $settingsTabBodyHtml .= '<h2>' . e(__('Payment Methods')) . '</h2>';
@@ -2987,28 +3148,6 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
-                } elseif ($tabId === 'wc_rb_page_sms_IDENTIFIER') {
-                    $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_page_sms_IDENTIFIER" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_page_sms_IDENTIFIER-label">';
-                    $settingsTabBodyHtml .= '<div class="wrap">';
-                    $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
-                    $settingsTabBodyHtml .= '<p>' . e(__('Configure SMS notifications for your repair shop. You will need to configure an SMS gateway service.')) . '</p>';
-                    $settingsTabBodyHtml .= '<div class="wc-rb-grey-bg-box">';
-                    $settingsTabBodyHtml .= '<h3>' . e(__('SMS Settings')) . '</h3>';
-                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.sms.update', ['business' => $tenant->slug]) : '#') . '">';
-                    $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
-                    $settingsTabBodyHtml .= '<table class="form-table border"><tbody>';
-                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_enabled">' . e(__('Enable SMS')) . '</label></th>';
-                    $settingsTabBodyHtml .= '<td><input type="checkbox" ' . ($smsEnabledUi ? 'checked="checked"' : '') . ' name="sms_enabled" id="sms_enabled" /> ' . e(__('Enable SMS notifications')) . '</td></tr>';
-                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_api_key">' . e(__('SMS API Key')) . '</label></th>';
-                    $settingsTabBodyHtml .= '<td><input type="text" name="sms_api_key" id="sms_api_key" class="regular-text" value="' . e($smsApiKeyUi) . '" /> ' . e(__('Your SMS provider API key')) . '</td></tr>';
-                    $settingsTabBodyHtml .= '<tr><th scope="row"><label for="sms_sender_id">' . e(__('Sender ID')) . '</label></th>';
-                    $settingsTabBodyHtml .= '<td><input type="text" name="sms_sender_id" id="sms_sender_id" class="regular-text" value="' . e($smsSenderIdUi) . '" /> ' . e(__('Sender name or number')) . '</td></tr>';
-                    $settingsTabBodyHtml .= '</tbody></table>';
-                    $settingsTabBodyHtml .= '<button type="submit" class="button button-primary">' . e(__('Update Options')) . '</button>';
-                    $settingsTabBodyHtml .= '</form>';
-                    $settingsTabBodyHtml .= '</div>';
-                    $settingsTabBodyHtml .= '</div>';
-                    $settingsTabBodyHtml .= '</div>';
                 } elseif ($tabId === 'wc_rb_manage_account') {
                     $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wc_rb_manage_account" role="tabpanel" aria-hidden="true" aria-labelledby="wc_rb_manage_account-label">';
                     $settingsTabBodyHtml .= '<div class="wrap">';
@@ -3281,6 +3420,27 @@ class TenantDashboardController extends Controller
                 'currencyOptions' => $currencyOptions,
                 'currencyPositionOptions' => $currencyPositionOptions,
                 'jobStatusOptions' => $jobStatusOptions,
+                'smsActiveUi' => $smsActiveUi,
+                'smsGatewayUi' => $smsGatewayUi,
+                'smsGatewayAccountSidUi' => $smsGatewayAccountSidUi,
+                'smsGatewayAuthTokenUi' => $smsGatewayAuthTokenUi,
+                'smsGatewayFromNumberUi' => $smsGatewayFromNumberUi,
+                'smsSendWhenStatusChangedToIdsUi' => $smsSendWhenStatusChangedToIdsUi,
+                'smsTestNumberUi' => $smsTestNumberUi,
+                'smsTestMessageUi' => $smsTestMessageUi,
+                'smsGatewayOptions' => [
+                    '' => __('Select SMS Gateway'),
+                    'twilio' => 'Twilio',
+                    'releans' => 'Releans',
+                    'bulkgate' => 'BulkGate',
+                    'smschef' => 'SMSChef',
+                    'smshosting' => 'SMSHosting.it',
+                    'capitolemobile' => 'Capitole Mobile',
+                    'bitelietuva' => 'Bite Lietuva',
+                    'textmecoil' => 'TextMe.co.il',
+                    'custom' => __('Custom'),
+                ],
+                'allJobStatuses' => $jobStatuses,
                 'rb_ms_version_defined' => false,
                 'rb_qb_version_defined' => false,
                 'casenumber_label_first' => 'Case',
@@ -4498,9 +4658,16 @@ HTML;
         }
 
         $validated = $request->validate([
-            'sms_enabled' => ['nullable', 'in:on'],
-            'sms_api_key' => ['nullable', 'string', 'max:255'],
-            'sms_sender_id' => ['nullable', 'string', 'max:255'],
+            'wc_rb_sms_active' => ['nullable', 'in:YES,on'],
+            'wc_rb_sms_gateway' => ['nullable', 'string', 'max:64'],
+            'sms_gateway_account_sid' => ['nullable', 'string', 'max:255'],
+            'sms_gateway_auth_token' => ['nullable', 'string', 'max:255'],
+            'sms_gateway_from_number' => ['nullable', 'string', 'max:64'],
+            'wc_rb_job_status_include' => ['nullable', 'array'],
+            'wc_rb_job_status_include.*' => ['string', 'max:64'],
+            'sms_test' => ['nullable', 'in:1'],
+            'sms_test_number' => ['nullable', 'string', 'max:64'],
+            'sms_test_message' => ['nullable', 'string', 'max:1024'],
         ]);
 
         $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
@@ -4514,9 +4681,34 @@ HTML;
             $sms = [];
         }
 
-        $sms['enabled'] = array_key_exists('sms_enabled', $validated);
-        $sms['apiKey'] = $validated['sms_api_key'] ?? null;
-        $sms['senderId'] = $validated['sms_sender_id'] ?? null;
+        $isActive = array_key_exists('wc_rb_sms_active', $validated);
+        $sms['activateSmsForSelectiveStatuses'] = $isActive;
+        $sms['enabled'] = $isActive;
+
+        $sms['gateway'] = array_key_exists('wc_rb_sms_gateway', $validated) ? (string) ($validated['wc_rb_sms_gateway'] ?? '') : ($sms['gateway'] ?? null);
+        $sms['gatewayAccountSid'] = $validated['sms_gateway_account_sid'] ?? null;
+        $sms['gatewayAuthToken'] = $validated['sms_gateway_auth_token'] ?? null;
+        $sms['gatewayFromNumber'] = $validated['sms_gateway_from_number'] ?? null;
+
+        $includes = $validated['wc_rb_job_status_include'] ?? null;
+        if (is_array($includes)) {
+            $sms['sendWhenStatusChangedToIds'] = collect($includes)
+                ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                ->map(fn ($v) => trim((string) $v))
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        if (array_key_exists('sms_test', $validated)) {
+            $sms['testNumber'] = $validated['sms_test_number'] ?? null;
+            $sms['testMessage'] = $validated['sms_test_message'] ?? null;
+        }
+
+        if (($sms['gateway'] ?? null) === 'custom') {
+            $sms['apiKey'] = $sms['gatewayAccountSid'] ?? null;
+            $sms['senderId'] = $sms['gatewayFromNumber'] ?? null;
+        }
 
         $repairBuddySettings['sms'] = $sms;
         $setupState['repairbuddy_settings'] = $repairBuddySettings;

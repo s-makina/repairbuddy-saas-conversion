@@ -114,6 +114,11 @@
 									<h2>{{ __('Job Status') }}</h2>
 								</a>
 							</li>
+							<li class="tabs-title" role="presentation">
+								<a href="#wc_rb_page_sms_IDENTIFIER" role="tab" aria-controls="wc_rb_page_sms_IDENTIFIER" aria-selected="true" id="wc_rb_page_sms_IDENTIFIER-label">
+									<h2>{{ __('SMS') }}</h2>
+								</a>
+							</li>
 							{!! $settings_tab_menu_items_html ?? '' !!}
 							<li class="tabs-title{{ $class_activation }}" role="presentation">
 								<a href="#panel4" role="tab" aria-controls="panel4" aria-selected="true" id="panel4-label">
@@ -156,6 +161,7 @@
 							@include('tenant.settings.sections.currency')
 							@include('tenant.settings.sections.invoices')
 							@include('tenant.settings.sections.job-status')
+							@include('tenant.settings.sections.sms')
 							{!! $settings_tab_body_html ?? '' !!}
 							@include('tenant.settings.sections.activation')
 							@include('tenant.settings.sections.documentation')
