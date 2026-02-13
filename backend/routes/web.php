@@ -112,6 +112,10 @@ Route::prefix('t/{business}')
         Route::post('/settings/payment-status', [\App\Http\Controllers\Web\TenantDashboardController::class, 'savePaymentStatus'])
             ->name('tenant.settings.payment_status.save');
 
+        Route::post('/settings/payment-status/{status}/toggle', [\App\Http\Controllers\Web\TenantDashboardController::class, 'togglePaymentStatusActive'])
+            ->where(['status' => '[0-9]+' ])
+            ->name('tenant.settings.payment_status.toggle');
+
         Route::post('/settings/payment-methods', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePaymentMethods'])
             ->name('tenant.settings.payment_methods.update');
 

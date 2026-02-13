@@ -162,6 +162,7 @@
 							@include('tenant.settings.sections.invoices')
 							@include('tenant.settings.sections.job-status')
 							@include('tenant.settings.sections.sms')
+							@include('tenant.settings.sections.payment-status')
 							{!! $settings_tab_body_html ?? '' !!}
 							@include('tenant.settings.sections.activation')
 							@include('tenant.settings.sections.documentation')
