@@ -58,6 +58,9 @@ Route::prefix('t/{business}')
         Route::post('/settings/job-status', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateJobStatusSettings'])
             ->name('tenant.settings.job_status.update');
 
+        Route::post('/settings/job-status/statuses', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeJobStatus'])
+            ->name('tenant.settings.job_status.store');
+
         Route::post('/settings/pages-setup', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePagesSetup'])
             ->name('tenant.settings.pages_setup.update');
 

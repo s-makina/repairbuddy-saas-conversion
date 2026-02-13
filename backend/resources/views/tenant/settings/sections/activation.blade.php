@@ -2,7 +2,9 @@
 aria-labelledby="panel4-label">
 	
 	<div id="license_activation">
-		{!! $activation_form_html !!}
+		<div class="wcrb-settings-form">
+			{!! $activation_form_html !!}
+		</div>
 	</div><!-- Post Stuff/-->
 
 </div><!-- tab 4 Ends -->

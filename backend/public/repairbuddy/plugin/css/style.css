@@ -755,12 +755,47 @@ ul.wc_service_radio li label span:last-child {
 .wcrb-settings-form {
 	max-width: 980px;
 	background: #fff;
-	border: 1px solid #e5e7eb;
+	border: 0;
 	border-radius: 12px;
 	padding: 18px;
 }
 .wcrb-settings-field {
 	margin-bottom: 16px;
+}
+.wcrb-settings-row {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	padding: 10px 0;
+	border-bottom: 1px solid #eef0f2;
+}
+.wcrb-settings-row:last-child {
+	border-bottom: 0;
+}
+.wcrb-settings-row-label {
+	flex: 0 0 240px;
+	max-width: 240px;
+	font-weight: 600;
+	color: #0a0a0a;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin: 0;
+}
+.wcrb-settings-row-control {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+@media screen and (max-width: 700px) {
+	.wcrb-settings-row {
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: 10px;
+	}
+	.wcrb-settings-row-label {
+		flex: 0 0 100%;
+		max-width: 100%;
+	}
 }
 .wcrb-settings-field > label {
 	font-weight: 600;
@@ -790,6 +825,9 @@ ul.wc_service_radio li label span:last-child {
 	height: auto;
 	margin-bottom: 0;
 	box-shadow: none;
+}
+select.wcrb-settings-input {
+	padding-right: 36px;
 }
 .wcrb-settings-input:focus {
 	border-color: #063e70;

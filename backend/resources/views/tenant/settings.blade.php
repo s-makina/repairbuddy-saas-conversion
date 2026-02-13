@@ -14,6 +14,61 @@
 	<script>
 		if (window.jQuery && window.jQuery.fn && window.jQuery.fn.foundation) {
 			window.jQuery(document).foundation();
+
+			(function ($) {
+				var $tabs = $('#example-tabs');
+				if (!($tabs.length && $tabs.foundation)) {
+					return;
+				}
+
+				var storageKey = 'repairbuddy_settings_active_tab';
+				var restoreTab = function () {
+					var hash = window.location.hash;
+					var target = (hash && $(hash).length) ? hash : null;
+					if (!target) {
+						var stored = null;
+						try {
+							stored = window.localStorage ? window.localStorage.getItem(storageKey) : null;
+						} catch (e) {
+							stored = null;
+						}
+						target = (stored && $(stored).length) ? stored : null;
+					}
+					if (target && $tabs.foundation) {
+						try {
+							$tabs.foundation('selectTab', target);
+						} catch (e) {
+						}
+					}
+				};
+
+				restoreTab();
+
+				$tabs.on('change.zf.tabs', function (event, $tab) {
+					var $a = ($tab && $tab.find) ? $tab.find('a').first() : null;
+					var href = $a && $a.length ? $a.attr('href') : null;
+					if (!href || href.charAt(0) !== '#') {
+						return;
+					}
+
+					try {
+						window.history.replaceState(null, '', href);
+					} catch (e) {
+						window.location.hash = href;
+					}
+
+					try {
+						if (window.localStorage) {
+							window.localStorage.setItem(storageKey, href);
+						}
+					} catch (e) {
+					}
+				});
+
+				$(window).on('hashchange', function () {
+					restoreTab();
+				});
+			})(window.jQuery);
 		}
 	</script>
 @endpush

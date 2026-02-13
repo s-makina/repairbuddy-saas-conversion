@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyEstimate;
+use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobStatus;
 use App\Models\RepairBuddyTax;
 use App\Models\Tenant;
@@ -12,6 +14,7 @@ use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TenantDashboardController extends Controller
 {
@@ -100,6 +103,78 @@ class TenantDashboardController extends Controller
             ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
             ->withFragment('panel1')
             ->with('status', 'Settings updated.')
+            ->withInput();
+    }
+
+    public function storeJobStatus(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
+
+        if (! $tenant || ! $tenantId || ! $branchId) {
+            return back()
+                ->withErrors(['status_name' => 'Tenant or branch context is missing.'])
+                ->withInput();
+        }
+
+        $validated = $request->validate([
+            'status_name' => ['required', 'string', 'max:255'],
+            'status_slug' => ['required', 'string', 'max:64'],
+            'status_description' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'invoice_label' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status_status' => ['sometimes', 'in:active,inactive'],
+            'statusEmailMessage' => ['sometimes', 'nullable', 'string', 'max:10000'],
+        ]);
+
+        $slug = Str::of((string) $validated['status_slug'])
+            ->trim()
+            ->lower()
+            ->replace(' ', '_')
+            ->replace('-', '_')
+            ->replaceMatches('/[^a-z0-9_]/', '')
+            ->toString();
+
+        if ($slug === '') {
+            return back()
+                ->withErrors(['status_slug' => 'Status slug is invalid.'])
+                ->withInput();
+        }
+
+        $exists = RepairBuddyJobStatus::query()->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
+            ->where('slug', $slug)
+            ->exists();
+
+        if ($exists) {
+            return back()
+                ->withErrors(['status_slug' => 'This status slug already exists.'])
+                ->withInput();
+        }
+
+        $emailTemplate = array_key_exists('statusEmailMessage', $validated) ? $validated['statusEmailMessage'] : null;
+        if (is_string($emailTemplate)) {
+            $emailTemplate = trim($emailTemplate);
+            if ($emailTemplate === '') {
+                $emailTemplate = null;
+            }
+        }
+
+        RepairBuddyJobStatus::query()->create([
+            'slug' => $slug,
+            'label' => (string) $validated['status_name'],
+            'invoice_label' => array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null,
+            'is_active' => (string) ($validated['status_status'] ?? 'active') === 'active',
+            'email_enabled' => $emailTemplate !== null,
+            'email_template' => $emailTemplate,
+            'sms_enabled' => false,
+        ]);
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('panel3')
+            ->with('status', 'Job status created.')
             ->withInput();
     }
 
@@ -1556,7 +1631,6 @@ class TenantDashboardController extends Controller
             ];
 
             $settingsTabs = [
-                ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'heading' => __('Pages Setup')],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
                 ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'heading' => __('Booking Settings')],
                 ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'heading' => __('Service Settings')],
@@ -2607,16 +2681,32 @@ class TenantDashboardController extends Controller
             }
             ksort($countries);
 
-            $currencyOptions = [
-                'USD' => 'USD',
-                'EUR' => 'EUR',
-                'GBP' => 'GBP',
-                'ZAR' => 'ZAR',
-            ];
+            $currencyOptions = [];
+            if (class_exists(\Symfony\Component\Intl\Currencies::class)) {
+                $currencyOptions = \Symfony\Component\Intl\Currencies::getNames('en');
+                if (is_array($currencyOptions)) {
+                    $currencyOptions = collect($currencyOptions)
+                        ->mapWithKeys(fn ($label, $code) => [(string) $code => sprintf('%s — %s', (string) $code, (string) $label)])
+                        ->all();
+                } else {
+                    $currencyOptions = [];
+                }
+            }
+            if (empty($currencyOptions)) {
+                $currencyOptions = [
+                    'USD' => 'USD',
+                    'EUR' => 'EUR',
+                    'GBP' => 'GBP',
+                    'ZAR' => 'ZAR',
+                ];
+            }
+
             $tenantCurrency = is_string($tenant?->currency) ? (string) $tenant?->currency : '';
             if ($tenantCurrency !== '' && ! array_key_exists($tenantCurrency, $currencyOptions)) {
                 $currencyOptions[$tenantCurrency] = $tenantCurrency;
             }
+
+            ksort($currencyOptions);
 
             $currencyPositionOptions = [
                 'left' => __('Left'),
@@ -2631,6 +2721,55 @@ class TenantDashboardController extends Controller
                 ->get()
                 ->mapWithKeys(fn ($s) => [(string) $s->slug => (string) $s->label])
                 ->all();
+
+            $tenantIdForDashboard = TenantContext::tenantId();
+            $branchIdForDashboard = BranchContext::branchId();
+
+            $jobStatusCounts = [];
+            if ($tenantIdForDashboard && $branchIdForDashboard) {
+                $jobStatusCounts = RepairBuddyJob::query()
+                    ->where('tenant_id', $tenantIdForDashboard)
+                    ->where('branch_id', $branchIdForDashboard)
+                    ->selectRaw('status_slug, COUNT(*) as aggregate')
+                    ->groupBy('status_slug')
+                    ->pluck('aggregate', 'status_slug')
+                    ->map(fn ($v) => (int) $v)
+                    ->all();
+            }
+
+            $estimateCounts = [
+                'pending' => 0,
+                'approved' => 0,
+                'rejected' => 0,
+            ];
+            if ($tenantIdForDashboard && $branchIdForDashboard) {
+                $rawEstimateCounts = RepairBuddyEstimate::query()
+                    ->where('tenant_id', $tenantIdForDashboard)
+                    ->where('branch_id', $branchIdForDashboard)
+                    ->selectRaw('status, COUNT(*) as aggregate')
+                    ->groupBy('status')
+                    ->pluck('aggregate', 'status')
+                    ->map(fn ($v) => (int) $v)
+                    ->all();
+
+                foreach ($estimateCounts as $k => $_) {
+                    $estimateCounts[$k] = (int) ($rawEstimateCounts[$k] ?? 0);
+                }
+            }
+
+            $dashoutputHtml = '';
+            try {
+                $dashoutputHtml = view('tenant.settings.sections.dashboard-content', [
+                    'tenant' => $tenant,
+                    'user' => $user,
+                    'jobStatusOptions' => $jobStatusOptions,
+                    'jobStatusCounts' => $jobStatusCounts,
+                    'estimateCounts' => $estimateCounts,
+                    'dashboardBaseUrl' => $tenant?->slug ? route('tenant.dashboard', ['business' => $tenant->slug]) : '#',
+                ])->render();
+            } catch (\Throwable $e) {
+                $dashoutputHtml = '';
+            }
 
             return view('tenant.settings.index', [
                 'tenant' => $tenant,
@@ -2698,7 +2837,7 @@ class TenantDashboardController extends Controller
                 'nonce_currency_setting_html' => '',
                 'nonce_report_setting_html' => '',
                 'nonce_delivered_status_html' => '',
-                'dashoutput_html' => '',
+                'dashoutput_html' => $dashoutputHtml,
                 'countries_options_html' => '',
                 'countries' => $countries,
                 'currencyOptions' => $currencyOptions,
