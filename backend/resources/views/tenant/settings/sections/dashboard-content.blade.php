@@ -16,7 +16,7 @@
 			['label' => __('Payments'), 'image' => 'payments.png', 'screen' => 'payments'],
 			['label' => __('Services'), 'image' => 'services.png', 'screen' => 'services'],
 			['label' => __('Parts'), 'image' => 'parts.png', 'screen' => 'parts'],
-			['label' => __('Devices'), 'image' => 'devices', 'screen' => 'devices'],
+			['label' => __('Devices'), 'image' => 'devices.png', 'screen' => 'devices'],
 			['label' => __('Device Brands'), 'image' => 'manufacture.png', 'screen' => 'device_brands'],
 			['label' => __('Device Type'), 'image' => 'types.png', 'screen' => 'device_types'],
 			['label' => __('Customers'), 'image' => 'clients.png', 'screen' => 'customers'],
