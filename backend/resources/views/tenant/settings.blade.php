@@ -14,6 +14,11 @@
 	<script>
 		if (window.jQuery && window.jQuery.fn && window.jQuery.fn.foundation) {
 			window.jQuery(document).foundation();
+		} else if (typeof Foundation !== 'undefined') {
+			try {
+				Foundation.reInit(document);
+			} catch (e) {
+			}
 
 			(function ($) {
 				var $tabs = $('#example-tabs');
@@ -70,6 +75,37 @@
 				});
 			})(window.jQuery);
 		}
+
+		document.addEventListener('click', function (e) {
+			var el = e.target;
+			if (!(el instanceof Element)) {
+				return;
+			}
+			var trigger = el.closest('[data-open]');
+			if (!trigger) {
+				return;
+			}
+			var id = trigger.getAttribute('data-open');
+			if (!id) {
+				return;
+			}
+			var modalEl = document.getElementById(id);
+			if (!modalEl) {
+				return;
+			}
+			if (typeof Foundation === 'undefined' || !Foundation.Reveal) {
+				return;
+			}
+			try {
+				e.preventDefault();
+				var instance = Foundation.getFn(modalEl, 'reveal');
+				if (!instance) {
+					instance = new Foundation.Reveal(modalEl);
+				}
+				instance.open();
+			} catch (err) {
+			}
+		});
 	</script>
 @endpush
 

@@ -61,6 +61,10 @@ Route::prefix('t/{business}')
         Route::post('/settings/job-status/statuses', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeJobStatus'])
             ->name('tenant.settings.job_status.store');
 
+        Route::post('/settings/job-status/statuses/{status}/update', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateJobStatus'])
+            ->where(['status' => '[0-9]+' ])
+            ->name('tenant.settings.job_status.statuses.update');
+
         Route::post('/settings/pages-setup', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePagesSetup'])
             ->name('tenant.settings.pages_setup.update');
 

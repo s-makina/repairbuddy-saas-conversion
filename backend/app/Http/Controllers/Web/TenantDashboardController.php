@@ -397,6 +397,58 @@ class TenantDashboardController extends Controller
             ->withInput();
     }
 
+    public function updateJobStatus(Request $request, int $status)
+    {
+        $tenant = TenantContext::tenant();
+        $tenantId = TenantContext::tenantId();
+
+        if (! $tenant || ! $tenantId) {
+            return back()
+                ->withErrors(['status_name' => 'Tenant context is missing.'])
+                ->withInput();
+        }
+
+        $jobStatus = RepairBuddyJobStatus::query()
+            ->where('tenant_id', $tenantId)
+            ->where('id', $status)
+            ->first();
+
+        if (! $jobStatus) {
+            return back()
+                ->withErrors(['status_name' => 'Job status not found.'])
+                ->withInput();
+        }
+
+        $validated = $request->validate([
+            'status_name' => ['required', 'string', 'max:255'],
+            'invoice_label' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status_status' => ['sometimes', 'in:active,inactive'],
+            'statusEmailMessage' => ['sometimes', 'nullable', 'string', 'max:10000'],
+        ]);
+
+        $emailTemplate = array_key_exists('statusEmailMessage', $validated) ? $validated['statusEmailMessage'] : null;
+        if (is_string($emailTemplate)) {
+            $emailTemplate = trim($emailTemplate);
+            if ($emailTemplate === '') {
+                $emailTemplate = null;
+            }
+        }
+
+        $jobStatus->forceFill([
+            'label' => (string) $validated['status_name'],
+            'invoice_label' => array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null,
+            'is_active' => (string) ($validated['status_status'] ?? ($jobStatus->is_active ? 'active' : 'inactive')) === 'active',
+            'email_enabled' => $emailTemplate !== null,
+            'email_template' => $emailTemplate,
+        ])->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+            ->withFragment('panel3')
+            ->with('status', 'Job status updated.')
+            ->withInput();
+    }
+
     public function updateCurrencySettings(Request $request)
     {
         $tenant = TenantContext::tenant();
@@ -513,11 +565,10 @@ class TenantDashboardController extends Controller
     public function updateJobStatusSettings(Request $request)
     {
         $tenantId = TenantContext::tenantId();
-        $branchId = BranchContext::branchId();
         $tenant = TenantContext::tenant();
 
-        if (! $tenantId || ! $branchId || ! $tenant instanceof Tenant) {
-            abort(400, 'Tenant or branch context is missing.');
+        if (! $tenantId || ! $tenant instanceof Tenant) {
+            abort(400, 'Tenant context is missing.');
         }
 
         $validated = $request->validate([
@@ -536,10 +587,35 @@ class TenantDashboardController extends Controller
             $jobStatus = [];
         }
 
+        $allowedSlugs = RepairBuddyJobStatus::query()
+            ->select('slug')
+            ->orderBy('id')
+            ->pluck('slug')
+            ->map(fn ($v) => (string) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        $allowedSlugSet = array_fill_keys($allowedSlugs, true);
+
         foreach (['wcrb_job_status_delivered', 'wcrb_job_status_cancelled'] as $k) {
-            if (array_key_exists($k, $validated)) {
-                $jobStatus[$k] = $validated[$k];
+            if (! array_key_exists($k, $validated)) {
+                continue;
             }
+
+            $value = $validated[$k];
+            if (! is_string($value)) {
+                $jobStatus[$k] = null;
+                continue;
+            }
+
+            $value = trim($value);
+            if ($value === '' || ! isset($allowedSlugSet[$value])) {
+                $jobStatus[$k] = null;
+                continue;
+            }
+
+            $jobStatus[$k] = $value;
         }
 
         $repairBuddySettings['jobStatus'] = $jobStatus;
@@ -1350,7 +1426,7 @@ class TenantDashboardController extends Controller
 
         return redirect()
             ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
-            ->withFragment('wc_rb_page_settings')
+            ->withFragment('panel1')
             ->with('status', 'Settings updated.')
             ->withInput();
     }
@@ -1850,7 +1926,6 @@ class TenantDashboardController extends Controller
             ];
 
             $settingsTabs = [
-                ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'heading' => __('Pages Setup')],
                 ['id' => 'wc_rb_payment_status', 'label' => __('Payment Status'), 'heading' => __('Payment Status')],
                 ['id' => 'wc_rb_page_sms_IDENTIFIER', 'label' => __('SMS'), 'heading' => __('SMS')],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'heading' => __('Brands & Devices')],
@@ -2292,7 +2367,7 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '<h2>' . e($heading) . '</h2>';
 
                     $settingsTabBodyHtml .= '<p class="help-text">';
-                    $settingsTabBodyHtml .= '<a class="button button-primary button-small" data-open="paymentStatusFormReveal">' . e(__('Add New Payment Status')) . '</a>';
+                    $settingsTabBodyHtml .= '<a class="button button-primary button-small" data-bs-toggle="modal" data-bs-target="#paymentStatusFormModal">' . e(__('Add New Payment Status')) . '</a>';
                     $settingsTabBodyHtml .= '</p>';
 
                     $settingsTabBodyHtml .= '<div id="payment_status_wrapper">';
@@ -2318,7 +2393,7 @@ class TenantDashboardController extends Controller
                             $settingsTabBodyHtml .= '<td>' . e((string) $ps->id) . '</td>';
                             $settingsTabBodyHtml .= '<td><strong>' . e((string) $ps->label) . '</strong></td>';
                             $settingsTabBodyHtml .= '<td>' . e((string) $ps->slug) . '</td>';
-                            $settingsTabBodyHtml .= '<td>' . e((string) ($ps->description ?? '')) . '</td>';
+                            $settingsTabBodyHtml .= '<td></td>';
 
                             $settingsTabBodyHtml .= '<td>';
                             $settingsTabBodyHtml .= '<a href="#" title="' . e(__('Change Status')) . '" class="change_tax_status" data-type="paymentStatus" data-value="' . e((string) $ps->id) . '">' . e($ps->is_active ? 'active' : 'inactive') . '</a>';
@@ -2344,42 +2419,41 @@ class TenantDashboardController extends Controller
                     $buttonLabel = $modalLabel;
                     $statusName = $selectedPaymentStatus?->label ?? '';
                     $statusSlug = $selectedPaymentStatus?->slug ?? '';
-                    $statusDescription = $selectedPaymentStatus?->description ?? '';
+                    $statusDescription = '';
                     $statusStatus = ($selectedPaymentStatus?->is_active ?? true) ? 'active' : 'inactive';
 
-                    $settingsTabBodyHtml .= '<div class="small reveal" id="paymentStatusFormReveal" data-reveal>';
-                    $settingsTabBodyHtml .= '<h2>' . e($modalLabel) . ' ' . e(__('Payment status')) . '</h2>';
+                    $settingsTabBodyHtml .= '<div class="modal fade" id="paymentStatusFormModal" tabindex="-1" aria-hidden="true">';
+                    $settingsTabBodyHtml .= '<div class="modal-dialog modal-lg">';
+                    $settingsTabBodyHtml .= '<div class="modal-content">';
+                    $settingsTabBodyHtml .= '<div class="modal-header">';
+                    $settingsTabBodyHtml .= '<h5 class="modal-title">' . e($modalLabel) . ' ' . e(__('Payment status')) . '</h5>';
+                    $settingsTabBodyHtml .= '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '<div class="modal-body">';
                     $settingsTabBodyHtml .= '<div class="form-message"></div>';
-                    $settingsTabBodyHtml .= '<form data-abide class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.payment_status.save', ['business' => $tenant->slug]) : '#') . '">';
+                    $settingsTabBodyHtml .= '<form class="needs-validation" novalidate method="post" action="' . e($tenant?->slug ? route('tenant.settings.payment_status.save', ['business' => $tenant->slug]) : '#') . '">';
                     $settingsTabBodyHtml .= '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
 
-                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
-                    $settingsTabBodyHtml .= '<div class="cell"><div data-abide-error class="alert callout" style="display:none;"><p>' . e(__('There are some errors in your form.')) . '</p></div></div>';
+                    $settingsTabBodyHtml .= '<div class="row g-3">';
+                    $settingsTabBodyHtml .= '<div class="col-md-6">';
+                    $settingsTabBodyHtml .= '<label for="payment_status_name" class="form-label">' . e(__('Status Name')) . ' *</label>';
+                    $settingsTabBodyHtml .= '<input name="payment_status_name" type="text" class="form-control" value="' . e(old('payment_status_name', $statusName)) . '" required id="payment_status_name" />';
                     $settingsTabBodyHtml .= '</div>';
-
-                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
-                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Status Name')) . '*';
-                    $settingsTabBodyHtml .= '<input name="payment_status_name" type="text" class="form-control login-field" value="' . e(old('payment_status_name', $statusName)) . '" required id="payment_status_name" />';
-                    $settingsTabBodyHtml .= '<span class="form-error">' . e(__('Name the status to recognize.')) . '</span>';
-                    $settingsTabBodyHtml .= '</label></div>';
-
-                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Status Slug')) . '*';
-                    $settingsTabBodyHtml .= '<input name="payment_status_slug" type="text" class="form-control login-field" value="' . e(old('payment_status_slug', $statusSlug)) . '" required id="payment_status_slug" />';
-                    $settingsTabBodyHtml .= '<span class="form-error">' . e(__('Slug is required to recognize the status make sure to not change it.')) . '</span>';
-                    $settingsTabBodyHtml .= '</label></div>';
+                    $settingsTabBodyHtml .= '<div class="col-md-6">';
+                    $settingsTabBodyHtml .= '<label for="payment_status_slug" class="form-label">' . e(__('Status Slug')) . ' *</label>';
+                    $settingsTabBodyHtml .= '<input name="payment_status_slug" type="text" class="form-control" value="' . e(old('payment_status_slug', $statusSlug)) . '" required id="payment_status_slug" />';
                     $settingsTabBodyHtml .= '</div>';
-
-                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
-                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Description'));
-                    $settingsTabBodyHtml .= '<input name="payment_status_description" type="text" class="form-control login-field" value="' . e(old('payment_status_description', $statusDescription)) . '" id="payment_status_description" />';
-                    $settingsTabBodyHtml .= '</label></div>';
-
-                    $settingsTabBodyHtml .= '<div class="cell medium-6"><label>' . e(__('Status'));
-                    $settingsTabBodyHtml .= '<select class="form-control form-select" name="payment_status_status">';
+                    $settingsTabBodyHtml .= '<div class="col-md-6">';
+                    $settingsTabBodyHtml .= '<label for="payment_status_description" class="form-label">' . e(__('Description')) . '</label>';
+                    $settingsTabBodyHtml .= '<input name="payment_status_description" type="text" class="form-control" value="' . e(old('payment_status_description', $statusDescription)) . '" id="payment_status_description" />';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '<div class="col-md-6">';
+                    $settingsTabBodyHtml .= '<label class="form-label">' . e(__('Status')) . '</label>';
+                    $settingsTabBodyHtml .= '<select class="form-select" name="payment_status_status">';
                     $settingsTabBodyHtml .= '<option value="active"' . ((string) old('payment_status_status', $statusStatus) === 'active' ? ' selected' : '') . '>' . e(__('Active')) . '</option>';
                     $settingsTabBodyHtml .= '<option value="inactive"' . ((string) old('payment_status_status', $statusStatus) === 'inactive' ? ' selected' : '') . '>' . e(__('Inactive')) . '</option>';
                     $settingsTabBodyHtml .= '</select>';
-                    $settingsTabBodyHtml .= '</label></div>';
+                    $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
 
                     $settingsTabBodyHtml .= '<input name="form_type" type="hidden" value="payment_status_form" />';
@@ -2390,18 +2464,27 @@ class TenantDashboardController extends Controller
                         $settingsTabBodyHtml .= '<input name="form_type_status_payment" type="hidden" value="add" />';
                     }
 
-                    $settingsTabBodyHtml .= '<div class="grid-x grid-margin-x">';
-                    $settingsTabBodyHtml .= '<fieldset class="cell medium-6">';
-                    $settingsTabBodyHtml .= '<button class="button" type="submit">' . e($buttonLabel) . '</button>';
-                    $settingsTabBodyHtml .= '</fieldset>';
-                    $settingsTabBodyHtml .= '<small>(*) ' . e(__('fields are required')) . '</small>';
+                    $settingsTabBodyHtml .= '<div class="mt-3 d-flex justify-content-end gap-2">';
+                    $settingsTabBodyHtml .= '<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">' . e(__('Cancel')) . '</button>';
+                    $settingsTabBodyHtml .= '<button class="btn btn-primary" type="submit">' . e($buttonLabel) . '</button>';
                     $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</form>';
-                    $settingsTabBodyHtml .= '<button class="close-button" data-close aria-label="Close modal" type="button"><span aria-hidden="true">&times;</span></button>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
+                    $settingsTabBodyHtml .= '</div>';
                     $settingsTabBodyHtml .= '</div>';
 
                     if ($selectedPaymentStatus) {
-                        $settingsTabBodyHtml .= '<div id="updatePaymentStatus"></div>';
+                        $settingsTabBodyHtml .= '<script>';
+                        $settingsTabBodyHtml .= 'document.addEventListener("DOMContentLoaded", function () {';
+                        $settingsTabBodyHtml .= '  try {';
+                        $settingsTabBodyHtml .= '    if (typeof bootstrap !== "undefined" && bootstrap.Modal) {';
+                        $settingsTabBodyHtml .= '      var el = document.getElementById("paymentStatusFormModal");';
+                        $settingsTabBodyHtml .= '      if (el) { bootstrap.Modal.getOrCreateInstance(el).show(); }';
+                        $settingsTabBodyHtml .= '    }';
+                        $settingsTabBodyHtml .= '  } catch (e) {}';
+                        $settingsTabBodyHtml .= '});';
+                        $settingsTabBodyHtml .= '</script>';
                     }
 
                     $settingsTabBodyHtml .= '<div class="wc-rb-payment-methods">';
@@ -2431,11 +2514,24 @@ class TenantDashboardController extends Controller
                         if ($theName === '' || $theLabel === '') {
                             continue;
                         }
-                        $checked = in_array($theName, $defaultMethods, true) ? ' checked' : '';
-                        $settingsTabBodyHtml .= ($theDescription !== '') ? '<br>' : '';
-                        $settingsTabBodyHtml .= '<label for="' . e($theName) . '"><input' . $checked . ' id="' . e($theName) . '" name="wc_rb_payment_method[]" value="' . e($theName) . '" type="checkbox">' . e($theLabel);
-                        $settingsTabBodyHtml .= ($theDescription !== '') ? ' <small>' . e($theDescription) . '</small>' : '';
-                        $settingsTabBodyHtml .= '</label>';
+                        $checked = in_array($theName, $defaultMethods, true);
+                        $settingsTabBodyHtml .= '<div class="wcrb-settings-option" style="padding: 10px 0; border-bottom: 0;">';
+                        $settingsTabBodyHtml .= '<div class="wcrb-settings-option-head" style="gap: 18px;">';
+                        $settingsTabBodyHtml .= '<div class="wcrb-settings-option-control" style="gap: 12px;">';
+                        $settingsTabBodyHtml .= view('components.settings.toggle', [
+                            'name' => 'wc_rb_payment_method[]',
+                            'id' => $theName,
+                            'checked' => $checked,
+                            'uncheckedValue' => '',
+                            'value' => $theName,
+                        ])->render();
+                        $settingsTabBodyHtml .= '</div>';
+                        $settingsTabBodyHtml .= '<label for="' . e($theName) . '" class="wcrb-settings-option-title">' . e($theLabel) . '</label>';
+                        $settingsTabBodyHtml .= '</div>';
+                        if ($theDescription !== '') {
+                            $settingsTabBodyHtml .= '<p class="description">' . e($theDescription) . '</p>';
+                        }
+                        $settingsTabBodyHtml .= '</div>';
                     }
 
                     $settingsTabBodyHtml .= '</fieldset>';

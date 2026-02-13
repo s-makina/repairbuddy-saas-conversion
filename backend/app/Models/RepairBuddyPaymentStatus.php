@@ -17,6 +17,7 @@ class RepairBuddyPaymentStatus extends Model
         'tenant_id',
         'slug',
         'label',
+        'description',
         'email_template',
         'is_active',
     ];
