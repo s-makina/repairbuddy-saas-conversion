@@ -28,10 +28,10 @@ class ReviewsSettingsController extends Controller
             $reviews = [];
         }
 
-        $reviews['requestBySms'] = array_key_exists('request_by_sms', $validated);
-        $reviews['requestByEmail'] = array_key_exists('request_by_email', $validated);
+        $reviews['requestBySms'] = (string) ($validated['request_by_sms'] ?? 'off') === 'on';
+        $reviews['requestByEmail'] = (string) ($validated['request_by_email'] ?? 'off') === 'on';
 
-        foreach (['get_feedback_page_url', 'send_request_job_status', 'auto_request_interval', 'email_subject', 'email_message', 'sms_message'] as $k) {
+        foreach (['send_request_job_status', 'auto_request_interval', 'email_subject', 'email_message', 'sms_message'] as $k) {
             if (array_key_exists($k, $validated)) {
                 $reviews[$k] = $validated[$k];
             }

@@ -28,8 +28,8 @@ class AccountSettingsController extends Controller
             $account = [];
         }
 
-        $account['customerRegistration'] = array_key_exists('customer_registration', $validated);
-        $account['accountApprovalRequired'] = array_key_exists('account_approval_required', $validated);
+        $account['customerRegistration'] = (string) ($validated['customer_registration'] ?? 'off') === 'on';
+        $account['accountApprovalRequired'] = (string) ($validated['account_approval_required'] ?? 'off') === 'on';
         $account['defaultCustomerRole'] = $validated['default_customer_role'] ?? 'customer';
 
         $store->set('account', $account);

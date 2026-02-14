@@ -7,6 +7,7 @@ use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyTax;
+use App\Models\Role;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Services\TenantSettings\TenantSettingsStore;
@@ -206,11 +207,38 @@ class SettingsScreenViewModel
         $estimateRejectEmailSubjectAdminUi = (string) ($estimatesSettings['estimate_reject_email_subject_to_admin'] ?? '');
         $estimateRejectEmailBodyAdminUi = (string) ($estimatesSettings['estimate_reject_email_body_to_admin'] ?? '');
 
-        $customerRegistrationUi = (bool) ($accountSettings['customerRegistration'] ?? false);
-        $accountApprovalRequiredUi = (bool) ($accountSettings['accountApprovalRequired'] ?? false);
+        $customerRegistrationUi = array_key_exists('customerRegistration', $accountSettings)
+            ? (bool) $accountSettings['customerRegistration']
+            : true;
+        $accountApprovalRequiredUi = array_key_exists('accountApprovalRequired', $accountSettings)
+            ? (bool) $accountSettings['accountApprovalRequired']
+            : true;
         $defaultCustomerRoleUi = (string) ($accountSettings['defaultCustomerRole'] ?? 'customer');
-        if (! in_array($defaultCustomerRoleUi, ['customer', 'vip_customer'], true)) {
-            $defaultCustomerRoleUi = 'customer';
+
+        $roleNames = $tenantId
+            ? Role::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('name')
+                ->pluck('name')
+                ->map(fn ($n) => (string) $n)
+                ->filter(fn ($n) => trim($n) !== '')
+                ->values()
+                ->all()
+            : [];
+
+        $fallbackRoleNames = ['customer', 'vip_customer'];
+        if (empty($roleNames)) {
+            $roleNames = $fallbackRoleNames;
+        } else {
+            $roleNames = array_values(array_unique(array_merge($fallbackRoleNames, $roleNames)));
+        }
+
+        $customerRoleOptionsUi = collect($roleNames)
+            ->mapWithKeys(fn (string $name) => [$name => ucwords(str_replace('_', ' ', $name))])
+            ->all();
+
+        if (! in_array($defaultCustomerRoleUi, $roleNames, true)) {
+            $defaultCustomerRoleUi = $roleNames[0] ?? 'customer';
         }
 
         $signatureRequiredUi = (bool) ($signatureSettings['required'] ?? false);
@@ -219,6 +247,32 @@ class SettingsScreenViewModel
             $signatureTypeUi = 'draw';
         }
         $signatureTermsUi = is_string($signatureSettings['terms'] ?? null) ? (string) $signatureSettings['terms'] : '';
+
+        $signaturePickupEnabledUi = (bool) ($signatureSettings['pickup_enabled'] ?? false);
+        $signaturePickupTriggerStatusUi = (string) ($signatureSettings['pickup_trigger_status'] ?? '');
+        $signaturePickupEmailSubjectUi = (string) ($signatureSettings['pickup_email_subject'] ?? 'Signature Required: Device Pickup Authorization');
+        $signaturePickupEmailTemplateUi = (string) ($signatureSettings['pickup_email_template'] ?? '');
+        if (trim($signaturePickupEmailTemplateUi) === '') {
+            $signaturePickupEmailTemplateUi = "Hello {{customer_full_name}},\n\nPlease sign to authorize the pickup of your device: {{customer_device_label}}\n\nJob ID: {{job_id}}\nCase Number: {{case_number}}\n\nPlease click the link below to sign the pickup authorization:\n{{pickup_signature_url}}\n\nThank you,";
+        }
+        $signaturePickupSmsTextUi = (string) ($signatureSettings['pickup_sms_text'] ?? '');
+        if (trim($signaturePickupSmsTextUi) === '') {
+            $signaturePickupSmsTextUi = 'Hello {{customer_full_name}}, please sign pickup authorization for your device {{customer_device_label}}. Signature link: {{pickup_signature_url}}';
+        }
+        $signaturePickupAfterStatusUi = (string) ($signatureSettings['pickup_after_status'] ?? '');
+
+        $signatureDeliveryEnabledUi = (bool) ($signatureSettings['delivery_enabled'] ?? false);
+        $signatureDeliveryTriggerStatusUi = (string) ($signatureSettings['delivery_trigger_status'] ?? '');
+        $signatureDeliveryEmailSubjectUi = (string) ($signatureSettings['delivery_email_subject'] ?? 'Signature Required: Device Delivery Confirmation');
+        $signatureDeliveryEmailTemplateUi = (string) ($signatureSettings['delivery_email_template'] ?? '');
+        if (trim($signatureDeliveryEmailTemplateUi) === '') {
+            $signatureDeliveryEmailTemplateUi = "Hello {{customer_full_name}},\n\nPlease sign to confirm the delivery of your repaired device: {{customer_device_label}}\n\nJob ID: {{job_id}}\nCase Number: {{case_number}}\n\nPlease click the link below to sign the delivery confirmation:\n{{delivery_signature_url}}\n\nThank you,";
+        }
+        $signatureDeliverySmsTextUi = (string) ($signatureSettings['delivery_sms_text'] ?? '');
+        if (trim($signatureDeliverySmsTextUi) === '') {
+            $signatureDeliverySmsTextUi = 'Hello {{customer_full_name}}, please sign delivery confirmation for your device {{customer_device_label}}. Signature link: {{delivery_signature_url}}';
+        }
+        $signatureDeliveryAfterStatusUi = (string) ($signatureSettings['delivery_after_status'] ?? '');
 
         $smsActiveUi = (bool) ($smsSettings['activateSmsForSelectiveStatuses'] ?? false);
         if (! $smsActiveUi) {
@@ -262,17 +316,31 @@ class SettingsScreenViewModel
         $primaryColorUi = (string) ($stylingSettings['primary_color'] ?? '#063e70');
         $secondaryColorUi = (string) ($stylingSettings['secondary_color'] ?? '#fd6742');
 
-        $reviewsRequestBySmsUi = (bool) ($reviewsSettings['requestBySms'] ?? false);
-        $reviewsRequestByEmailUi = (bool) ($reviewsSettings['requestByEmail'] ?? false);
-        $reviewsFeedbackPageUrlUi = (string) ($reviewsSettings['get_feedback_page_url'] ?? '');
+        $reviewsRequestBySmsUi = array_key_exists('requestBySms', $reviewsSettings)
+            ? (bool) $reviewsSettings['requestBySms']
+            : true;
+        $reviewsRequestByEmailUi = array_key_exists('requestByEmail', $reviewsSettings)
+            ? (bool) $reviewsSettings['requestByEmail']
+            : true;
         $reviewsSendOnStatusUi = (string) ($reviewsSettings['send_request_job_status'] ?? '');
         $reviewsIntervalUi = (string) ($reviewsSettings['auto_request_interval'] ?? 'disabled');
         if (! in_array($reviewsIntervalUi, ['disabled', 'one-notification', 'two-notifications'], true)) {
             $reviewsIntervalUi = 'disabled';
         }
         $reviewsEmailSubjectUi = (string) ($reviewsSettings['email_subject'] ?? __('How would you rate the service you received?'));
-        $reviewsEmailMessageUi = (string) ($reviewsSettings['email_message'] ?? '');
-        $reviewsSmsMessageUi = (string) ($reviewsSettings['sms_message'] ?? '');
+
+        $defaultReviewsEmailMessage = (string) __('Hi {{customer_full_name}},')
+            . "\n\n"
+            . (string) __('Thanks for choosing us. We would love to hear your feedback about your repair job {{case_number}}.')
+            . "\n\n"
+            . (string) __('Please leave a review here: {{feedback_link}}')
+            . "\n\n"
+            . (string) __('Thank you!');
+
+        $defaultReviewsSmsMessage = (string) __('Thanks for choosing us. Please leave a review for job {{case_number}}: {{feedback_link}}');
+
+        $reviewsEmailMessageUi = (string) ($reviewsSettings['email_message'] ?? $defaultReviewsEmailMessage);
+        $reviewsSmsMessageUi = (string) ($reviewsSettings['sms_message'] ?? $defaultReviewsSmsMessage);
 
         $jobStatusesForReviews = Status::query()->where('status_type', 'Job')->orderBy('label')->limit(500)->get();
 
@@ -620,7 +688,6 @@ class SettingsScreenViewModel
             'secondaryColorUi' => $secondaryColorUi,
             'reviewsRequestBySmsUi' => $reviewsRequestBySmsUi,
             'reviewsRequestByEmailUi' => $reviewsRequestByEmailUi,
-            'reviewsFeedbackPageUrlUi' => $reviewsFeedbackPageUrlUi,
             'reviewsSendOnStatusUi' => $reviewsSendOnStatusUi,
             'reviewsIntervalUi' => $reviewsIntervalUi,
             'reviewsEmailSubjectUi' => $reviewsEmailSubjectUi,
@@ -630,9 +697,22 @@ class SettingsScreenViewModel
             'customerRegistrationUi' => $customerRegistrationUi,
             'accountApprovalRequiredUi' => $accountApprovalRequiredUi,
             'defaultCustomerRoleUi' => $defaultCustomerRoleUi,
+            'customerRoleOptionsUi' => $customerRoleOptionsUi,
             'signatureRequiredUi' => $signatureRequiredUi,
             'signatureTypeUi' => $signatureTypeUi,
             'signatureTermsUi' => $signatureTermsUi,
+            'signaturePickupEnabledUi' => $signaturePickupEnabledUi,
+            'signaturePickupTriggerStatusUi' => $signaturePickupTriggerStatusUi,
+            'signaturePickupEmailSubjectUi' => $signaturePickupEmailSubjectUi,
+            'signaturePickupEmailTemplateUi' => $signaturePickupEmailTemplateUi,
+            'signaturePickupSmsTextUi' => $signaturePickupSmsTextUi,
+            'signaturePickupAfterStatusUi' => $signaturePickupAfterStatusUi,
+            'signatureDeliveryEnabledUi' => $signatureDeliveryEnabledUi,
+            'signatureDeliveryTriggerStatusUi' => $signatureDeliveryTriggerStatusUi,
+            'signatureDeliveryEmailSubjectUi' => $signatureDeliveryEmailSubjectUi,
+            'signatureDeliveryEmailTemplateUi' => $signatureDeliveryEmailTemplateUi,
+            'signatureDeliverySmsTextUi' => $signatureDeliverySmsTextUi,
+            'signatureDeliveryAfterStatusUi' => $signatureDeliveryAfterStatusUi,
             'settings_tab_menu_items_html' => '',
             'settings_tab_body_html' => '',
             'paymentStatuses' => $paymentStatuses,

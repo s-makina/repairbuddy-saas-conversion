@@ -14,9 +14,8 @@ class UpdateReviewsSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'request_by_sms' => ['sometimes', 'nullable', 'in:on'],
-            'request_by_email' => ['sometimes', 'nullable', 'in:on'],
-            'get_feedback_page_url' => ['nullable', 'string', 'max:2048'],
+            'request_by_sms' => ['nullable', 'in:on,off'],
+            'request_by_email' => ['nullable', 'in:on,off'],
             'send_request_job_status' => ['nullable', 'string', 'max:64'],
             'auto_request_interval' => ['nullable', 'in:disabled,one-notification,two-notifications'],
             'email_subject' => ['nullable', 'string', 'max:255'],

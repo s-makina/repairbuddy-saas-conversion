@@ -133,7 +133,7 @@
       'id' => 'profile',
       'title' => 'Profile',
       'icon' => 'bi bi-person-circle',
-      'url' => route('tenant.profile.edit', ['business' => $tenant->slug]),
+      'url' => $tenantSlug ? route('tenant.profile.edit', ['business' => $tenantSlug]) : '#',
       'access' => ['all'],
       'extra_class' => 'mt-3',
     ],
@@ -164,6 +164,8 @@
 
   if (request()->routeIs('tenant.settings')) {
     $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.profile.*')) {
+    $currentPage = 'profile';
   }
 @endphp
 

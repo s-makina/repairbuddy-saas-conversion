@@ -32,6 +32,20 @@ class SignatureSettingsController extends Controller
         $signature['type'] = $validated['signature_type'] ?? 'draw';
         $signature['terms'] = $validated['signature_terms'] ?? null;
 
+		$signature['pickup_enabled'] = (bool) ($validated['pickup_enabled'] ?? false);
+		$signature['pickup_trigger_status'] = (string) ($validated['pickup_trigger_status'] ?? '');
+		$signature['pickup_email_subject'] = (string) ($validated['pickup_email_subject'] ?? '');
+		$signature['pickup_email_template'] = (string) ($validated['pickup_email_template'] ?? '');
+		$signature['pickup_sms_text'] = (string) ($validated['pickup_sms_text'] ?? '');
+		$signature['pickup_after_status'] = (string) ($validated['pickup_after_status'] ?? '');
+
+		$signature['delivery_enabled'] = (bool) ($validated['delivery_enabled'] ?? false);
+		$signature['delivery_trigger_status'] = (string) ($validated['delivery_trigger_status'] ?? '');
+		$signature['delivery_email_subject'] = (string) ($validated['delivery_email_subject'] ?? '');
+		$signature['delivery_email_template'] = (string) ($validated['delivery_email_template'] ?? '');
+		$signature['delivery_sms_text'] = (string) ($validated['delivery_sms_text'] ?? '');
+		$signature['delivery_after_status'] = (string) ($validated['delivery_after_status'] ?? '');
+
         $store->set('signature', $signature);
         $tenant->save();
 
