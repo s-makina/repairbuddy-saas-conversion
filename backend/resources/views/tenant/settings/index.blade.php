@@ -77,7 +77,24 @@
 	<div class="main-container computer-repair wcrbfd">
 		<div class="grid-x grid-container grid-margin-x grid-padding-y fluid" style="width:100%;">
 			<div class="small-12 cell">
-				<div class="form-update-message"></div>
+				<div class="form-update-message">
+					@if (session('status'))
+						<div class="notice notice-success">
+							<p>{{ (string) session('status') }}</p>
+						</div>
+					@endif
+
+					@if ($errors->any())
+						<div class="notice notice-error">
+							<p>{{ __( 'Please fix the errors below.' ) }}</p>
+							<ul style="margin: 6px 0 0 18px;">
+								@foreach ($errors->all() as $error)
+									<li>{{ $error }}</li>
+								@endforeach
+							</ul>
+						</div>
+					@endif
+				</div>
 			</div>
 			<div class="large-12 medium-12 small-12 cell">
 				

@@ -34,20 +34,26 @@ class EnsureDefaultRepairBuddyStatuses
 
                 if ($hasStatusCode) {
                     foreach ($paymentDefaults as $s) {
-                        DB::table('statuses')->updateOrInsert([
+                        $exists = DB::table('statuses')->where([
                             'tenant_id' => $tenantId,
                             'status_type' => 'Payment',
-                            'label' => $s['label'],
-                        ], [
                             'code' => $s['slug'],
-                            'label' => $s['label'],
-                            'email_enabled' => false,
-                            'email_template' => null,
-                            'sms_enabled' => false,
-                            'is_active' => true,
-                            'updated_at' => now(),
-                            'created_at' => now(),
-                        ]);
+                        ])->exists();
+
+                        if (! $exists) {
+                            DB::table('statuses')->insert([
+                                'tenant_id' => $tenantId,
+                                'status_type' => 'Payment',
+                                'code' => $s['slug'],
+                                'label' => $s['label'],
+                                'email_enabled' => false,
+                                'email_template' => null,
+                                'sms_enabled' => false,
+                                'is_active' => true,
+                                'updated_at' => now(),
+                                'created_at' => now(),
+                            ]);
+                        }
                     }
                 }
 

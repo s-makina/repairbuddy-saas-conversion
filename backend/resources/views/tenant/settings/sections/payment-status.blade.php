@@ -69,7 +69,6 @@
 							['name' => 'cash', 'label' => __( 'Cash' ), 'description' => ''],
 							['name' => 'card', 'label' => __( 'Card' ), 'description' => ''],
 							['name' => 'bank', 'label' => __( 'Bank Transfer' ), 'description' => ''],
-							['name' => 'woocommerce', 'label' => __( 'WooCommerce' ), 'description' => ''],
 						];
 					@endphp
 
@@ -120,6 +119,20 @@
 						@if ($errors->any())
 							<div class="notice notice-error">
 								<p>{{ __( 'Please fix the errors below.' ) }}</p>
+								@php
+									$paymentStatusErrorKeys = ['payment_status_name', 'payment_status_status', 'status_id', 'form_type_status_payment'];
+									$paymentStatusErrors = collect($paymentStatusErrorKeys)
+										->flatMap(fn ($k) => $errors->get($k))
+										->filter(fn ($m) => is_string($m) && trim($m) !== '')
+										->values();
+								@endphp
+								@if ($paymentStatusErrors->isNotEmpty())
+									<ul style="margin: 6px 0 0 18px;">
+										@foreach ($paymentStatusErrors as $msg)
+											<li>{{ $msg }}</li>
+										@endforeach
+									</ul>
+								@endif
 							</div>
 						@endif
 

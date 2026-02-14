@@ -7,6 +7,8 @@ use App\Http\Requests\Tenant\Statuses\UpsertPaymentStatusRequest;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Support\TenantContext;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,7 +17,6 @@ class PaymentStatusController extends Controller
 {
     public function save(UpsertPaymentStatusRequest $request): RedirectResponse
     {
-        dd(566666666);
         $tenantId = TenantContext::tenantId();
         $tenant = TenantContext::tenant();
 
@@ -29,6 +30,8 @@ class PaymentStatusController extends Controller
         $isActive = $statusValue === 'active';
 
         $mode = (string) ($validated['form_type_status_payment'] ?? 'add');
+
+        $flashMessage = 'Payment status updated.';
 
         if ($mode === 'update') {
             $id = (int) ($validated['status_id'] ?? 0);
@@ -73,6 +76,7 @@ class PaymentStatusController extends Controller
                 'is_active' => $isActive,
             ])->save();
         } else {
+            $flashMessage = 'Payment status created.';
             $labelExists = Status::query()
                 ->withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
@@ -120,22 +124,39 @@ class PaymentStatusController extends Controller
                 }
             }
 
-            Status::query()->create([
-                'tenant_id' => $tenantId,
-                'status_type' => 'Payment',
-                'code' => $code,
-                'label' => $label,
-                'email_enabled' => false,
-                'email_template' => null,
-                'sms_enabled' => false,
-                'is_active' => $isActive,
-            ]);
+            $attempts = 0;
+            while (true) {
+                try {
+                    Status::query()->create([
+                        'tenant_id' => $tenantId,
+                        'status_type' => 'Payment',
+                        'code' => $code,
+                        'label' => $label,
+                        'email_enabled' => false,
+                        'email_template' => null,
+                        'sms_enabled' => false,
+                        'is_active' => $isActive,
+                    ]);
+                    break;
+                } catch (QueryException|UniqueConstraintViolationException $e) {
+                    $attempts++;
+                    $sqlState = (string) ($e->errorInfo[0] ?? '');
+                    $driverCode = (int) ($e->errorInfo[1] ?? 0);
+                    $isDuplicate = $sqlState === '23000' && $driverCode === 1062;
+
+                    if (! $isDuplicate || $attempts >= 20) {
+                        throw $e;
+                    }
+
+                    $code = $slugBase.'_'.$suffix;
+                    $suffix++;
+                }
+            }
         }
 
         return $this->redirectToSettings($tenant)
             ->withFragment('wc_rb_payment_status')
-            ->with('status', 'Payment status updated.')
-            ->withInput();
+            ->with('status', $flashMessage);
     }
 
     public function toggle(Request $request, string $status): RedirectResponse
