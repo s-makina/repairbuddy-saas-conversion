@@ -25,9 +25,13 @@ class MaintenanceReminderController extends Controller
 
         $validated = $request->validated();
 
-        $emailEnabled = array_key_exists('email_enabled', $validated);
-        $smsEnabled = array_key_exists('sms_enabled', $validated);
-        $reminderEnabled = array_key_exists('reminder_enabled', $validated);
+        $emailEnabledValue = is_string($validated['email_enabled'] ?? null) ? (string) $validated['email_enabled'] : '';
+        $smsEnabledValue = is_string($validated['sms_enabled'] ?? null) ? (string) $validated['sms_enabled'] : '';
+        $reminderEnabledValue = is_string($validated['reminder_enabled'] ?? null) ? (string) $validated['reminder_enabled'] : '';
+
+        $emailEnabled = in_array($emailEnabledValue, ['active', 'on'], true);
+        $smsEnabled = in_array($smsEnabledValue, ['active', 'on'], true);
+        $reminderEnabled = in_array($reminderEnabledValue, ['active', 'on'], true);
 
         if ($emailEnabled && (! is_string($validated['email_body'] ?? null) || trim((string) $validated['email_body']) === '')) {
             return $this->redirect($tenant)
@@ -95,9 +99,19 @@ class MaintenanceReminderController extends Controller
 
         $validated = $request->validated();
 
-        $emailEnabled = array_key_exists('email_enabled', $validated);
-        $smsEnabled = array_key_exists('sms_enabled', $validated);
-        $reminderEnabled = array_key_exists('reminder_enabled', $validated);
+        $emailEnabledValue = array_key_exists('email_enabled', $validated) && is_string($validated['email_enabled'] ?? null)
+            ? (string) $validated['email_enabled']
+            : '';
+        $smsEnabledValue = array_key_exists('sms_enabled', $validated) && is_string($validated['sms_enabled'] ?? null)
+            ? (string) $validated['sms_enabled']
+            : '';
+        $reminderEnabledValue = array_key_exists('reminder_enabled', $validated) && is_string($validated['reminder_enabled'] ?? null)
+            ? (string) $validated['reminder_enabled']
+            : '';
+
+        $emailEnabled = in_array($emailEnabledValue, ['active', 'on'], true);
+        $smsEnabled = in_array($smsEnabledValue, ['active', 'on'], true);
+        $reminderEnabled = in_array($reminderEnabledValue, ['active', 'on'], true);
 
         if ($emailEnabled && (! is_string($validated['email_body'] ?? null) || trim((string) $validated['email_body']) === '')) {
             return $this->redirect($tenant)

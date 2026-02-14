@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Services\TenantSettings\TenantSettingsStore;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 
 class DevicesBrandsSettingsController extends Controller
 {
@@ -63,8 +64,16 @@ class DevicesBrandsSettingsController extends Controller
                     continue;
                 }
 
+                $id = $row['id'] ?? null;
+                if (is_string($id)) {
+                    $id = trim($id);
+                }
+                if (! is_string($id) || $id === '') {
+                    $id = (string) Str::uuid();
+                }
+
                 $additionalDeviceFields[] = [
-                    'id' => (isset($row['id']) && is_string($row['id']) && trim($row['id']) !== '') ? trim($row['id']) : null,
+                    'id' => $id,
                     'label' => trim($label),
                     'type' => 'text',
                     'displayInBookingForm' => array_key_exists('displayInBookingForm', $row) && ((string) ($row['displayInBookingForm'] ?? '') === '1'),

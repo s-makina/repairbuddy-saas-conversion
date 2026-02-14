@@ -30,9 +30,9 @@ class UpdateDevicesBrandsSettingsRequest extends FormRequest
             'additionalDeviceFields.*.id' => ['nullable', 'string', 'max:255'],
             'additionalDeviceFields.*.label' => ['nullable', 'string', 'max:255'],
             'additionalDeviceFields.*.type' => ['nullable', 'in:text'],
-            'additionalDeviceFields.*.displayInBookingForm' => ['nullable', 'in:1'],
-            'additionalDeviceFields.*.displayInInvoice' => ['nullable', 'in:1'],
-            'additionalDeviceFields.*.displayForCustomer' => ['nullable', 'in:1'],
+            'additionalDeviceFields.*.displayInBookingForm' => ['nullable', 'in:0,1'],
+            'additionalDeviceFields.*.displayInInvoice' => ['nullable', 'in:0,1'],
+            'additionalDeviceFields.*.displayForCustomer' => ['nullable', 'in:0,1'],
 
             'pickupDeliveryEnabled' => ['nullable', 'in:0,1'],
             'pickupCharge' => ['nullable', 'string', 'max:64'],

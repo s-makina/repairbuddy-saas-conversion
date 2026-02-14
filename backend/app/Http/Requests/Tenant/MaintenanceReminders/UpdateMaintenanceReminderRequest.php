@@ -19,9 +19,9 @@ class UpdateMaintenanceReminderRequest extends FormRequest
             'interval_days' => ['required', 'integer', 'min:1', 'max:3650'],
             'device_type_id' => ['sometimes', 'nullable', 'integer'],
             'device_brand_id' => ['sometimes', 'nullable', 'integer'],
-            'email_enabled' => ['sometimes', 'nullable', 'in:on'],
-            'sms_enabled' => ['sometimes', 'nullable', 'in:on'],
-            'reminder_enabled' => ['sometimes', 'nullable', 'in:on'],
+            'email_enabled' => ['sometimes', 'nullable', 'string', 'in:active,inactive,on'],
+            'sms_enabled' => ['sometimes', 'nullable', 'string', 'in:active,inactive,on'],
+            'reminder_enabled' => ['sometimes', 'nullable', 'string', 'in:active,inactive,on'],
             'email_body' => ['sometimes', 'nullable', 'string'],
             'sms_body' => ['sometimes', 'nullable', 'string'],
         ];

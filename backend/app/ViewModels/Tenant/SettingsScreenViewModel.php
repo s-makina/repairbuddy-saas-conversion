@@ -3,6 +3,7 @@
 namespace App\ViewModels\Tenant;
 
 use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyTax;
@@ -287,6 +288,16 @@ class SettingsScreenViewModel
             ->limit(200)
             ->get();
 
+        $deviceTypesForMaintenance = RepairBuddyDeviceType::query()
+            ->orderBy('name')
+            ->limit(500)
+            ->get();
+
+        $deviceBrandsForMaintenance = RepairBuddyDeviceBrand::query()
+            ->orderBy('name')
+            ->limit(500)
+            ->get();
+
         $jobStatusOptions = Status::query()
             ->where('status_type', 'Job')
             ->orderBy('label')
@@ -406,10 +417,30 @@ class SettingsScreenViewModel
             'right_space' => __('Right with space'),
         ];
 
+        $tenantNameForSubject = (string) ($tenant->name ?? '');
+        if (trim($tenantNameForSubject) === '') {
+            $tenantNameForSubject = (string) config('app.name');
+        }
+
         $bookingEmailSubjectCustomerUi = (string) ($bookingSettings['booking_email_subject_to_customer'] ?? '');
+        if (trim($bookingEmailSubjectCustomerUi) === '') {
+            $bookingEmailSubjectCustomerUi = 'We have received your booking order! | '.$tenantNameForSubject;
+        }
+
         $bookingEmailBodyCustomerUi = (string) ($bookingSettings['booking_email_body_to_customer'] ?? '');
+        if (trim($bookingEmailBodyCustomerUi) === '') {
+            $bookingEmailBodyCustomerUi = "Hello {{customer_full_name}},\n\nThank you for booking. We have received your job id : {{job_id}} and assigned you Case number : {{case_number}}\n\nFor your device : {{customer_device_label}} \n\nNote: Job status page will not able to show your job details unless its approved from our side. During our working hours its done quickly.\n\nWe will get in touch whenever its needed. You can always check your job status by clicking {{start_anch_status_check_link}} Check Status {{end_anch_status_check_link}}.\n\nDirect status check link : {{status_check_link}}\n\nDetails which we have received from you are below. \n\n{{order_invoice_details}}\n\nThank you again for your business!";
+        }
+
         $bookingEmailSubjectAdminUi = (string) ($bookingSettings['booking_email_subject_to_admin'] ?? '');
+        if (trim($bookingEmailSubjectAdminUi) === '') {
+            $bookingEmailSubjectAdminUi = 'You have new booking order | '.$tenantNameForSubject;
+        }
+
         $bookingEmailBodyAdminUi = (string) ($bookingSettings['booking_email_body_to_admin'] ?? '');
+        if (trim($bookingEmailBodyAdminUi) === '') {
+            $bookingEmailBodyAdminUi = "Hello,\n\nYou have received a new booking job ID: {{job_id}} Case number: {{case_number}}.\n\nFrom Customer : {{customer_full_name}}\n\nJob Details are listed below.\n\n{{order_invoice_details}}\n\n";
+        }
 
         $turnBookingFormsToJobsUi = (bool) ($bookingSettings['turnBookingFormsToJobs'] ?? false);
         $turnOffOtherDeviceBrandsUi = (bool) ($bookingSettings['turnOffOtherDeviceBrands'] ?? false);
@@ -496,10 +527,10 @@ class SettingsScreenViewModel
                 // ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'view' => 'tenant.settings.sections.pages-setup'],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'view' => 'tenant.settings.sections.devices-brands'],
                 ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'view' => 'tenant.settings.sections.bookings'],
+                ['id' => 'wc_rb_maintenance_reminder', 'label' => __('Device Reminders'), 'view' => 'tenant.settings.sections.maintenance-reminders'],
                 ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'view' => 'tenant.settings.sections.services'],
                 ['id' => 'wcrb_estimates_tab', 'label' => __('Estimates'), 'view' => 'tenant.settings.sections.estimates'],
                 ['id' => 'wc_rb_manage_taxes', 'label' => __('Manage Taxes'), 'view' => 'tenant.settings.sections.taxes'],
-                ['id' => 'wc_rb_maintenance_reminder', 'label' => __('Maintenance Reminders'), 'view' => 'tenant.settings.sections.maintenance-reminders'],
                 ['id' => 'wcrb_timelog_tab', 'label' => __('Time Log Settings'), 'view' => 'tenant.settings.sections.timelog'],
                 ['id' => 'wcrb_styling', 'label' => __('Styling & Labels'), 'view' => 'tenant.settings.sections.styling'],
                 ['id' => 'wcrb_reviews_tab', 'label' => __('Job Reviews'), 'view' => 'tenant.settings.sections.reviews'],
@@ -541,6 +572,8 @@ class SettingsScreenViewModel
             'taxInvoiceAmounts' => $taxInvoiceAmounts,
             'taxDefaultId' => $taxDefaultId,
             'maintenanceReminders' => $maintenanceReminders,
+            'deviceTypesForMaintenance' => $deviceTypesForMaintenance,
+            'deviceBrandsForMaintenance' => $deviceBrandsForMaintenance,
             'timeLogDisabledUi' => $timeLogDisabledUi,
             'timeLogDefaultTaxIdUi' => $timeLogDefaultTaxIdUi,
             'timeLogIncludedStatusesUi' => $timeLogIncludedStatusesUi,

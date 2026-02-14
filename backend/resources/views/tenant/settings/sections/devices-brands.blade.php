@@ -40,26 +40,6 @@
 				</div>
 
 				<div class="wcrb-settings-card">
-					<h3 class="wcrb-settings-card-title">{{ __('Integrations') }}</h3>
-					<div class="wcrb-settings-card-body">
-						<div class="wcrb-settings-option">
-							<div class="wcrb-settings-option-head">
-								<div class="wcrb-settings-option-control">
-									<x-settings.toggle
-										name="useWooProductsAsDevices"
-										id="useWooProductsAsDevices"
-										:checked="old('useWooProductsAsDevices') !== null ? ((string) old('useWooProductsAsDevices') === '1') : (bool) ($devicesBrandsUi['useWooProductsAsDevices'] ?? false)"
-										value="1"
-										uncheckedValue="0"
-									/>
-								</div>
-								<label for="useWooProductsAsDevices" class="wcrb-settings-option-title">{{ __('Use WooCommerce products instead of devices & brands') }}</label>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="wcrb-settings-card">
 					<h3 class="wcrb-settings-card-title">{{ __('Labels') }}</h3>
 					<div class="wcrb-settings-card-body">
 						<div class="grid-x grid-margin-x">
@@ -88,7 +68,7 @@
 						</div>
 
 						<div class="grid-x grid-margin-x">
-							<div class="cell medium-4 small-12">
+							<div class="cell medium-6 small-12">
 								<x-settings.field for="labels_device" :label="__('Device label')" class="wcrb-settings-field">
 									<x-settings.input
 										name="labels[device]"
@@ -99,7 +79,7 @@
 									/>
 								</x-settings.field>
 							</div>
-							<div class="cell medium-4 small-12">
+							<div class="cell medium-6 small-12">
 								<x-settings.field for="labels_deviceBrand" :label="__('Brand label')" class="wcrb-settings-field">
 									<x-settings.input
 										name="labels[deviceBrand]"
@@ -110,7 +90,10 @@
 									/>
 								</x-settings.field>
 							</div>
-							<div class="cell medium-4 small-12">
+						</div>
+
+						<div class="grid-x grid-margin-x">
+							<div class="cell medium-6 small-12">
 								<x-settings.field for="labels_deviceType" :label="__('Type label')" class="wcrb-settings-field">
 									<x-settings.input
 										name="labels[deviceType]"
@@ -121,9 +104,6 @@
 									/>
 								</x-settings.field>
 							</div>
-						</div>
-
-						<div class="grid-x grid-margin-x">
 							<div class="cell medium-6 small-12">
 								<x-settings.field for="labels_imei" :label="__('ID/IMEI label')" class="wcrb-settings-field">
 									<x-settings.input
@@ -212,62 +192,190 @@
 				<div class="wcrb-settings-card">
 					<h3 class="wcrb-settings-card-title">{{ __('Additional device fields') }}</h3>
 					<div class="wcrb-settings-card-body">
-						<div class="grid-x grid-margin-x" style="font-weight: 600; margin-bottom: 8px;">
-							<div class="cell medium-5 small-12">{{ __('Field label') }}</div>
-							<div class="cell medium-2 small-12">{{ __('Booking') }}</div>
-							<div class="cell medium-2 small-12">{{ __('Invoice') }}</div>
-							<div class="cell medium-3 small-12">{{ __('Customer') }}</div>
+						@php
+							$displayOptions = [
+								'1' => __('Display'),
+								'0' => __('Hide'),
+							];
+							$customerDisplayOptions = [
+								'1' => __('Display in Status check, my account, emails'),
+								'0' => __('Hide'),
+							];
+						@endphp
+
+						<div id="wcrbAdditionalDeviceFieldsWrap" style="overflow-x:auto;">
+							<table class="wp-list-table widefat fixed striped posts" style="margin-top: 6px;">
+								<thead>
+									<tr>
+										<th>{{ __('Field label') }}</th>
+										<th style="width: 110px;">{{ __('Type') }}</th>
+										<th style="width: 160px;">{{ __('In booking form?') }}</th>
+										<th style="width: 140px;">{{ __('In invoice?') }}</th>
+										<th style="width: 320px;">{{ __('In customer output?') }}</th>
+										<th style="width: 70px; text-align: right;">{{ __('Actions') }}</th>
+									</tr>
+								</thead>
+								<tbody id="wcrbAdditionalDeviceFieldsRows" data-next-index="{{ (int) $maxRows }}">
+									@for ($i = 0; $i < $maxRows; $i++)
+										@php
+											$row = $fields[$i] ?? [];
+											$rowId = is_array($row) ? (string) ($row['id'] ?? '') : '';
+											$rowLabel = is_array($row) ? (string) ($row['label'] ?? '') : '';
+											$dBooking = is_array($row) && ($row['displayInBookingForm'] ?? false);
+											$dInvoice = is_array($row) && ($row['displayInInvoice'] ?? false);
+											$dCustomer = is_array($row) && ($row['displayForCustomer'] ?? false);
+										@endphp
+										<tr class="wcrb-additional-device-field-row">
+											<td>
+												<x-settings.input
+													class="w-100"
+													name="additionalDeviceFields[{{ $i }}][label]"
+													:value="old('additionalDeviceFields.' . $i . '.label', $rowLabel)"
+													type="text"
+												/>
+												<input type="hidden" name="additionalDeviceFields[{{ $i }}][id]" value="{{ old('additionalDeviceFields.' . $i . '.id', $rowId) }}" />
+											</td>
+											<td>
+												<x-settings.select
+													class="w-100"
+													name="additionalDeviceFields[{{ $i }}][type]"
+													:value="'text'"
+													:options="['text' => __('Text')]"
+												/>
+											</td>
+											<td>
+												<x-settings.select
+													class="w-100"
+													name="additionalDeviceFields[{{ $i }}][displayInBookingForm]"
+													:value="old('additionalDeviceFields.' . $i . '.displayInBookingForm', $dBooking ? '1' : '0')"
+													:options="$displayOptions"
+												/>
+											</td>
+											<td>
+												<x-settings.select
+													class="w-100"
+													name="additionalDeviceFields[{{ $i }}][displayInInvoice]"
+													:value="old('additionalDeviceFields.' . $i . '.displayInInvoice', $dInvoice ? '1' : '0')"
+													:options="$displayOptions"
+												/>
+											</td>
+											<td>
+												<x-settings.select
+													class="w-100"
+													name="additionalDeviceFields[{{ $i }}][displayForCustomer]"
+													:value="old('additionalDeviceFields.' . $i . '.displayForCustomer', $dCustomer ? '1' : '0')"
+													:options="$customerDisplayOptions"
+												/>
+											</td>
+											<td style="vertical-align: middle; text-align: right;">
+												<button
+													type="button"
+													class="button button-small wcrb-remove-additional-device-field"
+													title="{{ __('Remove') }}"
+													style="border-radius: 999px; padding: 0 10px; line-height: 26px; @if($i===0) display:none; @endif"
+												>
+													<span aria-hidden="true">×</span>
+												</button>
+											</td>
+										</tr>
+									@endfor
+								</tbody>
+							</table>
 						</div>
 
-						@for ($i = 0; $i < $maxRows; $i++)
-							@php
-								$row = $fields[$i] ?? [];
-								$rowId = is_array($row) ? (string) ($row['id'] ?? '') : '';
-								$rowLabel = is_array($row) ? (string) ($row['label'] ?? '') : '';
-								$dBooking = is_array($row) && ($row['displayInBookingForm'] ?? false);
-								$dInvoice = is_array($row) && ($row['displayInInvoice'] ?? false);
-								$dCustomer = is_array($row) && ($row['displayForCustomer'] ?? false);
-							@endphp
-							<div class="grid-x grid-margin-x align-middle" style="margin-bottom: 10px;">
-								<div class="cell medium-5 small-12">
-									<x-settings.input
-										class="w-100"
-										name="additionalDeviceFields[{{ $i }}][label]"
-										:value="old('additionalDeviceFields.' . $i . '.label', $rowLabel)"
-										type="text"
-									/>
-									<input type="hidden" name="additionalDeviceFields[{{ $i }}][id]" value="{{ old('additionalDeviceFields.' . $i . '.id', $rowId) }}" />
-									<input type="hidden" name="additionalDeviceFields[{{ $i }}][type]" value="text" />
-								</div>
-								<div class="cell medium-2 small-12">
-									<x-settings.toggle
-										:name="'additionalDeviceFields[' . $i . '][displayInBookingForm]'"
-										:id="'additionalDeviceFields_' . $i . '_displayInBookingForm'"
-										value="1"
-										uncheckedValue="0"
-										:checked="old('additionalDeviceFields.' . $i . '.displayInBookingForm') !== null ? ((string) old('additionalDeviceFields.' . $i . '.displayInBookingForm') === '1') : (bool) $dBooking"
-									/>
-								</div>
-								<div class="cell medium-2 small-12">
-									<x-settings.toggle
-										:name="'additionalDeviceFields[' . $i . '][displayInInvoice]'"
-										:id="'additionalDeviceFields_' . $i . '_displayInInvoice'"
-										value="1"
-										uncheckedValue="0"
-										:checked="old('additionalDeviceFields.' . $i . '.displayInInvoice') !== null ? ((string) old('additionalDeviceFields.' . $i . '.displayInInvoice') === '1') : (bool) $dInvoice"
-									/>
-								</div>
-								<div class="cell medium-3 small-12">
-									<x-settings.toggle
-										:name="'additionalDeviceFields[' . $i . '][displayForCustomer]'"
-										:id="'additionalDeviceFields_' . $i . '_displayForCustomer'"
-										value="1"
-										uncheckedValue="0"
-										:checked="old('additionalDeviceFields.' . $i . '.displayForCustomer') !== null ? ((string) old('additionalDeviceFields.' . $i . '.displayForCustomer') === '1') : (bool) $dCustomer"
-									/>
-								</div>
-							</div>
-						@endfor
+						<div class="wcrb-settings-actions" style="justify-content: flex-end; padding-top: 4px; margin-top: -2px;">
+							<button type="button" class="button button-primary" id="wcrbAddAdditionalDeviceField">{{ __('Add device field') }}</button>
+						</div>
+
+						<script>
+							(function () {
+								var wrap = document.getElementById('wcrbAdditionalDeviceFieldsRows');
+								var btn = document.getElementById('wcrbAddAdditionalDeviceField');
+								if (!wrap || !btn) {
+									return;
+								}
+
+								function getRows() {
+									return wrap.querySelectorAll('.wcrb-additional-device-field-row');
+								}
+
+								function reindexRow(row, newIndex) {
+									var nameAttr = 'name';
+									var elements = row.querySelectorAll('input, select, textarea, label');
+									elements.forEach(function (el) {
+										if (el.hasAttribute(nameAttr)) {
+											el.setAttribute(nameAttr, el.getAttribute(nameAttr).replace(/additionalDeviceFields\[\d+\]/g, 'additionalDeviceFields[' + newIndex + ']'));
+										}
+									});
+									row.querySelectorAll('input[type="text"]').forEach(function (i) {
+										i.value = '';
+									});
+									row.querySelectorAll('input[type="hidden"]').forEach(function (i) {
+										if (i.name && i.name.indexOf('[id]') !== -1) {
+											i.value = '';
+										}
+									});
+									row.querySelectorAll('select').forEach(function (s) {
+										if (s.name && s.name.indexOf('[type]') !== -1) {
+											s.value = 'text';
+											return;
+										}
+										s.value = '1';
+									});
+								}
+
+								wrap.addEventListener('click', function (e) {
+									var target = e.target;
+									if (!(target instanceof HTMLElement)) {
+										return;
+									}
+									var removeBtn = target.closest('.wcrb-remove-additional-device-field');
+									if (removeBtn) {
+										e.preventDefault();
+										var row = removeBtn.closest('.wcrb-additional-device-field-row');
+										if (!row) {
+											return;
+										}
+										var rows = getRows();
+										if (rows.length <= 1) {
+											return;
+										}
+										row.remove();
+										var updatedRows = getRows();
+										updatedRows.forEach(function (r, idx) {
+											var b = r.querySelector('.wcrb-remove-additional-device-field');
+											if (b) {
+												b.style.display = idx === 0 ? 'none' : '';
+											}
+										});
+										wrap.dataset.nextIndex = String(updatedRows.length);
+									}
+								});
+
+								btn.addEventListener('click', function () {
+									var rows = getRows();
+									if (rows.length >= 10) {
+										return;
+									}
+									var last = rows[rows.length - 1];
+									if (!last) {
+										return;
+									}
+									var clone = last.cloneNode(true);
+									var nextIndex = parseInt(wrap.dataset.nextIndex || String(rows.length), 10);
+									if (isNaN(nextIndex)) {
+										nextIndex = rows.length;
+									}
+									reindexRow(clone, nextIndex);
+									var removeBtn = clone.querySelector('.wcrb-remove-additional-device-field');
+									if (removeBtn) {
+										removeBtn.style.display = '';
+									}
+									wrap.appendChild(clone);
+									wrap.dataset.nextIndex = String(nextIndex + 1);
+								});
+							})();
+						</script>
 					</div>
 				</div>
 
@@ -280,72 +388,5 @@
 				</div>
 			</div>
 		</form>
-
-		<div class="wcrb-settings-form" style="margin-top: 20px;">
-			<div class="wcrb-settings-card">
-				<h3 class="wcrb-settings-card-title">{{ __('Manage Brands') }}</h3>
-				<div class="wcrb-settings-card-body">
-					<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.device_brands.store', ['business' => $tenant->slug]) }}">
-						@csrf
-						<div class="grid-x grid-margin-x align-middle">
-							<div class="cell medium-6 small-12">
-								<x-settings.field for="rb_brand_name" :label="__('Add brand')" class="wcrb-settings-field">
-									<x-settings.input
-										name="name"
-										id="rb_brand_name"
-										:value="old('name', '')"
-										type="text"
-										:placeholder="__('Brand name')"
-										:required="true"
-									/>
-								</x-settings.field>
-							</div>
-							<div class="cell medium-6 small-12">
-								<div class="wcrb-settings-actions" style="justify-content: flex-start; padding-top: 24px;">
-									<button class="button button-primary" type="submit">{{ __('Add') }}</button>
-								</div>
-							</div>
-						</div>
-					</form>
-
-				<table class="wp-list-table widefat fixed striped posts" style="margin-top: 12px;">
-					<thead>
-						<tr>
-							<th class="column-id">{{ __('ID') }}</th>
-							<th>{{ __('Name') }}</th>
-							<th>{{ __('Status') }}</th>
-							<th class="column-action">{{ __('Actions') }}</th>
-						</tr>
-					</thead>
-					<tbody>
-						@if (($deviceBrands ?? collect())->count() > 0)
-							@foreach ($deviceBrands as $b)
-								<tr>
-									<td>{{ (string) $b->id }}</td>
-									<td><strong>{{ (string) $b->name }}</strong></td>
-									<td>{{ $b->is_active ? 'active' : 'inactive' }}</td>
-									<td>
-										<form method="post" style="display:inline;" action="{{ route('tenant.settings.device_brands.active', ['business' => $tenant->slug, 'brand' => $b->id]) }}">
-											@csrf
-											<input type="hidden" name="is_active" value="{{ $b->is_active ? '0' : '1' }}" />
-											<button type="submit" class="button button-small">{{ __('Change Status') }}</button>
-										</form>
-										<form method="post" style="display:inline;" action="{{ route('tenant.settings.device_brands.delete', ['business' => $tenant->slug, 'brand' => $b->id]) }}">
-											@csrf
-											<button type="submit" class="button button-small">{{ __('Delete') }}</button>
-										</form>
-									</td>
-								</tr>
-							@endforeach
-						@else
-							<tr>
-								<td colspan="4">{{ __('No brands yet.') }}</td>
-							</tr>
-						@endif
-					</tbody>
-				</table>
-				</div>
-			</div>
-		</div>
 	</div>
 </div>

@@ -118,6 +118,12 @@ Route::prefix('t/{business}')
         Route::post('/settings/bookings', [\App\Http\Controllers\Tenant\Settings\BookingSettingsController::class, 'update'])
             ->name('tenant.settings.bookings.update');
 
+        Route::get('/settings/bookings/brands', [\App\Http\Controllers\Tenant\Settings\BookingSettingsController::class, 'brands'])
+            ->name('tenant.settings.bookings.brands');
+
+        Route::get('/settings/bookings/devices', [\App\Http\Controllers\Tenant\Settings\BookingSettingsController::class, 'devices'])
+            ->name('tenant.settings.bookings.devices');
+
         Route::post('/settings/services', [\App\Http\Controllers\Tenant\Settings\ServiceSettingsController::class, 'update'])
             ->name('tenant.settings.services.update');
 
