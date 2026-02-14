@@ -11,7 +11,10 @@
 							<h3 style="margin: 0;">{{ __('Existing Reminders') }}</h3>
 						</div>
 						<div class="cell shrink" style="text-align: right;">
-							<button type="button" class="button button-primary" data-bs-toggle="modal" data-bs-target="#wcrbAddMaintenanceReminderModal">{{ __('Add Reminder') }}</button>
+							<div class="d-inline-flex align-items-center gap-2">
+								<a href="{{ route('tenant.settings.maintenance_reminders.logs', ['business' => $tenant->slug]) }}" class="button button-secondary">{{ __('Reminders Log') }}</a>
+								<button type="button" class="button button-primary" data-bs-toggle="modal" data-bs-target="#wcrbAddMaintenanceReminderModal" data-wcrb-reminder-mode="add">{{ __('Add Reminder') }}</button>
+							</div>
 						</div>
 					</div>
 
@@ -49,55 +52,29 @@
 												<td>{{ $r->last_executed_at ? (string) $r->last_executed_at : '-' }}</td>
 												<td class="text-end">
 													<div class="d-inline-flex align-items-center gap-2">
-														<button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#wcrbEditMaintenanceReminderModal_{{ (string) $r->id }}">{{ __('Edit') }}</button>
+														<button
+															type="button"
+															class="btn btn-sm btn-outline-primary"
+															data-bs-toggle="modal"
+															data-bs-target="#wcrbAddMaintenanceReminderModal"
+															data-wcrb-reminder-mode="edit"
+															data-wcrb-reminder-id="{{ (string) $r->id }}"
+															data-wcrb-update-action="{{ route('tenant.settings.maintenance_reminders.update', ['business' => $tenant->slug, 'reminder' => $r->id]) }}"
+															data-wcrb-name="{{ (string) $r->name }}"
+															data-wcrb-interval-days="{{ (string) $r->interval_days }}"
+															data-wcrb-description="{{ (string) ($r->description ?? '') }}"
+															data-wcrb-email-body="{{ (string) ($r->email_body ?? '') }}"
+															data-wcrb-sms-body="{{ (string) ($r->sms_body ?? '') }}"
+															data-wcrb-device-type-id="{{ (string) ($r->device_type_id ?? '') }}"
+															data-wcrb-device-brand-id="{{ (string) ($r->device_brand_id ?? '') }}"
+															data-wcrb-email-enabled="{{ $r->email_enabled ? 'active' : 'inactive' }}"
+															data-wcrb-sms-enabled="{{ $r->sms_enabled ? 'active' : 'inactive' }}"
+															data-wcrb-reminder-enabled="{{ $r->reminder_enabled ? 'active' : 'inactive' }}"
+														>{{ __('Edit') }}</button>
 														<form method="post" action="{{ route('tenant.settings.maintenance_reminders.delete', ['business' => $tenant->slug, 'reminder' => $r->id]) }}" onsubmit="return confirm('{{ __('Delete this reminder?') }}');">
 															@csrf
 															<button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Delete') }}</button>
 														</form>
-													</div>
-
-													<div class="modal fade" id="wcrbEditMaintenanceReminderModal_{{ (string) $r->id }}" tabindex="-1" aria-hidden="true">
-														<div class="modal-dialog modal-lg">
-															<div class="modal-content">
-																<div class="modal-header py-2 px-3">
-																	<h5 class="modal-title">{{ __('Edit Reminder') }}</h5>
-																	<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-																</div>
-																<div class="modal-body p-3">
-																	<form method="post" action="{{ route('tenant.settings.maintenance_reminders.update', ['business' => $tenant->slug, 'reminder' => $r->id]) }}">
-																		@csrf
-																		<p><label>{{ __('Name') }}<br><input type="text" name="name" value="{{ old('name', (string) $r->name) }}" class="regular-text"></label></p>
-																		<p><label>{{ __('Interval days') }}<br><input type="number" name="interval_days" min="1" max="3650" value="{{ old('interval_days', (string) $r->interval_days) }}"></label></p>
-																		<p><label>{{ __('Description') }}<br><input type="text" name="description" value="{{ old('description', (string) ($r->description ?? '')) }}" class="regular-text"></label></p>
-																		<p><label>{{ __('Device Type') }}<br>
-																			<select name="device_type_id" class="regular-text">
-																				<option value="">{{ __('All') }}</option>
-																				@foreach (($deviceTypesForMaintenance ?? collect()) as $dt)
-																					<option value="{{ (string) $dt->id }}" {{ (string) old('device_type_id', (string) ($r->device_type_id ?? '')) === (string) $dt->id ? 'selected' : '' }}>{{ (string) $dt->name }}</option>
-																				@endforeach
-																			</select>
-																		</label></p>
-																		<p><label>{{ __('Brand') }}<br>
-																			<select name="device_brand_id" class="regular-text">
-																				<option value="">{{ __('All') }}</option>
-																				@foreach (($deviceBrandsForMaintenance ?? collect()) as $db)
-																					<option value="{{ (string) $db->id }}" {{ (string) old('device_brand_id', (string) ($r->device_brand_id ?? '')) === (string) $db->id ? 'selected' : '' }}>{{ (string) $db->name }}</option>
-																				@endforeach
-																			</select>
-																		</label></p>
-																		<p><label><input type="checkbox" name="email_enabled" {{ old('email_enabled') !== null ? 'checked' : ($r->email_enabled ? 'checked' : '') }}> {{ __('Email enabled') }}</label></p>
-																		<p><label>{{ __('Email body') }}<br><textarea name="email_body" rows="4" class="large-text">{{ old('email_body', (string) ($r->email_body ?? '')) }}</textarea></label></p>
-																		<p><label><input type="checkbox" name="sms_enabled" {{ old('sms_enabled') !== null ? 'checked' : ($r->sms_enabled ? 'checked' : '') }}> {{ __('SMS enabled') }}</label></p>
-																		<p><label>{{ __('SMS body') }}<br><textarea name="sms_body" rows="3" class="large-text">{{ old('sms_body', (string) ($r->sms_body ?? '')) }}</textarea></label></p>
-																		<p><label><input type="checkbox" name="reminder_enabled" {{ old('reminder_enabled') !== null ? 'checked' : ($r->reminder_enabled ? 'checked' : '') }}> {{ __('Reminder enabled') }}</label></p>
-																		<div class="mt-2 d-flex justify-content-end gap-2">
-																			<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-																			<button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
-																		</div>
-																	</form>
-																</div>
-															</div>
-														</div>
 													</div>
 												</td>
 											</tr>
@@ -111,11 +88,19 @@
 			</div>
 		</div>
 
+		@php
+			$isMaintenanceReminderEditMode = (string) old('form_mode', '') === 'edit' && (string) old('reminder_id', '') !== '';
+			$maintenanceReminderFormAction = $isMaintenanceReminderEditMode
+				? route('tenant.settings.maintenance_reminders.update', ['business' => $tenant->slug, 'reminder' => (string) old('reminder_id')])
+				: route('tenant.settings.maintenance_reminders.store', ['business' => $tenant->slug]);
+			$maintenanceReminderModalTitle = $isMaintenanceReminderEditMode ? __('Edit Maintenance Reminder') : __('Add New Maintenance Reminder');
+			$maintenanceReminderSubmitLabel = $isMaintenanceReminderEditMode ? __('Save Reminder') : __('Add Reminder');
+		@endphp
 		<div class="modal fade" id="wcrbAddMaintenanceReminderModal" tabindex="-1" aria-hidden="true">
 			<div class="modal-dialog modal-lg">
 				<div class="modal-content">
 					<div class="modal-header py-2 px-3">
-						<h5 class="modal-title">{{ __('Add New Maintenance Reminder') }}</h5>
+						<h5 class="modal-title" id="wcrbMaintenanceReminderModalTitle">{{ $maintenanceReminderModalTitle }}</h5>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
 					<div class="modal-body p-3">
@@ -149,8 +134,10 @@
 							</div>
 						@endif
 
-						<form class="needs-validation" style="width: 100%;" novalidate method="post" action="{{ route('tenant.settings.maintenance_reminders.store', ['business' => $tenant->slug]) }}">
+						<form class="needs-validation" style="width: 100%;" novalidate method="post" action="{{ $maintenanceReminderFormAction }}" id="wcrbMaintenanceReminderForm">
 							@csrf
+							<input type="hidden" name="form_mode" id="wcrb_mr_form_mode" value="{{ (string) old('form_mode', 'add') }}">
+							<input type="hidden" name="reminder_id" id="wcrb_mr_reminder_id" value="{{ (string) old('reminder_id', '') }}">
 							<div class="wcrb-settings-form" style="padding: 0; width: 100%;">
 								<div class="wcrb-settings-card" style="margin-bottom: 0;">
 									<div class="wcrb-settings-card-body" style="padding: 12px;">
@@ -244,7 +231,7 @@
 							</div>
 							<div class="mt-2 d-flex justify-content-end gap-2">
 								<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-								<button type="submit" class="btn btn-primary">{{ __('Add Reminder') }}</button>
+								<button type="submit" class="btn btn-primary" id="wcrbMaintenanceReminderSubmit">{{ $maintenanceReminderSubmitLabel }}</button>
 							</div>
 						</form>
 					</div>
@@ -254,14 +241,83 @@
 
 		<script>
 			(function(){
+				var modal = document.getElementById('wcrbAddMaintenanceReminderModal');
+				var form = document.getElementById('wcrbMaintenanceReminderForm');
+				var titleEl = document.getElementById('wcrbMaintenanceReminderModalTitle');
+				var submitEl = document.getElementById('wcrbMaintenanceReminderSubmit');
+				var modeEl = document.getElementById('wcrb_mr_form_mode');
+				var reminderIdEl = document.getElementById('wcrb_mr_reminder_id');
+				if (!modal || !form) {
+					return;
+				}
+
+				var setFieldValue = function (id, value) {
+					var el = document.getElementById(id);
+					if (!el) return;
+					el.value = (value === null || value === undefined) ? '' : String(value);
+				};
+
+				var setAddMode = function () {
+					if (modeEl) modeEl.value = 'add';
+					if (reminderIdEl) reminderIdEl.value = '';
+					form.setAttribute('action', @json(route('tenant.settings.maintenance_reminders.store', ['business' => $tenant->slug])));
+					if (titleEl) titleEl.textContent = @json(__('Add New Maintenance Reminder'));
+					if (submitEl) submitEl.textContent = @json(__('Add Reminder'));
+
+					setFieldValue('mr_name', '');
+					setFieldValue('mr_interval_days', '30');
+					setFieldValue('mr_description', '');
+					setFieldValue('mr_email_body', '');
+					setFieldValue('mr_sms_body', '');
+					setFieldValue('mr_device_type_id', '');
+					setFieldValue('mr_device_brand_id', '');
+					setFieldValue('mr_email_enabled', 'active');
+					setFieldValue('mr_sms_enabled', 'inactive');
+					setFieldValue('mr_reminder_enabled', 'active');
+				};
+
+				var setEditMode = function (btn) {
+					if (!btn) return;
+					var reminderId = btn.getAttribute('data-wcrb-reminder-id') || '';
+					var action = btn.getAttribute('data-wcrb-update-action') || '';
+					if (!reminderId || !action) {
+						return;
+					}
+
+					if (modeEl) modeEl.value = 'edit';
+					if (reminderIdEl) reminderIdEl.value = reminderId;
+					form.setAttribute('action', action);
+					if (titleEl) titleEl.textContent = @json(__('Edit Maintenance Reminder'));
+					if (submitEl) submitEl.textContent = @json(__('Save Reminder'));
+
+					setFieldValue('mr_name', btn.getAttribute('data-wcrb-name') || '');
+					setFieldValue('mr_interval_days', btn.getAttribute('data-wcrb-interval-days') || '30');
+					setFieldValue('mr_description', btn.getAttribute('data-wcrb-description') || '');
+					setFieldValue('mr_email_body', btn.getAttribute('data-wcrb-email-body') || '');
+					setFieldValue('mr_sms_body', btn.getAttribute('data-wcrb-sms-body') || '');
+					setFieldValue('mr_device_type_id', btn.getAttribute('data-wcrb-device-type-id') || '');
+					setFieldValue('mr_device_brand_id', btn.getAttribute('data-wcrb-device-brand-id') || '');
+					setFieldValue('mr_email_enabled', btn.getAttribute('data-wcrb-email-enabled') || 'inactive');
+					setFieldValue('mr_sms_enabled', btn.getAttribute('data-wcrb-sms-enabled') || 'inactive');
+					setFieldValue('mr_reminder_enabled', btn.getAttribute('data-wcrb-reminder-enabled') || 'active');
+				};
+
+				modal.addEventListener('show.bs.modal', function (event) {
+					var btn = event.relatedTarget;
+					if (!btn) return;
+					var mode = btn.getAttribute('data-wcrb-reminder-mode') || 'add';
+					if (mode === 'edit') {
+						setEditMode(btn);
+					} else {
+						setAddMode();
+					}
+				});
+
 				var hasErrors = {{ $errors->has('name') || $errors->has('interval_days') || $errors->has('description') || $errors->has('device_type_id') || $errors->has('device_brand_id') || $errors->has('email_body') || $errors->has('sms_body') || $errors->has('email_enabled') || $errors->has('sms_enabled') || $errors->has('reminder_enabled') ? 'true' : 'false' }};
 				if (!hasErrors) { return; }
 				try {
 					if (window.bootstrap && bootstrap.Modal) {
-						var modal = document.getElementById('wcrbAddMaintenanceReminderModal');
-						if (modal) {
-							bootstrap.Modal.getOrCreateInstance(modal).show();
-						}
+						bootstrap.Modal.getOrCreateInstance(modal).show();
 					}
 				} catch (e) {
 				}

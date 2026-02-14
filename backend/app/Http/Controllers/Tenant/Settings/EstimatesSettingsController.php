@@ -28,10 +28,34 @@ class EstimatesSettingsController extends Controller
             $estimates = [];
         }
 
-        $estimates['enabled'] = array_key_exists('estimates_enabled', $validated);
+        $estimates['enabled'] = $request->boolean('estimates_enabled');
         $estimates['validDays'] = array_key_exists('estimate_valid_days', $validated)
             ? (int) $validated['estimate_valid_days']
             : 30;
+
+        foreach (
+            [
+                'estimate_email_subject_to_customer',
+                'estimate_email_body_to_customer',
+                'estimate_approve_email_subject_to_admin',
+                'estimate_approve_email_body_to_admin',
+                'estimate_reject_email_subject_to_admin',
+                'estimate_reject_email_body_to_admin',
+            ] as $k
+        ) {
+            if (array_key_exists($k, $validated)) {
+                $estimates[$k] = $validated[$k];
+            }
+        }
+
+        if (array_key_exists('wcrb_turn_booking_forms_to_jobs', $validated)) {
+            $bookings = $store->get('bookings', []);
+            if (! is_array($bookings)) {
+                $bookings = [];
+            }
+            $bookings['turnBookingFormsToJobs'] = $request->boolean('wcrb_turn_booking_forms_to_jobs');
+            $store->set('bookings', $bookings);
+        }
 
         $store->set('estimates', $estimates);
         $tenant->save();

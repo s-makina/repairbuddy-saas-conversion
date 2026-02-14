@@ -8,7 +8,9 @@ use App\Http\Requests\Tenant\MaintenanceReminders\UpdateMaintenanceReminderReque
 use App\Models\RepairBuddyDeviceBrand;
 use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyMaintenanceReminder;
+use App\Models\RepairBuddyMaintenanceReminderLog;
 use App\Models\Tenant;
+use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,7 +84,7 @@ class MaintenanceReminderController extends Controller
             ->withInput();
     }
 
-    public function update(UpdateMaintenanceReminderRequest $request, int $reminder): RedirectResponse
+    public function update(UpdateMaintenanceReminderRequest $request, string $business, $reminder): RedirectResponse
     {
         $tenant = TenantContext::tenant();
 
@@ -90,7 +92,25 @@ class MaintenanceReminderController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
-        $model = RepairBuddyMaintenanceReminder::query()->whereKey($reminder)->first();
+        $reminderId = (int) $reminder;
+        if ($reminderId < 1) {
+            return $this->redirect($tenant)
+                ->with('status', 'Reminder not found.')
+                ->withInput();
+        }
+
+        $branchId = BranchContext::branchId();
+
+        $modelQuery = RepairBuddyMaintenanceReminder::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->whereKey($reminderId);
+
+        if ($branchId) {
+            $modelQuery->where('branch_id', $branchId);
+        }
+
+        $model = $modelQuery->first();
         if (! $model) {
             return $this->redirect($tenant)
                 ->with('status', 'Reminder not found.')
@@ -161,7 +181,7 @@ class MaintenanceReminderController extends Controller
             ->withInput();
     }
 
-    public function delete(Request $request, int $reminder): RedirectResponse
+    public function delete(Request $request, string $business, $reminder): RedirectResponse
     {
         $tenant = TenantContext::tenant();
 
@@ -169,7 +189,25 @@ class MaintenanceReminderController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
-        $model = RepairBuddyMaintenanceReminder::query()->whereKey($reminder)->first();
+        $reminderId = (int) $reminder;
+        if ($reminderId < 1) {
+            return $this->redirect($tenant)
+                ->with('status', 'Maintenance reminder deleted.')
+                ->withInput();
+        }
+
+        $branchId = BranchContext::branchId();
+
+        $modelQuery = RepairBuddyMaintenanceReminder::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->whereKey($reminderId);
+
+        if ($branchId) {
+            $modelQuery->where('branch_id', $branchId);
+        }
+
+        $model = $modelQuery->first();
         if ($model) {
             $model->delete();
         }
@@ -177,6 +215,42 @@ class MaintenanceReminderController extends Controller
         return $this->redirect($tenant)
             ->with('status', 'Maintenance reminder deleted.')
             ->withInput();
+    }
+
+    public function logs(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $perPage = is_numeric($request->query('per_page')) ? (int) $request->query('per_page') : 25;
+        $perPage = max(5, min(100, $perPage));
+
+        $branchId = BranchContext::branchId();
+
+        $query = RepairBuddyMaintenanceReminderLog::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->with([
+                'reminder:id,name',
+                'job:id,case_number,title',
+                'customer:id,name,email,phone',
+            ])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $logs = $query->paginate($perPage)->withQueryString();
+
+        return view('tenant.settings.maintenance-reminders-logs', [
+            'tenant' => $tenant,
+            'logs' => $logs,
+        ]);
     }
 
     private function redirect(Tenant $tenant): RedirectResponse

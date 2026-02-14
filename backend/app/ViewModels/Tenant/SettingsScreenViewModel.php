@@ -199,6 +199,13 @@ class SettingsScreenViewModel
         $estimatesEnabledUi = (bool) ($estimatesSettings['enabled'] ?? false);
         $estimatesValidDaysUi = is_int($estimatesSettings['validDays'] ?? null) ? (int) $estimatesSettings['validDays'] : 30;
 
+        $estimateEmailSubjectCustomerUi = (string) ($estimatesSettings['estimate_email_subject_to_customer'] ?? '');
+        $estimateEmailBodyCustomerUi = (string) ($estimatesSettings['estimate_email_body_to_customer'] ?? '');
+        $estimateApproveEmailSubjectAdminUi = (string) ($estimatesSettings['estimate_approve_email_subject_to_admin'] ?? '');
+        $estimateApproveEmailBodyAdminUi = (string) ($estimatesSettings['estimate_approve_email_body_to_admin'] ?? '');
+        $estimateRejectEmailSubjectAdminUi = (string) ($estimatesSettings['estimate_reject_email_subject_to_admin'] ?? '');
+        $estimateRejectEmailBodyAdminUi = (string) ($estimatesSettings['estimate_reject_email_body_to_admin'] ?? '');
+
         $customerRegistrationUi = (bool) ($accountSettings['customerRegistration'] ?? false);
         $accountApprovalRequiredUi = (bool) ($accountSettings['accountApprovalRequired'] ?? false);
         $defaultCustomerRoleUi = (string) ($accountSettings['defaultCustomerRole'] ?? 'customer');
@@ -422,6 +429,25 @@ class SettingsScreenViewModel
             $tenantNameForSubject = (string) config('app.name');
         }
 
+        if (trim($estimateEmailSubjectCustomerUi) === '') {
+            $estimateEmailSubjectCustomerUi = 'You have received an estimate! | '.$tenantNameForSubject;
+        }
+        if (trim($estimateEmailBodyCustomerUi) === '') {
+            $estimateEmailBodyCustomerUi = "Hello {{customer_full_name}},\n\nWe have prepared an estimate for you. If you have further questions please contact us.\n\nYour estimate details are listed below. You can approve or reject estimate as per your choice. If you have questions please get in touch.\n\nApprove/Reject the Estimate\n\n{{start_approve_estimate_link}}Approve Estimate{{end_approve_estimate_link}}\n\n{{start_reject_estimate_link}}Reject Estimate {{end_reject_estimate_link}}\n\n\n{{order_invoice_details}}\n\nThank you again for your business!";
+        }
+        if (trim($estimateApproveEmailSubjectAdminUi) === '') {
+            $estimateApproveEmailSubjectAdminUi = 'Congratulations! Customer have approved your estimate! | '.$tenantNameForSubject;
+        }
+        if (trim($estimateApproveEmailBodyAdminUi) === '') {
+            $estimateApproveEmailBodyAdminUi = "Hello,\n\nEstimate you sent to {{customer_full_name}} have been approved by customer and converted to job.\n\nJob ID : {{job_id}} created from Estimate ID : {{estimate_id}}\n\nThank you!";
+        }
+        if (trim($estimateRejectEmailSubjectAdminUi) === '') {
+            $estimateRejectEmailSubjectAdminUi = 'Estimate have been rejected! | '.$tenantNameForSubject;
+        }
+        if (trim($estimateRejectEmailBodyAdminUi) === '') {
+            $estimateRejectEmailBodyAdminUi = "Hello,\n\nEstimate you sent to {{customer_full_name}} have been rejected by customer.\n\nEstimate ID : {{estimate_id}}\n\nThank you!";
+        }
+
         $bookingEmailSubjectCustomerUi = (string) ($bookingSettings['booking_email_subject_to_customer'] ?? '');
         if (trim($bookingEmailSubjectCustomerUi) === '') {
             $bookingEmailSubjectCustomerUi = 'We have received your booking order! | '.$tenantNameForSubject;
@@ -527,10 +553,10 @@ class SettingsScreenViewModel
                 // ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'view' => 'tenant.settings.sections.pages-setup'],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'view' => 'tenant.settings.sections.devices-brands'],
                 ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'view' => 'tenant.settings.sections.bookings'],
-                ['id' => 'wc_rb_maintenance_reminder', 'label' => __('Device Reminders'), 'view' => 'tenant.settings.sections.maintenance-reminders'],
+                ['id' => 'wc_rb_maintenance_reminder', 'label' => __('Maintenance Reminders'), 'view' => 'tenant.settings.sections.maintenance-reminders'],
+                ['id' => 'wc_rb_manage_taxes', 'label' => __('Manage Taxes'), 'view' => 'tenant.settings.sections.taxes'],
                 ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'view' => 'tenant.settings.sections.services'],
                 ['id' => 'wcrb_estimates_tab', 'label' => __('Estimates'), 'view' => 'tenant.settings.sections.estimates'],
-                ['id' => 'wc_rb_manage_taxes', 'label' => __('Manage Taxes'), 'view' => 'tenant.settings.sections.taxes'],
                 ['id' => 'wcrb_timelog_tab', 'label' => __('Time Log Settings'), 'view' => 'tenant.settings.sections.timelog'],
                 ['id' => 'wcrb_styling', 'label' => __('Styling & Labels'), 'view' => 'tenant.settings.sections.styling'],
                 ['id' => 'wcrb_reviews_tab', 'label' => __('Job Reviews'), 'view' => 'tenant.settings.sections.reviews'],
@@ -567,6 +593,12 @@ class SettingsScreenViewModel
             'serviceBookingFormUi' => $serviceBookingFormUi,
             'estimatesEnabledUi' => $estimatesEnabledUi,
             'estimatesValidDaysUi' => $estimatesValidDaysUi,
+            'estimateEmailSubjectCustomerUi' => $estimateEmailSubjectCustomerUi,
+            'estimateEmailBodyCustomerUi' => $estimateEmailBodyCustomerUi,
+            'estimateApproveEmailSubjectAdminUi' => $estimateApproveEmailSubjectAdminUi,
+            'estimateApproveEmailBodyAdminUi' => $estimateApproveEmailBodyAdminUi,
+            'estimateRejectEmailSubjectAdminUi' => $estimateRejectEmailSubjectAdminUi,
+            'estimateRejectEmailBodyAdminUi' => $estimateRejectEmailBodyAdminUi,
             'taxes' => $taxes,
             'taxEnable' => $taxEnable,
             'taxInvoiceAmounts' => $taxInvoiceAmounts,

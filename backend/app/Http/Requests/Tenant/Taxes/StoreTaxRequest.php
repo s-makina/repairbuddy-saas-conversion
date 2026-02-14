@@ -15,9 +15,9 @@ class StoreTaxRequest extends FormRequest
     {
         return [
             'tax_name' => ['required', 'string', 'max:255'],
+            'tax_description' => ['nullable', 'string', 'max:2000'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'tax_status' => ['nullable', 'in:active,inactive'],
-            'tax_is_default' => ['nullable', 'in:on'],
         ];
     }
 }

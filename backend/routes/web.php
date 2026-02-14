@@ -90,6 +90,10 @@ Route::prefix('t/{business}')
         Route::post('/settings/taxes', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'store'])
             ->name('tenant.settings.taxes.store');
 
+        Route::post('/settings/taxes/{tax}/update', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'update'])
+            ->where(['tax' => '[0-9]+' ])
+            ->name('tenant.settings.taxes.update');
+
         Route::post('/settings/taxes/{tax}/active', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'setActive'])
             ->where(['tax' => '[0-9]+' ])
             ->name('tenant.settings.taxes.active');
@@ -142,6 +146,9 @@ Route::prefix('t/{business}')
 
         Route::post('/settings/maintenance-reminders', [\App\Http\Controllers\Tenant\MaintenanceReminders\MaintenanceReminderController::class, 'store'])
             ->name('tenant.settings.maintenance_reminders.store');
+
+        Route::get('/settings/maintenance-reminders/logs', [\App\Http\Controllers\Tenant\MaintenanceReminders\MaintenanceReminderController::class, 'logs'])
+            ->name('tenant.settings.maintenance_reminders.logs');
 
         Route::post('/settings/maintenance-reminders/{reminder}/update', [\App\Http\Controllers\Tenant\MaintenanceReminders\MaintenanceReminderController::class, 'update'])
             ->where(['reminder' => '[0-9]+' ])

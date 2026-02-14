@@ -16,6 +16,7 @@ class RepairBuddyTax extends Model
     protected $fillable = [
         'tenant_id',
         'name',
+        'description',
         'rate',
         'is_default',
         'is_active',
