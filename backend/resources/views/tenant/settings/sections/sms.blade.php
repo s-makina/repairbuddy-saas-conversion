@@ -7,9 +7,9 @@
 			<h3>{{ __('SMS Settings') }}</h3>
 			<style>
 				#wc_rb_page_sms_IDENTIFIER .wcrb-chip-group{display:flex;flex-wrap:wrap;gap:8px;max-width:560px}
-				#wc_rb_page_sms_IDENTIFIER .wcrb-chip{display:inline-flex;align-items:center;border:1px solid #d1d5db;border-radius:9999px;padding:6px 10px;background:#fff;cursor:pointer;user-select:none;line-height:1}
+				#wc_rb_page_sms_IDENTIFIER .wcrb-chip{display:inline-flex;align-items:center;flex:0 0 auto;width:auto;max-width:100%;border:1px solid #d1d5db;border-radius:9999px;padding:6px 10px;background:#fff;cursor:pointer;user-select:none;line-height:1}
 				#wc_rb_page_sms_IDENTIFIER .wcrb-chip input{position:absolute;opacity:0;pointer-events:none}
-				#wc_rb_page_sms_IDENTIFIER .wcrb-chip.is-active{background:#1e3a8a;border-color:#1e3a8a;color:#fff}
+				#wc_rb_page_sms_IDENTIFIER .wcrb-chip.is-active{background:#eff6ff;border-color:#93c5fd;color:#1e3a8a}
 				#wc_rb_page_sms_IDENTIFIER .wcrb-chip:focus-within{outline:2px solid rgba(59,130,246,.6);outline-offset:2px}
 				#wc_rb_page_sms_IDENTIFIER .wcrb-inline-errors{margin:0 0 14px 0;padding:10px 12px;border:1px solid #fecaca;background:#fff1f2;border-radius:10px}
 				#wc_rb_page_sms_IDENTIFIER .wcrb-inline-errors ul{margin:6px 0 0 18px}

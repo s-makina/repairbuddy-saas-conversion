@@ -108,17 +108,20 @@
 					</div>
 
 					<div class="grid-x grid-margin-x">
-						<div class="cell medium-6 small-12">
+						<div class="cell small-12">
 							<x-settings.field for="business_terms" :label="__( 'Terms & Conditions for Repair Order' )" class="wcrb-settings-field">
-								<x-settings.input
+								<x-settings.textarea
 									name="business_terms"
 									id="business_terms"
-									type="text"
+									rows="6"
 									:value="old('business_terms', $business_terms)"
 									:placeholder="__( 'On Repair Order QR Code would be generated with this link.' )"
 								/>
 							</x-settings.field>
 						</div>
+					</div>
+
+					<div class="grid-x grid-margin-x">
 						<div class="cell medium-6 small-12">
 							<x-settings.field for="wc_rb_ro_thanks_msg" :label="__( 'Footer message on Repair Order' )" class="wcrb-settings-field">
 								<x-settings.input

@@ -775,7 +775,7 @@ ul.wc_service_radio li label span:last-child {
 .wcrb-settings-row-label {
 	flex: 0 0 240px;
 	max-width: 240px;
-	font-weight: 600;
+	font-weight: 500;
 	color: #0a0a0a;
 	white-space: nowrap;
 	overflow: hidden;
@@ -798,8 +798,10 @@ ul.wc_service_radio li label span:last-child {
 	}
 }
 .wcrb-settings-field > label {
-	font-weight: 600;
+	font-weight: 500;
 	color: #0a0a0a;
+	display: block;
+	margin-bottom: 6px;
 }
 .wcrb-settings-label-text {
 	display: block;
@@ -813,7 +815,7 @@ ul.wc_service_radio li label span:last-child {
 	font-weight: 400;
 	color: #6b7280;
 	margin-top: 4px;
-	margin-bottom: 8px;
+	margin-bottom: 10px;
 }
 .wcrb-settings-input {
 	width: 100%;
@@ -846,7 +848,7 @@ select.wcrb-settings-input {
 }
 .wcrb-settings-card-title {
 	font-size: 16px;
-	font-weight: 700;
+	font-weight: 600;
 	color: #063e70;
 	margin-top: 0;
 	margin-bottom: 12px;
@@ -866,7 +868,7 @@ select.wcrb-settings-input {
 	border-bottom: 0;
 }
 .wcrb-settings-option-title {
-	font-weight: 600;
+	font-weight: 500;
 	display: block;
 	margin-bottom: 6px;
 	white-space: nowrap;

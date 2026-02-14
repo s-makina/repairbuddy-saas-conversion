@@ -28,9 +28,9 @@ class DevicesBrandsSettingsController extends Controller
             $devicesBrands = [];
         }
 
-        $devicesBrands['enablePinCodeField'] = array_key_exists('enablePinCodeField', $validated);
-        $devicesBrands['showPinCodeInDocuments'] = array_key_exists('showPinCodeInDocuments', $validated);
-        $devicesBrands['useWooProductsAsDevices'] = array_key_exists('useWooProductsAsDevices', $validated);
+        $devicesBrands['enablePinCodeField'] = array_key_exists('enablePinCodeField', $validated) && ((string) $validated['enablePinCodeField'] === '1');
+        $devicesBrands['showPinCodeInDocuments'] = array_key_exists('showPinCodeInDocuments', $validated) && ((string) $validated['showPinCodeInDocuments'] === '1');
+        $devicesBrands['useWooProductsAsDevices'] = array_key_exists('useWooProductsAsDevices', $validated) && ((string) $validated['useWooProductsAsDevices'] === '1');
 
         $labels = $devicesBrands['labels'] ?? [];
         if (! is_array($labels)) {
@@ -67,19 +67,19 @@ class DevicesBrandsSettingsController extends Controller
                     'id' => (isset($row['id']) && is_string($row['id']) && trim($row['id']) !== '') ? trim($row['id']) : null,
                     'label' => trim($label),
                     'type' => 'text',
-                    'displayInBookingForm' => array_key_exists('displayInBookingForm', $row),
-                    'displayInInvoice' => array_key_exists('displayInInvoice', $row),
-                    'displayForCustomer' => array_key_exists('displayForCustomer', $row),
+                    'displayInBookingForm' => array_key_exists('displayInBookingForm', $row) && ((string) ($row['displayInBookingForm'] ?? '') === '1'),
+                    'displayInInvoice' => array_key_exists('displayInInvoice', $row) && ((string) ($row['displayInInvoice'] ?? '') === '1'),
+                    'displayForCustomer' => array_key_exists('displayForCustomer', $row) && ((string) ($row['displayForCustomer'] ?? '') === '1'),
                 ];
             }
         }
         $devicesBrands['additionalDeviceFields'] = $additionalDeviceFields;
 
-        $devicesBrands['pickupDeliveryEnabled'] = array_key_exists('pickupDeliveryEnabled', $validated);
+        $devicesBrands['pickupDeliveryEnabled'] = array_key_exists('pickupDeliveryEnabled', $validated) && ((string) $validated['pickupDeliveryEnabled'] === '1');
         $devicesBrands['pickupCharge'] = array_key_exists('pickupCharge', $validated) ? $validated['pickupCharge'] : null;
         $devicesBrands['deliveryCharge'] = array_key_exists('deliveryCharge', $validated) ? $validated['deliveryCharge'] : null;
 
-        $devicesBrands['rentalEnabled'] = array_key_exists('rentalEnabled', $validated);
+        $devicesBrands['rentalEnabled'] = array_key_exists('rentalEnabled', $validated) && ((string) $validated['rentalEnabled'] === '1');
         $devicesBrands['rentalPerDay'] = array_key_exists('rentalPerDay', $validated) ? $validated['rentalPerDay'] : null;
         $devicesBrands['rentalPerWeek'] = array_key_exists('rentalPerWeek', $validated) ? $validated['rentalPerWeek'] : null;
 

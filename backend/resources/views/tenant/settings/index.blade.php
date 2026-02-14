@@ -106,6 +106,11 @@
 							</a>
 						</div>
 						<ul class="vertical tabs thebluebg" data-tabs="82ulyt-tabs" id="example-tabs">
+							<li class="tabs-title{{ $class_settings }}" role="presentation">
+								<a href="#main_page" role="tab" aria-controls="main_page" aria-selected="false" id="main_page-label">
+									<h2>{{ __('Dashboard') }}</h2>
+								</a>
+							</li>
 							<li class="tabs-title{{ $class_general_settings }}" role="presentation">
 								<a href="#panel1" role="tab" aria-controls="panel1" aria-selected="false" id="panel1-label">
 									<h2>{{ __('General Settings') }}</h2>
@@ -185,6 +190,9 @@
 					
 					<div class="cell medium-10 thewhitebg contentsideb">
 						<div class="tabs-content vertical" data-tabs-content="example-tabs">
+							<div class="tabs-panel team-wrap{{ $class_settings }}" id="main_page" role="tabpanel" aria-hidden="true" aria-labelledby="main_page-label">
+								{!! $dashoutput_html !!}
+							</div>
 							@include('tenant.settings.sections.general')
 							@include('tenant.settings.sections.currency')
 							@include('tenant.settings.sections.invoices')

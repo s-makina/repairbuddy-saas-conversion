@@ -14,9 +14,9 @@ class UpdateDevicesBrandsSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'enablePinCodeField' => ['nullable', 'in:on'],
-            'showPinCodeInDocuments' => ['nullable', 'in:on'],
-            'useWooProductsAsDevices' => ['nullable', 'in:on'],
+            'enablePinCodeField' => ['nullable', 'in:0,1'],
+            'showPinCodeInDocuments' => ['nullable', 'in:0,1'],
+            'useWooProductsAsDevices' => ['nullable', 'in:0,1'],
 
             'labels' => ['sometimes', 'array'],
             'labels.note' => ['nullable', 'string', 'max:255'],
@@ -34,10 +34,10 @@ class UpdateDevicesBrandsSettingsRequest extends FormRequest
             'additionalDeviceFields.*.displayInInvoice' => ['nullable', 'in:1'],
             'additionalDeviceFields.*.displayForCustomer' => ['nullable', 'in:1'],
 
-            'pickupDeliveryEnabled' => ['nullable', 'in:on'],
+            'pickupDeliveryEnabled' => ['nullable', 'in:0,1'],
             'pickupCharge' => ['nullable', 'string', 'max:64'],
             'deliveryCharge' => ['nullable', 'string', 'max:64'],
-            'rentalEnabled' => ['nullable', 'in:on'],
+            'rentalEnabled' => ['nullable', 'in:0,1'],
             'rentalPerDay' => ['nullable', 'string', 'max:64'],
             'rentalPerWeek' => ['nullable', 'string', 'max:64'],
         ];
