@@ -67,17 +67,17 @@ Route::prefix('t/{business}')
         Route::post('/settings/invoices', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateInvoicesSettings'])
             ->name('tenant.settings.invoices.update');
 
-        Route::post('/settings/job-status', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateJobStatusSettings'])
+        Route::post('/settings/job-status', [\App\Http\Controllers\Tenant\Settings\JobStatusSettingsController::class, 'update'])
             ->name('tenant.settings.job_status.update');
 
-        Route::post('/settings/job-status/statuses', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeJobStatus'])
+        Route::post('/settings/job-status/statuses', [\App\Http\Controllers\Tenant\Statuses\JobStatusController::class, 'store'])
             ->name('tenant.settings.job_status.store');
 
-        Route::post('/settings/job-status/statuses/{status}/update', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateJobStatus'])
+        Route::post('/settings/job-status/statuses/{status}/update', [\App\Http\Controllers\Tenant\Statuses\JobStatusController::class, 'update'])
             ->where(['status' => '[0-9]+' ])
             ->name('tenant.settings.job_status.statuses.update');
 
-        Route::post('/settings/job-status/statuses/{status}/delete', [\App\Http\Controllers\Web\TenantDashboardController::class, 'deleteJobStatus'])
+        Route::post('/settings/job-status/statuses/{status}/delete', [\App\Http\Controllers\Tenant\Statuses\JobStatusController::class, 'delete'])
             ->where(['status' => '[0-9]+' ])
             ->name('tenant.settings.job_status.statuses.delete');
 
@@ -121,10 +121,10 @@ Route::prefix('t/{business}')
         Route::post('/settings/payment-status/{slug}', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePaymentStatusDisplay'])
             ->name('tenant.settings.payment_status.update');
 
-        Route::post('/settings/payment-status', [\App\Http\Controllers\Web\TenantDashboardController::class, 'savePaymentStatus'])
+        Route::post('/settings/payment-status', [\App\Http\Controllers\Tenant\Statuses\PaymentStatusController::class, 'save'])
             ->name('tenant.settings.payment_status.save');
 
-        Route::post('/settings/payment-status/{status}/toggle', [\App\Http\Controllers\Web\TenantDashboardController::class, 'togglePaymentStatusActive'])
+        Route::post('/settings/payment-status/{status}/toggle', [\App\Http\Controllers\Tenant\Statuses\PaymentStatusController::class, 'toggle'])
             ->where(['status' => '[0-9]+' ])
             ->name('tenant.settings.payment_status.toggle');
 
