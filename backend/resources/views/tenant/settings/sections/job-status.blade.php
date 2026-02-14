@@ -15,6 +15,13 @@
 				</div>
 				<div class="modal-body">
 					<div class="form-message"></div>
+
+					@if ($errors->any())
+						<div class="notice notice-error">
+							<p>{{ __( 'Please fix the errors below.' ) }}</p>
+						</div>
+					@endif
+
 					<form class="needs-validation" name="status_form_sync" novalidate method="post" action="{{ route('tenant.settings.job_status.store', ['business' => $tenant->slug]) }}">
 						@csrf
 						<div class="row g-3">
@@ -128,6 +135,7 @@
 								<div class="form-message"></div>
 								<form class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.job_status.statuses.update', ['business' => $tenant->slug, 'status' => $s->id]) }}">
 									@csrf
+									<input type="hidden" name="editing_status_id" value="{{ $s->id }}" />
 									<div class="row g-3">
 										<div class="col-md-6">
 											<x-settings.field :for="'status_name_'.$s->id" :label="__( 'Status Name' )" class="wcrb-settings-field">
@@ -182,6 +190,31 @@
 				</div>
 			@endforeach
 		@endif
+		<script>
+			(function(){
+				var hasJobStatusErrors = {{ $errors->has('status_name') || $errors->has('status_description') || $errors->has('invoice_label') || $errors->has('status_status') || $errors->has('statusEmailMessage') ? 'true' : 'false' }};
+				if (!hasJobStatusErrors) { return; }
+
+				var editingId = @json(old('editing_status_id'));
+				try {
+					if (window.bootstrap && bootstrap.Modal) {
+						if (editingId) {
+							var editModal = document.getElementById('editStatusModal-' + editingId);
+							if (editModal) {
+								bootstrap.Modal.getOrCreateInstance(editModal).show();
+								return;
+							}
+						}
+
+						var addModal = document.getElementById('statusFormModal');
+						if (addModal) {
+							bootstrap.Modal.getOrCreateInstance(addModal).show();
+						}
+					}
+				} catch (e) {
+				}
+			})();
+		</script>
 		<!-- Let's produce the form for status to consider completed and cancelled /-->
 	</div><!-- Post Stuff/-->
 
