@@ -58,13 +58,13 @@ Route::prefix('t/{business}')
         Route::post('/profile/photo', [\App\Http\Controllers\Web\TenantProfileController::class, 'updatePhoto'])
             ->name('tenant.profile.photo.update');
 
-        Route::post('/settings/general', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateGeneralSettings'])
+        Route::post('/settings/general', [\App\Http\Controllers\Tenant\Settings\GeneralSettingsController::class, 'update'])
             ->name('tenant.settings.general.update');
 
-        Route::post('/settings/currency', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateCurrencySettings'])
+        Route::post('/settings/currency', [\App\Http\Controllers\Tenant\Settings\CurrencySettingsController::class, 'update'])
             ->name('tenant.settings.currency.update');
 
-        Route::post('/settings/invoices', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateInvoicesSettings'])
+        Route::post('/settings/invoices', [\App\Http\Controllers\Tenant\Settings\InvoicesSettingsController::class, 'update'])
             ->name('tenant.settings.invoices.update');
 
         Route::post('/settings/job-status', [\App\Http\Controllers\Tenant\Settings\JobStatusSettingsController::class, 'update'])
@@ -154,7 +154,7 @@ Route::prefix('t/{business}')
         Route::post('/settings/estimates', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateEstimatesSettings'])
             ->name('tenant.settings.estimates.update');
 
-        Route::post('/settings/sms', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateSmsSettings'])
+        Route::post('/settings/sms', [\App\Http\Controllers\Tenant\Settings\SmsSettingsController::class, 'update'])
             ->name('tenant.settings.sms.update');
 
         Route::post('/settings/account', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateAccountSettings'])
