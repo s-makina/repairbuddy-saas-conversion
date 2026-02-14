@@ -546,8 +546,8 @@ Route::prefix('{business}')
                     Route::patch('/job-statuses/{slug}', [\App\Http\Controllers\Api\App\RepairBuddyJobStatusController::class, 'updateDisplay'])
                         ->middleware(['throttle:auth', 'permission:settings.manage'])
                         ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
-                    Route::get('/payment-statuses', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'index']);
-                    Route::patch('/payment-statuses/{slug}', [\App\Http\Controllers\Api\App\RepairBuddyPaymentStatusController::class, 'updateDisplay'])
+                    Route::get('/payment-statuses', [\App\Http\Controllers\Api\App\PaymentStatusController::class, 'index']);
+                    Route::patch('/payment-statuses/{slug}', [\App\Http\Controllers\Api\App\PaymentStatusController::class, 'updateDisplay'])
                         ->middleware(['throttle:auth', 'permission:settings.manage'])
                         ->where(['slug' => '[A-Za-z0-9\-_]+' ]);
 

@@ -15,7 +15,6 @@ use App\Models\RepairBuddyJobAttachment;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyPaymentStatus;
 use App\Models\Status;
 use App\Models\User;
 use App\Notifications\OneTimePasswordNotification;
@@ -354,6 +353,19 @@ class RepairBuddyJobController extends Controller
 
         $requestedPaymentStatus = is_string($validated['payment_status_slug'] ?? null) ? trim((string) $validated['payment_status_slug']) : '';
         $paymentStatusSlug = $requestedPaymentStatus !== '' ? $requestedPaymentStatus : 'nostatus';
+
+        $paymentStatusExists = Status::query()
+            ->where('status_type', 'Payment')
+            ->where('code', $paymentStatusSlug)
+            ->exists();
+        if (! $paymentStatusExists) {
+            $fallbackPayment = Status::query()
+                ->where('status_type', 'Payment')
+                ->orderBy('id')
+                ->value('code');
+            $fallbackPayment = is_string($fallbackPayment) ? trim((string) $fallbackPayment) : '';
+            $paymentStatusSlug = $fallbackPayment !== '' ? $fallbackPayment : 'nostatus';
+        }
 
         $requestedPriority = is_string($validated['priority'] ?? null) ? trim((string) $validated['priority']) : '';
         $priority = $requestedPriority !== '' ? $requestedPriority : 'normal';

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
-use App\Models\RepairBuddyPaymentStatus;
+use App\Models\Status;
 use App\Models\TenantStatusOverride;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 
-class RepairBuddyPaymentStatusController extends Controller
+class PaymentStatusController extends Controller
 {
     public function index(Request $request)
     {
@@ -27,15 +27,17 @@ class RepairBuddyPaymentStatusController extends Controller
             ->keyBy('code');
 
         return response()->json([
-            'payment_statuses' => RepairBuddyPaymentStatus::query()
+            'payment_statuses' => Status::query()
+                ->where('status_type', 'Payment')
                 ->orderBy('id')
                 ->get()
-                ->map(function (RepairBuddyPaymentStatus $s) use ($overrides) {
-                    $override = $overrides[$s->slug] ?? null;
+                ->map(function (Status $s) use ($overrides) {
+                    $slug = is_string($s->code) ? trim((string) $s->code) : '';
+                    $override = $slug !== '' ? ($overrides[$slug] ?? null) : null;
 
                     return [
                         'id' => $s->id,
-                        'slug' => $s->slug,
+                        'slug' => $slug,
                         'label' => (is_string($override?->label) && $override->label !== '') ? $override->label : $s->label,
                         'is_active' => (bool) $s->is_active,
                         'color' => is_string($override?->color) ? $override->color : null,
@@ -65,7 +67,10 @@ class RepairBuddyPaymentStatusController extends Controller
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000'],
         ]);
 
-        $status = RepairBuddyPaymentStatus::query()->where('slug', $slug)->first();
+        $status = Status::query()
+            ->where('status_type', 'Payment')
+            ->where('code', $slug)
+            ->first();
 
         if (! $status) {
             return response()->json([

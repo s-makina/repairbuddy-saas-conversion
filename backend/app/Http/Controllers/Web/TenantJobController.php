@@ -14,7 +14,6 @@ use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyPaymentStatus;
 use App\Models\Status;
 use App\Support\TenantContext;
 use App\Support\BranchContext;
@@ -77,7 +76,8 @@ class TenantJobController extends Controller
             ->orderBy('id')
             ->get();
 
-        $paymentStatuses = RepairBuddyPaymentStatus::query()
+        $paymentStatuses = Status::query()
+            ->where('status_type', 'Payment')
             ->where('is_active', true)
             ->orderBy('id')
             ->get();

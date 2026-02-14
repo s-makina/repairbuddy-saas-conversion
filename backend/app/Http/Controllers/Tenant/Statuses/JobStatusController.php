@@ -12,7 +12,6 @@ use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class JobStatusController extends Controller
@@ -92,22 +91,6 @@ class JobStatusController extends Controller
                 'email_template' => $emailTemplate,
                 'sms_enabled' => false,
             ]);
-
-            if (Schema::hasTable('rb_job_statuses')) {
-                DB::table('rb_job_statuses')->updateOrInsert([
-                    'tenant_id' => $tenantId,
-                    'slug' => $code,
-                ], [
-                    'label' => $label,
-                    'email_enabled' => $emailTemplate !== null,
-                    'email_template' => $emailTemplate,
-                    'sms_enabled' => false,
-                    'invoice_label' => $invoiceLabel,
-                    'is_active' => $isActive,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]);
-            }
         });
 
         return $this->redirectToSettings($tenant)
@@ -120,7 +103,16 @@ class JobStatusController extends Controller
         $tenant = TenantContext::tenant();
         $tenantId = TenantContext::tenantId();
 
+        $validated = $request->validated();
+
         $statusId = (int) $status;
+        if ($statusId <= 0) {
+            $fallbackId = (int) ($validated['editing_status_id'] ?? 0);
+            if ($fallbackId > 0) {
+                $statusId = $fallbackId;
+            }
+        }
+
         if ($statusId <= 0) {
             return back()->withErrors(['status_name' => 'Job status id is missing.'])->withInput();
         }
@@ -139,8 +131,6 @@ class JobStatusController extends Controller
         if (! $jobStatus) {
             return back()->withErrors(['status_name' => 'Job status not found.'])->withInput();
         }
-
-        $validated = $request->validated();
 
         $emailTemplate = array_key_exists('statusEmailMessage', $validated) ? $validated['statusEmailMessage'] : null;
         if (is_string($emailTemplate)) {
@@ -174,6 +164,7 @@ class JobStatusController extends Controller
 
         DB::transaction(function () use ($jobStatus, $tenantId, $code, $label, $description, $invoiceLabel, $isActive, $emailTemplate) {
             $jobStatus->forceFill([
+                'tenant_id' => $tenantId,
                 'label' => $label,
                 'description' => $description,
                 'invoice_label' => $invoiceLabel,
@@ -181,20 +172,6 @@ class JobStatusController extends Controller
                 'email_enabled' => $emailTemplate !== null,
                 'email_template' => $emailTemplate,
             ])->save();
-
-            if (Schema::hasTable('rb_job_statuses')) {
-                DB::table('rb_job_statuses')
-                    ->where('tenant_id', $tenantId)
-                    ->where('slug', $code)
-                    ->update([
-                        'label' => $label,
-                        'email_enabled' => $emailTemplate !== null,
-                        'email_template' => $emailTemplate,
-                        'invoice_label' => $invoiceLabel,
-                        'is_active' => $isActive,
-                        'updated_at' => now(),
-                    ]);
-            }
         });
 
         return $this->redirectToSettings($tenant)
@@ -263,13 +240,6 @@ class JobStatusController extends Controller
 
         DB::transaction(function () use ($jobStatus, $tenantId, $code) {
             $jobStatus->delete();
-
-            if (Schema::hasTable('rb_job_statuses')) {
-                DB::table('rb_job_statuses')
-                    ->where('tenant_id', $tenantId)
-                    ->where('slug', $code)
-                    ->delete();
-            }
         });
 
         return $this->redirectToSettings($tenant)
