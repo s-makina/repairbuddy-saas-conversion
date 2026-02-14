@@ -337,8 +337,9 @@
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('profilePhotoUpload').click()">
                                 <i class="bi bi-upload me-1"></i>Upload New Photo
                             </button>
-                            <button type="submit" class="btn btn-primary btn-sm">Save Photo</button>
+                            <button type="submit" class="btn btn-primary btn-sm" id="profilePhotoSubmit" disabled>Save Photo</button>
                         </div>
+                        <div class="small text-muted mt-2" id="profilePhotoFilename">No file selected</div>
                         <small class="text-muted d-block mt-2">JPG, PNG or. GIF. Max size 2MB.</small>
                         
                         <!-- Progress bar -->
@@ -349,6 +350,25 @@
                         <!-- Upload status -->
                         <div id="uploadStatus" class="mt-2"></div>
                     </form>
+
+                    <script>
+                        (function () {
+                            var input = document.getElementById('profilePhotoUpload');
+                            var filename = document.getElementById('profilePhotoFilename');
+                            var submit = document.getElementById('profilePhotoSubmit');
+
+                            if (!input || !filename || !submit) return;
+
+                            var updateUi = function () {
+                                var file = input.files && input.files.length ? input.files[0] : null;
+                                filename.textContent = file ? file.name : 'No file selected';
+                                submit.disabled = !file;
+                            };
+
+                            input.addEventListener('change', updateUi);
+                            updateUi();
+                        })();
+                    </script>
                 </div>
             </div>
 
