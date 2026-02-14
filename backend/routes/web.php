@@ -49,6 +49,94 @@ Route::prefix('t/{business}')
         Route::get('/settings', [\App\Http\Controllers\Web\TenantSettingsController::class, 'show'])
             ->name('tenant.settings');
 
+        Route::get('/settings/{section}', [\App\Http\Controllers\Web\TenantSettingsController::class, 'section'])
+            ->where(['section' => '[A-Za-z0-9\-]+' ])
+            ->name('tenant.settings.section');
+
+        Route::get('/operations/brands', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'index'])
+            ->name('tenant.operations.brands.index');
+
+        Route::get('/operations/brands/datatable', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'datatable'])
+            ->name('tenant.operations.brands.datatable');
+
+        Route::get('/operations/brands/new', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'create'])
+            ->name('tenant.operations.brands.create');
+
+        Route::get('/operations/brands/{brand}/edit', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'edit'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.brands.edit');
+
+        Route::post('/operations/brands', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'store'])
+            ->name('tenant.operations.brands.store');
+
+        Route::post('/operations/brands/{brand}/update', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'update'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.brands.update');
+
+        Route::post('/operations/brands/{brand}/active', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'setActive'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.brands.active');
+
+        Route::post('/operations/brands/{brand}/delete', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'delete'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.brands.delete');
+
+        Route::get('/operations/brand-types', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'index'])
+            ->name('tenant.operations.brand_types.index');
+
+        Route::get('/operations/brand-types/datatable', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'datatable'])
+            ->name('tenant.operations.brand_types.datatable');
+
+        Route::get('/operations/brand-types/new', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'create'])
+            ->name('tenant.operations.brand_types.create');
+
+        Route::get('/operations/brand-types/{type}/edit', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'edit'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.brand_types.edit');
+
+        Route::post('/operations/brand-types', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'store'])
+            ->name('tenant.operations.brand_types.store');
+
+        Route::post('/operations/brand-types/{type}/update', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'update'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.brand_types.update');
+
+        Route::post('/operations/brand-types/{type}/active', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'setActive'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.brand_types.active');
+
+        Route::post('/operations/brand-types/{type}/delete', [\App\Http\Controllers\Web\Operations\DeviceTypeOperationsController::class, 'delete'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.brand_types.delete');
+
+        Route::get('/operations/devices', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'index'])
+            ->name('tenant.operations.devices.index');
+
+        Route::get('/operations/devices/datatable', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'datatable'])
+            ->name('tenant.operations.devices.datatable');
+
+        Route::get('/operations/devices/new', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'create'])
+            ->name('tenant.operations.devices.create');
+
+        Route::get('/operations/devices/{device}/edit', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'edit'])
+            ->where(['device' => '[0-9]+' ])
+            ->name('tenant.operations.devices.edit');
+
+        Route::post('/operations/devices', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'store'])
+            ->name('tenant.operations.devices.store');
+
+        Route::post('/operations/devices/{device}/update', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'update'])
+            ->where(['device' => '[0-9]+' ])
+            ->name('tenant.operations.devices.update');
+
+        Route::post('/operations/devices/{device}/active', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'setActive'])
+            ->where(['device' => '[0-9]+' ])
+            ->name('tenant.operations.devices.active');
+
+        Route::post('/operations/devices/{device}/delete', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'delete'])
+            ->where(['device' => '[0-9]+' ])
+            ->name('tenant.operations.devices.delete');
+
         Route::get('/profile', [\App\Http\Controllers\Web\TenantProfileController::class, 'edit'])
             ->name('tenant.profile.edit');
 
@@ -188,6 +276,9 @@ Route::prefix('t/{business}')
 
         Route::post('/jobs', [\App\Http\Controllers\Web\TenantJobController::class, 'store'])
             ->name('tenant.jobs.store');
+
+        Route::get('/jobs/datatable', [\App\Http\Controllers\Web\TenantJobController::class, 'datatable'])
+            ->name('tenant.jobs.datatable');
 
         Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
             ->name('tenant.calendar.events');

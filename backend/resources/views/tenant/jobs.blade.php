@@ -1,5 +1,80 @@
 @extends('tenant.layouts.myaccount', ['title' => 'Jobs'])
 
+@push('page-styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css" />
+@endpush
+
+@push('page-scripts')
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  (function () {
+    if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
+      return;
+    }
+
+    var $table = window.jQuery('#jobsTable');
+    if ($table.length === 0) {
+      return;
+    }
+
+    if (window.jQuery.fn.DataTable.isDataTable($table)) {
+      return;
+    }
+
+    $table.DataTable({
+      processing: true,
+      serverSide: true,
+      pageLength: 25,
+      ajax: {
+        url: "{{ route('tenant.jobs.datatable', ['business' => $tenant->slug]) }}",
+        data: function (d) {
+          d.job_status = window.jQuery('#job_status').val() || '';
+          d.wc_payment_status = window.jQuery('#wc_payment_status').val() || '';
+          d.device_post_id = window.jQuery('#rep_devices').val() || '';
+          d.searchinput = window.jQuery('#searchInput').val() || '';
+        }
+      },
+      order: [[0, 'desc']],
+      columns: [
+        { data: 'job_id_display', name: 'job_number' },
+        { data: 'case_number_display', name: 'case_number' },
+        { data: 'customer_display', name: 'customer_id', orderable: false, searchable: false },
+        { data: 'devices_display', name: 'jobDevices.label_snapshot', orderable: false, searchable: false },
+        { data: 'dates_display', name: 'pickup_date', orderable: false, searchable: false },
+        { data: 'total_display', name: 'total_display', orderable: false, searchable: false },
+        { data: 'balance_display', name: 'balance_display', orderable: false, searchable: false },
+        { data: 'payment_display', name: 'payment_status_slug' },
+        { data: 'status_display', name: 'status_slug' },
+        { data: 'priority_display', name: 'priority' },
+        { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end pe-4' }
+      ]
+    });
+
+    window.jQuery('#applyFilters').on('click', function (e) {
+      e.preventDefault();
+      $table.DataTable().ajax.reload();
+    });
+
+    window.jQuery('#clearFilters').on('click', function (e) {
+      e.preventDefault();
+      window.jQuery('#searchInput').val('');
+      window.jQuery('#job_status').val('all');
+      window.jQuery('#wc_payment_status').val('all');
+      window.jQuery('#rep_devices').val('');
+      $table.DataTable().search('').ajax.reload();
+    });
+
+    window.jQuery('#searchInput').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $table.DataTable().search(window.jQuery(this).val() || '').draw();
+      }
+    });
+  })();
+</script>
+@endpush
+
 @section('content')
 @php
     $current_view = $current_view ?? (request()->query('screen') === 'jobs_card' ? 'card' : 'table');
@@ -186,7 +261,7 @@
             <!-- Table View -->
             <div class="table-responsive" id="jobsTable_list">
                 <div class="aj_msg"></div>
-                <table class="table table-hover mb-0 table-striped">
+                <table class="table table-hover mb-0 table-striped" id="jobsTable">
                     <thead class="table-light">
                         <tr>
                             <th>{{ __('ID') }}</th>

@@ -23,9 +23,130 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class TenantJobController extends Controller
 {
+    public function datatable(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $branch = BranchContext::branch();
+        if (! $tenant || ! $branch instanceof Branch) {
+            return response()->json(['message' => 'Tenant or branch context is missing.'], 400);
+        }
+
+        $query = RepairBuddyJob::query()
+            ->with(['customer', 'technicians', 'jobDevices'])
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id);
+
+        return DataTables::eloquent($query)
+            ->addColumn('job_id_display', function (RepairBuddyJob $job) {
+                $num = is_numeric($job->job_number) ? (int) $job->job_number : (int) $job->id;
+                return str_pad((string) $num, 5, '0', STR_PAD_LEFT);
+            })
+            ->addColumn('case_number_display', function (RepairBuddyJob $job) {
+                return is_string($job->case_number) ? (string) $job->case_number : '';
+            })
+            ->addColumn('tech_display', function (RepairBuddyJob $job) {
+                $tech = $job->technicians->first();
+                return $tech?->name ?? '';
+            })
+            ->addColumn('customer_display', function (RepairBuddyJob $job) {
+                $c = $job->customer;
+                if (! $c) {
+                    return '';
+                }
+
+                $name = is_string($c->name ?? null) ? (string) $c->name : '';
+                $phone = is_string($c->phone ?? null) ? trim((string) $c->phone) : '';
+                $email = is_string($c->email ?? null) ? trim((string) $c->email) : '';
+
+                $parts = [];
+                if ($name !== '') {
+                    $parts[] = e($name);
+                }
+                if ($phone !== '') {
+                    $parts[] = '<strong>P</strong>: ' . e($phone);
+                }
+                if ($email !== '') {
+                    $parts[] = '<strong>E</strong>: ' . e($email);
+                }
+
+                return implode('<br>', $parts);
+            })
+            ->addColumn('devices_display', function (RepairBuddyJob $job) {
+                $labels = [];
+                foreach ($job->jobDevices as $d) {
+                    $label = is_string($d->label_snapshot ?? null) ? trim((string) $d->label_snapshot) : '';
+                    if ($label !== '') {
+                        $labels[] = $label;
+                    }
+                }
+                return e(implode(', ', array_slice($labels, 0, 3)));
+            })
+            ->addColumn('dates_display', function (RepairBuddyJob $job) {
+                $lines = [];
+                if ($job->pickup_date) {
+                    $lines[] = '<strong>P</strong>:' . e($job->pickup_date->format('m/d/Y'));
+                }
+                if ($job->delivery_date) {
+                    $lines[] = '<strong>D</strong>:' . e($job->delivery_date->format('m/d/Y'));
+                }
+                if ($job->next_service_date) {
+                    $lines[] = '<strong>N</strong>:' . e($job->next_service_date->format('m/d/Y'));
+                }
+                return implode('<br>', $lines);
+            })
+            ->addColumn('total_display', function (RepairBuddyJob $job) {
+                return '';
+            })
+            ->addColumn('balance_display', function (RepairBuddyJob $job) {
+                return '';
+            })
+            ->addColumn('payment_display', function (RepairBuddyJob $job) {
+                return is_string($job->payment_status_slug) ? e((string) $job->payment_status_slug) : '';
+            })
+            ->addColumn('status_display', function (RepairBuddyJob $job) {
+                return is_string($job->status_slug) ? e((string) $job->status_slug) : '';
+            })
+            ->addColumn('priority_display', function (RepairBuddyJob $job) {
+                return is_string($job->priority) ? e((string) $job->priority) : '';
+            })
+            ->addColumn('actions_display', function (RepairBuddyJob $job) use ($tenant) {
+                if (! $tenant?->slug) {
+                    return '';
+                }
+                $url = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]);
+                return '<a class="btn btn-outline-primary btn-sm" href="' . e($url) . '">View</a>';
+            })
+            ->filter(function ($query) use ($request) {
+                $search = $request->input('search.value');
+                $search = is_string($search) ? trim($search) : '';
+                if ($search === '') {
+                    return;
+                }
+
+                $query->where(function ($q) use ($search) {
+                    $q->where('case_number', 'like', '%' . $search . '%')
+                        ->orWhere('title', 'like', '%' . $search . '%')
+                        ->orWhere('case_detail', 'like', '%' . $search . '%');
+                });
+            })
+            ->rawColumns([
+                'customer_display',
+                'dates_display',
+                'actions_display',
+            ])
+            ->toJson();
+    }
+
     private function nextJobNumber(int $tenantId, int $branchId): int
     {
         $row = RepairBuddyJobCounter::query()

@@ -33,6 +33,14 @@
   };
 
   $settingsUrl = $tenantSlug ? route('tenant.settings', ['business' => $tenantSlug]) : '#';
+  $settingsSectionUrl = function (string $section) use ($tenantSlug): string {
+    if (! $tenantSlug) return '#';
+    return route('tenant.settings.section', ['business' => $tenantSlug, 'section' => $section]);
+  };
+
+  $operationsBrandsUrl = $tenantSlug ? route('tenant.operations.brands.index', ['business' => $tenantSlug]) : '#';
+  $operationsBrandTypesUrl = $tenantSlug ? route('tenant.operations.brand_types.index', ['business' => $tenantSlug]) : '#';
+  $operationsDevicesUrl = $tenantSlug ? route('tenant.operations.devices.index', ['business' => $tenantSlug]) : '#';
 
   $navItems = [
     [
@@ -122,12 +130,133 @@
       'url' => $screenUrl('expense_categories'),
       'access' => ['administrator', 'store_manager'],
     ],
+
+    [
+      'id' => 'operations',
+      'title' => 'Operations',
+      'icon' => 'bi bi-boxes',
+      'url' => '#',
+      'access' => ['administrator', 'store_manager', 'technician'],
+      'extra_class' => 'mt-3',
+    ],
+    [
+      'id' => 'operations_brands',
+      'title' => 'Brands',
+      'parent' => 'operations',
+      'icon' => 'bi bi-bookmark-star',
+      'url' => $operationsBrandsUrl,
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
+    [
+      'id' => 'operations_brand_types',
+      'title' => 'Brand Types',
+      'parent' => 'operations',
+      'icon' => 'bi bi-diagram-2',
+      'url' => $operationsBrandTypesUrl,
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
+    [
+      'id' => 'operations_devices',
+      'title' => 'Devices',
+      'parent' => 'operations',
+      'icon' => 'bi bi-phone',
+      'url' => $operationsDevicesUrl,
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
     [
       'id' => 'settings',
       'title' => 'Settings',
       'icon' => 'bi bi-gear',
       'url' => $settingsUrl,
       'access' => ['all'],
+    ],
+    [
+      'id' => 'settings_overview',
+      'title' => 'All Settings',
+      'parent' => 'settings',
+      'icon' => 'bi bi-grid',
+      'url' => $settingsUrl,
+      'access' => ['all'],
+    ],
+    [
+      'id' => 'settings_services',
+      'title' => 'Service Settings',
+      'parent' => 'settings',
+      'icon' => 'bi bi-tools',
+      'url' => $settingsSectionUrl('services'),
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
+    [
+      'id' => 'settings_taxes',
+      'title' => 'Manage Taxes',
+      'parent' => 'settings',
+      'icon' => 'bi bi-percent',
+      'url' => $settingsSectionUrl('taxes'),
+      'access' => ['administrator', 'store_manager'],
+    ],
+    [
+      'id' => 'settings_bookings',
+      'title' => 'Booking Settings',
+      'parent' => 'settings',
+      'icon' => 'bi bi-calendar-check',
+      'url' => $settingsSectionUrl('bookings'),
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
+    [
+      'id' => 'settings_reviews',
+      'title' => 'Job Reviews',
+      'parent' => 'settings',
+      'icon' => 'bi bi-star',
+      'url' => $settingsSectionUrl('reviews'),
+      'access' => ['administrator', 'store_manager'],
+    ],
+    [
+      'id' => 'settings_styling',
+      'title' => 'Styling & Labels',
+      'parent' => 'settings',
+      'icon' => 'bi bi-palette',
+      'url' => $settingsSectionUrl('styling'),
+      'access' => ['administrator', 'store_manager'],
+    ],
+    [
+      'id' => 'settings_estimates',
+      'title' => 'Estimates',
+      'parent' => 'settings',
+      'icon' => 'bi bi-file-earmark-text',
+      'url' => $settingsSectionUrl('estimates'),
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
+    [
+      'id' => 'settings_timelog',
+      'title' => 'Time Log Settings',
+      'parent' => 'settings',
+      'icon' => 'bi bi-stopwatch',
+      'url' => $settingsSectionUrl('timelog'),
+      'access' => ['administrator', 'store_manager', 'technician'],
+    ],
+    [
+      'id' => 'settings_account',
+      'title' => 'My Account Settings',
+      'parent' => 'settings',
+      'icon' => 'bi bi-person-gear',
+      'url' => $settingsSectionUrl('account'),
+      'access' => ['administrator', 'store_manager'],
+    ],
+    [
+      'id' => 'settings_signature',
+      'title' => 'Signature Workflow',
+      'parent' => 'settings',
+      'icon' => 'bi bi-pen',
+      'url' => $settingsSectionUrl('signature'),
+      'access' => ['administrator', 'store_manager'],
+    ],
+    [
+      'id' => 'settings_maintenance_reminders',
+      'title' => 'Maintenance Reminders',
+      'parent' => 'settings',
+      'icon' => 'bi bi-bell',
+      'url' => $settingsSectionUrl('maintenance-reminders'),
+      'access' => ['administrator', 'store_manager'],
     ],
     [
       'id' => 'profile',
@@ -164,6 +293,10 @@
 
   if (request()->routeIs('tenant.settings')) {
     $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.settings.section')) {
+    $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.operations.*')) {
+    $currentPage = 'operations';
   } elseif (request()->routeIs('tenant.profile.*')) {
     $currentPage = 'profile';
   }
