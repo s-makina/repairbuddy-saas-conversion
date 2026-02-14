@@ -129,44 +129,6 @@
 							</div>
 						</div>
 					</form>
-
-					@php
-						$gw = (string) ($smsGatewayUi ?? '');
-						$testDisabled = ($gw === '');
-					@endphp
-					<div class="wcrb-settings-card" style="margin-top: 18px;">
-						<h3 class="wcrb-settings-card-title">{{ __('Test SMS') }}</h3>
-						<div class="wcrb-settings-card-body">
-							<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.sms.update', ['business' => $tenant->slug]) }}">
-								@csrf
-								<input type="hidden" name="sms_test" value="1">
-								@if ($testDisabled)
-									<div class="notice notice-warning" style="margin-bottom: 12px;">
-										<p>{{ __('Select and save an SMS gateway first to enable test sending.') }}</p>
-									</div>
-								@endif
-
-								<div class="grid-x grid-margin-x">
-									<div class="cell small-12">
-										<x-settings.field for="sms_test_number" :label="__('Phone number')" class="wcrb-settings-field">
-											<x-settings.input name="sms_test_number" id="sms_test_number" :value="old('sms_test_number', $smsTestNumberUi)" type="text" {{ $testDisabled ? 'disabled' : '' }} />
-										</x-settings.field>
-									</div>
-								</div>
-								<div class="grid-x grid-margin-x">
-									<div class="cell small-12">
-										<x-settings.field for="sms_test_message" :label="__('Message')" class="wcrb-settings-field">
-											<x-settings.textarea name="sms_test_message" id="sms_test_message" rows="4" :value="old('sms_test_message', $smsTestMessageUi)" {{ $testDisabled ? 'disabled' : '' }} />
-										</x-settings.field>
-									</div>
-								</div>
-
-								<div class="wcrb-settings-actions">
-									<button type="submit" class="button button-primary" {{ $testDisabled ? 'disabled' : '' }}>{{ __('Send Message') }}</button>
-								</div>
-							</form>
-						</div>
-					</div>
 				</div>
 
 				<div class="cell large-5 medium-12 small-12">
@@ -193,6 +155,44 @@
 							<hr>
 							<p class="description">{{ __('Tip: If you enabled SMS for a status but customers are not receiving messages, verify that the status has an SMS message template configured.') }}</p>
 						</div>
+					</div>
+				</div>
+			</div>
+
+			@php
+				$gw = (string) ($smsGatewayUi ?? '');
+				$testDisabled = ($gw === '');
+			@endphp
+			<div style="margin-left: 18px; margin-top: 18px; padding: 14px; background: #f9fafb; border: 1px dotted #d1d5db; border-radius: 10px;">
+				<div class="wcrb-settings-card" style="margin: 0;">
+					<h3 class="wcrb-settings-card-title">{{ __('Test SMS') }}</h3>
+					<div class="wcrb-settings-card-body">
+						<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.sms.update', ['business' => $tenant->slug]) }}">
+							@csrf
+							<input type="hidden" name="sms_test" value="1">
+							@if ($testDisabled)
+								<div class="notice notice-warning" style="margin-bottom: 12px;">
+									<p>{{ __('Select and save an SMS gateway first to enable test sending.') }}</p>
+								</div>
+							@endif
+
+							<div class="grid-x grid-margin-x">
+								<div class="cell medium-6 small-12">
+									<x-settings.field for="sms_test_number" :label="__('Phone number')" class="wcrb-settings-field">
+										<x-settings.input name="sms_test_number" id="sms_test_number" :value="old('sms_test_number', $smsTestNumberUi)" type="text" {{ $testDisabled ? 'disabled' : '' }} />
+									</x-settings.field>
+								</div>
+								<div class="cell medium-6 small-12">
+									<x-settings.field for="sms_test_message" :label="__('Message')" class="wcrb-settings-field">
+										<x-settings.textarea name="sms_test_message" id="sms_test_message" rows="4" :value="old('sms_test_message', $smsTestMessageUi)" {{ $testDisabled ? 'disabled' : '' }} />
+									</x-settings.field>
+								</div>
+							</div>
+
+							<div class="wcrb-settings-actions">
+								<button type="submit" class="button button-primary" {{ $testDisabled ? 'disabled' : '' }}>{{ __('Send Message') }}</button>
+							</div>
+						</form>
 					</div>
 				</div>
 			</div>
