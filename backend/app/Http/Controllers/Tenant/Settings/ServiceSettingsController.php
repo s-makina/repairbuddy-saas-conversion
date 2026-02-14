@@ -38,7 +38,7 @@ class ServiceSettingsController extends Controller
             $services['wc_service_booking_form'] = $validated['wc_service_booking_form'];
         }
 
-        $services['disableBookingOnServicePage'] = array_key_exists('wc_booking_on_service_page_status', $validated);
+        $services['disableBookingOnServicePage'] = (string) ($validated['wc_booking_on_service_page_status'] ?? 'off') === 'on';
 
         $store->set('services', $services);
         $tenant->save();

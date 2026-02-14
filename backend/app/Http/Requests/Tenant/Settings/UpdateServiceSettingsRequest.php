@@ -15,7 +15,7 @@ class UpdateServiceSettingsRequest extends FormRequest
     {
         return [
             'wc_service_sidebar_description' => ['nullable', 'string', 'max:1000'],
-            'wc_booking_on_service_page_status' => ['nullable', 'in:on'],
+            'wc_booking_on_service_page_status' => ['nullable', 'in:on,off'],
             'wc_service_booking_heading' => ['nullable', 'string', 'max:255'],
             'wc_service_booking_form' => ['nullable', 'in:with_type,without_type,warranty_booking'],
         ];

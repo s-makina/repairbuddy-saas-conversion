@@ -14,7 +14,7 @@ class UpdateTimeLogSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'disable_timelog' => ['sometimes', 'nullable', 'in:on'],
+            'disable_timelog' => ['sometimes', 'nullable', 'boolean'],
             'default_tax_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'job_status_include' => ['sometimes', 'array'],
             'job_status_include.*' => ['string', 'max:64'],

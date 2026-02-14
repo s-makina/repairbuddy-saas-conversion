@@ -2,66 +2,80 @@
 	<div class="wrap">
 		<h2>{{ __('Service Settings') }}</h2>
 
-		<div class="wc-rb-grey-bg-box">
-			<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.services.update', ['business' => $tenant->slug]) }}">
-				@csrf
+		<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.services.update', ['business' => $tenant->slug]) }}">
+			@csrf
+			<div class="wcrb-settings-form">
+				<div class="wcrb-settings-card">
+					<h3 class="wcrb-settings-card-title">{{ __('Service Settings') }}</h3>
+					<div class="wcrb-settings-card-body">
+						<div class="row g-3">
+							<div class="col-12">
+								<x-settings.field for="wc_service_sidebar_description" :label="__('Single Service Price Sidebar')" :help="__('Add some description for prices on single service page sidebar')" errorKey="wc_service_sidebar_description" class="wcrb-settings-field">
+									<x-settings.textarea
+										name="wc_service_sidebar_description"
+										id="wc_service_sidebar_description"
+										:rows="4"
+										:value="old('wc_service_sidebar_description', (string) ($serviceSidebarDescriptionUi ?? ''))"
+									/>
+								</x-settings.field>
+							</div>
 
-				<table class="form-table border">
-					<tbody>
-						<tr>
-							<th scope="row">
-								<label for="wc_service_sidebar_description">{{ __('Single Service Price Sidebar') }}</label>
-							</th>
-							<td>
-								<label>{{ __('Add some description for prices on single service page sidebar') }}</label>
-								<textarea class="form-control" name="wc_service_sidebar_description" id="wc_service_sidebar_description">{{ old('wc_service_sidebar_description', (string) ($serviceSidebarDescriptionUi ?? '')) }}</textarea>
-							</td>
-						</tr>
-
-						<tr>
-							<th scope="row">
-								<label for="wc_booking_on_service_page_status">{{ __('Disable Booking on Service Page?') }}</label>
-							</th>
-							<td>
+							<div class="col-12">
 								@php
-									$checked = old('wc_booking_on_service_page_status') !== null
-										? (old('wc_booking_on_service_page_status') === 'on')
-										: (bool) ($serviceDisableBookingOnServicePageUi ?? false);
+									$checked = (string) old('wc_booking_on_service_page_status', ($serviceDisableBookingOnServicePageUi ?? false) ? 'on' : 'off') === 'on';
 								@endphp
-								<input type="checkbox" name="wc_booking_on_service_page_status" id="wc_booking_on_service_page_status" {{ $checked ? 'checked' : '' }} />
-							</td>
-						</tr>
+								<div class="wcrb-settings-option" style="border-bottom: 0; padding-bottom: 6px; margin-bottom: 6px;">
+									<div class="wcrb-settings-option-head">
+										<div class="wcrb-settings-option-control">
+											<x-settings.toggle
+												name="wc_booking_on_service_page_status"
+												id="wc_booking_on_service_page_status"
+												:checked="$checked"
+												value="on"
+												uncheckedValue="off"
+											/>
+										</div>
+										<label for="wc_booking_on_service_page_status" class="wcrb-settings-option-title">{{ __('Disable Booking on Service Page?') }}</label>
+									</div>
+									<div class="wcrb-settings-option-description"></div>
+								</div>
+							</div>
 
-						<tr>
-							<th scope="row">
-								<label for="wc_service_booking_heading">{{ __('Single Service Price Sidebar') }}</label>
-							</th>
-							<td>
-								<input type="text" class="form-control" name="wc_service_booking_heading" id="wc_service_booking_heading" value="{{ old('wc_service_booking_heading', (string) ($serviceBookingHeadingUi ?? '')) }}" />
-							</td>
-						</tr>
+							<div class="col-md-6">
+								<x-settings.field for="wc_service_booking_heading" :label="__('Booking Heading')" errorKey="wc_service_booking_heading" class="wcrb-settings-field">
+									<x-settings.input
+										name="wc_service_booking_heading"
+										id="wc_service_booking_heading"
+										:value="old('wc_service_booking_heading', (string) ($serviceBookingHeadingUi ?? ''))"
+									/>
+								</x-settings.field>
+							</div>
 
-						<tr>
-							<th scope="row">
-								<label for="wc_service_booking_form">{{ __('Booking Form') }}</label>
-							</th>
-							<td>
+							<div class="col-md-6">
 								@php
 									$selected = (string) old('wc_service_booking_form', (string) ($serviceBookingFormUi ?? ''));
 								@endphp
-								<select class="form-control" name="wc_service_booking_form" id="wc_service_booking_form">
-									<option value="">{{ __('Select booking form') }}</option>
-									<option value="with_type" {{ $selected === 'with_type' ? 'selected' : '' }}>{{ __('Booking with type, manufacture, device and grouped services') }}</option>
-									<option value="without_type" {{ $selected === 'without_type' ? 'selected' : '' }}>{{ __('Booking with manufacture, device and services no types') }}</option>
-									<option value="warranty_booking" {{ $selected === 'warranty_booking' ? 'selected' : '' }}>{{ __('Booking without service selection') }}</option>
-								</select>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-
-				<button type="submit" class="button button-primary">{{ __('Update Options') }}</button>
-			</form>
-		</div>
+								<x-settings.field for="wc_service_booking_form" :label="__('Booking Form')" errorKey="wc_service_booking_form" class="wcrb-settings-field">
+									<x-settings.select
+										name="wc_service_booking_form"
+										id="wc_service_booking_form"
+										:options="[
+											'' => __('Select booking form'),
+											'with_type' => __('Booking with type, manufacture, device and grouped services'),
+											'without_type' => __('Booking with manufacture, device and services no types'),
+											'warranty_booking' => __('Booking without service selection'),
+										]"
+										:value="$selected"
+									/>
+								</x-settings.field>
+							</div>
+						</div>
+						<div class="wcrb-settings-actions" style="justify-content: flex-end; padding-top: 8px;">
+							<button type="submit" class="button button-primary">{{ __('Update Options') }}</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
 	</div>
 </div>

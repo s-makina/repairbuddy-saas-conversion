@@ -28,14 +28,24 @@ class TimeLogSettingsController extends Controller
             $timeLog = [];
         }
 
-        $timeLog['disabled'] = array_key_exists('disable_timelog', $validated);
+        if (array_key_exists('disable_timelog', $validated)) {
+            $timeLog['disabled'] = (bool) $validated['disable_timelog'];
+        }
+
         if (array_key_exists('default_tax_id', $validated)) {
-            $timeLog['defaultTaxId'] = is_int($validated['default_tax_id']) ? (string) $validated['default_tax_id'] : null;
+            $defaultTaxId = $validated['default_tax_id'];
+            if (is_int($defaultTaxId) && $defaultTaxId > 0) {
+                $timeLog['defaultTaxId'] = (string) $defaultTaxId;
+            } elseif (is_string($defaultTaxId) && $defaultTaxId !== '' && ctype_digit($defaultTaxId) && (int) $defaultTaxId > 0) {
+                $timeLog['defaultTaxId'] = (string) (int) $defaultTaxId;
+            } else {
+                $timeLog['defaultTaxId'] = null;
+            }
         }
         if (array_key_exists('job_status_include', $validated)) {
             $timeLog['jobStatusInclude'] = array_values(array_filter(
                 $validated['job_status_include'] ?? [],
-                fn ($v) => is_string($v) && $v !== ''
+                fn ($v) => is_string($v) && trim($v) !== ''
             ));
         }
         if (array_key_exists('activities', $validated)) {
