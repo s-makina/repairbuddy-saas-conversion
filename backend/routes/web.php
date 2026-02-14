@@ -98,17 +98,17 @@ Route::prefix('t/{business}')
         Route::post('/settings/taxes/settings', [\App\Http\Controllers\Tenant\Taxes\TaxSettingsController::class, 'update'])
             ->name('tenant.settings.taxes.settings');
 
-        Route::post('/settings/devices-brands', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateDevicesBrandsSettings'])
+        Route::post('/settings/devices-brands', [\App\Http\Controllers\Tenant\Settings\DevicesBrandsSettingsController::class, 'update'])
             ->name('tenant.settings.devices_brands.update');
 
-        Route::post('/settings/device-brands', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeDeviceBrand'])
+        Route::post('/settings/device-brands', [\App\Http\Controllers\Tenant\DeviceBrands\DeviceBrandController::class, 'store'])
             ->name('tenant.settings.device_brands.store');
 
-        Route::post('/settings/device-brands/{brand}/active', [\App\Http\Controllers\Web\TenantDashboardController::class, 'setDeviceBrandActive'])
+        Route::post('/settings/device-brands/{brand}/active', [\App\Http\Controllers\Tenant\DeviceBrands\DeviceBrandController::class, 'setActive'])
             ->where(['brand' => '[0-9]+' ])
             ->name('tenant.settings.device_brands.active');
 
-        Route::post('/settings/device-brands/{brand}/delete', [\App\Http\Controllers\Web\TenantDashboardController::class, 'deleteDeviceBrand'])
+        Route::post('/settings/device-brands/{brand}/delete', [\App\Http\Controllers\Tenant\DeviceBrands\DeviceBrandController::class, 'delete'])
             ->where(['brand' => '[0-9]+' ])
             ->name('tenant.settings.device_brands.delete');
 
@@ -142,13 +142,13 @@ Route::prefix('t/{business}')
             ->where(['reminder' => '[0-9]+' ])
             ->name('tenant.settings.maintenance_reminders.delete');
 
-        Route::post('/settings/time-log', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateTimeLogSettings'])
+        Route::post('/settings/time-log', [\App\Http\Controllers\Tenant\Settings\TimeLogSettingsController::class, 'update'])
             ->name('tenant.settings.time_log.update');
 
-        Route::post('/settings/styling', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateStylingSettings'])
+        Route::post('/settings/styling', [\App\Http\Controllers\Tenant\Settings\StylingSettingsController::class, 'update'])
             ->name('tenant.settings.styling.update');
 
-        Route::post('/settings/reviews', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateReviewSettings'])
+        Route::post('/settings/reviews', [\App\Http\Controllers\Tenant\Settings\ReviewsSettingsController::class, 'update'])
             ->name('tenant.settings.reviews.update');
 
         Route::post('/settings/estimates', [\App\Http\Controllers\Tenant\Settings\EstimatesSettingsController::class, 'update'])

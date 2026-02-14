@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Http\Controllers\Tenant\Settings;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\Settings\UpdateDevicesBrandsSettingsRequest;
+use App\Models\Tenant;
+use App\Services\TenantSettings\TenantSettingsStore;
+use App\Support\TenantContext;
+use Illuminate\Http\RedirectResponse;
+
+class DevicesBrandsSettingsController extends Controller
+{
+    public function update(UpdateDevicesBrandsSettingsRequest $request): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validated();
+
+        $store = new TenantSettingsStore($tenant);
+
+        $devicesBrands = $store->get('devicesBrands', []);
+        if (! is_array($devicesBrands)) {
+            $devicesBrands = [];
+        }
+
+        $devicesBrands['enablePinCodeField'] = array_key_exists('enablePinCodeField', $validated);
+        $devicesBrands['showPinCodeInDocuments'] = array_key_exists('showPinCodeInDocuments', $validated);
+        $devicesBrands['useWooProductsAsDevices'] = array_key_exists('useWooProductsAsDevices', $validated);
+
+        $labels = $devicesBrands['labels'] ?? [];
+        if (! is_array($labels)) {
+            $labels = [];
+        }
+
+        if (array_key_exists('labels', $validated) && is_array($validated['labels'])) {
+            foreach (['note', 'pin', 'device', 'deviceBrand', 'deviceType', 'imei'] as $k) {
+                if (array_key_exists($k, $validated['labels'])) {
+                    $val = $validated['labels'][$k];
+                    if (is_string($val)) {
+                        $val = trim($val);
+                    }
+                    $labels[$k] = ($val === '') ? null : $val;
+                }
+            }
+        }
+
+        $devicesBrands['labels'] = $labels;
+
+        $additionalDeviceFields = [];
+        if (array_key_exists('additionalDeviceFields', $validated) && is_array($validated['additionalDeviceFields'])) {
+            foreach ($validated['additionalDeviceFields'] as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $label = $row['label'] ?? null;
+                if (! is_string($label) || trim($label) === '') {
+                    continue;
+                }
+
+                $additionalDeviceFields[] = [
+                    'id' => (isset($row['id']) && is_string($row['id']) && trim($row['id']) !== '') ? trim($row['id']) : null,
+                    'label' => trim($label),
+                    'type' => 'text',
+                    'displayInBookingForm' => array_key_exists('displayInBookingForm', $row),
+                    'displayInInvoice' => array_key_exists('displayInInvoice', $row),
+                    'displayForCustomer' => array_key_exists('displayForCustomer', $row),
+                ];
+            }
+        }
+        $devicesBrands['additionalDeviceFields'] = $additionalDeviceFields;
+
+        $devicesBrands['pickupDeliveryEnabled'] = array_key_exists('pickupDeliveryEnabled', $validated);
+        $devicesBrands['pickupCharge'] = array_key_exists('pickupCharge', $validated) ? $validated['pickupCharge'] : null;
+        $devicesBrands['deliveryCharge'] = array_key_exists('deliveryCharge', $validated) ? $validated['deliveryCharge'] : null;
+
+        $devicesBrands['rentalEnabled'] = array_key_exists('rentalEnabled', $validated);
+        $devicesBrands['rentalPerDay'] = array_key_exists('rentalPerDay', $validated) ? $validated['rentalPerDay'] : null;
+        $devicesBrands['rentalPerWeek'] = array_key_exists('rentalPerWeek', $validated) ? $validated['rentalPerWeek'] : null;
+
+        $store->set('devicesBrands', $devicesBrands);
+        $tenant->save();
+
+        return redirect()
+            ->to(route('tenant.dashboard', ['business' => $tenant->slug]).'?screen=settings')
+            ->withFragment('wc_rb_manage_devices')
+            ->with('status', 'Settings updated.')
+            ->withInput();
+    }
+}
