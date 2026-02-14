@@ -32,6 +32,8 @@
     return $baseUrl.'?screen='.$screen;
   };
 
+  $settingsUrl = $tenantSlug ? route('tenant.settings', ['business' => $tenantSlug]) : '#';
+
   $navItems = [
     [
       'id' => 'dashboard',
@@ -124,7 +126,7 @@
       'id' => 'settings',
       'title' => 'Settings',
       'icon' => 'bi bi-gear',
-      'url' => $screenUrl('settings'),
+      'url' => $settingsUrl,
       'access' => ['all'],
     ],
     [
@@ -159,6 +161,10 @@
     if (in_array('all', $access, true)) return true;
     return count(array_intersect($userRoles, $access)) > 0;
   };
+
+  if (request()->routeIs('tenant.settings')) {
+    $currentPage = 'settings';
+  }
 @endphp
 
 <!-- Sidebar -->

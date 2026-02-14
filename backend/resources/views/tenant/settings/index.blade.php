@@ -89,11 +89,6 @@
 							</a>
 						</div>
 						<ul class="vertical tabs thebluebg" data-tabs="82ulyt-tabs" id="example-tabs">
-							<li class="tabs-title{{ $class_settings }}" role="presentation">
-								<a href="#main_page" role="tab" aria-controls="main_page" aria-selected="false" id="main_page-label">
-									<h2>{{ __('Dashboard') }}</h2>
-								</a>
-							</li>
 							<li class="tabs-title{{ $class_general_settings }}" role="presentation">
 								<a href="#panel1" role="tab" aria-controls="panel1" aria-selected="false" id="panel1-label">
 									<h2>{{ __('General Settings') }}</h2>
@@ -112,6 +107,11 @@
 							<li class="tabs-title{{ $class_status }}" role="presentation">
 								<a href="#panel3" role="tab" aria-controls="panel3" aria-selected="true" id="panel3-label">
 									<h2>{{ __('Job Status') }}</h2>
+								</a>
+							</li>
+							<li class="tabs-title" role="presentation">
+								<a href="#wc_rb_payment_status" role="tab" aria-controls="wc_rb_payment_status" aria-selected="true" id="wc_rb_payment_status-label">
+									<h2>{{ __('Payment Status') }}</h2>
 								</a>
 							</li>
 							<li class="tabs-title" role="presentation">
@@ -168,7 +168,6 @@
 					
 					<div class="cell medium-10 thewhitebg contentsideb">
 						<div class="tabs-content vertical" data-tabs-content="example-tabs">
-							@include('tenant.settings.sections.dashboard')
 							@include('tenant.settings.sections.general')
 							@include('tenant.settings.sections.currency')
 							@include('tenant.settings.sections.invoices')

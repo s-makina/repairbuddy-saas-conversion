@@ -46,6 +46,9 @@ Route::prefix('t/{business}')
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');
 
+        Route::get('/settings', [\App\Http\Controllers\Web\TenantSettingsController::class, 'show'])
+            ->name('tenant.settings');
+
         Route::get('/profile', [\App\Http\Controllers\Web\TenantProfileController::class, 'edit'])
             ->name('tenant.profile.edit');
 

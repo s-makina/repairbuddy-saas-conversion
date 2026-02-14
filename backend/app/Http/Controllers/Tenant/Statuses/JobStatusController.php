@@ -16,6 +16,39 @@ use Illuminate\Support\Str;
 
 class JobStatusController extends Controller
 {
+    private function generateUniqueCode(string $label, int $tenantId, string $statusType, ?int $ignoreId = null): string
+    {
+        $slugBase = Str::of($label)
+            ->trim()
+            ->lower()
+            ->replace(' ', '_')
+            ->replace('-', '_')
+            ->replaceMatches('/[^a-z0-9_]/', '')
+            ->toString();
+
+        if ($slugBase === '') {
+            return '';
+        }
+
+        $code = $slugBase;
+        $suffix = 2;
+        while (Status::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status_type', $statusType)
+            ->where('code', $code)
+            ->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))
+            ->exists()) {
+            $code = $slugBase.'_'.$suffix;
+            $suffix++;
+            if ($suffix > 200) {
+                return '';
+            }
+        }
+
+        return $code;
+    }
+
     public function store(StoreJobStatusRequest $request): RedirectResponse
     {
         $tenant = TenantContext::tenant();
@@ -147,7 +180,17 @@ class JobStatusController extends Controller
 
         $code = is_string($jobStatus->code) ? trim((string) $jobStatus->code) : '';
         if ($code === '') {
-            return back()->withErrors(['status_name' => 'Status code is missing.'])->withInput();
+            $generated = $this->generateUniqueCode((string) $jobStatus->label, (int) $tenantId, 'Job', (int) $jobStatus->id);
+            if ($generated === '') {
+                return back()->withErrors(['status_name' => 'Status code is missing.'])->withInput();
+            }
+
+            $jobStatus->forceFill([
+                'tenant_id' => $tenantId,
+                'code' => $generated,
+            ])->save();
+
+            $code = $generated;
         }
 
         $labelExists = Status::query()
@@ -206,7 +249,17 @@ class JobStatusController extends Controller
 
         $code = is_string($jobStatus->code) ? trim((string) $jobStatus->code) : '';
         if ($code === '') {
-            return back()->withErrors(['status_name' => 'Status code is missing.']);
+            $generated = $this->generateUniqueCode((string) $jobStatus->label, (int) $tenantId, 'Job', (int) $jobStatus->id);
+            if ($generated === '') {
+                return back()->withErrors(['status_name' => 'Status code is missing.']);
+            }
+
+            $jobStatus->forceFill([
+                'tenant_id' => $tenantId,
+                'code' => $generated,
+            ])->save();
+
+            $code = $generated;
         }
 
         $inUseByJobs = RepairBuddyJob::query()

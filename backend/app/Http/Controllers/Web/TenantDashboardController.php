@@ -37,17 +37,11 @@ class TenantDashboardController extends Controller
         }
 
         if ($screen === 'settings') {
-            if (is_int($tenantId) && $tenantId > 0) {
-                app(EnsureDefaultRepairBuddyStatuses::class)->ensure($tenantId);
+            if ($tenant?->slug) {
+                return redirect()->route('tenant.settings', ['business' => $tenant->slug]);
             }
 
-            if (! $tenant instanceof Tenant) {
-                abort(400, 'Tenant is missing.');
-            }
-
-            $vm = new SettingsScreenViewModel($request, $tenant);
-
-            return view('tenant.settings.index', $vm->toArray());
+            abort(400, 'Tenant is missing.');
         }
 
         if ($screen === 'jobs' || $screen === 'jobs_card') {

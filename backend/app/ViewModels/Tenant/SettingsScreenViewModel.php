@@ -493,7 +493,7 @@ class SettingsScreenViewModel
             'status_options_delivered_html' => '',
             'status_options_cancelled_html' => '',
             'extraTabs' => [
-                ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'view' => 'tenant.settings.sections.pages-setup'],
+                // ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'view' => 'tenant.settings.sections.pages-setup'],
                 ['id' => 'wc_rb_manage_devices', 'label' => __('Devices & Brands'), 'view' => 'tenant.settings.sections.devices-brands'],
                 ['id' => 'wc_rb_manage_bookings', 'label' => __('Booking Settings'), 'view' => 'tenant.settings.sections.bookings'],
                 ['id' => 'wc_rb_manage_service', 'label' => __('Service Settings'), 'view' => 'tenant.settings.sections.services'],

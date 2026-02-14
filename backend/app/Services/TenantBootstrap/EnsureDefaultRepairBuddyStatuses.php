@@ -37,8 +37,9 @@ class EnsureDefaultRepairBuddyStatuses
                         DB::table('statuses')->updateOrInsert([
                             'tenant_id' => $tenantId,
                             'status_type' => 'Payment',
-                            'code' => $s['slug'],
+                            'label' => $s['label'],
                         ], [
+                            'code' => $s['slug'],
                             'label' => $s['label'],
                             'email_enabled' => false,
                             'email_template' => null,

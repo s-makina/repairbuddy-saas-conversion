@@ -9,11 +9,13 @@ use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PaymentStatusController extends Controller
 {
     public function save(UpsertPaymentStatusRequest $request): RedirectResponse
     {
+        dd(566666666);
         $tenantId = TenantContext::tenantId();
         $tenant = TenantContext::tenant();
 
@@ -85,10 +87,44 @@ class PaymentStatusController extends Controller
                     ->withInput();
             }
 
+            $label = trim((string) $validated['payment_status_name']);
+            $slugBase = Str::of($label)
+                ->trim()
+                ->lower()
+                ->replace(' ', '_')
+                ->replace('-', '_')
+                ->replaceMatches('/[^a-z0-9_]/', '')
+                ->toString();
+
+            if ($slugBase === '') {
+                return $this->redirectToSettings($tenant)
+                    ->withFragment('wc_rb_payment_status')
+                    ->withErrors(['payment_status_name' => 'Payment status name is invalid.'])
+                    ->withInput();
+            }
+
+            $code = $slugBase;
+            $suffix = 2;
+            while (Status::query()->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('status_type', 'Payment')
+                ->where('code', $code)
+                ->exists()) {
+                $code = $slugBase.'_'.$suffix;
+                $suffix++;
+                if ($suffix > 200) {
+                    return $this->redirectToSettings($tenant)
+                        ->withFragment('wc_rb_payment_status')
+                        ->withErrors(['payment_status_name' => 'Unable to generate a unique payment status code.'])
+                        ->withInput();
+                }
+            }
+
             Status::query()->create([
                 'tenant_id' => $tenantId,
                 'status_type' => 'Payment',
-                'label' => (string) $validated['payment_status_name'],
+                'code' => $code,
+                'label' => $label,
                 'email_enabled' => false,
                 'email_template' => null,
                 'sms_enabled' => false,
@@ -142,6 +178,6 @@ class PaymentStatusController extends Controller
 
     private function redirectToSettings(Tenant $tenant): RedirectResponse
     {
-        return redirect()->to(route('tenant.dashboard', ['business' => $tenant->slug]).'?screen=settings');
+        return redirect()->route('tenant.settings', ['business' => $tenant->slug]);
     }
 }
