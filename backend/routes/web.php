@@ -84,18 +84,18 @@ Route::prefix('t/{business}')
         Route::post('/settings/pages-setup', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePagesSetup'])
             ->name('tenant.settings.pages_setup.update');
 
-        Route::post('/settings/taxes', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeTax'])
+        Route::post('/settings/taxes', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'store'])
             ->name('tenant.settings.taxes.store');
 
-        Route::post('/settings/taxes/{tax}/active', [\App\Http\Controllers\Web\TenantDashboardController::class, 'setTaxActive'])
+        Route::post('/settings/taxes/{tax}/active', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'setActive'])
             ->where(['tax' => '[0-9]+' ])
             ->name('tenant.settings.taxes.active');
 
-        Route::post('/settings/taxes/{tax}/default', [\App\Http\Controllers\Web\TenantDashboardController::class, 'setTaxDefault'])
+        Route::post('/settings/taxes/{tax}/default', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'setDefault'])
             ->where(['tax' => '[0-9]+' ])
             ->name('tenant.settings.taxes.default');
 
-        Route::post('/settings/taxes/settings', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateTaxSettings'])
+        Route::post('/settings/taxes/settings', [\App\Http\Controllers\Tenant\Taxes\TaxSettingsController::class, 'update'])
             ->name('tenant.settings.taxes.settings');
 
         Route::post('/settings/devices-brands', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateDevicesBrandsSettings'])
@@ -128,7 +128,7 @@ Route::prefix('t/{business}')
             ->where(['status' => '[0-9]+' ])
             ->name('tenant.settings.payment_status.toggle');
 
-        Route::post('/settings/payment-methods', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePaymentMethods'])
+        Route::post('/settings/payment-methods', [\App\Http\Controllers\Tenant\Settings\PaymentMethodsController::class, 'update'])
             ->name('tenant.settings.payment_methods.update');
 
         Route::post('/settings/maintenance-reminders', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeMaintenanceReminder'])
@@ -151,16 +151,16 @@ Route::prefix('t/{business}')
         Route::post('/settings/reviews', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateReviewSettings'])
             ->name('tenant.settings.reviews.update');
 
-        Route::post('/settings/estimates', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateEstimatesSettings'])
+        Route::post('/settings/estimates', [\App\Http\Controllers\Tenant\Settings\EstimatesSettingsController::class, 'update'])
             ->name('tenant.settings.estimates.update');
 
         Route::post('/settings/sms', [\App\Http\Controllers\Tenant\Settings\SmsSettingsController::class, 'update'])
             ->name('tenant.settings.sms.update');
 
-        Route::post('/settings/account', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateAccountSettings'])
+        Route::post('/settings/account', [\App\Http\Controllers\Tenant\Settings\AccountSettingsController::class, 'update'])
             ->name('tenant.settings.account.update');
 
-        Route::post('/settings/signature', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateSignatureSettings'])
+        Route::post('/settings/signature', [\App\Http\Controllers\Tenant\Settings\SignatureSettingsController::class, 'update'])
             ->name('tenant.settings.signature.update');
 
         Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
