@@ -54,7 +54,7 @@
                                 <select name="status_slug" class="form-select">
                                     <option value="" {{ $statusOld === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
                                     @foreach ($jobStatuses as $s)
-                                        <option value="{{ $s->slug }}" {{ $statusOld === $s->slug ? 'selected' : '' }}>
+                                        <option value="{{ $s->code }}" {{ $statusOld === $s->code ? 'selected' : '' }}>
                                             {{ $s->label }}
                                         </option>
                                     @endforeach

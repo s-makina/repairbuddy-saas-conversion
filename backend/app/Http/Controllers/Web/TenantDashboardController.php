@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyDeviceBrand;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyJob;
-use App\Models\RepairBuddyJobStatus;
+use App\Models\Status;
 use App\Models\RepairBuddyTax;
 use App\Models\Tenant;
-use App\Models\TenantBranch;
+use App\Models\TenantPlan;
+use App\Models\TenantSubscription;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +74,10 @@ class TenantDashboardController extends Controller
             }
 
             if (Schema::hasTable('statuses')) {
+                $hasStatusCode = Schema::hasColumn('statuses', 'code');
+                $hasStatusDescription = Schema::hasColumn('statuses', 'description');
+                $hasStatusInvoiceLabel = Schema::hasColumn('statuses', 'invoice_label');
+
                 foreach ($paymentDefaults as $s) {
                     DB::table('statuses')->updateOrInsert([
                         'tenant_id' => $tenantId,
@@ -86,6 +91,33 @@ class TenantDashboardController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]);
+                }
+
+                if ($hasStatusCode) {
+                    foreach ($jobDefaults as $s) {
+                        $update = [
+                            'label' => $s['label'],
+                            'email_enabled' => false,
+                            'email_template' => null,
+                            'sms_enabled' => false,
+                            'is_active' => true,
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ];
+
+                        if ($hasStatusDescription) {
+                            $update['description'] = null;
+                        }
+                        if ($hasStatusInvoiceLabel) {
+                            $update['invoice_label'] = $s['invoice_label'];
+                        }
+
+                        DB::table('statuses')->updateOrInsert([
+                            'tenant_id' => $tenantId,
+                            'status_type' => 'Job',
+                            'code' => $s['slug'],
+                        ], $update);
+                    }
                 }
             }
         });
@@ -402,17 +434,18 @@ class TenantDashboardController extends Controller
                 ->withInput();
         }
 
-        $slug = $slugBase;
+        $code = $slugBase;
         $suffix = 2;
-        while (RepairBuddyJobStatus::query()->withoutGlobalScopes()
+        while (Status::query()->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('slug', $slug)
+            ->where('status_type', 'Job')
+            ->where('code', $code)
             ->exists()) {
-            $slug = $slugBase.'_'.$suffix;
+            $code = $slugBase.'_'.$suffix;
             $suffix++;
             if ($suffix > 200) {
                 return back()
-                    ->withErrors(['status_name' => 'Unable to generate a unique status slug.'])
+                    ->withErrors(['status_name' => 'Unable to generate a unique status code.'])
                     ->withInput();
             }
         }
@@ -425,16 +458,55 @@ class TenantDashboardController extends Controller
             }
         }
 
-        RepairBuddyJobStatus::query()->create([
-            'tenant_id' => $tenantId,
-            'slug' => $slug,
-            'label' => (string) $validated['status_name'],
-            'invoice_label' => array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null,
-            'is_active' => (string) ($validated['status_status'] ?? 'active') === 'active',
-            'email_enabled' => $emailTemplate !== null,
-            'email_template' => $emailTemplate,
-            'sms_enabled' => false,
-        ]);
+        $label = trim((string) $validated['status_name']);
+
+        $labelExists = Status::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status_type', 'Job')
+            ->where('label', $label)
+            ->exists();
+
+        if ($labelExists) {
+            return back()
+                ->withErrors(['status_name' => 'This status already exists.'])
+                ->withInput();
+        }
+
+        $isActive = (string) ($validated['status_status'] ?? 'active') === 'active';
+        $invoiceLabel = array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null;
+        $description = array_key_exists('status_description', $validated) ? $validated['status_description'] : null;
+
+        DB::transaction(function () use ($tenantId, $code, $label, $description, $invoiceLabel, $isActive, $emailTemplate) {
+            Status::query()->create([
+                'tenant_id' => $tenantId,
+                'status_type' => 'Job',
+                'code' => $code,
+                'label' => $label,
+                'description' => $description,
+                'invoice_label' => $invoiceLabel,
+                'is_active' => $isActive,
+                'email_enabled' => $emailTemplate !== null,
+                'email_template' => $emailTemplate,
+                'sms_enabled' => false,
+            ]);
+
+            if (Schema::hasTable('rb_job_statuses')) {
+                DB::table('rb_job_statuses')->updateOrInsert([
+                    'tenant_id' => $tenantId,
+                    'slug' => $code,
+                ], [
+                    'label' => $label,
+                    'email_enabled' => $emailTemplate !== null,
+                    'email_template' => $emailTemplate,
+                    'sms_enabled' => false,
+                    'invoice_label' => $invoiceLabel,
+                    'is_active' => $isActive,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]);
+            }
+        });
 
         return redirect()
             ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
@@ -461,9 +533,11 @@ class TenantDashboardController extends Controller
                 ->withInput();
         }
 
-        $jobStatus = RepairBuddyJobStatus::query()
+        $jobStatus = Status::query()
+            ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('id', $statusId)
+            ->where('status_type', 'Job')
+            ->whereKey($statusId)
             ->first();
 
         if (! $jobStatus) {
@@ -474,6 +548,7 @@ class TenantDashboardController extends Controller
 
         $validated = $request->validate([
             'status_name' => ['required', 'string', 'max:255'],
+            'status_description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'invoice_label' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status_status' => ['sometimes', 'in:active,inactive'],
             'statusEmailMessage' => ['sometimes', 'nullable', 'string', 'max:10000'],
@@ -487,13 +562,56 @@ class TenantDashboardController extends Controller
             }
         }
 
-        $jobStatus->forceFill([
-            'label' => (string) $validated['status_name'],
-            'invoice_label' => array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null,
-            'is_active' => (string) ($validated['status_status'] ?? ($jobStatus->is_active ? 'active' : 'inactive')) === 'active',
-            'email_enabled' => $emailTemplate !== null,
-            'email_template' => $emailTemplate,
-        ])->save();
+        $label = trim((string) $validated['status_name']);
+        $description = array_key_exists('status_description', $validated) ? $validated['status_description'] : null;
+        $invoiceLabel = array_key_exists('invoice_label', $validated) ? $validated['invoice_label'] : null;
+        $isActive = (string) ($validated['status_status'] ?? ($jobStatus->is_active ? 'active' : 'inactive')) === 'active';
+
+        $code = is_string($jobStatus->code) ? trim((string) $jobStatus->code) : '';
+        if ($code === '') {
+            return back()
+                ->withErrors(['status_name' => 'Status code is missing.'])
+                ->withInput();
+        }
+
+        $labelExists = Status::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status_type', 'Job')
+            ->where('label', $label)
+            ->whereKeyNot($jobStatus->id)
+            ->exists();
+
+        if ($labelExists) {
+            return back()
+                ->withErrors(['status_name' => 'This status already exists.'])
+                ->withInput();
+        }
+
+        DB::transaction(function () use ($jobStatus, $tenantId, $code, $label, $description, $invoiceLabel, $isActive, $emailTemplate) {
+            $jobStatus->forceFill([
+                'label' => $label,
+                'description' => $description,
+                'invoice_label' => $invoiceLabel,
+                'is_active' => $isActive,
+                'email_enabled' => $emailTemplate !== null,
+                'email_template' => $emailTemplate,
+            ])->save();
+
+            if (Schema::hasTable('rb_job_statuses')) {
+                DB::table('rb_job_statuses')
+                    ->where('tenant_id', $tenantId)
+                    ->where('slug', $code)
+                    ->update([
+                        'label' => $label,
+                        'email_enabled' => $emailTemplate !== null,
+                        'email_template' => $emailTemplate,
+                        'invoice_label' => $invoiceLabel,
+                        'is_active' => $isActive,
+                        'updated_at' => now(),
+                    ]);
+            }
+        });
 
         return redirect()
             ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
@@ -517,9 +635,11 @@ class TenantDashboardController extends Controller
                 ->withErrors(['status_name' => 'Tenant context is missing.']);
         }
 
-        $jobStatus = RepairBuddyJobStatus::query()
+        $jobStatus = Status::query()
+            ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('id', $statusId)
+            ->where('status_type', 'Job')
+            ->whereKey($statusId)
             ->first();
 
         if (! $jobStatus) {
@@ -527,12 +647,16 @@ class TenantDashboardController extends Controller
                 ->withErrors(['status_name' => 'Job status not found.']);
         }
 
-        $slug = (string) $jobStatus->slug;
+        $code = is_string($jobStatus->code) ? trim((string) $jobStatus->code) : '';
+        if ($code === '') {
+            return back()
+                ->withErrors(['status_name' => 'Status code is missing.']);
+        }
 
         $inUseByJobs = RepairBuddyJob::query()
             ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('status_slug', $slug)
+            ->where('status_slug', $code)
             ->exists();
 
         if ($inUseByJobs) {
@@ -550,7 +674,7 @@ class TenantDashboardController extends Controller
             $jobStatusSettings = [];
         }
 
-        $blockedBySettings = in_array($slug, [
+        $blockedBySettings = in_array($code, [
             (string) ($jobStatusSettings['wcrb_job_status_delivered'] ?? ''),
             (string) ($jobStatusSettings['wcrb_job_status_cancelled'] ?? ''),
         ], true);
@@ -560,7 +684,16 @@ class TenantDashboardController extends Controller
                 ->withErrors(['status_name' => 'Cannot delete a status that is selected in status settings.']);
         }
 
-        $jobStatus->delete();
+        DB::transaction(function () use ($jobStatus, $tenantId, $code) {
+            $jobStatus->delete();
+
+            if (Schema::hasTable('rb_job_statuses')) {
+                DB::table('rb_job_statuses')
+                    ->where('tenant_id', $tenantId)
+                    ->where('slug', $code)
+                    ->delete();
+            }
+        });
 
         return redirect()
             ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
@@ -722,10 +855,11 @@ class TenantDashboardController extends Controller
             $jobStatus = [];
         }
 
-        $allowedSlugs = RepairBuddyJobStatus::query()
-            ->select('slug')
+        $allowedSlugs = Status::query()
+            ->where('status_type', 'Job')
+            ->select('code')
             ->orderBy('id')
-            ->pluck('slug')
+            ->pluck('code')
             ->map(fn ($v) => (string) $v)
             ->unique()
             ->values()
@@ -1975,6 +2109,51 @@ class TenantDashboardController extends Controller
                 $estimatesValidDaysUi = (int) $oldValidDays;
             }
 
+            $menuNameForBookings = $tenant?->name ?: 'RepairBuddy';
+
+            $bookingEmailSubjectCustomerUi = (string) ($bookingSettings['booking_email_subject_to_customer'] ?? ('We have received your booking order! | ' . $menuNameForBookings));
+            $bookingEmailBodyCustomerUi = (string) ($bookingSettings['booking_email_body_to_customer'] ?? '');
+            $bookingEmailSubjectAdminUi = (string) ($bookingSettings['booking_email_subject_to_admin'] ?? ('You have new booking order | ' . $menuNameForBookings));
+            $bookingEmailBodyAdminUi = (string) ($bookingSettings['booking_email_body_to_admin'] ?? '');
+
+            $turnBookingFormsToJobsUi = (bool) ($bookingSettings['turnBookingFormsToJobs'] ?? false);
+            $turnOffOtherDeviceBrandsUi = (bool) ($bookingSettings['turnOffOtherDeviceBrands'] ?? false);
+            $turnOffOtherServiceUi = (bool) ($bookingSettings['turnOffOtherService'] ?? false);
+            $turnOffServicePriceUi = (bool) ($bookingSettings['turnOffServicePrice'] ?? false);
+            $turnOffIdImeiBookingUi = (bool) ($bookingSettings['turnOffIdImeiBooking'] ?? false);
+
+            if (old('wcrb_turn_booking_forms_to_jobs') !== null) {
+                $turnBookingFormsToJobsUi = (string) old('wcrb_turn_booking_forms_to_jobs') === 'on';
+            }
+            if (old('wcrb_turn_off_other_device_brands') !== null) {
+                $turnOffOtherDeviceBrandsUi = (string) old('wcrb_turn_off_other_device_brands') === 'on';
+            }
+            if (old('wcrb_turn_off_other_service') !== null) {
+                $turnOffOtherServiceUi = (string) old('wcrb_turn_off_other_service') === 'on';
+            }
+            if (old('wcrb_turn_off_service_price') !== null) {
+                $turnOffServicePriceUi = (string) old('wcrb_turn_off_service_price') === 'on';
+            }
+            if (old('wcrb_turn_off_idimei_booking') !== null) {
+                $turnOffIdImeiBookingUi = (string) old('wcrb_turn_off_idimei_booking') === 'on';
+            }
+
+            $bookingDefaultTypeIdUi = $bookingSettings['wc_booking_default_type'] ?? null;
+            $bookingDefaultBrandIdUi = $bookingSettings['wc_booking_default_brand'] ?? null;
+            $bookingDefaultDeviceIdUi = $bookingSettings['wc_booking_default_device'] ?? null;
+
+            $deviceTypesForBookings = \App\Models\RepairBuddyDeviceType::query()->orderBy('name')->limit(200)->get();
+            $deviceBrandsForBookings = \App\Models\RepairBuddyDeviceBrand::query()->orderBy('name')->limit(200)->get();
+            $devicesForBookings = \App\Models\RepairBuddyDevice::query()->orderBy('model')->limit(200)->get();
+
+            $serviceSidebarDescriptionUi = (string) ($serviceSettings['wc_service_sidebar_description'] ?? __('Below you can check price by type or brand and to get accurate value check devices.'));
+            $serviceBookingHeadingUi = (string) ($serviceSettings['wc_service_booking_heading'] ?? __('Book Service'));
+            $serviceDisableBookingOnServicePageUi = (bool) ($serviceSettings['disableBookingOnServicePage'] ?? false);
+            $serviceBookingFormUi = (string) ($serviceSettings['wc_service_booking_form'] ?? 'without_type');
+            if (! in_array($serviceBookingFormUi, ['with_type', 'without_type', 'warranty_booking'], true)) {
+                $serviceBookingFormUi = 'without_type';
+            }
+
             $smsActiveUi = (bool) ($smsSettings['activateSmsForSelectiveStatuses'] ?? false);
             if (! $smsActiveUi) {
                 $smsActiveUi = (bool) ($smsSettings['enabled'] ?? false);
@@ -2000,7 +2179,7 @@ class TenantDashboardController extends Controller
 
             $oldSmsActive = old('wc_rb_sms_active');
             if ($oldSmsActive !== null) {
-                $smsActiveUi = (string) $oldSmsActive === 'YES' || (string) $oldSmsActive === 'on';
+                $smsActiveUi = (string) $oldSmsActive === 'on' || (string) $oldSmsActive === 'YES';
             }
             $oldSmsGateway = old('wc_rb_sms_gateway');
             if ($oldSmsGateway !== null) {
@@ -2078,6 +2257,54 @@ class TenantDashboardController extends Controller
             if ($oldDefault !== null && ctype_digit((string) $oldDefault)) {
                 $taxDefaultId = (int) $oldDefault;
             }
+
+            $timeLogDisabledUi = (bool) ($timeLogSettings['disabled'] ?? false);
+            $timeLogDefaultTaxIdUi = $timeLogSettings['defaultTaxId'] ?? null;
+            $timeLogIncludedStatusesUi = $timeLogSettings['jobStatusInclude'] ?? [];
+            if (! is_array($timeLogIncludedStatusesUi)) {
+                $timeLogIncludedStatusesUi = [];
+            }
+            $timeLogActivitiesUi = is_string($timeLogSettings['activities'] ?? null)
+                ? (string) $timeLogSettings['activities']
+                : "Repair\nDiagnostic\nTesting\nCleaning\nConsultation\nOther";
+
+            $taxesForTimeLog = RepairBuddyTax::query()->orderBy('id')->limit(500)->get();
+            $jobStatusesForTimeLog = Status::query()->where('status_type', 'Job')->orderBy('label')->limit(500)->get();
+
+            $deliveryLabelUi = (string) ($stylingSettings['delivery_date_label'] ?? __('Delivery Date'));
+            $pickupLabelUi = (string) ($stylingSettings['pickup_date_label'] ?? __('Pickup Date'));
+            $nextServiceLabelUi = (string) ($stylingSettings['nextservice_date_label'] ?? __('Next Service Date'));
+            $caseNumberLabelUi = (string) ($stylingSettings['casenumber_label'] ?? __('Case Number'));
+            $primaryColorUi = (string) ($stylingSettings['primary_color'] ?? '#063e70');
+            $secondaryColorUi = (string) ($stylingSettings['secondary_color'] ?? '#fd6742');
+
+            $reviewsRequestBySmsUi = (bool) ($reviewsSettings['requestBySms'] ?? false);
+            $reviewsRequestByEmailUi = (bool) ($reviewsSettings['requestByEmail'] ?? false);
+            $reviewsFeedbackPageUrlUi = (string) ($reviewsSettings['get_feedback_page_url'] ?? '');
+            $reviewsSendOnStatusUi = (string) ($reviewsSettings['send_request_job_status'] ?? '');
+            $reviewsIntervalUi = (string) ($reviewsSettings['auto_request_interval'] ?? 'disabled');
+            if (! in_array($reviewsIntervalUi, ['disabled', 'one-notification', 'two-notifications'], true)) {
+                $reviewsIntervalUi = 'disabled';
+            }
+            $reviewsEmailSubjectUi = (string) ($reviewsSettings['email_subject'] ?? __('How would you rate the service you received?'));
+            $reviewsEmailMessageUi = (string) ($reviewsSettings['email_message'] ?? '');
+            $reviewsSmsMessageUi = (string) ($reviewsSettings['sms_message'] ?? '');
+
+            if (old('request_by_sms') !== null) {
+                $reviewsRequestBySmsUi = (string) old('request_by_sms') === 'on';
+            }
+            if (old('request_by_email') !== null) {
+                $reviewsRequestByEmailUi = (string) old('request_by_email') === 'on';
+            }
+            $oldReviewsInterval = old('auto_request_interval');
+            if (is_string($oldReviewsInterval) && in_array($oldReviewsInterval, ['disabled', 'one-notification', 'two-notifications'], true)) {
+                $reviewsIntervalUi = $oldReviewsInterval;
+            }
+
+            $jobStatusesForReviews = Status::query()->where('status_type', 'Job')->orderBy('label')->limit(500)->get();
+
+            $deviceTypesForMaintenance = \App\Models\RepairBuddyDeviceType::query()->orderBy('name')->limit(200)->get();
+            $deviceBrandsForMaintenance = \App\Models\RepairBuddyDeviceBrand::query()->orderBy('name')->limit(200)->get();
 
             foreach (array_keys($pagesSetupValues) as $key) {
                 $old = old($key);
@@ -2718,7 +2945,11 @@ class TenantDashboardController extends Controller
                         : "Repair\nDiagnostic\nTesting\nCleaning\nConsultation\nOther";
 
                     $taxes = RepairBuddyTax::query()->orderBy('id')->limit(500)->get();
-                    $jobStatuses = \App\Models\RepairBuddyJobStatus::query()->orderBy('id')->limit(500)->get();
+                    $jobStatuses = Status::query()
+                        ->where('status_type', 'Job')
+                        ->orderBy('id')
+                        ->limit(500)
+                        ->get();
 
                     $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_timelog_tab" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_timelog_tab-label">';
                     $settingsTabBodyHtml .= '<div class="wrap">';
@@ -2824,7 +3055,11 @@ class TenantDashboardController extends Controller
                     $emailMessage = (string) ($reviewsSettings['email_message'] ?? '');
                     $smsMessage = (string) ($reviewsSettings['sms_message'] ?? '');
 
-                    $jobStatuses = \App\Models\RepairBuddyJobStatus::query()->orderBy('id')->limit(500)->get();
+                    $jobStatuses = Status::query()
+                        ->where('status_type', 'Job')
+                        ->orderBy('id')
+                        ->limit(500)
+                        ->get();
 
                     $settingsTabBodyHtml .= '<div class="tabs-panel team-wrap" id="wcrb_reviews_tab" role="tabpanel" aria-hidden="true" aria-labelledby="wcrb_reviews_tab-label">';
                     $settingsTabBodyHtml .= '<div class="wrap">';
@@ -2855,8 +3090,12 @@ class TenantDashboardController extends Controller
                     $settingsTabBodyHtml .= '<select name="send_request_job_status" class="form-control" id="send_request_job_status">';
                     $settingsTabBodyHtml .= '<option value="">' . e(__('Select job status to send review request')) . '</option>';
                     foreach ($jobStatuses as $st) {
-                        $sel = $selectedStatus !== '' && $selectedStatus === (string) $st->slug ? ' selected' : '';
-                        $settingsTabBodyHtml .= '<option value="' . e((string) $st->slug) . '"' . $sel . '>' . e((string) $st->label) . '</option>';
+                        $code = is_string($st->code) ? trim((string) $st->code) : '';
+                        if ($code === '') {
+                            continue;
+                        }
+                        $sel = $selectedStatus !== '' && $selectedStatus === $code ? ' selected' : '';
+                        $settingsTabBodyHtml .= '<option value="' . e($code) . '"' . $sel . '>' . e((string) $st->label) . '</option>';
                     }
                     $settingsTabBodyHtml .= '</select>';
                     $settingsTabBodyHtml .= '<label>' . e(__('When job has the status you selected above only then you can auto or manually request feedback.')) . '</label>';
@@ -3165,14 +3404,18 @@ class TenantDashboardController extends Controller
                 'right_space' => __('Right with space'),
             ];
 
-            $jobStatusOptions = RepairBuddyJobStatus::query()
+            $jobStatusOptions = Status::query()
+                ->where('status_type', 'Job')
                 ->orderBy('label')
                 ->limit(200)
                 ->get()
-                ->mapWithKeys(fn ($s) => [(string) $s->slug => (string) $s->label])
+                ->filter(fn (Status $s) => is_string($s->code) && trim((string) $s->code) !== '')
+                ->mapWithKeys(fn (Status $s) => [trim((string) $s->code) => (string) $s->label])
                 ->all();
 
-            $jobStatuses = RepairBuddyJobStatus::query()
+            $jobStatuses = Status::query()
+                ->where('status_type', 'Job')
+                ->where('is_active', true)
                 ->orderBy('id')
                 ->limit(500)
                 ->get();
@@ -3286,6 +3529,80 @@ class TenantDashboardController extends Controller
                 'status_options_delivered_html' => '',
                 'status_options_cancelled_html' => '',
                 'extraTabs' => $extraTabs,
+                'deviceBrands' => $deviceBrands,
+                'devicesBrandsUi' => $devicesBrandsUi,
+                'additionalDeviceFields' => $additionalDeviceFields,
+                'pickupDeliveryEnabled' => $pickupDeliveryEnabled,
+                'pickupCharge' => $pickupCharge,
+                'deliveryCharge' => $deliveryCharge,
+                'rentalEnabled' => $rentalEnabled,
+                'rentalPerDay' => $rentalPerDay,
+                'rentalPerWeek' => $rentalPerWeek,
+
+                'bookingEmailSubjectCustomerUi' => $bookingEmailSubjectCustomerUi,
+                'bookingEmailBodyCustomerUi' => $bookingEmailBodyCustomerUi,
+                'bookingEmailSubjectAdminUi' => $bookingEmailSubjectAdminUi,
+                'bookingEmailBodyAdminUi' => $bookingEmailBodyAdminUi,
+                'turnBookingFormsToJobsUi' => $turnBookingFormsToJobsUi,
+                'turnOffOtherDeviceBrandsUi' => $turnOffOtherDeviceBrandsUi,
+                'turnOffOtherServiceUi' => $turnOffOtherServiceUi,
+                'turnOffServicePriceUi' => $turnOffServicePriceUi,
+                'turnOffIdImeiBookingUi' => $turnOffIdImeiBookingUi,
+                'bookingDefaultTypeIdUi' => $bookingDefaultTypeIdUi,
+                'bookingDefaultBrandIdUi' => $bookingDefaultBrandIdUi,
+                'bookingDefaultDeviceIdUi' => $bookingDefaultDeviceIdUi,
+                'deviceTypesForBookings' => $deviceTypesForBookings,
+                'deviceBrandsForBookings' => $deviceBrandsForBookings,
+                'devicesForBookings' => $devicesForBookings,
+
+                'serviceSidebarDescriptionUi' => $serviceSidebarDescriptionUi,
+                'serviceBookingHeadingUi' => $serviceBookingHeadingUi,
+                'serviceDisableBookingOnServicePageUi' => $serviceDisableBookingOnServicePageUi,
+                'serviceBookingFormUi' => $serviceBookingFormUi,
+
+                'estimatesEnabledUi' => $estimatesEnabledUi,
+                'estimatesValidDaysUi' => $estimatesValidDaysUi,
+
+                'taxes' => $taxes,
+                'taxEnable' => $taxEnable,
+                'taxInvoiceAmounts' => $taxInvoiceAmounts,
+                'taxDefaultId' => $taxDefaultId,
+
+                'maintenanceReminders' => $maintenanceReminders,
+                'deviceTypesForMaintenance' => $deviceTypesForMaintenance,
+                'deviceBrandsForMaintenance' => $deviceBrandsForMaintenance,
+
+                'timeLogDisabledUi' => $timeLogDisabledUi,
+                'timeLogDefaultTaxIdUi' => $timeLogDefaultTaxIdUi,
+                'timeLogIncludedStatusesUi' => $timeLogIncludedStatusesUi,
+                'timeLogActivitiesUi' => $timeLogActivitiesUi,
+                'taxesForTimeLog' => $taxesForTimeLog,
+                'jobStatusesForTimeLog' => $jobStatusesForTimeLog,
+
+                'deliveryLabelUi' => $deliveryLabelUi,
+                'pickupLabelUi' => $pickupLabelUi,
+                'nextServiceLabelUi' => $nextServiceLabelUi,
+                'caseNumberLabelUi' => $caseNumberLabelUi,
+                'primaryColorUi' => $primaryColorUi,
+                'secondaryColorUi' => $secondaryColorUi,
+
+                'reviewsRequestBySmsUi' => $reviewsRequestBySmsUi,
+                'reviewsRequestByEmailUi' => $reviewsRequestByEmailUi,
+                'reviewsFeedbackPageUrlUi' => $reviewsFeedbackPageUrlUi,
+                'reviewsSendOnStatusUi' => $reviewsSendOnStatusUi,
+                'reviewsIntervalUi' => $reviewsIntervalUi,
+                'reviewsEmailSubjectUi' => $reviewsEmailSubjectUi,
+                'reviewsEmailMessageUi' => $reviewsEmailMessageUi,
+                'reviewsSmsMessageUi' => $reviewsSmsMessageUi,
+                'jobStatusesForReviews' => $jobStatusesForReviews,
+
+                'customerRegistrationUi' => $customerRegistrationUi,
+                'accountApprovalRequiredUi' => $accountApprovalRequiredUi,
+                'defaultCustomerRoleUi' => $defaultCustomerRoleUi,
+
+                'signatureRequiredUi' => $signatureRequiredUi,
+                'signatureTypeUi' => $signatureTypeUi,
+                'signatureTermsUi' => $signatureTermsUi,
                 'settings_tab_menu_items_html' => '',
                 'settings_tab_body_html' => '',
                 'paymentStatuses' => $paymentStatuses,
@@ -4543,6 +4860,9 @@ HTML;
         }
 
         $validated = $request->validate([
+            'sms_settings_form' => ['nullable', 'in:1'],
+            'wc_rb_job_status_include_present' => ['nullable', 'in:1'],
+
             'wc_rb_sms_active' => ['nullable', 'in:YES,on'],
             'wc_rb_sms_gateway' => ['nullable', 'string', 'max:64'],
             'sms_gateway_account_sid' => ['nullable', 'string', 'max:255'],
@@ -4550,10 +4870,14 @@ HTML;
             'sms_gateway_from_number' => ['nullable', 'string', 'max:64'],
             'wc_rb_job_status_include' => ['nullable', 'array'],
             'wc_rb_job_status_include.*' => ['string', 'max:64'],
+
             'sms_test' => ['nullable', 'in:1'],
-            'sms_test_number' => ['nullable', 'string', 'max:64'],
-            'sms_test_message' => ['nullable', 'string', 'max:1024'],
+            'sms_test_number' => ['nullable', 'string', 'max:64', 'required_if:sms_test,1'],
+            'sms_test_message' => ['nullable', 'string', 'max:1024', 'required_if:sms_test,1'],
         ]);
+
+        $isSettingsForm = array_key_exists('sms_settings_form', $validated);
+        $isTestForm = array_key_exists('sms_test', $validated);
 
         $setupState = is_array($tenant->setup_state) ? $tenant->setup_state : [];
         $repairBuddySettings = $setupState['repairbuddy_settings'] ?? [];
@@ -4566,26 +4890,30 @@ HTML;
             $sms = [];
         }
 
-        $isActive = array_key_exists('wc_rb_sms_active', $validated);
-        $sms['activateSmsForSelectiveStatuses'] = $isActive;
-        $sms['enabled'] = $isActive;
+        if ($isSettingsForm) {
+            $isActive = $request->has('wc_rb_sms_active');
+            $sms['activateSmsForSelectiveStatuses'] = $isActive;
+            $sms['enabled'] = $isActive;
 
-        $sms['gateway'] = array_key_exists('wc_rb_sms_gateway', $validated) ? (string) ($validated['wc_rb_sms_gateway'] ?? '') : ($sms['gateway'] ?? null);
-        $sms['gatewayAccountSid'] = $validated['sms_gateway_account_sid'] ?? null;
-        $sms['gatewayAuthToken'] = $validated['sms_gateway_auth_token'] ?? null;
-        $sms['gatewayFromNumber'] = $validated['sms_gateway_from_number'] ?? null;
+            $sms['gateway'] = (string) ($validated['wc_rb_sms_gateway'] ?? '');
+            $sms['gatewayAccountSid'] = $validated['sms_gateway_account_sid'] ?? null;
+            $sms['gatewayAuthToken'] = $validated['sms_gateway_auth_token'] ?? null;
+            $sms['gatewayFromNumber'] = $validated['sms_gateway_from_number'] ?? null;
 
-        $includes = $validated['wc_rb_job_status_include'] ?? null;
-        if (is_array($includes)) {
-            $sms['sendWhenStatusChangedToIds'] = collect($includes)
-                ->filter(fn ($v) => is_string($v) && trim($v) !== '')
-                ->map(fn ($v) => trim((string) $v))
-                ->unique()
-                ->values()
-                ->all();
+            $includes = $validated['wc_rb_job_status_include'] ?? null;
+            if (is_array($includes)) {
+                $sms['sendWhenStatusChangedToIds'] = collect($includes)
+                    ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                    ->map(fn ($v) => trim((string) $v))
+                    ->unique()
+                    ->values()
+                    ->all();
+            } elseif (array_key_exists('wc_rb_job_status_include_present', $validated)) {
+                $sms['sendWhenStatusChangedToIds'] = [];
+            }
         }
 
-        if (array_key_exists('sms_test', $validated)) {
+        if ($isTestForm) {
             $sms['testNumber'] = $validated['sms_test_number'] ?? null;
             $sms['testMessage'] = $validated['sms_test_message'] ?? null;
         }

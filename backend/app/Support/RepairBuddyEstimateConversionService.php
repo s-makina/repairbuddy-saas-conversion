@@ -9,7 +9,7 @@ use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyJobStatus;
+use App\Models\Status;
 use App\Support\RepairBuddyCaseNumberService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -146,13 +146,19 @@ class RepairBuddyEstimateConversionService
         $preferred = ['neworder', 'new'];
 
         foreach ($preferred as $slug) {
-            $exists = RepairBuddyJobStatus::query()->where('slug', $slug)->exists();
+            $exists = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $slug)
+                ->exists();
             if ($exists) {
                 return $slug;
             }
         }
 
-        $first = RepairBuddyJobStatus::query()->orderBy('id')->value('slug');
+        $first = Status::query()
+            ->where('status_type', 'Job')
+            ->orderBy('id')
+            ->value('code');
         if (is_string($first) && trim((string) $first) !== '') {
             return trim((string) $first);
         }

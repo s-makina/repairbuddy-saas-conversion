@@ -93,7 +93,7 @@
 						<tr>
 							<td class="column-id">{{ $s->id }}</td>
 							<td>{{ $s->label }}</td>
-							<td>—</td>
+							<td>{{ $s->description ?: '—' }}</td>
 							<td>{{ $s->invoice_label ?: '—' }}</td>
 
 							@if ($wc_inventory_management_status)
@@ -132,6 +132,11 @@
 										<div class="col-md-6">
 											<x-settings.field :for="'status_name_'.$s->id" :label="__( 'Status Name' )" class="wcrb-settings-field">
 												<x-settings.input name="status_name" :id="'status_name_'.$s->id" :required="true" :value="old('status_name', $s->label)" />
+											</x-settings.field>
+										</div>
+										<div class="col-md-6">
+											<x-settings.field :for="'status_description_'.$s->id" :label="__( 'Description' )" class="wcrb-settings-field">
+												<x-settings.input name="status_description" :id="'status_description_'.$s->id" :value="old('status_description', $s->description)" />
 											</x-settings.field>
 										</div>
 										<div class="col-md-6">

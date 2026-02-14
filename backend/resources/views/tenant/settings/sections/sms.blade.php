@@ -11,12 +11,28 @@
 				#wc_rb_page_sms_IDENTIFIER .wcrb-chip input{position:absolute;opacity:0;pointer-events:none}
 				#wc_rb_page_sms_IDENTIFIER .wcrb-chip.is-active{background:#1e3a8a;border-color:#1e3a8a;color:#fff}
 				#wc_rb_page_sms_IDENTIFIER .wcrb-chip:focus-within{outline:2px solid rgba(59,130,246,.6);outline-offset:2px}
+				#wc_rb_page_sms_IDENTIFIER .wcrb-inline-errors{margin:0 0 14px 0;padding:10px 12px;border:1px solid #fecaca;background:#fff1f2;border-radius:10px}
+				#wc_rb_page_sms_IDENTIFIER .wcrb-inline-errors ul{margin:6px 0 0 18px}
+				#wc_rb_page_sms_IDENTIFIER .wcrb-muted{color:#6b7280}
 			</style>
 
 			<div class="grid-x grid-margin-x" style="align-items: flex-start;">
 				<div class="cell large-7 medium-12 small-12">
 					<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.sms.update', ['business' => $tenant->slug]) }}">
 						@csrf
+						<input type="hidden" name="sms_settings_form" value="1">
+						<input type="hidden" name="wc_rb_job_status_include_present" value="1">
+
+						@if ($errors->any())
+							<div class="wcrb-inline-errors" role="alert" aria-live="polite">
+								<strong>{{ __('Please fix the errors below and try again.') }}</strong>
+								<ul>
+									@foreach ($errors->all() as $error)
+										<li>{{ $error }}</li>
+									@endforeach
+								</ul>
+							</div>
+						@endif
 
 						<div class="wcrb-settings-form">
 							<div class="wcrb-settings-card">
@@ -47,6 +63,9 @@
 													:value="(string) old('wc_rb_sms_gateway', $smsGatewayUi)"
 												/>
 											</x-settings.field>
+											<p class="description wcrb-muted" style="margin-top:6px;">
+												{{ __('Choose a provider, then add its credentials below. These are stored in your business settings.') }}
+											</p>
 										</div>
 									</div>
 
@@ -61,13 +80,18 @@
 										</div>
 										<div class="cell medium-6 small-12">
 											<x-settings.field for="sms_gateway_auth_token" :label="__('Auth Token')" class="wcrb-settings-field">
-												<x-settings.input name="sms_gateway_auth_token" id="sms_gateway_auth_token" :value="old('sms_gateway_auth_token', $smsGatewayAuthTokenUi)" type="text" />
+												<x-settings.input name="sms_gateway_auth_token" id="sms_gateway_auth_token" :value="old('sms_gateway_auth_token', $smsGatewayAuthTokenUi)" type="password" />
 											</x-settings.field>
 										</div>
 										<div class="cell medium-6 small-12">
 											<x-settings.field for="sms_gateway_from_number" :label="__('From Number')" class="wcrb-settings-field">
 												<x-settings.input name="sms_gateway_from_number" id="sms_gateway_from_number" :value="old('sms_gateway_from_number', $smsGatewayFromNumberUi)" type="text" />
 											</x-settings.field>
+										</div>
+										<div class="cell small-12">
+											<p class="description wcrb-muted" style="margin-top:2px;">
+												{{ __('Tip: Use E.164 format for phone numbers, e.g. +15551234567') }}
+											</p>
 										</div>
 									</div>
 								</div>
@@ -81,13 +105,13 @@
 										<div class="wcrb-chip-group" role="group" aria-label="{{ __('Included statuses') }}">
 										@foreach ($allJobStatuses as $s)
 											@php
-												$slug = (string) ($s->slug ?? '');
-												$label = (string) ($s->label ?? $slug);
-												$checked = in_array($slug, $smsSendWhenStatusChangedToIdsUi, true);
+												$code = (string) ($s->code ?? '');
+												$label = (string) ($s->label ?? $code);
+												$checked = is_string($code) && $code !== '' && in_array($code, $smsSendWhenStatusChangedToIdsUi ?? [], true);
 											@endphp
-											@if ($slug !== '')
+											@if ($code !== '')
 												<label class="wcrb-chip {{ $checked ? 'is-active' : '' }}">
-													<input type="checkbox" class="wcrb-sms-status" name="wc_rb_job_status_include[]" value="{{ $slug }}" {{ $checked ? 'checked' : '' }}>
+													<input type="checkbox" class="wcrb-sms-status" name="wc_rb_job_status_include[]" value="{{ $code }}" {{ $checked ? 'checked' : '' }}>
 													<span>{{ $label }}</span>
 												</label>
 											@endif
@@ -96,6 +120,7 @@
 									</div>
 
 									<p class="description">{{ __('To make SMS working do not forget to add message in status message field by editing the status.') }}</p>
+									<p class="description wcrb-muted" style="margin-top:6px;">{{ __('If you select no statuses, no automatic SMS will be sent even if SMS is enabled.') }}</p>
 								</div>
 							</div>
 
@@ -105,30 +130,39 @@
 						</div>
 					</form>
 
+					@php
+						$gw = (string) ($smsGatewayUi ?? '');
+						$testDisabled = ($gw === '');
+					@endphp
 					<div class="wcrb-settings-card" style="margin-top: 18px;">
 						<h3 class="wcrb-settings-card-title">{{ __('Test SMS') }}</h3>
 						<div class="wcrb-settings-card-body">
 							<form data-abide class="needs-validation" novalidate method="post" action="{{ route('tenant.settings.sms.update', ['business' => $tenant->slug]) }}">
 								@csrf
 								<input type="hidden" name="sms_test" value="1">
+								@if ($testDisabled)
+									<div class="notice notice-warning" style="margin-bottom: 12px;">
+										<p>{{ __('Select and save an SMS gateway first to enable test sending.') }}</p>
+									</div>
+								@endif
 
 								<div class="grid-x grid-margin-x">
 									<div class="cell small-12">
 										<x-settings.field for="sms_test_number" :label="__('Phone number')" class="wcrb-settings-field">
-											<x-settings.input name="sms_test_number" id="sms_test_number" :value="old('sms_test_number', $smsTestNumberUi)" type="text" />
+											<x-settings.input name="sms_test_number" id="sms_test_number" :value="old('sms_test_number', $smsTestNumberUi)" type="text" {{ $testDisabled ? 'disabled' : '' }} />
 										</x-settings.field>
 									</div>
 								</div>
 								<div class="grid-x grid-margin-x">
 									<div class="cell small-12">
 										<x-settings.field for="sms_test_message" :label="__('Message')" class="wcrb-settings-field">
-											<x-settings.textarea name="sms_test_message" id="sms_test_message" rows="4" :value="old('sms_test_message', $smsTestMessageUi)" />
+											<x-settings.textarea name="sms_test_message" id="sms_test_message" rows="4" :value="old('sms_test_message', $smsTestMessageUi)" {{ $testDisabled ? 'disabled' : '' }} />
 										</x-settings.field>
 									</div>
 								</div>
 
 								<div class="wcrb-settings-actions">
-									<button type="submit" class="button button-primary">{{ __('Send Message') }}</button>
+									<button type="submit" class="button button-primary" {{ $testDisabled ? 'disabled' : '' }}>{{ __('Send Message') }}</button>
 								</div>
 							</form>
 						</div>
@@ -141,7 +175,7 @@
 						<div class="wcrb-settings-card-body">
 							<div class="wcrb-settings-option">
 								<strong>{{ __('Selected gateway') }}:</strong>
-								<span id="sms-preview-gateway">{{ (string) ($smsGatewayUi ?? '') ?: __('Not set') }}</span>
+								<span id="sms-preview-gateway" data-placeholder="{{ __('Not set') }}">{{ (string) ($smsGatewayUi ?? '') ?: __('Not set') }}</span>
 							</div>
 
 							<div class="wcrb-settings-option" style="margin-top: 10px;">
@@ -182,7 +216,14 @@
 				});
 				var gatewayPreview = document.getElementById('sms-preview-gateway');
 				if (gatewayPreview) {
-					gatewayPreview.textContent = gw || 'Not set';
+					var placeholder = gatewayPreview.getAttribute('data-placeholder') || 'Not set';
+					var selectedText = '';
+					try {
+						selectedText = sel.options && sel.selectedIndex >= 0 ? (sel.options[sel.selectedIndex].text || '') : '';
+					} catch (e) {
+						selectedText = '';
+					}
+					gatewayPreview.textContent = (gw && selectedText) ? selectedText : placeholder;
 				}
 			};
 			sel.addEventListener('change', toggle);

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
-use App\Models\RepairBuddyJobStatus;
+use App\Models\Status;
 use App\Models\TenantStatusOverride;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
@@ -27,15 +27,17 @@ class RepairBuddyJobStatusController extends Controller
             ->keyBy('code');
 
         return response()->json([
-            'job_statuses' => RepairBuddyJobStatus::query()
+            'job_statuses' => Status::query()
+                ->where('status_type', 'Job')
                 ->orderBy('id')
                 ->get()
-                ->map(function (RepairBuddyJobStatus $s) use ($overrides) {
-                    $override = $overrides[$s->slug] ?? null;
+                ->map(function (Status $s) use ($overrides) {
+                    $code = is_string($s->code) ? trim((string) $s->code) : '';
+                    $override = $code !== '' ? ($overrides[$code] ?? null) : null;
 
                     return [
                         'id' => $s->id,
-                        'slug' => $s->slug,
+                        'slug' => $code,
                         'label' => (is_string($override?->label) && $override->label !== '') ? $override->label : $s->label,
                         'invoice_label' => $s->invoice_label,
                         'email_enabled' => (bool) $s->email_enabled,
@@ -68,7 +70,10 @@ class RepairBuddyJobStatusController extends Controller
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000'],
         ]);
 
-        $status = RepairBuddyJobStatus::query()->where('slug', $slug)->first();
+        $status = Status::query()
+            ->where('status_type', 'Job')
+            ->where('code', $slug)
+            ->first();
 
         if (! $status) {
             return response()->json([

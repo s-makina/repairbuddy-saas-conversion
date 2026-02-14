@@ -6,23 +6,19 @@ use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyEstimateAttachment;
-use App\Models\RepairBuddyEstimateDevice;
-use App\Models\RepairBuddyEstimateItem;
+use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
-use App\Models\RepairBuddyJobAttachment;
-use App\Models\RepairBuddyJobDevice;
-use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyJobStatus;
-use App\Models\RepairBuddyService;
-use App\Models\RepairBuddyServiceAvailabilityOverride;
-use App\Models\RepairBuddyServicePriceOverride;
+use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Audit\PlatformAudit;
+use App\Support\RepairBuddyCaseNumberService;
+use App\Models\RepairBuddyServiceAvailabilityOverride;
+use App\Models\RepairBuddyServicePriceOverride;
 use App\Notifications\BookingSubmissionAdminNotification;
 use App\Notifications\BookingSubmissionCustomerNotification;
 use App\Notifications\OneTimePasswordNotification;
 use App\Support\BranchContext;
-use App\Support\PlatformAudit;
 use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -416,13 +412,19 @@ class RepairBuddyPublicBookingService
         $preferred = ['neworder', 'new'];
 
         foreach ($preferred as $slug) {
-            $exists = RepairBuddyJobStatus::query()->where('slug', $slug)->exists();
+            $exists = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $slug)
+                ->exists();
             if ($exists) {
                 return $slug;
             }
         }
 
-        $first = RepairBuddyJobStatus::query()->orderBy('id')->value('slug');
+        $first = Status::query()
+            ->where('status_type', 'Job')
+            ->orderBy('id')
+            ->value('code');
         if (is_string($first) && trim((string) $first) !== '') {
             return trim((string) $first);
         }

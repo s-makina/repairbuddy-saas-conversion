@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyJob;
-use App\Models\RepairBuddyJobStatus;
+use App\Models\Status;
 use App\Models\TenantStatusOverride;
 use Illuminate\Http\Request;
 
@@ -23,7 +23,10 @@ class RepairBuddyStatusController extends Controller
         $job = RepairBuddyJob::query()->where('case_number', $caseNumber)->first();
 
         if ($job) {
-            $status = RepairBuddyJobStatus::query()->where('slug', $job->status_slug)->first();
+            $status = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $job->status_slug)
+                ->first();
             $override = TenantStatusOverride::query()
                 ->where('domain', 'job')
                 ->where('code', $job->status_slug)

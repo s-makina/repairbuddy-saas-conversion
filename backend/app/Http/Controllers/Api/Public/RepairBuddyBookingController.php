@@ -3,21 +3,22 @@
 namespace App\Http\Controllers\Api\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\RepairBuddyBranch;
 use App\Models\RepairBuddyCaseCounter;
-use App\Models\RepairBuddyCustomerDevice;
-use App\Models\RepairBuddyDevice;
-use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyCustomerDeviceFieldValue;
+use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyEstimateDevice;
 use App\Models\RepairBuddyEstimateItem;
 use App\Models\RepairBuddyEstimateAttachment;
+use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
-use App\Models\RepairBuddyJobAttachment;
-use App\Models\RepairBuddyJobDevice;
-use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyJobStatus;
+use App\Models\Status;
+use App\Models\RepairBuddyPublicBookingForm;
 use App\Models\RepairBuddyService;
+use App\Models\RepairBuddyServicePrice;
+use App\Models\Tenant;
 use App\Models\RepairBuddyServiceAvailabilityOverride;
 use App\Models\RepairBuddyServicePriceOverride;
 use App\Models\RepairBuddyServiceType;
@@ -501,13 +502,19 @@ class RepairBuddyBookingController extends Controller
         $preferred = ['neworder', 'new'];
 
         foreach ($preferred as $slug) {
-            $exists = RepairBuddyJobStatus::query()->where('slug', $slug)->exists();
+            $exists = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $slug)
+                ->exists();
             if ($exists) {
                 return $slug;
             }
         }
 
-        $first = RepairBuddyJobStatus::query()->orderBy('id')->value('slug');
+        $first = Status::query()
+            ->where('status_type', 'Job')
+            ->orderBy('id')
+            ->value('code');
         if (is_string($first) && trim((string) $first) !== '') {
             return trim((string) $first);
         }

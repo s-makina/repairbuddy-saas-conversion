@@ -16,10 +16,13 @@ class Status extends Model
     protected $fillable = [
         'tenant_id',
         'status_type',
+        'code',
         'label',
+        'description',
         'email_enabled',
         'email_template',
         'sms_enabled',
+        'invoice_label',
         'is_active',
     ];
 

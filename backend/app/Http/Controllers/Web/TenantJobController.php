@@ -14,8 +14,8 @@ use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyJobStatus;
 use App\Models\RepairBuddyPaymentStatus;
+use App\Models\Status;
 use App\Support\TenantContext;
 use App\Support\BranchContext;
 use App\Support\RepairBuddyCaseNumberService;
@@ -71,7 +71,8 @@ class TenantJobController extends Controller
             abort(400, 'Tenant or branch context is missing.');
         }
 
-        $jobStatuses = RepairBuddyJobStatus::query()
+        $jobStatuses = Status::query()
+            ->where('status_type', 'Job')
             ->where('is_active', true)
             ->orderBy('id')
             ->get();
@@ -204,14 +205,24 @@ class TenantJobController extends Controller
             ? trim((string) $validated['status_slug'])
             : 'neworder';
 
-        $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
+        $statusExists = Status::query()
+            ->where('status_type', 'Job')
+            ->where('code', $statusSlug)
+            ->exists();
         if (! $statusExists && $statusSlug === 'new') {
             $statusSlug = 'neworder';
-            $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
+            $statusExists = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $statusSlug)
+                ->exists();
         }
         if (! $statusExists) {
-            $first = RepairBuddyJobStatus::query()->orderBy('id')->value('slug');
-            $statusSlug = is_string($first) && $first !== '' ? $first : 'neworder';
+            $first = Status::query()
+                ->where('status_type', 'Job')
+                ->orderBy('id')
+                ->value('code');
+            $first = is_string($first) ? trim((string) $first) : '';
+            $statusSlug = $first !== '' ? $first : 'neworder';
         }
 
         $paymentStatusSlug = is_string($validated['payment_status_slug'] ?? null) && trim((string) $validated['payment_status_slug']) !== ''

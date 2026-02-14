@@ -15,7 +15,8 @@ use App\Models\RepairBuddyJobAttachment;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyJobStatus;
+use App\Models\RepairBuddyPaymentStatus;
+use App\Models\Status;
 use App\Models\User;
 use App\Notifications\OneTimePasswordNotification;
 use App\Support\RepairBuddyCaseNumberService;
@@ -322,15 +323,24 @@ class RepairBuddyJobController extends Controller
             ? $validated['status_slug']
             : 'neworder';
 
-        $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
+        $statusExists = Status::query()
+            ->where('status_type', 'Job')
+            ->where('code', $statusSlug)
+            ->exists();
         if (! $statusExists && $statusSlug === 'new') {
             $statusSlug = 'neworder';
-            $statusExists = RepairBuddyJobStatus::query()->where('slug', $statusSlug)->exists();
+            $statusExists = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $statusSlug)
+                ->exists();
         }
 
         if (! $statusExists) {
-            $statusSlug = RepairBuddyJobStatus::query()->orderBy('id')->value('slug');
-            $statusSlug = is_string($statusSlug) && $statusSlug !== '' ? $statusSlug : null;
+            $statusSlug = Status::query()
+                ->where('status_type', 'Job')
+                ->orderBy('id')
+                ->value('code');
+            $statusSlug = is_string($statusSlug) && trim((string) $statusSlug) !== '' ? trim((string) $statusSlug) : null;
         }
 
         if (! is_string($statusSlug) || $statusSlug === '') {
@@ -887,7 +897,10 @@ class RepairBuddyJobController extends Controller
         }
 
         if (array_key_exists('status_slug', $validated) && is_string($validated['status_slug']) && $validated['status_slug'] !== '') {
-            $statusExists = RepairBuddyJobStatus::query()->where('slug', $validated['status_slug'])->exists();
+            $statusExists = Status::query()
+                ->where('status_type', 'Job')
+                ->where('code', $validated['status_slug'])
+                ->exists();
             if (! $statusExists) {
                 return response()->json([
                     'message' => 'Job status is invalid.',
@@ -1025,10 +1038,16 @@ class RepairBuddyJobController extends Controller
 
             $nextStatus = array_key_exists('status_slug', $validated) ? $validated['status_slug'] : $job->status_slug;
             if (is_string($nextStatus) && $nextStatus !== '') {
-                $statusExists = RepairBuddyJobStatus::query()->where('slug', $nextStatus)->exists();
+                $statusExists = Status::query()
+                    ->where('status_type', 'Job')
+                    ->where('code', $nextStatus)
+                    ->exists();
                 if (! $statusExists && $nextStatus === 'new') {
                     $nextStatus = 'neworder';
-                    $statusExists = RepairBuddyJobStatus::query()->where('slug', $nextStatus)->exists();
+                    $statusExists = Status::query()
+                        ->where('status_type', 'Job')
+                        ->where('code', $nextStatus)
+                        ->exists();
                 }
                 if (! $statusExists) {
                     throw ValidationException::withMessages([
