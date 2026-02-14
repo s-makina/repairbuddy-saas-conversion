@@ -81,7 +81,7 @@ Route::prefix('t/{business}')
             ->where(['status' => '[0-9]+' ])
             ->name('tenant.settings.job_status.statuses.delete');
 
-        Route::post('/settings/pages-setup', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePagesSetup'])
+        Route::post('/settings/pages-setup', [\App\Http\Controllers\Tenant\Settings\PagesSetupController::class, 'update'])
             ->name('tenant.settings.pages_setup.update');
 
         Route::post('/settings/taxes', [\App\Http\Controllers\Tenant\Taxes\TaxController::class, 'store'])
@@ -112,13 +112,13 @@ Route::prefix('t/{business}')
             ->where(['brand' => '[0-9]+' ])
             ->name('tenant.settings.device_brands.delete');
 
-        Route::post('/settings/bookings', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateBookingSettings'])
+        Route::post('/settings/bookings', [\App\Http\Controllers\Tenant\Settings\BookingSettingsController::class, 'update'])
             ->name('tenant.settings.bookings.update');
 
-        Route::post('/settings/services', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateServiceSettings'])
+        Route::post('/settings/services', [\App\Http\Controllers\Tenant\Settings\ServiceSettingsController::class, 'update'])
             ->name('tenant.settings.services.update');
 
-        Route::post('/settings/payment-status/{slug}', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updatePaymentStatusDisplay'])
+        Route::post('/settings/payment-status/{slug}', [\App\Http\Controllers\Tenant\Statuses\PaymentStatusDisplayController::class, 'update'])
             ->name('tenant.settings.payment_status.update');
 
         Route::post('/settings/payment-status', [\App\Http\Controllers\Tenant\Statuses\PaymentStatusController::class, 'save'])
@@ -131,14 +131,14 @@ Route::prefix('t/{business}')
         Route::post('/settings/payment-methods', [\App\Http\Controllers\Tenant\Settings\PaymentMethodsController::class, 'update'])
             ->name('tenant.settings.payment_methods.update');
 
-        Route::post('/settings/maintenance-reminders', [\App\Http\Controllers\Web\TenantDashboardController::class, 'storeMaintenanceReminder'])
+        Route::post('/settings/maintenance-reminders', [\App\Http\Controllers\Tenant\MaintenanceReminders\MaintenanceReminderController::class, 'store'])
             ->name('tenant.settings.maintenance_reminders.store');
 
-        Route::post('/settings/maintenance-reminders/{reminder}/update', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateMaintenanceReminder'])
+        Route::post('/settings/maintenance-reminders/{reminder}/update', [\App\Http\Controllers\Tenant\MaintenanceReminders\MaintenanceReminderController::class, 'update'])
             ->where(['reminder' => '[0-9]+' ])
             ->name('tenant.settings.maintenance_reminders.update');
 
-        Route::post('/settings/maintenance-reminders/{reminder}/delete', [\App\Http\Controllers\Web\TenantDashboardController::class, 'deleteMaintenanceReminder'])
+        Route::post('/settings/maintenance-reminders/{reminder}/delete', [\App\Http\Controllers\Tenant\MaintenanceReminders\MaintenanceReminderController::class, 'delete'])
             ->where(['reminder' => '[0-9]+' ])
             ->name('tenant.settings.maintenance_reminders.delete');
 
