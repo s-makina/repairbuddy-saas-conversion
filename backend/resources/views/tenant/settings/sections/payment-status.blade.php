@@ -14,8 +14,6 @@
 					<tr>
 						<th class="column-id">{{ __( 'ID' ) }}</th>
 						<th>{{ __( 'Name' ) }}</th>
-						<th>{{ __( 'Slug' ) }}</th>
-						<th>{{ __( 'Description' ) }}</th>
 						<th class="column-id">{{ __( 'Status' ) }}</th>
 						<th class="column-id">{{ __( 'Actions' ) }}</th>
 					</tr>
@@ -25,8 +23,6 @@
 						<tr>
 							<td class="column-id">{{ $ps->id }}</td>
 							<td><strong>{{ $ps->label }}</strong></td>
-							<td>{{ $ps->slug }}</td>
-							<td>{{ $ps->description ?: '—' }}</td>
 							<td class="column-id">
 								<form method="post" action="{{ route('tenant.settings.payment_status.toggle', ['business' => $tenant->slug, 'status' => $ps->id]) }}" style="display:inline;">
 									@csrf
@@ -36,14 +32,14 @@
 								</form>
 							</td>
 							<td class="column-id">
-								<a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#paymentStatusFormModal" data-payment-status-mode="update" data-payment-status-id="{{ $ps->id }}" data-payment-status-name="{{ $ps->label }}" data-payment-status-slug="{{ $ps->slug }}" data-payment-status-description="{{ $ps->description }}" data-payment-status-active="{{ $ps->is_active ? 'active' : 'inactive' }}">
+								<a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#paymentStatusFormModal" data-payment-status-mode="update" data-payment-status-id="{{ $ps->id }}" data-payment-status-name="{{ $ps->label }}" data-payment-status-active="{{ $ps->is_active ? 'active' : 'inactive' }}">
 									{{ __( 'Edit' ) }}
 								</a>
 							</td>
 						</tr>
 					@empty
 						<tr>
-							<td colspan="6" class="text-center text-muted">{{ __( 'No payment statuses found.' ) }}</td>
+							<td colspan="4" class="text-center text-muted">{{ __( 'No payment statuses found.' ) }}</td>
 						</tr>
 					@endforelse
 				</tbody>
@@ -138,18 +134,6 @@
 								</div>
 
 								<div class="col-md-6">
-									<x-settings.field for="payment_status_slug" :label="__( 'Status Slug' )" class="wcrb-settings-field">
-										<x-settings.input name="payment_status_slug" id="payment_status_slug" :required="true" :value="old('payment_status_slug', '')" />
-									</x-settings.field>
-								</div>
-
-								<div class="col-md-12">
-									<x-settings.field for="payment_status_description" :label="__( 'Description' )" class="wcrb-settings-field">
-										<x-settings.input name="payment_status_description" id="payment_status_description" :value="old('payment_status_description', '')" />
-									</x-settings.field>
-								</div>
-
-								<div class="col-md-6">
 									<x-settings.field for="payment_status_status" :label="__( 'Status' )" class="wcrb-settings-field">
 										<x-settings.select
 											name="payment_status_status"
@@ -183,8 +167,6 @@
 				var title = modal.querySelector('.modal-title');
 				var btnPrimary = modal.querySelector('#paymentStatusSubmitBtn');
 				var inputName = document.getElementById('payment_status_name');
-				var inputSlug = document.getElementById('payment_status_slug');
-				var inputDesc = document.getElementById('payment_status_description');
 				var selectStatus = document.getElementById('payment_status_status');
 				var modeInput = document.getElementById('payment_status_form_mode');
 				var idInput = document.getElementById('payment_status_form_id');
@@ -206,34 +188,27 @@
 					if (inputName) {
 						inputName.value = isUpdate ? (data.name || '') : '';
 					}
-					if (inputSlug) {
-						inputSlug.value = isUpdate ? (data.slug || '') : '';
-					}
-					if (inputDesc) {
-						inputDesc.value = isUpdate ? (data.description || '') : '';
-					}
 					if (selectStatus) {
 						selectStatus.value = isUpdate ? (data.active || 'active') : 'active';
 					}
 				};
 
-				document.addEventListener('click', function(e){
-					var t = e.target;
-					if (!(t instanceof Element)) { return; }
-					var trigger = t.closest('[data-bs-target="#paymentStatusFormModal"]');
-					if (!trigger) { return; }
-					e.preventDefault();
+				modal.addEventListener('show.bs.modal', function (event) {
+					var trigger = event && event.relatedTarget ? event.relatedTarget : null;
+					if (!(trigger instanceof Element)) {
+						setMode('add', {});
+						return;
+					}
+
 					var mode = trigger.getAttribute('data-payment-status-mode') || 'add';
 					setMode(mode, {
 						id: trigger.getAttribute('data-payment-status-id'),
 						name: trigger.getAttribute('data-payment-status-name'),
-						slug: trigger.getAttribute('data-payment-status-slug'),
-						description: trigger.getAttribute('data-payment-status-description'),
 						active: trigger.getAttribute('data-payment-status-active')
 					});
 				});
 
-				var hasErrors = {{ $errors->has('payment_status_name') || $errors->has('payment_status_slug') || $errors->has('payment_status_description') || $errors->has('payment_status_status') || $errors->has('status_id') ? 'true' : 'false' }};
+				var hasErrors = {{ $errors->has('payment_status_name') || $errors->has('payment_status_status') || $errors->has('status_id') ? 'true' : 'false' }};
 				if (hasErrors) {
 					var mode = @json(old('form_type_status_payment', 'add'));
 					if (mode !== 'update' && mode !== 'add') {
@@ -242,8 +217,6 @@
 					setMode(mode, {
 						id: @json(old('status_id', '')),
 						name: @json(old('payment_status_name', '')),
-						slug: @json(old('payment_status_slug', '')),
-						description: @json(old('payment_status_description', '')),
 						active: @json(old('payment_status_status', 'active')),
 					});
 					try {

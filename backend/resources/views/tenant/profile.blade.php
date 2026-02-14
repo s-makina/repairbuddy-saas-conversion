@@ -3,37 +3,6 @@
 @section('content')
 @php
     $user = $user ?? auth()->user();
-
-    $user_id = $user_id ?? ($user->id ?? null);
-
-    $first_name = $first_name ?? ($user->first_name ?? '');
-    $last_name = $last_name ?? ($user->last_name ?? '');
-    $user_email = $user_email ?? ($user->email ?? '');
-    $phone_number = $phone_number ?? ($user->phone_number ?? ($user->billing_phone ?? ''));
-    $company = $company ?? ($user->company ?? ($user->billing_company ?? ''));
-    $billing_tax = $billing_tax ?? ($user->billing_tax ?? '');
-    $address = $address ?? ($user->address ?? ($user->billing_address_1 ?? ''));
-    $city = $city ?? ($user->city ?? ($user->billing_city ?? ''));
-    $zip_code = $zip_code ?? ($user->zip_code ?? ($user->billing_postcode ?? ''));
-    $state = $state ?? ($user->state ?? ($user->billing_state ?? ''));
-    $country = $country ?? ($user->country ?? ($user->billing_country ?? ''));
-
-    $optionsGenerated = $optionsGenerated ?? '';
-    $current_avatar = $current_avatar ?? '';
-
-    $_jobs_count = $_jobs_count ?? 0;
-    $_estimates_count = $_estimates_count ?? 0;
-    $_lifetime_value = $_lifetime_value ?? 0;
-    $lifetime_value_formatted = $lifetime_value_formatted ?? $_lifetime_value;
-
-    $dateTime = $dateTime ?? '';
-
-    $userRole = $userRole ?? (isset($user->role) ? ucfirst($user->role) : (isset($user->roles[0]) ? ucfirst($user->roles[0]) : 'Customer'));
-
-    $wcrb_updateuser_nonce_post = $wcrb_updateuser_nonce_post ?? '';
-    $wcrb_updatepassword_nonce_post = $wcrb_updatepassword_nonce_post ?? '';
-    $wcrb_profile_photo_nonce = $wcrb_profile_photo_nonce ?? '';
-    $wp_http_referer = $wp_http_referer ?? '';
 @endphp
 
 <!-- Dashboard Content -->
@@ -68,106 +37,208 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form id="profileForm" data-async method="post">
-                        <div class="alert alert-danger d-none" id="formErrors"></div>
-                        <div class="alert alert-success d-none" id="formSuccess"></div>
+                    @if (session('status'))
+                        <div class="alert alert-success">{{ session('status') }}</div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <div class="fw-semibold mb-1">Please fix the errors below.</div>
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <form id="profileForm" method="post" action="{{ route('tenant.profile.update', ['business' => $tenant->slug]) }}">
+                        @csrf
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="reg_fname" class="form-label">First Name *</label>
+                                <label for="name" class="form-label">Full Name *</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                    <input type="text" name="reg_fname" class="form-control" id="reg_fname" 
-                                           value="{{ $first_name }}" required>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        class="form-control @error('name') is-invalid @enderror"
+                                        id="name"
+                                        value="{{ old('name', $user?->name ?? '') }}"
+                                        required
+                                        autocomplete="name"
+                                    >
+                                    @error('name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                                <div class="form-text text-danger d-none">First Name Is Required.</div>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="reg_lname" class="form-label">Last Name</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                    <input type="text" name="reg_lname" class="form-control" id="reg_lname" 
-                                           value="{{ $last_name }}">
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="reg_email" class="form-label">Email *</label>
+                                <label for="email" class="form-label">Email *</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                    <input type="email" name="reg_email" class="form-control" id="reg_email" 
-                                           value="{{ $user_email }}" required>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        class="form-control @error('email') is-invalid @enderror"
+                                        id="email"
+                                        value="{{ old('email', $user?->email ?? '') }}"
+                                        required
+                                        autocomplete="email"
+                                    >
+                                    @error('email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                                <div class="form-text text-danger d-none">Email Is Required.</div>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="phoneNumber_ol" class="form-label">Phone Number</label>
+                                <label for="phone" class="form-label">Phone Number</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-telephone"></i></span>
-                                    <input type="text" name="phoneNumber_ol" class="form-control" id="phoneNumber_ol" 
-                                           value="{{ $phone_number }}">
+                                    <input
+                                        type="text"
+                                        name="phone"
+                                        class="form-control @error('phone') is-invalid @enderror"
+                                        id="phone"
+                                        value="{{ old('phone', $user?->phone ?? '') }}"
+                                        autocomplete="tel"
+                                    >
+                                    @error('phone')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="customer_company" class="form-label">Company</label>
+                                <label for="company" class="form-label">Company</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-building"></i></span>
-                                    <input type="text" name="customer_company" class="form-control" id="customer_company" 
-                                           value="{{ $company }}">
+                                    <input
+                                        type="text"
+                                        name="company"
+                                        class="form-control @error('company') is-invalid @enderror"
+                                        id="company"
+                                        value="{{ old('company', $user?->company ?? '') }}"
+                                        autocomplete="organization"
+                                    >
+                                    @error('company')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="billing_tax" class="form-label">Tax ID</label>
+                                <label for="tax_id" class="form-label">Tax ID</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-receipt"></i></span>
-                                    <input type="text" name="billing_tax" class="form-control" id="billing_tax" 
-                                           value="{{ $billing_tax }}">
+                                    <input
+                                        type="text"
+                                        name="tax_id"
+                                        class="form-control @error('tax_id') is-invalid @enderror"
+                                        id="tax_id"
+                                        value="{{ old('tax_id', $user?->tax_id ?? '') }}"
+                                    >
+                                    @error('tax_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <label for="customer_address" class="form-label">Address</label>
+                                <label for="address_line1" class="form-label">Address line 1</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
-                                    <input type="text" name="customer_address" class="form-control" id="customer_address" 
-                                           value="{{ $address }}">
+                                    <input
+                                        type="text"
+                                        name="address_line1"
+                                        class="form-control @error('address_line1') is-invalid @enderror"
+                                        id="address_line1"
+                                        value="{{ old('address_line1', $user?->address_line1 ?? '') }}"
+                                        autocomplete="address-line1"
+                                    >
+                                    @error('address_line1')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                             </div>
 
-                            <div class="col-md-4">
-                                <label for="zip_code" class="form-label">Postal/Zip Code</label>
-                                <input type="text" name="zip_code" class="form-control" id="zip_code" 
-                                       value="{{ $zip_code }}">
+                            <div class="col-12">
+                                <label for="address_line2" class="form-label">Address line 2</label>
+                                <input
+                                    type="text"
+                                    name="address_line2"
+                                    class="form-control @error('address_line2') is-invalid @enderror"
+                                    id="address_line2"
+                                    value="{{ old('address_line2', $user?->address_line2 ?? '') }}"
+                                    autocomplete="address-line2"
+                                >
+                                @error('address_line2')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="col-md-4">
-                                <label for="customer_city" class="form-label">City</label>
-                                <input type="text" name="customer_city" class="form-control" id="customer_city" 
-                                       value="{{ $city }}">
+                                <label for="address_postal_code" class="form-label">Postal/Zip Code</label>
+                                <input
+                                    type="text"
+                                    name="address_postal_code"
+                                    class="form-control @error('address_postal_code') is-invalid @enderror"
+                                    id="address_postal_code"
+                                    value="{{ old('address_postal_code', $user?->address_postal_code ?? '') }}"
+                                    autocomplete="postal-code"
+                                >
+                                @error('address_postal_code')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="col-md-4">
-                                <label for="state_province" class="form-label">State/Province</label>
-                                <input type="text" name="state_province" class="form-control" id="state_province" 
-                                       value="{{ $state }}">
+                                <label for="address_city" class="form-label">City</label>
+                                <input
+                                    type="text"
+                                    name="address_city"
+                                    class="form-control @error('address_city') is-invalid @enderror"
+                                    id="address_city"
+                                    value="{{ old('address_city', $user?->address_city ?? '') }}"
+                                    autocomplete="address-level2"
+                                >
+                                @error('address_city')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="address_state" class="form-label">State/Province</label>
+                                <input
+                                    type="text"
+                                    name="address_state"
+                                    class="form-control @error('address_state') is-invalid @enderror"
+                                    id="address_state"
+                                    value="{{ old('address_state', $user?->address_state ?? '') }}"
+                                    autocomplete="address-level1"
+                                >
+                                @error('address_state')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="col-12">
-                                <label for="country" class="form-label">Country</label>
-                                <select name="country" class="form-select" id="country">
-                                    {!! $optionsGenerated !!}
+                                <label for="address_country" class="form-label">Country</label>
+                                <select name="address_country" class="form-select @error('address_country') is-invalid @enderror" id="address_country">
+                                    <option value="">Select a country</option>
+                                    @foreach (($countries ?? []) as $code => $label)
+                                        <option value="{{ $code }}" @selected(old('address_country', $user?->address_country ?? '') === $code)>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
                                 </select>
+                                @error('address_country')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
-
-                            <input type="hidden" id="wcrb_updateuser_nonce_post" name="wcrb_updateuser_nonce_post" value="{{ $wcrb_updateuser_nonce_post }}" />
-                            <input type="hidden" name="_wp_http_referer" value="{{ $wp_http_referer }}" />
-                            <input type="hidden" name="form_type" value="update_user" />
-                            <input type="hidden" name="update_type" value="customer" />
-                            <input type="hidden" name="update_user" value="{{ $user_id }}" />
 
                             <div class="col-12">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -192,34 +263,37 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form id="passwordForm" data-async method="post">
+                    <form id="passwordForm" method="post" action="{{ route('tenant.profile.password.update', ['business' => $tenant->slug]) }}">
+                        @csrf
                         <div class="row g-3">
                             <div class="col-12">
                                 <label for="current_password" class="form-label">Current Password *</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                                    <input type="password" name="current_password" class="form-control" id="current_password" required>
+                                    <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" id="current_password" required>
+                                    @error('current_password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="new_password" class="form-label">New Password *</label>
+                                <label for="password" class="form-label">New Password *</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-key"></i></span>
-                                    <input type="password" name="new_password" class="form-control" id="new_password" required>
+                                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" id="password" required>
+                                    @error('password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="form-text">Minimum 8 characters with letters and numbers</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="confirm_password" class="form-label">Confirm New Password *</label>
+                                <label for="password_confirmation" class="form-label">Confirm New Password *</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
-                                    <input type="password" name="confirm_password" class="form-control" id="confirm_password" required>
+                                    <input type="password" name="password_confirmation" class="form-control" id="password_confirmation" required>
                                 </div>
                             </div>
-                            <input type="hidden" id="wcrb_updatepassword_nonce_post" name="wcrb_updatepassword_nonce_post" value="{{ $wcrb_updatepassword_nonce_post }}" />
-                            <input type="hidden" name="_wp_http_referer" value="{{ $wp_http_referer }}" />
-                            <input type="hidden" name="form_type" value="update_password" />
-                            <input type="hidden" name="user_id" value="{{ $user_id }}" />
                             <div class="col-12">
                                 <div class="d-flex justify-content-end">
                                     <button type="submit" class="btn btn-primary">
@@ -242,7 +316,13 @@
                 </div>
                 <div class="card-body text-center">
                     <div class="profile-picture-wrapper position-relative d-inline-block mb-3">
-                        {!! $current_avatar !!}
+                        @if ($user?->avatar_url)
+                            <img src="{{ $user->avatar_url }}" alt="Profile picture" class="rounded-circle" style="width: 96px; height: 96px; object-fit: cover;" />
+                        @else
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width: 96px; height: 96px;">
+                                <i class="bi bi-person" style="font-size: 2rem;"></i>
+                            </div>
+                        @endif
                         <div class="position-absolute bottom-0 end-0">
                             <label for="profilePhotoUpload" class="btn btn-primary btn-sm rounded-circle mb-0 cursor-pointer">
                                 <i class="bi bi-camera"></i>
@@ -250,12 +330,14 @@
                         </div>
                     </div>
                     
-                    <form id="profilePhotoForm" enctype="multipart/form-data">
+                    <form id="profilePhotoForm" method="post" action="{{ route('tenant.profile.photo.update', ['business' => $tenant->slug]) }}" enctype="multipart/form-data">
+                        @csrf
                         <input type="file" id="profilePhotoUpload" name="profile_photo" accept=".jpg,.jpeg,.png,.gif" class="d-none">
                         <div class="d-grid gap-2">
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('profilePhotoUpload').click()">
                                 <i class="bi bi-upload me-1"></i>Upload New Photo
                             </button>
+                            <button type="submit" class="btn btn-primary btn-sm">Save Photo</button>
                         </div>
                         <small class="text-muted d-block mt-2">JPG, PNG or. GIF. Max size 2MB.</small>
                         
@@ -266,11 +348,6 @@
                         
                         <!-- Upload status -->
                         <div id="uploadStatus" class="mt-2"></div>
-                        
-                        <input type="hidden" id="wcrb_profile_photo_nonce" name="wcrb_profile_photo_nonce" value="{{ $wcrb_profile_photo_nonce }}" />
-                        <input type="hidden" name="_wp_http_referer" value="{{ $wp_http_referer }}" />
-                        <input type="hidden" name="action" value="wcrb_update_profile_photo">
-                        <input type="hidden" name="user_id" value="{{ $user_id }}">
                     </form>
                 </div>
             </div>

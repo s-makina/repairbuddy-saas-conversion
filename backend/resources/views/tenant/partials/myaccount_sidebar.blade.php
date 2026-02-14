@@ -131,7 +131,7 @@
       'id' => 'profile',
       'title' => 'Profile',
       'icon' => 'bi bi-person-circle',
-      'url' => $screenUrl('profile'),
+      'url' => route('tenant.profile.edit', ['business' => $tenant->slug]),
       'access' => ['all'],
       'extra_class' => 'mt-3',
     ],

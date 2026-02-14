@@ -46,6 +46,18 @@ Route::prefix('t/{business}')
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');
 
+        Route::get('/profile', [\App\Http\Controllers\Web\TenantProfileController::class, 'edit'])
+            ->name('tenant.profile.edit');
+
+        Route::post('/profile', [\App\Http\Controllers\Web\TenantProfileController::class, 'update'])
+            ->name('tenant.profile.update');
+
+        Route::post('/profile/password', [\App\Http\Controllers\Web\TenantProfileController::class, 'updatePassword'])
+            ->name('tenant.profile.password.update');
+
+        Route::post('/profile/photo', [\App\Http\Controllers\Web\TenantProfileController::class, 'updatePhoto'])
+            ->name('tenant.profile.photo.update');
+
         Route::post('/settings/general', [\App\Http\Controllers\Web\TenantDashboardController::class, 'updateGeneralSettings'])
             ->name('tenant.settings.general.update');
 

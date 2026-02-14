@@ -71,6 +71,23 @@ class TenantDashboardController extends Controller
                     'created_at' => now(),
                 ]);
             }
+
+            if (Schema::hasTable('statuses')) {
+                foreach ($paymentDefaults as $s) {
+                    DB::table('statuses')->updateOrInsert([
+                        'tenant_id' => $tenantId,
+                        'status_type' => 'Payment',
+                        'label' => $s['label'],
+                    ], [
+                        'email_enabled' => false,
+                        'email_template' => null,
+                        'sms_enabled' => false,
+                        'is_active' => true,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]);
+                }
+            }
         });
     }
 
@@ -85,28 +102,10 @@ class TenantDashboardController extends Controller
 
         $validated = $request->validate([
             'payment_status_name' => ['required', 'string', 'max:255'],
-            'payment_status_slug' => ['required', 'string', 'max:64'],
-            'payment_status_description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'payment_status_status' => ['sometimes', 'in:active,inactive'],
             'form_type_status_payment' => ['sometimes', 'in:add,update'],
             'status_id' => ['sometimes', 'integer', 'min:1'],
         ]);
-
-        $slug = Str::of((string) $validated['payment_status_slug'])
-            ->trim()
-            ->lower()
-            ->replace(' ', '_')
-            ->replace('-', '_')
-            ->replaceMatches('/[^a-z0-9_]/', '')
-            ->toString();
-
-        if ($slug === '') {
-            return redirect()
-                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
-                ->withFragment('wc_rb_payment_status')
-                ->withErrors(['payment_status_slug' => 'Status slug is invalid.'])
-                ->withInput();
-        }
 
         $statusValue = (string) ($validated['payment_status_status'] ?? 'active');
         $isActive = $statusValue === 'active';
@@ -123,9 +122,10 @@ class TenantDashboardController extends Controller
                     ->withInput();
             }
 
-            $existing = \App\Models\RepairBuddyPaymentStatus::query()
+            $existing = \App\Models\Status::query()
                 ->withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
+                ->where('status_type', 'Payment')
                 ->whereKey($id)
                 ->first();
 
@@ -137,52 +137,49 @@ class TenantDashboardController extends Controller
                     ->withInput();
             }
 
-            $slugExists = \App\Models\RepairBuddyPaymentStatus::query()
+            $labelExists = \App\Models\Status::query()
                 ->withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->where('slug', $slug)
+                ->where('status_type', 'Payment')
+                ->where('label', (string) $validated['payment_status_name'])
                 ->whereKeyNot($existing->id)
                 ->exists();
 
-            if ($slugExists) {
+            if ($labelExists) {
                 return redirect()
                     ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
                     ->withFragment('wc_rb_payment_status')
-                    ->withErrors(['payment_status_slug' => 'This status slug already exists.'])
+                    ->withErrors(['payment_status_name' => 'This status already exists.'])
                     ->withInput();
             }
 
             $existing->forceFill([
                 'label' => (string) $validated['payment_status_name'],
-                'slug' => $slug,
-                'description' => array_key_exists('payment_status_description', $validated)
-                    ? ($validated['payment_status_description'] !== null ? (string) $validated['payment_status_description'] : null)
-                    : $existing->description,
                 'is_active' => $isActive,
             ])->save();
         } else {
-            $slugExists = \App\Models\RepairBuddyPaymentStatus::query()
+            $labelExists = \App\Models\Status::query()
                 ->withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->where('slug', $slug)
+                ->where('status_type', 'Payment')
+                ->where('label', (string) $validated['payment_status_name'])
                 ->exists();
 
-            if ($slugExists) {
+            if ($labelExists) {
                 return redirect()
                     ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
                     ->withFragment('wc_rb_payment_status')
-                    ->withErrors(['payment_status_slug' => 'This status slug already exists.'])
+                    ->withErrors(['payment_status_name' => 'This status already exists.'])
                     ->withInput();
             }
 
-            \App\Models\RepairBuddyPaymentStatus::query()->create([
+            \App\Models\Status::query()->create([
                 'tenant_id' => $tenantId,
+                'status_type' => 'Payment',
                 'label' => (string) $validated['payment_status_name'],
-                'slug' => $slug,
-                'description' => array_key_exists('payment_status_description', $validated)
-                    ? ($validated['payment_status_description'] !== null ? (string) $validated['payment_status_description'] : null)
-                    : null,
+                'email_enabled' => false,
                 'email_template' => null,
+                'sms_enabled' => false,
                 'is_active' => $isActive,
             ]);
         }
@@ -194,7 +191,7 @@ class TenantDashboardController extends Controller
             ->withInput();
     }
 
-    public function togglePaymentStatusActive(Request $request, int $status)
+    public function togglePaymentStatusActive(Request $request, string $status)
     {
         $tenantId = TenantContext::tenantId();
         $tenant = TenantContext::tenant();
@@ -203,21 +200,30 @@ class TenantDashboardController extends Controller
             abort(400, 'Tenant context is missing.');
         }
 
-        $paymentStatus = \App\Models\RepairBuddyPaymentStatus::query()
-            ->withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereKey($status)
-            ->first();
-
-        if (! $paymentStatus) {
+        $statusId = ctype_digit($status) ? (int) $status : 0;
+        if ($statusId <= 0) {
             return redirect()
                 ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
                 ->withFragment('wc_rb_payment_status')
                 ->with('status', 'Payment status not found.');
         }
 
-        $paymentStatus->forceFill([
-            'is_active' => ! (bool) $paymentStatus->is_active,
+        $existing = \App\Models\Status::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status_type', 'Payment')
+            ->whereKey($statusId)
+            ->first();
+
+        if (! $existing) {
+            return redirect()
+                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
+                ->withFragment('wc_rb_payment_status')
+                ->with('status', 'Payment status not found.');
+        }
+
+        $existing->forceFill([
+            'is_active' => ! (bool) $existing->is_active,
         ])->save();
 
         return redirect()
@@ -1019,8 +1025,7 @@ class TenantDashboardController extends Controller
 
         foreach (['booking_email_subject_to_customer', 'booking_email_body_to_customer', 'booking_email_subject_to_admin', 'booking_email_body_to_admin'] as $k) {
             if (array_key_exists($k, $validated)) {
-                $val = $validated[$k];
-                $bookings[$k] = is_string($val) ? $val : null;
+                $bookings[$k] = $validated[$k];
             }
         }
 
@@ -1116,15 +1121,6 @@ class TenantDashboardController extends Controller
             'color' => ['sometimes', 'nullable', 'string', 'max:32'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000'],
         ]);
-
-        $status = \App\Models\RepairBuddyPaymentStatus::query()->where('slug', $slug)->first();
-        if (! $status) {
-            return redirect()
-                ->to(route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=settings')
-                ->withFragment('wc_rb_payment_status')
-                ->with('status', 'Payment status not found.')
-                ->withInput();
-        }
 
         $override = \App\Models\TenantStatusOverride::query()
             ->where('tenant_id', $tenantId)
@@ -1742,6 +1738,14 @@ class TenantDashboardController extends Controller
             ? (string) $request->query('screen')
             : 'dashboard';
 
+        if ($screen === 'profile') {
+            if ($tenant instanceof Tenant) {
+                return redirect()->route('tenant.profile.edit', ['business' => $tenant->slug]);
+            }
+
+            abort(400, 'Tenant is missing.');
+        }
+
         if ($screen === 'settings') {
             if (is_int($tenantId) && $tenantId > 0) {
                 $this->ensureDefaultRepairBuddyStatuses($tenantId);
@@ -1780,8 +1784,7 @@ class TenantDashboardController extends Controller
                 $class_status = '';
             }
 
-            $settingsTabMenuItemsHtml = '';
-            $settingsTabBodyHtml = '';
+            $extraTabs = [];
 
             $setupState = $tenant?->setup_state;
             if (! is_array($setupState)) {
@@ -1925,7 +1928,10 @@ class TenantDashboardController extends Controller
                 $reviewsSettings = [];
             }
 
-            $paymentStatuses = \App\Models\RepairBuddyPaymentStatus::query()->orderBy('id')->get();
+            $paymentStatuses = \App\Models\Status::query()
+                ->where('status_type', 'Payment')
+                ->orderBy('id')
+                ->get();
             $paymentStatusOverrides = $tenantId
                 ? \App\Models\TenantStatusOverride::query()
                     ->where('tenant_id', $tenantId)
@@ -2126,10 +2132,39 @@ class TenantDashboardController extends Controller
                 ['id' => 'wcrb_signature_workflow', 'label' => __('Signature Workflow'), 'heading' => __('Digital Signature Workflow')],
             ];
 
+            $extraTabs = [
+                ['id' => 'wc_rb_page_settings', 'label' => __('Pages Setup'), 'view' => 'tenant.settings.sections.pages-setup'],
+            ];
+
             foreach ($settingsTabs as $tab) {
                 $tabId = $tab['id'];
                 $tabLabel = $tab['label'];
                 $heading = $tab['heading'];
+
+                $tabView = match ($tabId) {
+                    'wc_rb_manage_devices' => 'tenant.settings.sections.devices-brands',
+                    'wc_rb_manage_bookings' => 'tenant.settings.sections.bookings',
+                    'wc_rb_manage_service' => 'tenant.settings.sections.services',
+                    'wcrb_estimates_tab' => 'tenant.settings.sections.estimates',
+                    'wc_rb_manage_taxes' => 'tenant.settings.sections.taxes',
+                    'wc_rb_maintenance_reminder' => 'tenant.settings.sections.maintenance-reminders',
+                    'wcrb_timelog_tab' => 'tenant.settings.sections.timelog',
+                    'wcrb_styling' => 'tenant.settings.sections.styling',
+                    'wcrb_reviews_tab' => 'tenant.settings.sections.reviews',
+                    'wc_rb_manage_account' => 'tenant.settings.sections.account',
+                    'wcrb_signature_workflow' => 'tenant.settings.sections.signature',
+                    default => '',
+                };
+
+                if ($tabId !== 'wc_rb_payment_status' && $tabView !== '') {
+                    $extraTabs[] = [
+                        'id' => $tabId,
+                        'label' => $tabLabel,
+                        'view' => $tabView,
+                    ];
+                }
+
+                continue;
 
                 $settingsTabMenuItemsHtml .= '<li class="tabs-title" role="presentation">';
                 $settingsTabMenuItemsHtml .= '<a href="#' . e($tabId) . '" role="tab" aria-controls="' . e($tabId) . '" aria-selected="true" id="' . e($tabId) . '-label">';
@@ -3250,8 +3285,9 @@ class TenantDashboardController extends Controller
                 'job_status_cancelled' => (string) ($jobStatusSettings['wcrb_job_status_cancelled'] ?? 'cancelled'),
                 'status_options_delivered_html' => '',
                 'status_options_cancelled_html' => '',
-                'settings_tab_menu_items_html' => $settingsTabMenuItemsHtml,
-                'settings_tab_body_html' => $settingsTabBodyHtml,
+                'extraTabs' => $extraTabs,
+                'settings_tab_menu_items_html' => '',
+                'settings_tab_body_html' => '',
                 'paymentStatuses' => $paymentStatuses,
                 'paymentMethodsActive' => (function () use ($repairBuddySettings) {
                     $defaultMethods = $repairBuddySettings['payment_methods_active'] ?? [];

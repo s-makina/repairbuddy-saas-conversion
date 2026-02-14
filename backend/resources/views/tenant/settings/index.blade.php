@@ -119,7 +119,19 @@
 									<h2>{{ __('SMS') }}</h2>
 								</a>
 							</li>
-							{!! $settings_tab_menu_items_html ?? '' !!}
+							@foreach (($extraTabs ?? []) as $tab)
+								@php
+									$tabId = (string) ($tab['id'] ?? '');
+									$tabLabel = (string) ($tab['label'] ?? '');
+								@endphp
+								@if ($tabId !== '' && $tabLabel !== '')
+									<li class="tabs-title" role="presentation">
+										<a href="#{{ $tabId }}" role="tab" aria-controls="{{ $tabId }}" aria-selected="true" id="{{ $tabId }}-label">
+											<h2>{{ $tabLabel }}</h2>
+										</a>
+									</li>
+								@endif
+							@endforeach
 							<li class="tabs-title{{ $class_activation }}" role="presentation">
 								<a href="#panel4" role="tab" aria-controls="panel4" aria-selected="true" id="panel4-label">
 									<h2>{{ __('Activation') }}</h2>
@@ -163,7 +175,14 @@
 							@include('tenant.settings.sections.job-status')
 							@include('tenant.settings.sections.sms')
 							@include('tenant.settings.sections.payment-status')
-							{!! $settings_tab_body_html ?? '' !!}
+							@foreach (($extraTabs ?? []) as $tab)
+								@php
+									$tabView = (string) ($tab['view'] ?? '');
+								@endphp
+								@if ($tabView !== '')
+									@includeIf($tabView)
+								@endif
+							@endforeach
 							@include('tenant.settings.sections.activation')
 							@include('tenant.settings.sections.documentation')
 							@if (! $repairbuddy_whitelabel)
