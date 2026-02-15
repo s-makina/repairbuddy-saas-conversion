@@ -188,6 +188,12 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Technician',
                 'guard_name' => 'web',
             ]);
+
+            Role::query()->firstOrCreate([
+                'tenant_id' => $tenant->id,
+                'name' => 'Manager',
+                'guard_name' => 'web',
+            ]);
         }
 
         $ownerRoleId = Role::query()

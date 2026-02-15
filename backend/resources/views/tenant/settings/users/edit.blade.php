@@ -73,6 +73,24 @@
 
 								<div class="col-12">
 									<div class="row align-items-start">
+										<label for="branch_ids" class="col-sm-3 col-form-label">{{ __('Shops') }} *</label>
+										<div class="col-sm-9">
+											@php
+												$oldBranchIds = array_map('intval', old('branch_ids', $selectedBranchIds ?? []));
+											@endphp
+											<select name="branch_ids[]" id="branch_ids" class="form-select @error('branch_ids') is-invalid @enderror" multiple required>
+												@foreach (($branchOptions ?? []) as $k => $v)
+													<option value="{{ $k }}" @selected(in_array((int) $k, $oldBranchIds, true))>{{ $v }}</option>
+												@endforeach
+											</select>
+											@error('branch_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
+											<div class="form-text">{{ __('Assign this user to one or more shops (branches).') }}</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
 										<label for="password" class="col-sm-3 col-form-label">{{ __('New password') }}</label>
 										<div class="col-sm-9">
 											<input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="{{ __('Leave blank to keep unchanged') }}">

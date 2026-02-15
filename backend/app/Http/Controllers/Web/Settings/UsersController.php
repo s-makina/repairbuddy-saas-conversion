@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -115,6 +116,13 @@ class UsersController extends Controller
             'inactive' => __('Inactive'),
         ];
 
+        $branchOptions = Branch::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->mapWithKeys(fn (Branch $b) => [(string) $b->id => (string) ($b->code ? ($b->code.' - '.$b->name) : $b->name)])
+            ->all();
+
         return view('tenant.settings.users.create', [
             'tenant' => $tenant,
             'user' => $request->user(),
@@ -123,6 +131,7 @@ class UsersController extends Controller
             'recentUsers' => $recentUsers,
             'roleOptions' => $roleOptions,
             'statusOptions' => $statusOptions,
+            'branchOptions' => $branchOptions,
         ]);
     }
 
@@ -156,6 +165,19 @@ class UsersController extends Controller
         $currentRoleId = $editUser->roles()->value('roles.id');
         $currentRoleId = is_numeric($currentRoleId) ? (int) $currentRoleId : null;
 
+        $branchOptions = Branch::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->mapWithKeys(fn (Branch $b) => [(string) $b->id => (string) ($b->code ? ($b->code.' - '.$b->name) : $b->name)])
+            ->all();
+
+        $selectedBranchIds = $editUser->branches()
+            ->pluck('branches.id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
         return view('tenant.settings.users.edit', [
             'tenant' => $tenant,
             'user' => $request->user(),
@@ -165,6 +187,8 @@ class UsersController extends Controller
             'roleOptions' => $roleOptions,
             'statusOptions' => $statusOptions,
             'currentRoleId' => $currentRoleId,
+            'branchOptions' => $branchOptions,
+            'selectedBranchIds' => $selectedBranchIds,
         ]);
     }
 
@@ -181,6 +205,8 @@ class UsersController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', $tenant->id))],
+            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids.*' => ['integer'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
@@ -201,6 +227,31 @@ class UsersController extends Controller
             ->firstOrFail();
 
         $user->syncRoles([$role]);
+
+        $branchIds = array_values(array_unique(array_map('intval', $validated['branch_ids'] ?? [])));
+        $validBranchIds = Branch::query()
+            ->where('is_active', true)
+            ->whereIn('id', $branchIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        sort($branchIds);
+        sort($validBranchIds);
+
+        if (count($branchIds) === 0 || $branchIds !== $validBranchIds) {
+            return redirect()
+                ->back()
+                ->withErrors(['branch_ids' => __('Shop selection is invalid.')])
+                ->withInput();
+        }
+
+        $sync = [];
+        foreach ($validBranchIds as $id) {
+            $sync[$id] = ['tenant_id' => $tenant->id];
+        }
+
+        $user->branches()->sync($sync);
 
         return redirect()
             ->route('tenant.settings.users.index', ['business' => $tenant->slug])
@@ -226,6 +277,8 @@ class UsersController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($editUser->id)],
             'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', $tenant->id))],
+            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids.*' => ['integer'],
             'password' => ['sometimes', 'nullable', 'confirmed', Password::min(8)],
         ]);
 
@@ -251,6 +304,31 @@ class UsersController extends Controller
             ->firstOrFail();
 
         $editUser->syncRoles([$role]);
+
+        $branchIds = array_values(array_unique(array_map('intval', $validated['branch_ids'] ?? [])));
+        $validBranchIds = Branch::query()
+            ->where('is_active', true)
+            ->whereIn('id', $branchIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        sort($branchIds);
+        sort($validBranchIds);
+
+        if (count($branchIds) === 0 || $branchIds !== $validBranchIds) {
+            return redirect()
+                ->back()
+                ->withErrors(['branch_ids' => __('Shop selection is invalid.')])
+                ->withInput();
+        }
+
+        $sync = [];
+        foreach ($validBranchIds as $id) {
+            $sync[$id] = ['tenant_id' => $tenant->id];
+        }
+
+        $editUser->branches()->sync($sync);
 
         return redirect()
             ->route('tenant.settings.users.index', ['business' => $tenant->slug])

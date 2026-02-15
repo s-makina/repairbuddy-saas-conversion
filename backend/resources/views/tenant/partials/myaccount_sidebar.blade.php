@@ -19,11 +19,13 @@
   $canBranchesManage = $isAuthed && $user?->can('branches.manage');
   $canSettingsManage = $isAuthed && $user?->can('settings.manage');
   $canTechniciansView = $isAuthed && ($user?->can('technicians.view') ?? false);
+  $canManagersView = $isAuthed && ($user?->can('managers.view') ?? false);
 
   $canOps = $isAuthed && (
     $user?->can('devices.manage')
     || $user?->can('device_brands.manage')
     || $user?->can('device_types.manage')
+    || $user?->can('parts.manage')
     || $user?->can('service_types.manage')
     || $user?->can('services.manage')
     || $user?->can('clients.view')
@@ -44,11 +46,15 @@
   $operationsBrandsUrl = $tenantSlug ? route('tenant.operations.brands.index', ['business' => $tenantSlug]) : '#';
   $operationsBrandTypesUrl = $tenantSlug ? route('tenant.operations.brand_types.index', ['business' => $tenantSlug]) : '#';
   $operationsDevicesUrl = $tenantSlug ? route('tenant.operations.devices.index', ['business' => $tenantSlug]) : '#';
+  $operationsPartsUrl = $tenantSlug ? route('tenant.operations.parts.index', ['business' => $tenantSlug]) : '#';
+  $operationsPartBrandsUrl = $tenantSlug ? route('tenant.operations.part_brands.index', ['business' => $tenantSlug]) : '#';
+  $operationsPartTypesUrl = $tenantSlug ? route('tenant.operations.part_types.index', ['business' => $tenantSlug]) : '#';
   $operationsServiceTypesUrl = $tenantSlug ? route('tenant.operations.service_types.index', ['business' => $tenantSlug]) : '#';
   $operationsServicesUrl = $tenantSlug ? route('tenant.operations.services.index', ['business' => $tenantSlug]) : '#';
   $operationsClientsUrl = $tenantSlug ? route('tenant.operations.clients.index', ['business' => $tenantSlug]) : '#';
 
   $techniciansUrl = $tenantSlug ? route('tenant.technicians.index', ['business' => $tenantSlug]) : '#';
+  $managersUrl = $tenantSlug ? route('tenant.managers.index', ['business' => $tenantSlug]) : '#';
 
   $usersUrl = $tenantSlug ? route('tenant.settings.users.index', ['business' => $tenantSlug]) : '#';
   $rolesUrl = $tenantSlug ? route('tenant.settings.roles.index', ['business' => $tenantSlug]) : '#';
@@ -83,6 +89,13 @@
       'icon' => 'bi bi-person-workspace',
       'url' => $techniciansUrl,
       'visible' => $canTechniciansView,
+    ],
+    [
+      'id' => 'managers',
+      'title' => 'Managers',
+      'icon' => 'bi bi-person-badge',
+      'url' => $managersUrl,
+      'visible' => $canManagersView,
     ],
     [
       'id' => 'timelog',
@@ -182,6 +195,30 @@
       'icon' => 'bi bi-phone',
       'url' => $operationsDevicesUrl,
       'visible' => $isAuthed && ($user?->can('devices.view') ?? false),
+    ],
+    [
+      'id' => 'operations_parts',
+      'title' => 'Parts',
+      'parent' => 'operations',
+      'icon' => 'bi bi-box-seam',
+      'url' => $operationsPartsUrl,
+      'visible' => $isAuthed && ($user?->can('parts.view') ?? false),
+    ],
+    [
+      'id' => 'operations_part_brands',
+      'title' => 'Part Brands',
+      'parent' => 'operations',
+      'icon' => 'bi bi-bookmark-star',
+      'url' => $operationsPartBrandsUrl,
+      'visible' => $isAuthed && ($user?->can('parts.view') ?? false),
+    ],
+    [
+      'id' => 'operations_part_types',
+      'title' => 'Part Types',
+      'parent' => 'operations',
+      'icon' => 'bi bi-diagram-2',
+      'url' => $operationsPartTypesUrl,
+      'visible' => $isAuthed && ($user?->can('parts.view') ?? false),
     ],
     [
       'id' => 'operations_service_types',
@@ -294,6 +331,12 @@
     $currentPage = 'operations_brand_types';
   } elseif (request()->routeIs('tenant.operations.devices.*')) {
     $currentPage = 'operations_devices';
+  } elseif (request()->routeIs('tenant.operations.parts.*')) {
+    $currentPage = 'operations_parts';
+  } elseif (request()->routeIs('tenant.operations.part_brands.*')) {
+    $currentPage = 'operations_part_brands';
+  } elseif (request()->routeIs('tenant.operations.part_types.*')) {
+    $currentPage = 'operations_part_types';
   } elseif (request()->routeIs('tenant.operations.clients.*')) {
     $currentPage = 'operations_clients';
   } elseif (request()->routeIs('tenant.operations.service_types.*')) {

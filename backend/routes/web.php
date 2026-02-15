@@ -98,6 +98,14 @@ Route::prefix('t/{business}')
             ->middleware('permission:technicians.view')
             ->name('tenant.technicians.datatable');
 
+        Route::get('/managers', [\App\Http\Controllers\Web\ManagersController::class, 'index'])
+            ->middleware('permission:managers.view')
+            ->name('tenant.managers.index');
+
+        Route::get('/managers/datatable', [\App\Http\Controllers\Web\ManagersController::class, 'datatable'])
+            ->middleware('permission:managers.view')
+            ->name('tenant.managers.datatable');
+
         Route::post('/technicians/{user}/hourly-rates', [\App\Http\Controllers\Web\TechniciansController::class, 'updateHourlyRates'])
             ->where(['user' => '[0-9]+' ])
             ->middleware('permission:hourly_rates.view')
@@ -344,6 +352,90 @@ Route::prefix('t/{business}')
         Route::post('/operations/services/{service}/delete', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'delete'])
             ->where(['service' => '[0-9]+' ])
             ->name('tenant.operations.services.delete');
+
+        Route::get('/operations/parts', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'index'])
+            ->name('tenant.operations.parts.index');
+
+        Route::get('/operations/parts/datatable', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'datatable'])
+            ->name('tenant.operations.parts.datatable');
+
+        Route::get('/operations/parts/new', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'create'])
+            ->name('tenant.operations.parts.create');
+
+        Route::get('/operations/parts/{part}/edit', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'edit'])
+            ->where(['part' => '[0-9]+' ])
+            ->name('tenant.operations.parts.edit');
+
+        Route::post('/operations/parts', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'store'])
+            ->name('tenant.operations.parts.store');
+
+        Route::post('/operations/parts/{part}/update', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'update'])
+            ->where(['part' => '[0-9]+' ])
+            ->name('tenant.operations.parts.update');
+
+        Route::post('/operations/parts/{part}/active', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'setActive'])
+            ->where(['part' => '[0-9]+' ])
+            ->name('tenant.operations.parts.active');
+
+        Route::post('/operations/parts/{part}/delete', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'delete'])
+            ->where(['part' => '[0-9]+' ])
+            ->name('tenant.operations.parts.delete');
+
+        Route::get('/operations/part-brands', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'index'])
+            ->name('tenant.operations.part_brands.index');
+
+        Route::get('/operations/part-brands/datatable', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'datatable'])
+            ->name('tenant.operations.part_brands.datatable');
+
+        Route::get('/operations/part-brands/new', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'create'])
+            ->name('tenant.operations.part_brands.create');
+
+        Route::get('/operations/part-brands/{brand}/edit', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'edit'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.part_brands.edit');
+
+        Route::post('/operations/part-brands', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'store'])
+            ->name('tenant.operations.part_brands.store');
+
+        Route::post('/operations/part-brands/{brand}/update', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'update'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.part_brands.update');
+
+        Route::post('/operations/part-brands/{brand}/active', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'setActive'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.part_brands.active');
+
+        Route::post('/operations/part-brands/{brand}/delete', [\App\Http\Controllers\Web\Operations\PartBrandOperationsController::class, 'delete'])
+            ->where(['brand' => '[0-9]+' ])
+            ->name('tenant.operations.part_brands.delete');
+
+        Route::get('/operations/part-types', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'index'])
+            ->name('tenant.operations.part_types.index');
+
+        Route::get('/operations/part-types/datatable', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'datatable'])
+            ->name('tenant.operations.part_types.datatable');
+
+        Route::get('/operations/part-types/new', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'create'])
+            ->name('tenant.operations.part_types.create');
+
+        Route::get('/operations/part-types/{type}/edit', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'edit'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.part_types.edit');
+
+        Route::post('/operations/part-types', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'store'])
+            ->name('tenant.operations.part_types.store');
+
+        Route::post('/operations/part-types/{type}/update', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'update'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.part_types.update');
+
+        Route::post('/operations/part-types/{type}/active', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'setActive'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.part_types.active');
+
+        Route::post('/operations/part-types/{type}/delete', [\App\Http\Controllers\Web\Operations\PartTypeOperationsController::class, 'delete'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.part_types.delete');
 
         Route::get('/profile', [\App\Http\Controllers\Web\TenantProfileController::class, 'edit'])
             ->name('tenant.profile.edit');
