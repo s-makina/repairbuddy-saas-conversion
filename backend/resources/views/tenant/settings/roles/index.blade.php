@@ -16,6 +16,34 @@
     padding-bottom: .75rem;
     margin-bottom: .75rem;
   }
+  .perm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .875rem;
+    line-height: 1;
+    user-select: none;
+  }
+  .perm-chip[aria-pressed="true"] {
+    background: rgba(var(--bs-primary-rgb), .12);
+    border-color: rgba(var(--bs-primary-rgb), .35);
+    color: var(--bs-primary);
+  }
+  .perm-chip:disabled {
+    opacity: .6;
+  }
+  .perm-chip-dot {
+    width: .5rem;
+    height: .5rem;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: .5;
+  }
 </style>
 @endpush
 
@@ -119,6 +147,58 @@
       if (visible) visible.textContent = String(typeof filteredCount === 'number' ? filteredCount : allPermissions.length);
     }
 
+    function chipLabelFromPermissionName(name) {
+      name = String(name || '');
+      if (!name) return '';
+      var parts = name.split('.').filter(Boolean);
+      if (parts.length === 0) return name;
+
+      function titleize(s) {
+        return String(s || '')
+          .replace(/[_\-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .filter(Boolean)
+          .map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); })
+          .join(' ');
+      }
+
+      var verbs = {
+        view: "{{ __('View') }}",
+        manage: "{{ __('Manage') }}",
+        access: "{{ __('Access') }}",
+        read: "{{ __('Read') }}",
+        write: "{{ __('Write') }}",
+        create: "{{ __('Create') }}",
+        update: "{{ __('Update') }}",
+        delete: "{{ __('Delete') }}",
+        export: "{{ __('Export') }}",
+        approve: "{{ __('Approve') }}",
+        reject: "{{ __('Reject') }}",
+        assign: "{{ __('Assign') }}",
+        set: "{{ __('Set') }}",
+      };
+
+      // common pattern: resource.action (e.g., users.manage)
+      if (parts.length === 2) {
+        var resource = titleize(parts[0]);
+        var actionKey = String(parts[1]).toLowerCase();
+        var verb = verbs[actionKey] || titleize(parts[1]);
+        return (verb + ' ' + resource).trim();
+      }
+
+      // pattern: namespace.resource.action (e.g., admin.tenants.read)
+      if (parts.length >= 3) {
+        var actionKey3 = String(parts[parts.length - 1]).toLowerCase();
+        var verb3 = verbs[actionKey3] || titleize(parts[parts.length - 1]);
+        var resource3 = titleize(parts[parts.length - 2]);
+        return (verb3 + ' ' + resource3).trim();
+      }
+
+      return titleize(parts.join(' '));
+    }
+
     function renderPermissions() {
       var list = document.getElementById('permissionsList');
       if (!list) return;
@@ -146,18 +226,21 @@
       setEmptyState('');
       updateCounts(filtered.length);
 
-      var html = '';
-      for (var i = 0; i < filtered.length; i++) {
-        var p = filtered[i];
-        var pid = Number(p.id);
-        var checked = selectedPermissionIds.has(pid);
-        html += '<div class="col-12 col-md-6">'
-          + '<div class="form-check">'
-          + '<input class="form-check-input" type="checkbox" id="perm_cb_' + pid + '" data-permission-id="' + pid + '" ' + (checked ? 'checked' : '') + (selectedRoleId ? '' : 'disabled') + '>'
-          + '<label class="form-check-label" for="perm_cb_' + pid + '">' + escapeHtml(p.name || '') + '</label>'
-          + '</div>'
-          + '</div>';
+      filtered.sort(function (x, y) { return String(x.name || '').localeCompare(String(y.name || '')); });
+
+      var html = '<div class="d-flex flex-wrap gap-2">';
+      for (var i2 = 0; i2 < filtered.length; i2++) {
+        var p2 = filtered[i2];
+        var pid2 = Number(p2.id);
+        var pressed2 = selectedPermissionIds.has(pid2);
+        var chipLabel2 = chipLabelFromPermissionName(p2.name);
+        var title2 = String(p2.name || '');
+        html += '<button type="button" class="perm-chip" data-permission-id="' + pid2 + '" aria-pressed="' + (pressed2 ? 'true' : 'false') + '" ' + (selectedRoleId ? '' : 'disabled') + ' title="' + escapeHtml(title2) + '">' 
+          + '<span class="perm-chip-dot"></span>'
+          + '<span>' + escapeHtml(chipLabel2 || title2) + '</span>'
+          + '</button>';
       }
+      html += '</div>';
       list.innerHTML = html;
     }
 
@@ -262,7 +345,7 @@
         { data: 'name', name: 'name' },
         { data: 'permissions_count', name: 'permissions_count', width: '180px', orderable: false, searchable: false },
         { data: 'users_count', name: 'users_count', width: '180px', orderable: false, searchable: false },
-        { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '220px' }
+        { data: 'delete_action', name: 'delete_action', orderable: false, searchable: false, className: 'text-end', width: '90px' }
       ],
       rowCallback: function (row, data) {
         if (!row || !data) return;
@@ -290,21 +373,28 @@
       renderPermissions();
     });
 
-    document.getElementById('permissionsList')?.addEventListener('change', function (e) {
+    document.getElementById('permissionsList')?.addEventListener('click', function (e) {
       var target = e && e.target ? e.target : null;
-      if (!target || !target.matches('input[type="checkbox"][data-permission-id]')) return;
       if (!selectedRoleId) return;
 
-      var pid = Number(target.getAttribute('data-permission-id'));
-      if (!pid) return;
+      var chip = target && target.closest ? target.closest('button.perm-chip[data-permission-id]') : null;
+      if (chip) {
+        var pid = Number(chip.getAttribute('data-permission-id'));
+        if (!pid) return;
 
-      if (target.checked) {
-        selectedPermissionIds.add(pid);
-      } else {
-        selectedPermissionIds.delete(pid);
+        if (selectedPermissionIds.has(pid)) {
+          selectedPermissionIds.delete(pid);
+          chip.setAttribute('aria-pressed', 'false');
+        } else {
+          selectedPermissionIds.add(pid);
+          chip.setAttribute('aria-pressed', 'true');
+        }
+
+        updateCounts(getFilteredPermissions().length);
+        syncRolePermissions();
+        return;
       }
 
-      syncRolePermissions();
     });
 
     function getFilteredPermissions() {
@@ -358,7 +448,7 @@
 			</div>
 		@endif
 
-		<div class="row g-3">
+		<div class="row g-6">
 			<div class="col-12 col-xl-6">
 				<x-settings.card :title="__('Roles')">
 					<div class="d-flex justify-content-end">
@@ -373,7 +463,7 @@
 									<th>{{ __('Name') }}</th>
 									<th style="width: 180px;">{{ __('Permissions') }}</th>
 									<th style="width: 180px;">{{ __('Users') }}</th>
-									<th class="text-end" style="width: 220px;">{{ __('Actions') }}</th>
+									<th class="text-end" style="width: 90px;"></th>
 								</tr>
 							</thead>
 							<tbody></tbody>
@@ -413,7 +503,7 @@
 					</div>
 
 					<div id="permissionsPanelBody">
-						<div class="row g-2" id="permissionsList"></div>
+						<div id="permissionsList"></div>
 					</div>
 				</x-settings.card>
 			</div>

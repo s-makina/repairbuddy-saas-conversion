@@ -80,6 +80,11 @@ return new class extends Migration
                     'name' => 'Member',
                 ]);
 
+                Role::query()->firstOrCreate([
+                    'tenant_id' => $tenant->id,
+                    'name' => 'Technician',
+                ]);
+
                 $ownerRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
                     return $permissionIdsByName[$name] ?? null;
                 }, $ownerPermissions))));

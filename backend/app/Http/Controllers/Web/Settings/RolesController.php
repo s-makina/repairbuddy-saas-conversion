@@ -42,6 +42,7 @@ class RolesController extends Controller
         return response()->json([
             'permissions' => Permission::query()
                 ->where('guard_name', 'web')
+                ->where('name', 'not like', 'admin.%')
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (Permission $p) => ['id' => (int) $p->id, 'name' => (string) $p->name])
@@ -133,19 +134,16 @@ class RolesController extends Controller
                     ->whereHas('roles', fn ($q) => $q->whereKey($role->id))
                     ->count();
             })
-            ->addColumn('actions_display', function (Role $role) use ($tenant) {
-                $editUrl = route('tenant.settings.roles.edit', ['business' => $tenant->slug, 'role' => $role->id]);
+            ->addColumn('delete_action', function (Role $role) use ($tenant) {
                 $deleteUrl = route('tenant.settings.roles.delete', ['business' => $tenant->slug, 'role' => $role->id]);
                 $csrf = csrf_field();
 
-                return '<div class="d-inline-flex gap-2">'
-                    . '<a class="btn btn-sm btn-outline-primary" href="' . e($editUrl) . '" title="' . e(__('Edit')) . '" aria-label="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></a>'
-                    . '<form method="post" action="' . e($deleteUrl) . '">' . $csrf
+                return '<form method="post" action="' . e($deleteUrl) . '" onsubmit="return confirm(\'' . e(__('Delete this role?')) . '\')">'
+                    . $csrf
                     . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('Delete')) . '" aria-label="' . e(__('Delete')) . '"><i class="bi bi-trash"></i></button>'
-                    . '</form>'
-                    . '</div>';
+                    . '</form>';
             })
-            ->rawColumns(['actions_display'])
+            ->rawColumns(['delete_action'])
             ->toJson();
     }
 
@@ -289,6 +287,13 @@ class RolesController extends Controller
             ->where('tenant_id', $tenant->id)
             ->whereKey($role)
             ->firstOrFail();
+
+        $protectedNames = ['Owner', 'Technician'];
+        if (in_array((string) $roleModel->name, $protectedNames, true)) {
+            return redirect()
+                ->route('tenant.settings.roles.index', ['business' => $tenant->slug])
+                ->with('status', __('Cannot delete this role.'));
+        }
 
         if (Role::query()->where('tenant_id', $tenant->id)->count() <= 1) {
             return redirect()

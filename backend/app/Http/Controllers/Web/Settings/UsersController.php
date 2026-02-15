@@ -10,8 +10,9 @@ use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Yajra\DataTables\Facades\DataTables;
 
 class UsersController extends Controller
@@ -60,11 +61,23 @@ class UsersController extends Controller
             })
             ->addColumn('actions_display', function (User $u) use ($tenant) {
                 $editUrl = route('tenant.settings.users.edit', ['business' => $tenant->slug, 'user' => $u->id]);
+                $statusUrl = route('tenant.settings.users.status', ['business' => $tenant->slug, 'user' => $u->id]);
+                $resetUrl = route('tenant.settings.users.password_reset', ['business' => $tenant->slug, 'user' => $u->id]);
                 $deleteUrl = route('tenant.settings.users.delete', ['business' => $tenant->slug, 'user' => $u->id]);
                 $csrf = csrf_field();
+                $nextStatus = ((string) ($u->status ?? 'active') === 'active') ? 'inactive' : 'active';
+                $statusLabel = $nextStatus === 'inactive' ? __('Block') : __('Unblock');
+                $statusIcon = $nextStatus === 'inactive' ? '<i class="bi bi-slash-circle"></i>' : '<i class="bi bi-check-circle"></i>';
 
                 return '<div class="d-inline-flex gap-2">'
                     . '<a class="btn btn-sm btn-outline-primary" href="' . e($editUrl) . '" title="' . e(__('Edit')) . '" aria-label="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></a>'
+                    . '<form method="post" action="' . e($resetUrl) . '">' . $csrf
+                    . '<button type="submit" class="btn btn-sm btn-outline-secondary" title="' . e(__('Send password reset')) . '" aria-label="' . e(__('Send password reset')) . '"><i class="bi bi-envelope"></i></button>'
+                    . '</form>'
+                    . '<form method="post" action="' . e($statusUrl) . '">' . $csrf
+                    . '<input type="hidden" name="status" value="' . e($nextStatus) . '" />'
+                    . '<button type="submit" class="btn btn-sm btn-outline-warning" title="' . e($statusLabel) . '" aria-label="' . e($statusLabel) . '">' . $statusIcon . '</button>'
+                    . '</form>'
                     . '<form method="post" action="' . e($deleteUrl) . '">' . $csrf
                     . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('Delete')) . '" aria-label="' . e(__('Delete')) . '"><i class="bi bi-trash"></i></button>'
                     . '</form>'
@@ -81,6 +94,13 @@ class UsersController extends Controller
         if (! $tenant instanceof Tenant) {
             abort(400, 'Tenant is missing.');
         }
+
+        $recentUsers = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
 
         $roleOptions = Role::query()
             ->where('tenant_id', $tenant->id)
@@ -100,6 +120,7 @@ class UsersController extends Controller
             'user' => $request->user(),
             'activeNav' => 'settings',
             'pageTitle' => __('Add User'),
+            'recentUsers' => $recentUsers,
             'roleOptions' => $roleOptions,
             'statusOptions' => $statusOptions,
         ]);
@@ -234,6 +255,60 @@ class UsersController extends Controller
         return redirect()
             ->route('tenant.settings.users.index', ['business' => $tenant->slug])
             ->with('status', __('User updated.'));
+    }
+
+    public function setStatus(Request $request, string $business, int $user): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $editUser = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->whereKey($user)
+            ->firstOrFail();
+
+        if ((int) $request->user()?->id === (int) $editUser->id) {
+            return redirect()
+                ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+                ->with('status', __('You cannot change your own status.'));
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+        ]);
+
+        $editUser->forceFill([
+            'status' => (string) $validated['status'],
+        ])->save();
+
+        return redirect()
+            ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+            ->with('status', __('User updated.'));
+    }
+
+    public function sendPasswordReset(Request $request, string $business, int $user): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $editUser = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->whereKey($user)
+            ->firstOrFail();
+
+        Password::broker()->sendResetLink(['email' => (string) $editUser->email]);
+
+        return redirect()
+            ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+            ->with('status', __('Password reset link sent.'));
     }
 
     public function delete(Request $request, string $business, int $user): RedirectResponse

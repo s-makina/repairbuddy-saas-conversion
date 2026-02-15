@@ -71,8 +71,6 @@
 									</div>
 								</div>
 
-								<hr class="my-2">
-
 								<div class="col-12">
 									<div class="row align-items-start">
 										<label for="password" class="col-sm-3 col-form-label">{{ __('New password') }}</label>

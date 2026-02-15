@@ -75,7 +75,9 @@ class ClientOperationsController extends Controller
                     $parts[] = $country;
                 }
 
-                return implode(', ', $parts);
+                $address = implode(', ', $parts);
+
+                return '<span class="d-inline-block text-truncate" style="max-width: 320px; white-space: nowrap;" title="' . e($address) . '">' . e($address) . '</span>';
             })
             ->addColumn('actions_display', function (User $client) use ($tenant) {
                 $editUrl = route('tenant.operations.clients.edit', ['business' => $tenant->slug, 'client' => $client->id]);
@@ -89,7 +91,7 @@ class ClientOperationsController extends Controller
                     . '</form>'
                     . '</div>';
             })
-            ->rawColumns(['actions_display'])
+            ->rawColumns(['actions_display', 'address_display'])
             ->toJson();
     }
 

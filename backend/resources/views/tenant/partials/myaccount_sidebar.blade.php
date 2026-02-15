@@ -18,6 +18,7 @@
   $canRolesManage = $isAuthed && $user?->can('roles.manage');
   $canBranchesManage = $isAuthed && $user?->can('branches.manage');
   $canSettingsManage = $isAuthed && $user?->can('settings.manage');
+  $canTechniciansView = $isAuthed && ($user?->can('technicians.view') ?? false);
 
   $canOps = $isAuthed && (
     $user?->can('devices.manage')
@@ -47,6 +48,8 @@
   $operationsServicesUrl = $tenantSlug ? route('tenant.operations.services.index', ['business' => $tenantSlug]) : '#';
   $operationsClientsUrl = $tenantSlug ? route('tenant.operations.clients.index', ['business' => $tenantSlug]) : '#';
 
+  $techniciansUrl = $tenantSlug ? route('tenant.technicians.index', ['business' => $tenantSlug]) : '#';
+
   $usersUrl = $tenantSlug ? route('tenant.settings.users.index', ['business' => $tenantSlug]) : '#';
   $rolesUrl = $tenantSlug ? route('tenant.settings.roles.index', ['business' => $tenantSlug]) : '#';
   $permissionsUrl = $tenantSlug ? route('tenant.settings.permissions.index', ['business' => $tenantSlug]) : '#';
@@ -72,6 +75,14 @@
       'icon' => 'bi bi-wrench',
       'url' => $screenUrl('jobs'),
       'access' => ['all'],
+    ],
+
+    [
+      'id' => 'technicians',
+      'title' => 'Technicians',
+      'icon' => 'bi bi-person-workspace',
+      'url' => $techniciansUrl,
+      'visible' => $canTechniciansView,
     ],
     [
       'id' => 'timelog',
@@ -275,6 +286,8 @@
     $currentPage = 'settings';
   } elseif (request()->routeIs('tenant.settings.section')) {
     $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.technicians.*')) {
+    $currentPage = 'technicians';
   } elseif (request()->routeIs('tenant.operations.brands.*')) {
     $currentPage = 'operations_brands';
   } elseif (request()->routeIs('tenant.operations.brand_types.*')) {

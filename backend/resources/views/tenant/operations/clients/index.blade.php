@@ -34,7 +34,7 @@
         { data: 'last_name', name: 'last_name', width: '180px' },
         { data: 'email', name: 'email' },
         { data: 'phone_display', name: 'phone', width: '160px', orderable: false },
-        { data: 'address_display', name: 'address_line1', orderable: false, searchable: false },
+        { data: 'address_display', name: 'address_line1', orderable: false, searchable: false, width: '320px' },
         { data: 'company_display', name: 'company', width: '180px', orderable: false },
         { data: 'tax_id_display', name: 'tax_id', width: '150px', orderable: false },
         { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '180px' }
@@ -72,7 +72,7 @@
 							<th>{{ __('Last name') }}</th>
 							<th>{{ __('Email') }}</th>
 							<th>{{ __('Phone') }}</th>
-							<th>{{ __('Address') }}</th>
+							<th class="rb-client-address-col">{{ __('Address') }}</th>
 							<th>{{ __('Company') }}</th>
 							<th>{{ __('Tax ID') }}</th>
 							<th class="text-end">{{ __('Actions') }}</th>

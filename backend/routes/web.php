@@ -75,10 +75,33 @@ Route::prefix('t/{business}')
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.update');
 
+        Route::post('/settings/users/{user}/status', [\App\Http\Controllers\Web\Settings\UsersController::class, 'setStatus'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.status');
+
+        Route::post('/settings/users/{user}/password-reset', [\App\Http\Controllers\Web\Settings\UsersController::class, 'sendPasswordReset'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.password_reset');
+
         Route::post('/settings/users/{user}/delete', [\App\Http\Controllers\Web\Settings\UsersController::class, 'delete'])
             ->where(['user' => '[0-9]+' ])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.delete');
+
+        Route::get('/technicians', [\App\Http\Controllers\Web\TechniciansController::class, 'index'])
+            ->middleware('permission:technicians.view')
+            ->name('tenant.technicians.index');
+
+        Route::get('/technicians/datatable', [\App\Http\Controllers\Web\TechniciansController::class, 'datatable'])
+            ->middleware('permission:technicians.view')
+            ->name('tenant.technicians.datatable');
+
+        Route::post('/technicians/{user}/hourly-rates', [\App\Http\Controllers\Web\TechniciansController::class, 'updateHourlyRates'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:hourly_rates.view')
+            ->name('tenant.technicians.hourly_rates.update');
 
         Route::get('/settings/roles', [\App\Http\Controllers\Web\Settings\RolesController::class, 'index'])
             ->middleware('permission:roles.manage')

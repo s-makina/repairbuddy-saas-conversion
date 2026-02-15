@@ -14,7 +14,7 @@
 		@endif
 
 		<div class="row justify-content-center">
-			<div class="col-12 col-lg-8 col-xl-7">
+			<div class="col-12 col-lg-7 col-xl-8">
 				<div class="card">
 					<div class="card-header">
 						<h5 class="card-title mb-0">{{ __('Add User') }}</h5>
@@ -72,8 +72,6 @@
 									</div>
 								</div>
 
-								<hr class="my-2">
-
 								<div class="col-12">
 									<div class="row align-items-start">
 										<label for="password" class="col-sm-3 col-form-label">{{ __('Password') }} *</label>
@@ -102,6 +100,36 @@
 								</div>
 							</div>
 						</form>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-12 col-lg-5 col-xl-4">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">{{ __('Recent users') }}</h5>
+					</div>
+					<div class="card-body p-0">
+						<div class="list-group list-group-flush">
+							@forelse (($recentUsers ?? []) as $u)
+								@php
+									$editUrl = route('tenant.settings.users.edit', ['business' => $tenant->slug, 'user' => $u->id]);
+								@endphp
+								<div class="list-group-item d-flex align-items-center justify-content-between">
+									<div class="text-truncate">
+										<div class="fw-normal text-truncate">{{ (string) ($u->name ?? '') }}</div>
+										<div class="small text-muted text-truncate">{{ (string) ($u->email ?? '') }}</div>
+									</div>
+									<a class="btn btn-sm btn-outline-primary ms-3" href="{{ $editUrl }}" title="{{ __('Edit') }}" aria-label="{{ __('Edit') }}">
+										<i class="bi bi-pencil"></i>
+									</a>
+								</div>
+							@empty
+								<div class="list-group-item">
+									<div class="text-muted">{{ __('No users yet.') }}</div>
+								</div>
+							@endforelse
+						</div>
 					</div>
 				</div>
 			</div>

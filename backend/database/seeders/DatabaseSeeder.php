@@ -182,6 +182,12 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Member',
                 'guard_name' => 'web',
             ]);
+
+            Role::query()->firstOrCreate([
+                'tenant_id' => $tenant->id,
+                'name' => 'Technician',
+                'guard_name' => 'web',
+            ]);
         }
 
         $ownerRoleId = Role::query()
@@ -206,6 +212,21 @@ class DatabaseSeeder extends Seeder
                 'role_id' => $memberRoleId,
                 'role' => null,
             ]);
+        }
+
+        $technicianRoleId = Role::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('name', 'Technician')
+            ->value('id');
+
+        if ($technicianRoleId) {
+            $technicianRole = Role::query()->whereKey((int) $technicianRoleId)->first();
+            $demoTechs = User::query()->whereIn('email', ['tech1@99smartx.com', 'tech2@99smartx.com'])->get();
+            if ($technicianRole) {
+                foreach ($demoTechs as $demoTech) {
+                    $demoTech->syncRoles([$technicianRole]);
+                }
+            }
         }
 
         if (Schema::hasTable('permissions') && Schema::hasTable('roles') && Schema::hasTable('role_has_permissions')) {
