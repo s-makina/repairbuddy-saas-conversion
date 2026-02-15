@@ -47,7 +47,7 @@
             @if (count($branchOptions ?? []) > 1)
               <form method="post" action="{{ route('tenant.branch.active', ['business' => $tenantSlug]) }}" class="m-0">
                 @csrf
-                <select name="branch_id" class="form-select form-select-sm" style="max-width: 320px;" onchange="this.form.submit()" aria-label="{{ __('Shop') }}">
+                <select name="branch_id" class="form-select form-select-sm" style="min-width: 220px;" onchange="this.form.submit()" aria-label="{{ __('Shop') }}">
                   @foreach (($branchOptions ?? []) as $id => $label)
                     <option value="{{ (int) $id }}" @selected((int) $activeBranchId === (int) $id)>{{ $label }}</option>
                   @endforeach
