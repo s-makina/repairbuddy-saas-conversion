@@ -80,10 +80,6 @@ Route::prefix('t/{business}')
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.delete');
 
-        Route::get('/settings/{section}', [\App\Http\Controllers\Web\TenantSettingsController::class, 'section'])
-            ->where(['section' => '[A-Za-z0-9\-]+' ])
-            ->name('tenant.settings.section');
-
         Route::get('/settings/roles', [\App\Http\Controllers\Web\Settings\RolesController::class, 'index'])
             ->middleware('permission:roles.manage')
             ->name('tenant.settings.roles.index');
@@ -115,6 +111,20 @@ Route::prefix('t/{business}')
             ->middleware('permission:roles.manage')
             ->name('tenant.settings.roles.delete');
 
+        Route::get('/settings/roles/permissions', [\App\Http\Controllers\Web\Settings\RolesController::class, 'permissionsIndex'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.permissions.index');
+
+        Route::get('/settings/roles/{role}/permissions', [\App\Http\Controllers\Web\Settings\RolesController::class, 'rolePermissionsShow'])
+            ->where(['role' => '[0-9]+' ])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.permissions.show');
+
+        Route::post('/settings/roles/{role}/permissions/sync', [\App\Http\Controllers\Web\Settings\RolesController::class, 'rolePermissionsSync'])
+            ->where(['role' => '[0-9]+' ])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.permissions.sync');
+
         Route::get('/settings/permissions', [\App\Http\Controllers\Web\Settings\PermissionsController::class, 'index'])
             ->middleware('permission:roles.manage')
             ->name('tenant.settings.permissions.index');
@@ -122,6 +132,10 @@ Route::prefix('t/{business}')
         Route::get('/settings/permissions/datatable', [\App\Http\Controllers\Web\Settings\PermissionsController::class, 'datatable'])
             ->middleware('permission:roles.manage')
             ->name('tenant.settings.permissions.datatable');
+
+        Route::get('/settings/{section}', [\App\Http\Controllers\Web\TenantSettingsController::class, 'section'])
+            ->where(['section' => '[A-Za-z0-9\-]+' ])
+            ->name('tenant.settings.section');
 
         Route::get('/operations/brands', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'index'])
             ->name('tenant.operations.brands.index');

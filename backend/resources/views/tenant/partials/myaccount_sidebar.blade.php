@@ -11,20 +11,22 @@
     ? (string) request()->query('screen')
     : 'dashboard';
 
-  $userRole = is_string($user?->role) && $user?->role !== '' ? (string) $user->role : 'guest';
-  $userRoles = [$userRole];
+  $isAuthed = (bool) $user;
+  $isCustomer = $isAuthed && ((string) ($user?->role ?? '') === 'customer');
 
-  if ($user && ($user->is_admin ?? false)) {
-    $userRoles[] = 'administrator';
-  }
+  $canUsersManage = $isAuthed && $user?->can('users.manage');
+  $canRolesManage = $isAuthed && $user?->can('roles.manage');
+  $canBranchesManage = $isAuthed && $user?->can('branches.manage');
+  $canSettingsManage = $isAuthed && $user?->can('settings.manage');
 
-  // Treat non-customer tenant users as staff for nav access.
-  if ($userRole !== 'customer' && $userRole !== 'guest') {
-    $userRoles[] = 'store_manager';
-    $userRoles[] = 'technician';
-  }
-
-  $userRoles = array_values(array_unique(array_filter($userRoles)));
+  $canOps = $isAuthed && (
+    $user?->can('devices.manage')
+    || $user?->can('device_brands.manage')
+    || $user?->can('device_types.manage')
+    || $user?->can('service_types.manage')
+    || $user?->can('services.manage')
+    || $user?->can('clients.view')
+  );
 
   $baseUrl = $tenantSlug ? route('tenant.dashboard', ['business' => $tenantSlug]) : '#';
   $screenUrl = function (string $screen) use ($baseUrl): string {
@@ -62,7 +64,7 @@
       'title' => 'Calendar',
       'icon' => 'bi bi-bag-check',
       'url' => $screenUrl('calendar'),
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ! $isCustomer,
     ],
     [
       'id' => 'jobs',
@@ -76,7 +78,7 @@
       'title' => 'Time Log',
       'icon' => 'bi bi-stopwatch',
       'url' => $screenUrl('timelog'),
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('time_logs.view') ?? false),
     ],
     [
       'id' => 'estimates',
@@ -90,14 +92,14 @@
       'title' => 'My Devices',
       'icon' => 'bi bi-phone',
       'url' => $screenUrl('customer-devices'),
-      'access' => ['customer'],
+      'visible' => $isCustomer,
     ],
     [
       'id' => 'customer-devices',
       'title' => 'Customer Devices',
       'icon' => 'bi bi-phone',
       'url' => $screenUrl('customer-devices'),
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('customer_devices.view') ?? false),
     ],
     [
       'id' => 'reviews',
@@ -111,14 +113,14 @@
       'title' => 'Book My Device',
       'icon' => 'bi bi-calendar-plus',
       'url' => $screenUrl('book-my-device'),
-      'access' => ['customer'],
+      'visible' => $isCustomer,
     ],
     [
       'id' => 'expenses_parent',
       'title' => 'Expenses',
       'icon' => 'bi bi-calculator',
       'url' => '#',
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $isAuthed && ($user?->can('expenses.view') ?? false),
       'extra_class' => 'mt-3',
     ],
     [
@@ -127,7 +129,7 @@
       'parent' => 'expenses_parent',
       'icon' => 'bi bi-calculator',
       'url' => $screenUrl('expenses'),
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $isAuthed && ($user?->can('expenses.view') ?? false),
     ],
     [
       'id' => 'expense_categories',
@@ -135,7 +137,7 @@
       'parent' => 'expenses_parent',
       'icon' => 'bi bi-tags',
       'url' => $screenUrl('expense_categories'),
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $isAuthed && ($user?->can('expense_categories.view') ?? false),
     ],
 
     [
@@ -143,7 +145,7 @@
       'title' => 'Operations',
       'icon' => 'bi bi-boxes',
       'url' => '#',
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $canOps,
       'extra_class' => 'mt-3',
     ],
     [
@@ -152,7 +154,7 @@
       'parent' => 'operations',
       'icon' => 'bi bi-bookmark-star',
       'url' => $operationsBrandsUrl,
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('device_brands.view') ?? false),
     ],
     [
       'id' => 'operations_brand_types',
@@ -160,7 +162,7 @@
       'parent' => 'operations',
       'icon' => 'bi bi-diagram-2',
       'url' => $operationsBrandTypesUrl,
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('device_types.view') ?? false),
     ],
     [
       'id' => 'operations_devices',
@@ -168,7 +170,7 @@
       'parent' => 'operations',
       'icon' => 'bi bi-phone',
       'url' => $operationsDevicesUrl,
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('devices.view') ?? false),
     ],
     [
       'id' => 'operations_service_types',
@@ -176,7 +178,7 @@
       'parent' => 'operations',
       'icon' => 'bi bi-diagram-2',
       'url' => $operationsServiceTypesUrl,
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('service_types.view') ?? false),
     ],
     [
       'id' => 'operations_services',
@@ -184,7 +186,7 @@
       'parent' => 'operations',
       'icon' => 'bi bi-tools',
       'url' => $operationsServicesUrl,
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('services.view') ?? false),
     ],
     [
       'id' => 'operations_clients',
@@ -192,7 +194,7 @@
       'parent' => 'operations',
       'icon' => 'bi bi-people',
       'url' => $operationsClientsUrl,
-      'access' => ['administrator', 'store_manager', 'technician'],
+      'visible' => $isAuthed && ($user?->can('clients.view') ?? false),
     ],
     [
       'id' => 'settings',
@@ -215,7 +217,7 @@
       'parent' => 'settings',
       'icon' => 'bi bi-people',
       'url' => $usersUrl,
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $canUsersManage,
     ],
     [
       'id' => 'settings_roles',
@@ -223,7 +225,7 @@
       'parent' => 'settings',
       'icon' => 'bi bi-shield-lock',
       'url' => $rolesUrl,
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $canRolesManage,
     ],
     [
       'id' => 'settings_permissions',
@@ -231,7 +233,7 @@
       'parent' => 'settings',
       'icon' => 'bi bi-key',
       'url' => $permissionsUrl,
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $canRolesManage,
     ],
     [
       'id' => 'profile',
@@ -246,7 +248,7 @@
       'title' => 'Support',
       'icon' => 'bi bi-life-preserver',
       'url' => 'https://www.webfulcreations.com/repairbuddy-wordpress-plugin/contact/',
-      'access' => ['administrator', 'store_manager'],
+      'visible' => $isAuthed && ! $isCustomer,
       'target' => '_blank',
     ],
   ];
@@ -261,9 +263,12 @@
     }
   }
 
-  $canAccess = function (array $access) use ($userRoles): bool {
-    if (in_array('all', $access, true)) return true;
-    return count(array_intersect($userRoles, $access)) > 0;
+  $isVisible = function (array $item): bool {
+    if (array_key_exists('visible', $item)) {
+      return (bool) $item['visible'];
+    }
+
+    return true;
   };
 
   if (request()->routeIs('tenant.settings')) {
@@ -298,13 +303,16 @@
   <div class="sidebar-nav p-3">
     <ul class="nav nav-pills flex-column wcrb-sidebar-nav">
       @foreach ($parentItems as $item)
-        @if ($canAccess($item['access']))
+        @if ($isVisible($item))
           @php
             $hasChildren = array_key_exists($item['id'], $childItems);
             $isActive = ($currentPage === $item['id']) ? 'active text-white' : 'text-white-50';
             $hasActiveChild = false;
             if ($hasChildren) {
               foreach ($childItems[$item['id']] as $child) {
+                if (! $isVisible($child)) {
+                  continue;
+                }
                 if ($currentPage === $child['id']) {
                   $hasActiveChild = true;
                   break;
@@ -334,7 +342,7 @@
               <div id="wcrb-submenu-{{ $item['id'] }}" class="collapse {{ $collapseClass }}">
                 <ul class="nav flex-column ms-3">
                   @foreach ($childItems[$item['id']] as $child)
-                    @if ($canAccess($child['access']))
+                    @if ($isVisible($child))
                       @php
                         $childIsActive = ($currentPage === $child['id']) ? 'active text-white' : 'text-white-50';
                       @endphp

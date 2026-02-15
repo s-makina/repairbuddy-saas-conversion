@@ -31,6 +31,85 @@ class RolesController extends Controller
         ]);
     }
 
+    public function permissionsIndex(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return response()->json(['message' => 'Tenant is missing.'], 400);
+        }
+
+        return response()->json([
+            'permissions' => Permission::query()
+                ->where('guard_name', 'web')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Permission $p) => ['id' => (int) $p->id, 'name' => (string) $p->name])
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    public function rolePermissionsShow(Request $request, string $business, int $role)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return response()->json(['message' => 'Tenant is missing.'], 400);
+        }
+
+        $roleModel = Role::query()
+            ->where('tenant_id', $tenant->id)
+            ->whereKey($role)
+            ->firstOrFail();
+
+        return response()->json([
+            'role_id' => (int) $roleModel->id,
+            'permission_ids' => $roleModel->permissions()
+                ->pluck('permissions.id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    public function rolePermissionsSync(Request $request, string $business, int $role)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return response()->json(['message' => 'Tenant is missing.'], 400);
+        }
+
+        $roleModel = Role::query()
+            ->where('tenant_id', $tenant->id)
+            ->whereKey($role)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'permission_ids' => ['sometimes', 'array'],
+            'permission_ids.*' => ['integer', 'distinct', Rule::exists('permissions', 'id')],
+        ]);
+
+        $permissionIds = array_values(array_unique(array_filter(array_map(
+            fn ($v) => is_numeric($v) ? (int) $v : null,
+            $validated['permission_ids'] ?? []
+        ))));
+
+        $permissions = Permission::query()->whereIn('id', $permissionIds)->get();
+        $roleModel->syncPermissions($permissions);
+
+        return response()->json([
+            'status' => 'ok',
+            'role_id' => (int) $roleModel->id,
+            'permission_ids' => $roleModel->permissions()
+                ->pluck('permissions.id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all(),
+        ]);
+    }
+
     public function datatable(Request $request, string $business)
     {
         $tenant = TenantContext::tenant();
