@@ -61,6 +61,7 @@
   $rolesUrl = $tenantSlug ? route('tenant.settings.roles.index', ['business' => $tenantSlug]) : '#';
   $permissionsUrl = $tenantSlug ? route('tenant.settings.permissions.index', ['business' => $tenantSlug]) : '#';
   $hourlyRatesUrl = $tenantSlug ? route('tenant.settings.hourly_rates.index', ['business' => $tenantSlug]) : '#';
+  $shopsUrl = $tenantSlug ? route('tenant.settings.shops.index', ['business' => $tenantSlug]) : '#';
 
   $navItems = [
     [
@@ -286,6 +287,14 @@
       'visible' => $canRolesManage,
     ],
     [
+      'id' => 'settings_shops',
+      'title' => 'Shops',
+      'parent' => 'settings',
+      'icon' => 'bi bi-shop',
+      'url' => $shopsUrl,
+      'visible' => $canBranchesManage,
+    ],
+    [
       'id' => 'settings_hourly_rates',
       'title' => 'Manage Hourly Rates',
       'parent' => 'settings',
@@ -333,6 +342,8 @@
     $currentPage = 'settings';
   } elseif (request()->routeIs('tenant.settings.section')) {
     $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.settings.shops.*')) {
+    $currentPage = 'settings_shops';
   } elseif (request()->routeIs('tenant.settings.hourly_rates.*')) {
     $currentPage = 'settings_hourly_rates';
   } elseif (request()->routeIs('tenant.technicians.*')) {

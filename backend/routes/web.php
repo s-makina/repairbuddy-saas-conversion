@@ -53,6 +53,38 @@ Route::prefix('t/{business}')
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.index');
 
+        Route::get('/settings/shops', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'index'])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.index');
+
+        Route::get('/settings/shops/new', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'create'])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.create');
+
+        Route::get('/settings/shops/{branch}/edit', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'edit'])
+            ->where(['branch' => '[0-9]+' ])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.edit');
+
+        Route::post('/settings/shops', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'store'])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.store');
+
+        Route::post('/settings/shops/{branch}/update', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'update'])
+            ->where(['branch' => '[0-9]+' ])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.update');
+
+        Route::post('/settings/shops/{branch}/active', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'setActive'])
+            ->where(['branch' => '[0-9]+' ])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.active');
+
+        Route::post('/settings/shops/{branch}/default', [\App\Http\Controllers\Web\Settings\BranchesController::class, 'setDefault'])
+            ->where(['branch' => '[0-9]+' ])
+            ->middleware('permission:branches.manage')
+            ->name('tenant.settings.shops.default');
+
         Route::get('/settings/users/datatable', [\App\Http\Controllers\Web\Settings\UsersController::class, 'datatable'])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.datatable');
