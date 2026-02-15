@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="{{ asset('repairbuddy/my_account/css/bootstrap-icons.min.css') }}">
   <link rel="stylesheet" href="{{ asset('repairbuddy/my_account/css/dark-mode.css') }}">
   <link rel="stylesheet" href="{{ asset('repairbuddy/my_account/css/style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
 
   @stack('page-styles')
 </head>

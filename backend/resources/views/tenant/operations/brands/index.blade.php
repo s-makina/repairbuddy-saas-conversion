@@ -30,6 +30,7 @@
       order: [[1, 'asc']],
       columns: [
         { data: 'id', name: 'id', width: '90px' },
+        { data: 'image_display', name: 'image_path', width: '60px', orderable: false, searchable: false },
         { data: 'name', name: 'name' },
         { data: 'status_display', name: 'is_active', width: '140px', orderable: false, searchable: false },
         { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '280px' }
@@ -63,6 +64,7 @@
 					<thead class="bg-light">
 						<tr>
 							<th style="width: 90px;">{{ __('ID') }}</th>
+							<th style="width: 60px;">{{ __('Photo') }}</th>
 							<th>{{ __('Name') }}</th>
 							<th style="width: 140px;">{{ __('Status') }}</th>
 							<th class="text-end" style="width: 280px;">{{ __('Actions') }}</th>

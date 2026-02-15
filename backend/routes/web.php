@@ -62,6 +62,9 @@ Route::prefix('t/{business}')
         Route::get('/operations/brands/new', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'create'])
             ->name('tenant.operations.brands.create');
 
+        Route::get('/operations/brands/search', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'search'])
+            ->name('tenant.operations.brands.search');
+
         Route::get('/operations/brands/{brand}/edit', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'edit'])
             ->where(['brand' => '[0-9]+' ])
             ->name('tenant.operations.brands.edit');

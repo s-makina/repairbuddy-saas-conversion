@@ -40,6 +40,14 @@ class DeviceBrandOperationsController extends Controller
         $query = RepairBuddyDeviceBrand::query()->orderByDesc('is_active')->orderBy('name');
 
         return DataTables::eloquent($query)
+            ->addColumn('image_display', function (RepairBuddyDeviceBrand $brand) {
+                if (! is_string($brand->image_url) || $brand->image_url === '') {
+                    return '';
+                }
+
+                $alt = (string) ($brand->name ?? '');
+                return '<img src="' . e($brand->image_url) . '" alt="' . e($alt) . '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;" />';
+            })
             ->addColumn('status_display', function (RepairBuddyDeviceBrand $brand) {
                 if ($brand->is_active) {
                     return '<span class="wcrb-pill wcrb-pill--active">' . e(__('Active')) . '</span>';
@@ -68,8 +76,58 @@ class DeviceBrandOperationsController extends Controller
                     . '</form>'
                     . '</div>';
             })
-            ->rawColumns(['status_display', 'actions_display'])
+            ->rawColumns(['image_display', 'status_display', 'actions_display'])
             ->toJson();
+    }
+
+    public function search(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return response()->json(['message' => 'Tenant is missing.'], 400);
+        }
+
+        $validated = $request->validate([
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:50'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+            'exclude_id' => ['sometimes', 'nullable'],
+        ]);
+
+        $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 10;
+        $sort = is_string($validated['sort'] ?? null) ? trim((string) $validated['sort']) : '';
+        $dir = strtolower(is_string($validated['dir'] ?? null) ? trim((string) $validated['dir']) : '');
+        $excludeIdRaw = $validated['exclude_id'] ?? null;
+        $excludeId = is_numeric($excludeIdRaw) ? (int) $excludeIdRaw : null;
+
+        $query = RepairBuddyDeviceBrand::query();
+
+        if ($q !== '') {
+            $query->where('name', 'like', "%{$q}%");
+        }
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $allowedSorts = ['id', 'name'];
+        $resolvedSort = in_array($sort, $allowedSorts, true) ? $sort : ($q === '' ? 'id' : 'name');
+        $resolvedDir = in_array($dir, ['asc', 'desc'], true) ? $dir : ($q === '' ? 'desc' : 'asc');
+
+        $brands = $query
+            ->orderBy($resolvedSort, $resolvedDir)
+            ->limit($limit)
+            ->get(['id', 'name']);
+
+        return response()->json([
+            'device_brands' => $brands->map(fn (RepairBuddyDeviceBrand $b) => [
+                'id' => $b->id,
+                'name' => (string) $b->name,
+            ]),
+        ]);
     }
 
     public function create(Request $request, string $business)
@@ -85,12 +143,21 @@ class DeviceBrandOperationsController extends Controller
             ->limit(8)
             ->get();
 
+        $parentOptions = RepairBuddyDeviceBrand::query()
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name'])
+            ->mapWithKeys(fn (RepairBuddyDeviceBrand $b) => [(string) $b->id => (string) $b->name])
+            ->prepend((string) __('None'), '')
+            ->all();
+
         return view('tenant.operations.brands.create', [
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'operations',
             'pageTitle' => __('Add Brand'),
             'recentBrands' => $recentBrands,
+            'parentOptions' => $parentOptions,
         ]);
     }
 
@@ -104,12 +171,22 @@ class DeviceBrandOperationsController extends Controller
 
         $model = RepairBuddyDeviceBrand::query()->whereKey($brand)->firstOrFail();
 
+        $parentOptions = RepairBuddyDeviceBrand::query()
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name'])
+            ->filter(fn (RepairBuddyDeviceBrand $b) => (int) $b->id !== (int) $model->id)
+            ->mapWithKeys(fn (RepairBuddyDeviceBrand $b) => [(string) $b->id => (string) $b->name])
+            ->prepend((string) __('None'), '')
+            ->all();
+
         return view('tenant.operations.brands.edit', [
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'operations',
             'pageTitle' => __('Edit Brand'),
             'brand' => $model,
+            'parentOptions' => $parentOptions,
         ]);
     }
 
@@ -124,11 +201,21 @@ class DeviceBrandOperationsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'parent_id' => ['sometimes', 'nullable'],
             'image' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $name = trim((string) $validated['name']);
         $description = is_string($validated['description'] ?? null) ? trim((string) $validated['description']) : null;
+        $parentIdRaw = $validated['parent_id'] ?? null;
+        $parentId = is_numeric($parentIdRaw) ? (int) $parentIdRaw : null;
+
+        if ($parentId !== null && ! RepairBuddyDeviceBrand::query()->whereKey($parentId)->exists()) {
+            return redirect()
+                ->route('tenant.operations.brands.create', ['business' => $tenant->slug])
+                ->withErrors(['parent_id' => __('Parent brand is invalid.')])
+                ->withInput();
+        }
 
         if (RepairBuddyDeviceBrand::query()->where('name', $name)->exists()) {
             return redirect()
@@ -138,6 +225,7 @@ class DeviceBrandOperationsController extends Controller
         }
 
         $brand = RepairBuddyDeviceBrand::query()->create([
+            'parent_id' => $parentId,
             'name' => $name,
             'description' => $description,
             'is_active' => true,
@@ -167,13 +255,32 @@ class DeviceBrandOperationsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'parent_id' => ['sometimes', 'nullable'],
             'image' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $name = trim((string) $validated['name']);
         $description = is_string($validated['description'] ?? null) ? trim((string) $validated['description']) : null;
+        $parentIdRaw = $validated['parent_id'] ?? null;
+        $parentId = is_numeric($parentIdRaw) ? (int) $parentIdRaw : null;
 
         $model = RepairBuddyDeviceBrand::query()->whereKey($brand)->firstOrFail();
+
+        if ($parentId !== null) {
+            if ($parentId === (int) $model->id) {
+                return redirect()
+                    ->route('tenant.operations.brands.edit', ['business' => $tenant->slug, 'brand' => $model->id])
+                    ->withErrors(['parent_id' => __('Parent brand is invalid.')])
+                    ->withInput();
+            }
+
+            if (! RepairBuddyDeviceBrand::query()->whereKey($parentId)->exists()) {
+                return redirect()
+                    ->route('tenant.operations.brands.edit', ['business' => $tenant->slug, 'brand' => $model->id])
+                    ->withErrors(['parent_id' => __('Parent brand is invalid.')])
+                    ->withInput();
+            }
+        }
 
         if (RepairBuddyDeviceBrand::query()
             ->where('name', $name)
@@ -186,6 +293,7 @@ class DeviceBrandOperationsController extends Controller
         }
 
         $model->forceFill([
+            'parent_id' => $parentId,
             'name' => $name,
             'description' => $description,
         ])->save();

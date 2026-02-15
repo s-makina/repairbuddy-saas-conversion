@@ -59,6 +59,20 @@
 								</div>
 								<div class="col-12">
 									<div class="row align-items-start">
+										<label for="parent_id" class="col-sm-3 col-form-label">{{ __('Parent brand') }}</label>
+										<div class="col-sm-9">
+											<select name="parent_id" id="parent_id" class="form-select @error('parent_id') is-invalid @enderror" data-parent-brand-select>
+												<option value="">{{ __('None') }}</option>
+											</select>
+											@error('parent_id')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+											<div class="form-text">{{ __('Search and select a parent brand (optional).') }}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
 										<label for="image" class="col-sm-3 col-form-label">{{ __('Image') }}</label>
 										<div class="col-sm-9">
 											<input type="file" name="image" id="image" class="form-control @error('image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp" />
@@ -80,6 +94,58 @@
 					</div>
 				</div>
 			</div>
+			@push('page-scripts')
+				<script>
+					(function () {
+						if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
+							return;
+						}
+
+						var $select = window.jQuery('[data-parent-brand-select]');
+						if ($select.length === 0) {
+							return;
+						}
+
+						$select.select2({
+							placeholder: @json(__('None')),
+							allowClear: true,
+							width: '100%',
+							ajax: {
+								url: @json(route('tenant.operations.brands.search', ['business' => $tenant->slug])),
+								dataType: 'json',
+								delay: 250,
+								data: function (params) {
+									return {
+										q: params.term || '',
+										limit: params.term ? 20 : 10,
+										sort: params.term ? '' : 'id',
+										dir: params.term ? '' : 'desc',
+									};
+								},
+								processResults: function (data) {
+									var items = (data && data.device_brands) ? data.device_brands : [];
+									return {
+										results: items.map(function (b) {
+											return { id: b.id, text: b.name };
+										})
+									};
+								},
+								cache: true
+							},
+							minimumInputLength: 0
+						});
+
+						var existingId = @json(old('parent_id', ''));
+						if (existingId) {
+							var existingText = @json(($parentOptions ?? [])[(string) old('parent_id', '')] ?? null);
+							if (existingText) {
+								var option = new Option(existingText, existingId, true, true);
+								$select.append(option).trigger('change');
+							}
+						}
+					})();
+				</script>
+			@endpush
 			<div class="col-12 col-lg-5 col-xl-4">
 				<div class="card">
 					<div class="card-header">
@@ -93,7 +159,7 @@
 								@endphp
 								<div class="list-group-item d-flex align-items-center justify-content-between">
 									<div class="text-truncate">
-										<div class="fw-semibold text-truncate">{{ (string) ($b->name ?? '') }}</div>
+										<div class="fw-normal text-truncate">{{ (string) ($b->name ?? '') }}</div>
 										@if (! empty($b->description))
 											<div class="small text-muted text-truncate">{{ (string) $b->description }}</div>
 										@endif
