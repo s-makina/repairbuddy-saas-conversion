@@ -1330,7 +1330,7 @@
 
         select2initialize: function() {
             if ( $.fn.select2 ) {
-                $( '#rep_devices, #job_technician, #timeLogJobDeviceSelect' ).select2();
+                $( '#rep_devices, #timeLogJobDeviceSelect' ).select2();
             }
         }
     };

@@ -79,9 +79,8 @@
                 const $select = $modal.find('.wcrb_select_customers');
                 
                 // Destroy if already initialized
-                if ($select.hasClass('select2-hidden-accessible')) {
-                    $select.select2('destroy');
-                }
+                // Intentionally no destroy here: Select2 teardown has caused runtime errors on other pages.
+
                 
                 // Initialize with modal as parent
                 $select.select2({
@@ -116,9 +115,7 @@
             // Clean up when modal is hidden (optional)
             $(document).on('hidden.bs.modal', '#addDeviceModal', (e) => {
                 const $select = $(e.target).find('.wcrb_select_customers');
-                if ($select.hasClass('select2-hidden-accessible')) {
-                    $select.select2('destroy');
-                }
+                // Intentionally no destroy here: Select2 teardown has caused runtime errors on other pages.
             });
             
             // Handle Select2 dropdown z-index issue in modals
