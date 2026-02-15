@@ -45,6 +45,109 @@
 
 								<div class="col-12">
 									<div class="row align-items-start">
+										<label for="phone" class="col-sm-3 col-form-label">{{ __('Phone') }}</label>
+										<div class="col-sm-9">
+											<input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', '') }}">
+											@error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="address_line1" class="col-sm-3 col-form-label">{{ __('Address') }}</label>
+										<div class="col-sm-9">
+											<input type="text" name="address_line1" id="address_line1" class="form-control @error('address_line1') is-invalid @enderror" value="{{ old('address_line1', '') }}">
+											@error('address_line1')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="address_line2" class="col-sm-3 col-form-label">{{ __('Address line 2') }}</label>
+										<div class="col-sm-9">
+											<input type="text" name="address_line2" id="address_line2" class="form-control @error('address_line2') is-invalid @enderror" value="{{ old('address_line2', '') }}">
+											@error('address_line2')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="address_city" class="col-sm-3 col-form-label">{{ __('City') }}</label>
+										<div class="col-sm-9">
+											<input type="text" name="address_city" id="address_city" class="form-control @error('address_city') is-invalid @enderror" value="{{ old('address_city', '') }}">
+											@error('address_city')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="address_state" class="col-sm-3 col-form-label">{{ __('State') }}</label>
+										<div class="col-sm-9">
+											<input type="text" name="address_state" id="address_state" class="form-control @error('address_state') is-invalid @enderror" value="{{ old('address_state', '') }}">
+											@error('address_state')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="address_postal_code" class="col-sm-3 col-form-label">{{ __('Postal code') }}</label>
+										<div class="col-sm-9">
+											<input type="text" name="address_postal_code" id="address_postal_code" class="form-control @error('address_postal_code') is-invalid @enderror" value="{{ old('address_postal_code', '') }}">
+											@error('address_postal_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="address_country_code" class="col-sm-3 col-form-label">{{ __('Country') }}</label>
+										<div class="col-sm-9">
+											<select name="address_country_code" id="address_country_code" class="form-select @error('address_country_code') is-invalid @enderror">
+												@php
+													$countryOptions = [
+														'' => __('Select country'),
+														'ZA' => __('South Africa'),
+														'NG' => __('Nigeria'),
+														'KE' => __('Kenya'),
+														'GH' => __('Ghana'),
+														'US' => __('United States'),
+														'GB' => __('United Kingdom'),
+														'CA' => __('Canada'),
+														'AU' => __('Australia'),
+														'NZ' => __('New Zealand'),
+														'IE' => __('Ireland'),
+														'DE' => __('Germany'),
+														'FR' => __('France'),
+														'ES' => __('Spain'),
+														'IT' => __('Italy'),
+														'NL' => __('Netherlands'),
+														'BE' => __('Belgium'),
+														'PT' => __('Portugal'),
+														'IN' => __('India'),
+														'PK' => __('Pakistan'),
+														'BD' => __('Bangladesh'),
+														'SG' => __('Singapore'),
+														'MY' => __('Malaysia'),
+														'AE' => __('United Arab Emirates'),
+													];
+													$oldCountry = strtoupper(trim((string) old('address_country_code', '')));
+												@endphp
+												@foreach ($countryOptions as $k => $v)
+													<option value="{{ $k }}" @selected((string) $oldCountry === (string) $k)>{{ $v }}</option>
+												@endforeach
+											</select>
+											@error('address_country_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
+									<div class="row align-items-start">
 										<label for="status" class="col-sm-3 col-form-label">{{ __('Status') }}</label>
 										<div class="col-sm-9">
 											<select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
@@ -76,7 +179,7 @@
 									<div class="row align-items-start">
 										<label for="branch_ids" class="col-sm-3 col-form-label">{{ __('Shops') }} *</label>
 										<div class="col-sm-9">
-											<select name="branch_ids[]" id="branch_ids" class="form-select @error('branch_ids') is-invalid @enderror" multiple required>
+											<select name="branch_ids[]" id="branch_ids" class="form-select w-100 @error('branch_ids') is-invalid @enderror" multiple required>
 												@foreach (($branchOptions ?? []) as $k => $v)
 													<option value="{{ $k }}" @selected(in_array((int) $k, array_map('intval', old('branch_ids', []))))>{{ $v }}</option>
 												@endforeach
@@ -151,3 +254,23 @@
 		</div>
 	</div>
 @endsection
+
+@push('page-scripts')
+	<script>
+		(function () {
+			if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
+				return;
+			}
+
+			var $branches = window.jQuery('#branch_ids');
+			if ($branches.length) {
+				$branches.select2({
+					width: '100%',
+					theme: 'bootstrap-5',
+					placeholder: @json(__('Select shops')),
+					closeOnSelect: false,
+				});
+			}
+		})();
+	</script>
+@endpush

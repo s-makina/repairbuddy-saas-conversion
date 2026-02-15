@@ -11,7 +11,6 @@ use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Yajra\DataTables\Facades\DataTables;
@@ -203,11 +202,18 @@ class UsersController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'address_line1' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_line2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'address_country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
             'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', $tenant->id))],
             'branch_ids' => ['required', 'array', 'min:1'],
             'branch_ids.*' => ['integer'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', PasswordRule::min(8)],
         ]);
 
         $status = is_string($validated['status'] ?? null) ? (string) $validated['status'] : 'active';
@@ -218,6 +224,13 @@ class UsersController extends Controller
             'status' => $status,
             'name' => trim((string) $validated['name']),
             'email' => strtolower(trim((string) $validated['email'])),
+            'phone' => array_key_exists('phone', $validated) && is_string($validated['phone']) ? trim((string) $validated['phone']) : null,
+            'address_line1' => array_key_exists('address_line1', $validated) && is_string($validated['address_line1']) ? trim((string) $validated['address_line1']) : null,
+            'address_line2' => array_key_exists('address_line2', $validated) && is_string($validated['address_line2']) ? trim((string) $validated['address_line2']) : null,
+            'address_city' => array_key_exists('address_city', $validated) && is_string($validated['address_city']) ? trim((string) $validated['address_city']) : null,
+            'address_state' => array_key_exists('address_state', $validated) && is_string($validated['address_state']) ? trim((string) $validated['address_state']) : null,
+            'address_postal_code' => array_key_exists('address_postal_code', $validated) && is_string($validated['address_postal_code']) ? trim((string) $validated['address_postal_code']) : null,
+            'address_country_code' => array_key_exists('address_country_code', $validated) && is_string($validated['address_country_code']) ? strtoupper(trim((string) $validated['address_country_code'])) : null,
             'password' => Hash::make((string) $validated['password']),
         ]);
 
@@ -275,11 +288,18 @@ class UsersController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($editUser->id)],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'address_line1' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_line2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'address_country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
             'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', $tenant->id))],
             'branch_ids' => ['required', 'array', 'min:1'],
             'branch_ids.*' => ['integer'],
-            'password' => ['sometimes', 'nullable', 'confirmed', Password::min(8)],
+            'password' => ['sometimes', 'nullable', 'confirmed', PasswordRule::min(8)],
         ]);
 
         $status = is_string($validated['status'] ?? null) ? (string) $validated['status'] : 'active';
@@ -288,6 +308,13 @@ class UsersController extends Controller
             'status' => $status,
             'name' => trim((string) $validated['name']),
             'email' => strtolower(trim((string) $validated['email'])),
+            'phone' => array_key_exists('phone', $validated) && is_string($validated['phone']) ? trim((string) $validated['phone']) : null,
+            'address_line1' => array_key_exists('address_line1', $validated) && is_string($validated['address_line1']) ? trim((string) $validated['address_line1']) : null,
+            'address_line2' => array_key_exists('address_line2', $validated) && is_string($validated['address_line2']) ? trim((string) $validated['address_line2']) : null,
+            'address_city' => array_key_exists('address_city', $validated) && is_string($validated['address_city']) ? trim((string) $validated['address_city']) : null,
+            'address_state' => array_key_exists('address_state', $validated) && is_string($validated['address_state']) ? trim((string) $validated['address_state']) : null,
+            'address_postal_code' => array_key_exists('address_postal_code', $validated) && is_string($validated['address_postal_code']) ? trim((string) $validated['address_postal_code']) : null,
+            'address_country_code' => array_key_exists('address_country_code', $validated) && is_string($validated['address_country_code']) ? strtoupper(trim((string) $validated['address_country_code'])) : null,
         ]);
 
         if (is_string($validated['password'] ?? null) && trim((string) $validated['password']) !== '') {

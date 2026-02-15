@@ -42,6 +42,23 @@ class ManagersController extends Controller
             ->orderBy('name');
 
         return DataTables::eloquent($query)
+            ->addColumn('phone', function (User $u) {
+                return e((string) ($u->phone ?? ''));
+            })
+            ->addColumn('address_display', function (User $u) {
+                $parts = [
+                    is_string($u->address_line1 ?? null) ? trim((string) $u->address_line1) : '',
+                    is_string($u->address_line2 ?? null) ? trim((string) $u->address_line2) : '',
+                    is_string($u->address_city ?? null) ? trim((string) $u->address_city) : '',
+                    is_string($u->address_state ?? null) ? trim((string) $u->address_state) : '',
+                    is_string($u->address_postal_code ?? null) ? trim((string) $u->address_postal_code) : '',
+                    is_string($u->address_country_code ?? null) ? trim((string) $u->address_country_code) : '',
+                ];
+
+                $parts = array_values(array_filter($parts, fn ($v) => is_string($v) && $v !== ''));
+
+                return e(implode(', ', $parts));
+            })
             ->addColumn('shops_display', function (User $u) {
                 $names = $u->branches()
                     ->orderBy('name')

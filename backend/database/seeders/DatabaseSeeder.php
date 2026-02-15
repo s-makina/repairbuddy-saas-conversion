@@ -229,9 +229,11 @@ class DatabaseSeeder extends Seeder
             $technicianRole = Role::query()->whereKey((int) $technicianRoleId)->first();
             $demoTechs = User::query()->whereIn('email', ['tech1@99smartx.com', 'tech2@99smartx.com'])->get();
             if ($technicianRole) {
+                app(PermissionRegistrar::class)->setPermissionsTeamId((int) $tenant->id);
                 foreach ($demoTechs as $demoTech) {
                     $demoTech->syncRoles([$technicianRole]);
                 }
+                app(PermissionRegistrar::class)->setPermissionsTeamId(null);
             }
         }
 

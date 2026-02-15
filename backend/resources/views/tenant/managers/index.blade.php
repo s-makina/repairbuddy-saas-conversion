@@ -32,6 +32,8 @@
         { data: 'id', name: 'id', width: '90px' },
         { data: 'name', name: 'name' },
         { data: 'email', name: 'email' },
+        { data: 'phone', name: 'phone' },
+        { data: 'address_display', name: 'address_display', orderable: false, searchable: false },
         { data: 'shops_display', name: 'shops_display', orderable: false, searchable: false }
       ]
     });
@@ -61,6 +63,8 @@
 							<th style="width: 90px;">{{ __('ID') }}</th>
 							<th>{{ __('Name') }}</th>
 							<th>{{ __('Email') }}</th>
+							<th>{{ __('Phone') }}</th>
+							<th>{{ __('Address') }}</th>
 							<th>{{ __('Shops') }}</th>
 						</tr>
 					</thead>
