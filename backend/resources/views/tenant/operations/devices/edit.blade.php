@@ -3,69 +3,155 @@
 @section('content')
 	<div class="container-fluid p-3">
 		@if ($errors->any())
-			<div class="notice notice-error">
-				<p>{{ __( 'Please fix the errors below.' ) }}</p>
+			<div class="alert alert-danger">
+				<div class="fw-semibold mb-1">{{ __( 'Please fix the errors below.' ) }}</div>
+				<ul class="mb-0">
+					@foreach ($errors->all() as $error)
+						<li>{{ $error }}</li>
+					@endforeach
+				</ul>
 			</div>
 		@endif
 
-		<x-settings.card :title="__('Edit Device')">
-			<form method="post" action="{{ route('tenant.operations.devices.update', ['business' => $tenant->slug, 'device' => $device->id]) }}">
-				@csrf
-				<div class="row g-3">
-					<div class="col-md-4">
-						<x-settings.field for="model" :label="__('Model')" errorKey="model" class="wcrb-settings-field">
-							<x-settings.input name="model" id="model" :value="old('model', (string) ($device->model ?? ''))" />
-						</x-settings.field>
+		<div class="row justify-content-center">
+			<div class="col-12 col-lg-8 col-xl-6">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">{{ __('Edit Device') }}</h5>
 					</div>
-					<div class="col-md-3">
-						<x-settings.field for="device_type_id" :label="__('Type')" errorKey="device_type_id" class="wcrb-settings-field">
-							<x-settings.select name="device_type_id" id="device_type_id" :options="$typeOptions" :value="old('device_type_id', (string) ($device->device_type_id ?? ''))" />
-						</x-settings.field>
-					</div>
-					<div class="col-md-3">
-						<x-settings.field for="device_brand_id" :label="__('Brand')" errorKey="device_brand_id" class="wcrb-settings-field">
-							<x-settings.select name="device_brand_id" id="device_brand_id" :options="$brandOptions" :value="old('device_brand_id', (string) ($device->device_brand_id ?? ''))" />
-						</x-settings.field>
-					</div>
-					<div class="col-md-2">
-						<x-settings.field for="parent_device_id" :label="__('Parent')" errorKey="parent_device_id" class="wcrb-settings-field">
-							<x-settings.select name="parent_device_id" id="parent_device_id" :options="$parentOptions" :value="old('parent_device_id', (string) ($device->parent_device_id ?? ''))" />
-						</x-settings.field>
-					</div>
-					<div class="col-md-6">
-						@php
-							$disableChecked = (bool) old('disable_in_booking_form', (bool) ($device->disable_in_booking_form ?? false));
-						@endphp
-						<x-settings.option-toggle
-							name="disable_in_booking_form"
-							id="disable_in_booking_form"
-							:checked="$disableChecked"
-							value="1"
-							uncheckedValue="0"
-							:label="__('Disable in booking forms')"
-							:description="''"
-						/>
-					</div>
-					<div class="col-md-6">
-						@php
-							$otherChecked = (bool) old('is_other', (bool) ($device->is_other ?? false));
-						@endphp
-						<x-settings.option-toggle
-							name="is_other"
-							id="is_other"
-							:checked="$otherChecked"
-							value="1"
-							uncheckedValue="0"
-							:label="__('Is Other device')"
-							:description="''"
-						/>
+					<div class="card-body">
+						<form method="post" action="{{ route('tenant.operations.devices.update', ['business' => $tenant->slug, 'device' => $device->id]) }}" enctype="multipart/form-data">
+							@csrf
+							<div class="row g-3">
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="model" class="col-sm-3 col-form-label">{{ __('Model') }} *</label>
+										<div class="col-sm-9">
+											<input type="text" name="model" id="model" class="form-control @error('model') is-invalid @enderror" value="{{ old('model', (string) ($device->model ?? '')) }}" required>
+											@error('model')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="image" class="col-sm-3 col-form-label">{{ __('Image') }}</label>
+										<div class="col-sm-9">
+											@if (! empty($device->image_url))
+												<div class="mb-2">
+													<img src="{{ $device->image_url }}" alt="{{ (string) ($device->model ?? __('Device')) }}" class="img-thumbnail" style="max-width: 160px; max-height: 160px; object-fit: contain;" />
+												</div>
+											@endif
+											<input type="file" name="image" id="image" class="form-control @error('image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp" />
+											@error('image')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+											<div class="form-text">{{ __('JPG, PNG or WEBP. Max size 5MB.') }}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="device_type_id" class="col-sm-3 col-form-label">{{ __('Type') }} *</label>
+										<div class="col-sm-9">
+											<select name="device_type_id" id="device_type_id" class="form-select @error('device_type_id') is-invalid @enderror" required>
+												@foreach (($typeOptions ?? []) as $k => $v)
+													<option value="{{ $k }}" @selected((string) old('device_type_id', (string) ($device->device_type_id ?? '')) === (string) $k)>{{ $v }}</option>
+												@endforeach
+											</select>
+											@error('device_type_id')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="device_brand_id" class="col-sm-3 col-form-label">{{ __('Brand') }} *</label>
+										<div class="col-sm-9">
+											<select name="device_brand_id" id="device_brand_id" class="form-select @error('device_brand_id') is-invalid @enderror" required>
+												@foreach (($brandOptions ?? []) as $k => $v)
+													<option value="{{ $k }}" @selected((string) old('device_brand_id', (string) ($device->device_brand_id ?? '')) === (string) $k)>{{ $v }}</option>
+												@endforeach
+											</select>
+											@error('device_brand_id')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="parent_device_id" class="col-sm-3 col-form-label">{{ __('Parent device') }}</label>
+										<div class="col-sm-9">
+											<select name="parent_device_id" id="parent_device_id" class="form-select @error('parent_device_id') is-invalid @enderror">
+												@foreach (($parentOptions ?? []) as $k => $v)
+													<option value="{{ $k }}" @selected((string) old('parent_device_id', (string) ($device->parent_device_id ?? '')) === (string) $k)>{{ $v }}</option>
+												@endforeach
+											</select>
+											@error('parent_device_id')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="disable_in_booking_form" class="col-sm-3 col-form-label">{{ __('Disable in booking forms') }}</label>
+										<div class="col-sm-9">
+											<div class="form-check form-switch">
+												<input class="form-check-input" type="checkbox" role="switch" id="disable_in_booking_form" name="disable_in_booking_form" value="1" @checked((bool) old('disable_in_booking_form', (bool) ($device->disable_in_booking_form ?? false)))>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="is_other" class="col-sm-3 col-form-label">{{ __('Is Other device') }}</label>
+										<div class="col-sm-9">
+											<div class="form-check form-switch">
+												<input class="form-check-input" type="checkbox" role="switch" id="is_other" name="is_other" value="1" @checked((bool) old('is_other', (bool) ($device->is_other ?? false)))>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="d-flex justify-content-end gap-2">
+										<a class="btn btn-outline-secondary" href="{{ route('tenant.operations.devices.index', ['business' => $tenant->slug]) }}">{{ __('Cancel') }}</a>
+										<button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+									</div>
+								</div>
+							</div>
+						</form>
 					</div>
 				</div>
-				<x-settings.actions>
-					<button type="submit" class="button button-primary">{{ __('Save') }}</button>
-					<a class="btn btn-outline-secondary" href="{{ route('tenant.operations.devices.index', ['business' => $tenant->slug]) }}">{{ __('Cancel') }}</a>
-				</x-settings.actions>
-			</form>
-		</x-settings.card>
+			</div>
+		</div>
 	</div>
 @endsection
+
+@push('page-scripts')
+	<script>
+		(function () {
+			if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
+				return;
+			}
+
+			var $type = window.jQuery('#device_type_id');
+			if ($type.length) {
+				$type.select2({ width: '100%' });
+			}
+
+			var $brand = window.jQuery('#device_brand_id');
+			if ($brand.length) {
+				$brand.select2({ width: '100%' });
+			}
+
+			var $parent = window.jQuery('#parent_device_id');
+			if ($parent.length) {
+				$parent.select2({ width: '100%', allowClear: true, placeholder: @json(__('None')) });
+			}
+		})();
+	</script>
+@endpush

@@ -149,7 +149,7 @@
     ],
     [
       'id' => 'operations_brand_types',
-      'title' => 'Brand Types',
+      'title' => 'Device Types',
       'parent' => 'operations',
       'icon' => 'bi bi-diagram-2',
       'url' => $operationsBrandTypesUrl,
@@ -295,6 +295,12 @@
     $currentPage = 'settings';
   } elseif (request()->routeIs('tenant.settings.section')) {
     $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.operations.brands.*')) {
+    $currentPage = 'operations_brands';
+  } elseif (request()->routeIs('tenant.operations.brand_types.*')) {
+    $currentPage = 'operations_brand_types';
+  } elseif (request()->routeIs('tenant.operations.devices.*')) {
+    $currentPage = 'operations_devices';
   } elseif (request()->routeIs('tenant.operations.*')) {
     $currentPage = 'operations';
   } elseif (request()->routeIs('tenant.profile.*')) {

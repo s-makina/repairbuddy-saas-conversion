@@ -100,3 +100,7 @@
       </div>
     </div>
   </header>
+
+  <div class="container-fluid mt-3">
+    @include('tenant.partials.flash_messages')
+  </div>

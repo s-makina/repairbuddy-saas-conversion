@@ -30,6 +30,7 @@
       order: [[1, 'asc']],
       columns: [
         { data: 'id', name: 'id', width: '90px' },
+        { data: 'image_display', name: 'image_path', width: '60px', orderable: false, searchable: false },
         { data: 'model', name: 'model' },
         { data: 'type_display', name: 'device_type_id', width: '200px', orderable: false, searchable: false },
         { data: 'brand_display', name: 'device_brand_id', width: '200px', orderable: false, searchable: false },
@@ -65,6 +66,7 @@
 					<thead class="bg-light">
 						<tr>
 							<th style="width: 90px;">{{ __('ID') }}</th>
+							<th style="width: 60px;">{{ __('Photo') }}</th>
 							<th>{{ __('Model') }}</th>
 							<th style="width: 200px;">{{ __('Type') }}</th>
 							<th style="width: 200px;">{{ __('Brand') }}</th>

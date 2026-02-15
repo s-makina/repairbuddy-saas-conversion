@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 
 class DeviceTypeOperationsController extends Controller
@@ -24,7 +25,7 @@ class DeviceTypeOperationsController extends Controller
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'operations',
-            'pageTitle' => __('Brand Types'),
+            'pageTitle' => __('Device Types'),
         ]);
     }
 
@@ -42,6 +43,14 @@ class DeviceTypeOperationsController extends Controller
             ->orderBy('name');
 
         return DataTables::eloquent($query)
+            ->addColumn('image_display', function (RepairBuddyDeviceType $type) {
+                if (! is_string($type->image_url) || $type->image_url === '') {
+                    return '';
+                }
+
+                $alt = (string) ($type->name ?? '');
+                return '<img src="' . e($type->image_url) . '" alt="' . e($alt) . '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;" />';
+            })
             ->addColumn('parent_display', function (RepairBuddyDeviceType $type) {
                 return (string) ($type->parent?->name ?? '');
             })
@@ -73,8 +82,60 @@ class DeviceTypeOperationsController extends Controller
                     . '</form>'
                     . '</div>';
             })
-            ->rawColumns(['status_display', 'actions_display'])
+            ->rawColumns(['image_display', 'status_display', 'actions_display'])
             ->toJson();
+    }
+
+    public function search(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return response()->json(['message' => 'Tenant is missing.'], 400);
+        }
+
+        $validated = $request->validate([
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:50'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+            'exclude_id' => ['sometimes', 'nullable'],
+        ]);
+
+        $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $limit = is_int($validated['limit'] ?? null) ? (int) $validated['limit'] : 10;
+        $sort = is_string($validated['sort'] ?? null) ? trim((string) $validated['sort']) : '';
+        $dir = strtolower(is_string($validated['dir'] ?? null) ? trim((string) $validated['dir']) : '');
+        $excludeIdRaw = $validated['exclude_id'] ?? null;
+        $excludeId = is_numeric($excludeIdRaw) ? (int) $excludeIdRaw : null;
+
+        $query = RepairBuddyDeviceType::query();
+
+        if ($q !== '') {
+            $query->where('name', 'like', "%{$q}%");
+        }
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $allowedSorts = ['id', 'name'];
+        $resolvedSort = in_array($sort, $allowedSorts, true) ? $sort : ($q === '' ? 'id' : 'name');
+        $resolvedDir = in_array($dir, ['asc', 'desc'], true) ? $dir : ($q === '' ? 'desc' : 'asc');
+
+        $types = $query
+            ->orderBy($resolvedSort, $resolvedDir)
+            ->limit($limit)
+            ->get(['id', 'name'])
+            ->map(fn (RepairBuddyDeviceType $t) => [
+                'id' => (int) $t->id,
+                'name' => (string) $t->name,
+            ])
+            ->values();
+
+        return response()->json([
+            'device_types' => $types,
+        ]);
     }
 
     public function create(Request $request, string $business)
@@ -86,10 +147,9 @@ class DeviceTypeOperationsController extends Controller
         }
 
         $parentOptions = RepairBuddyDeviceType::query()
-            ->whereNull('parent_id')
             ->orderBy('name')
             ->limit(500)
-            ->get()
+            ->get(['id', 'name'])
             ->mapWithKeys(fn (RepairBuddyDeviceType $t) => [(string) $t->id => (string) $t->name])
             ->prepend((string) __('None'), '')
             ->all();
@@ -98,7 +158,7 @@ class DeviceTypeOperationsController extends Controller
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'operations',
-            'pageTitle' => __('Add Type'),
+            'pageTitle' => __('Add Device Type'),
             'parentOptions' => $parentOptions,
         ]);
     }
@@ -114,10 +174,9 @@ class DeviceTypeOperationsController extends Controller
         $model = RepairBuddyDeviceType::query()->whereKey($type)->firstOrFail();
 
         $parentOptions = RepairBuddyDeviceType::query()
-            ->whereNull('parent_id')
             ->orderBy('name')
             ->limit(500)
-            ->get()
+            ->get(['id', 'name'])
             ->filter(fn (RepairBuddyDeviceType $t) => (int) $t->id !== (int) $model->id)
             ->mapWithKeys(fn (RepairBuddyDeviceType $t) => [(string) $t->id => (string) $t->name])
             ->prepend((string) __('None'), '')
@@ -127,7 +186,7 @@ class DeviceTypeOperationsController extends Controller
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'operations',
-            'pageTitle' => __('Edit Type'),
+            'pageTitle' => __('Edit Device Type'),
             'type' => $model,
             'parentOptions' => $parentOptions,
         ]);
@@ -145,6 +204,7 @@ class DeviceTypeOperationsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'parent_id' => ['sometimes', 'nullable'],
+            'image' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $name = trim((string) $validated['name']);
@@ -166,12 +226,20 @@ class DeviceTypeOperationsController extends Controller
                 ->withInput();
         }
 
-        RepairBuddyDeviceType::query()->create([
+        $typeModel = RepairBuddyDeviceType::query()->create([
             'name' => $name,
             'description' => $description,
             'parent_id' => $parentId,
             'is_active' => true,
         ]);
+
+        if ($request->hasFile('image') && $request->file('image') !== null) {
+            $file = $request->file('image');
+            $path = $file->storePublicly('rb-device-types/'.$typeModel->id, ['disk' => 'public']);
+            $typeModel->forceFill([
+                'image_path' => $path,
+            ])->save();
+        }
 
         return redirect()
             ->route('tenant.operations.brand_types.index', ['business' => $tenant->slug])
@@ -230,6 +298,18 @@ class DeviceTypeOperationsController extends Controller
             'description' => $description,
             'parent_id' => $parentId,
         ])->save();
+
+        if ($request->hasFile('image') && $request->file('image') !== null) {
+            if (is_string($model->image_path) && $model->image_path !== '') {
+                Storage::disk('public')->delete($model->image_path);
+            }
+
+            $file = $request->file('image');
+            $path = $file->storePublicly('rb-device-types/'.$model->id, ['disk' => 'public']);
+            $model->forceFill([
+                'image_path' => $path,
+            ])->save();
+        }
 
         return redirect()
             ->route('tenant.operations.brand_types.index', ['business' => $tenant->slug])

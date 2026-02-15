@@ -1,4 +1,4 @@
-@extends('tenant.layouts.myaccount', ['title' => $pageTitle ?? __('Brand Types')])
+@extends('tenant.layouts.myaccount', ['title' => $pageTitle ?? __('Device Types')])
 
 @push('page-styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css" />
@@ -30,6 +30,7 @@
       order: [[1, 'asc']],
       columns: [
         { data: 'id', name: 'id', width: '90px' },
+        { data: 'image_display', name: 'image_path', width: '60px', orderable: false, searchable: false },
         { data: 'name', name: 'name' },
         { data: 'parent_display', name: 'parent_id', width: '220px', orderable: false, searchable: false },
         { data: 'status_display', name: 'is_active', width: '140px', orderable: false, searchable: false },
@@ -54,9 +55,9 @@
 			</div>
 		@endif
 
-		<x-settings.card :title="__('Brand Types')">
+		<x-settings.card :title="__('Device Types')">
 			<div class="d-flex justify-content-end">
-				<a class="btn btn-primary" href="{{ route('tenant.operations.brand_types.create', ['business' => $tenant->slug]) }}">{{ __('Add Type') }}</a>
+				<a class="btn btn-primary" href="{{ route('tenant.operations.brand_types.create', ['business' => $tenant->slug]) }}">{{ __('Add Device Type') }}</a>
 			</div>
 
 			<div class="mt-3 table-responsive">
@@ -64,6 +65,7 @@
 					<thead class="bg-light">
 						<tr>
 							<th style="width: 90px;">{{ __('ID') }}</th>
+							<th style="width: 60px;">{{ __('Photo') }}</th>
 							<th>{{ __('Name') }}</th>
 							<th style="width: 220px;">{{ __('Parent') }}</th>
 							<th style="width: 140px;">{{ __('Status') }}</th>

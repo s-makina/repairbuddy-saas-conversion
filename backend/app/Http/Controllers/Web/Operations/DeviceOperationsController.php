@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 
 class DeviceOperationsController extends Controller
@@ -44,6 +45,14 @@ class DeviceOperationsController extends Controller
             ->orderBy('model');
 
         return DataTables::eloquent($query)
+            ->addColumn('image_display', function (RepairBuddyDevice $device) {
+                if (! is_string($device->image_url) || $device->image_url === '') {
+                    return '';
+                }
+
+                $alt = (string) ($device->model ?? '');
+                return '<img src="' . e($device->image_url) . '" alt="' . e($alt) . '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;" />';
+            })
             ->addColumn('type_display', function (RepairBuddyDevice $device) {
                 return (string) ($device->type?->name ?? '');
             })
@@ -78,7 +87,7 @@ class DeviceOperationsController extends Controller
                     . '</form>'
                     . '</div>';
             })
-            ->rawColumns(['status_display', 'actions_display'])
+            ->rawColumns(['image_display', 'status_display', 'actions_display'])
             ->toJson();
     }
 
@@ -89,6 +98,11 @@ class DeviceOperationsController extends Controller
         if (! $tenant instanceof Tenant) {
             abort(400, 'Tenant is missing.');
         }
+
+        $recentDevices = RepairBuddyDevice::query()
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
 
         $typeOptions = RepairBuddyDeviceType::query()
             ->orderBy('name')
@@ -119,6 +133,7 @@ class DeviceOperationsController extends Controller
             'user' => $request->user(),
             'activeNav' => 'operations',
             'pageTitle' => __('Add Device'),
+            'recentDevices' => $recentDevices,
             'typeOptions' => $typeOptions,
             'brandOptions' => $brandOptions,
             'parentOptions' => $parentOptions,
@@ -187,6 +202,7 @@ class DeviceOperationsController extends Controller
             'parent_device_id' => ['sometimes', 'nullable'],
             'disable_in_booking_form' => ['sometimes', 'nullable', 'boolean'],
             'is_other' => ['sometimes', 'nullable', 'boolean'],
+            'image' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $model = trim((string) $validated['model']);
@@ -223,7 +239,7 @@ class DeviceOperationsController extends Controller
                 ->withInput();
         }
 
-        RepairBuddyDevice::query()->create([
+        $deviceModel = RepairBuddyDevice::query()->create([
             'model' => $model,
             'device_type_id' => $typeId,
             'device_brand_id' => $brandId,
@@ -232,6 +248,14 @@ class DeviceOperationsController extends Controller
             'is_other' => (bool) ($validated['is_other'] ?? false),
             'is_active' => true,
         ]);
+
+        if ($request->hasFile('image') && $request->file('image') !== null) {
+            $file = $request->file('image');
+            $path = $file->storePublicly('rb-devices/'.$deviceModel->id, ['disk' => 'public']);
+            $deviceModel->forceFill([
+                'image_path' => $path,
+            ])->save();
+        }
 
         return redirect()
             ->route('tenant.operations.devices.index', ['business' => $tenant->slug])
@@ -312,6 +336,18 @@ class DeviceOperationsController extends Controller
             'disable_in_booking_form' => (bool) ($validated['disable_in_booking_form'] ?? false),
             'is_other' => (bool) ($validated['is_other'] ?? false),
         ])->save();
+
+        if ($request->hasFile('image') && $request->file('image') !== null) {
+            if (is_string($existing->image_path) && $existing->image_path !== '') {
+                Storage::disk('public')->delete($existing->image_path);
+            }
+
+            $file = $request->file('image');
+            $path = $file->storePublicly('rb-devices/'.$existing->id, ['disk' => 'public']);
+            $existing->forceFill([
+                'image_path' => $path,
+            ])->save();
+        }
 
         return redirect()
             ->route('tenant.operations.devices.index', ['business' => $tenant->slug])
