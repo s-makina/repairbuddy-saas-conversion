@@ -35,20 +35,27 @@ return new class extends Migration
     {
         Schema::table('rb_devices', function (Blueprint $table) {
             if (Schema::hasColumn('rb_devices', 'image_path')) {
-                $table->dropIndex('rb_devices_image_idx');
+                if (Schema::hasIndex('rb_devices', 'rb_devices_image_idx')) {
+                    $table->dropIndex('rb_devices_image_idx');
+                }
                 $table->dropColumn('image_path');
             }
         });
 
         Schema::table('rb_device_brands', function (Blueprint $table) {
             if (Schema::hasColumn('rb_device_brands', 'parent_id')) {
-                $table->dropForeign(['parent_id']);
+                try {
+                    $table->dropForeign(['parent_id']);
+                } catch (Throwable $e) {
+                }
             }
         });
 
         Schema::table('rb_device_brands', function (Blueprint $table) {
             if (Schema::hasColumn('rb_device_brands', 'parent_id')) {
-                $table->dropIndex('rb_device_brands_parent_idx');
+                if (Schema::hasIndex('rb_device_brands', 'rb_device_brands_parent_idx')) {
+                    $table->dropIndex('rb_device_brands_parent_idx');
+                }
                 $table->dropColumn('parent_id');
             }
         });

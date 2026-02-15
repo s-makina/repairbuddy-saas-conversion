@@ -14,7 +14,7 @@
 		@endif
 
 		<div class="row justify-content-center">
-			<div class="col-12 col-lg-8 col-xl-6">
+			<div class="col-12 col-lg-7 col-xl-8">
 				<div class="card">
 					<div class="card-header">
 						<h5 class="card-title mb-0">{{ __('Add Device Type') }}</h5>
@@ -91,6 +91,38 @@
 								</div>
 							</div>
 						</form>
+					</div>
+				</div>
+			</div>
+			<div class="col-12 col-lg-5 col-xl-4">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">{{ __('Recent device types') }}</h5>
+					</div>
+					<div class="card-body p-0">
+						<div class="list-group list-group-flush">
+							@forelse (($recentTypes ?? []) as $t)
+								@php
+									$editUrl = route('tenant.operations.brand_types.edit', ['business' => $tenant->slug, 'type' => $t->id]);
+									$subtitle = (string) ($t->parent?->name ?? '');
+								@endphp
+								<div class="list-group-item d-flex align-items-center justify-content-between">
+									<div class="text-truncate">
+										<div class="fw-normal text-truncate">{{ (string) ($t->name ?? '') }}</div>
+										@if ($subtitle !== '')
+											<div class="small text-muted text-truncate">{{ $subtitle }}</div>
+										@endif
+									</div>
+									<a class="btn btn-sm btn-outline-primary ms-3" href="{{ $editUrl }}" title="{{ __('Edit') }}" aria-label="{{ __('Edit') }}">
+										<i class="bi bi-pencil"></i>
+									</a>
+								</div>
+							@empty
+								<div class="list-group-item">
+									<div class="text-muted">{{ __('No device types yet.') }}</div>
+								</div>
+							@endforelse
+						</div>
 					</div>
 				</div>
 			</div>

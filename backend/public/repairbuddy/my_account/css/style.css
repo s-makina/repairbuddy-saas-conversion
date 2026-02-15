@@ -586,8 +586,8 @@ h6, .h6 {
  }
 
  .dashboard-wrapper .form-check.form-switch .form-check-input:checked {
-     background-color: var(--color-success);
-     border-color: var(--color-success);
+     background-color: var(--color-primary);
+     border-color: var(--color-primary);
  }
 
 /* Forms */

@@ -146,6 +146,12 @@ class DeviceTypeOperationsController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
+        $recentTypes = RepairBuddyDeviceType::query()
+            ->with(['parent'])
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+
         $parentOptions = RepairBuddyDeviceType::query()
             ->orderBy('name')
             ->limit(500)
@@ -160,6 +166,7 @@ class DeviceTypeOperationsController extends Controller
             'activeNav' => 'operations',
             'pageTitle' => __('Add Device Type'),
             'parentOptions' => $parentOptions,
+            'recentTypes' => $recentTypes,
         ]);
     }
 
