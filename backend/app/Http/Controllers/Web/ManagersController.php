@@ -42,6 +42,14 @@ class ManagersController extends Controller
             ->orderBy('name');
 
         return DataTables::eloquent($query)
+            ->addColumn('tech_rate_display', function (User $u) {
+                $cents = is_numeric($u->tech_hourly_rate_cents) ? (int) $u->tech_hourly_rate_cents : null;
+                if ($cents === null) {
+                    return '';
+                }
+
+                return number_format($cents / 100, 2, '.', '');
+            })
             ->addColumn('phone', function (User $u) {
                 return e((string) ($u->phone ?? ''));
             })

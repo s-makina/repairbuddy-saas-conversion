@@ -34,7 +34,8 @@
         { data: 'email', name: 'email' },
         { data: 'phone', name: 'phone' },
         { data: 'address_display', name: 'address_display', orderable: false, searchable: false },
-        { data: 'shops_display', name: 'shops_display', orderable: false, searchable: false }
+        { data: 'shops_display', name: 'shops_display', orderable: false, searchable: false },
+        { data: 'tech_rate_display', name: 'tech_hourly_rate_cents' }
       ]
     });
   })();
@@ -66,6 +67,7 @@
 							<th>{{ __('Phone') }}</th>
 							<th>{{ __('Address') }}</th>
 							<th>{{ __('Shops') }}</th>
+							<th>{{ __('Hourly rate') }}</th>
 						</tr>
 					</thead>
 					<tbody></tbody>

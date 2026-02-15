@@ -33,7 +33,7 @@
         { data: 'name', name: 'name' },
         { data: 'email', name: 'email' },
         { data: 'jobs_count', name: 'jobs_count', width: '120px', orderable: false, searchable: false },
-        { data: 'hourly_rates_action', name: 'hourly_rates_action', orderable: false, searchable: false, className: 'text-end', width: '420px' }
+        { data: 'hourly_rates_display', name: 'hourly_rates_display', orderable: false, searchable: false, className: 'text-end', width: '320px' }
       ]
     });
   })();
@@ -63,7 +63,7 @@
 							<th>{{ __('Name') }}</th>
 							<th>{{ __('Email') }}</th>
 							<th style="width: 120px;">{{ __('Jobs') }}</th>
-							<th class="text-end" style="width: 420px;">{{ __('Hourly Rates') }}</th>
+							<th class="text-end" style="width: 320px;">{{ __('Hourly Rates') }}</th>
 						</tr>
 					</thead>
 					<tbody></tbody>

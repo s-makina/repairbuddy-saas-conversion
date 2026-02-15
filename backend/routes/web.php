@@ -111,6 +111,15 @@ Route::prefix('t/{business}')
             ->middleware('permission:hourly_rates.view')
             ->name('tenant.technicians.hourly_rates.update');
 
+        Route::get('/settings/hourly-rates', [\App\Http\Controllers\Web\Settings\HourlyRatesController::class, 'index'])
+            ->middleware('permission:hourly_rates.view')
+            ->name('tenant.settings.hourly_rates.index');
+
+        Route::post('/settings/hourly-rates/{user}/update', [\App\Http\Controllers\Web\Settings\HourlyRatesController::class, 'update'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:hourly_rates.view')
+            ->name('tenant.settings.hourly_rates.update');
+
         Route::get('/settings/roles', [\App\Http\Controllers\Web\Settings\RolesController::class, 'index'])
             ->middleware('permission:roles.manage')
             ->name('tenant.settings.roles.index');

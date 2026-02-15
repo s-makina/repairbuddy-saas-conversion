@@ -71,68 +71,21 @@ class TechniciansController extends Controller
                     ->distinct('id')
                     ->count('id');
             })
-            ->addColumn('hourly_rates_action', function (User $u) use ($tenant) {
-                $postUrl = route('tenant.technicians.hourly_rates.update', ['business' => $tenant->slug, 'user' => $u->id]);
-                $csrf = csrf_field();
-
+            ->addColumn('hourly_rates_display', function (User $u) {
                 $techRate = is_numeric($u->tech_hourly_rate_cents) ? number_format(((int) $u->tech_hourly_rate_cents) / 100, 2, '.', '') : '';
                 $clientRate = is_numeric($u->client_hourly_rate_cents) ? number_format(((int) $u->client_hourly_rate_cents) / 100, 2, '.', '') : '';
 
-                return '<form method="post" action="' . e($postUrl) . '">' . $csrf
-                    . '<div class="d-flex align-items-center gap-2 justify-content-end">'
-                    . '<input type="number" step="0.01" min="0" inputmode="decimal" name="tech_rate" value="' . e($techRate) . '" class="form-control form-control-sm" style="width: 120px;" placeholder="' . e(__('Tech')) . '" />'
-                    . '<input type="number" step="0.01" min="0" inputmode="decimal" name="client_rate" value="' . e($clientRate) . '" class="form-control form-control-sm" style="width: 120px;" placeholder="' . e(__('Client')) . '" />'
-                    . '<button type="submit" class="btn btn-sm btn-outline-primary" title="' . e(__('Update')) . '" aria-label="' . e(__('Update')) . '"><i class="bi bi-save"></i></button>'
-                    . '</div>'
-                    . '</form>';
+                return '<div class="d-flex align-items-center gap-2 justify-content-end">'
+                    . '<span class="badge text-bg-light border">' . e(__('Tech')) . ': ' . e($techRate !== '' ? $techRate : '--') . '</span>'
+                    . '<span class="badge text-bg-light border">' . e(__('Client')) . ': ' . e($clientRate !== '' ? $clientRate : '--') . '</span>'
+                    . '</div>';
             })
-            ->rawColumns(['hourly_rates_action'])
+            ->rawColumns(['hourly_rates_display'])
             ->toJson();
     }
 
     public function updateHourlyRates(Request $request, string $business, int $user): RedirectResponse
     {
-        $tenant = TenantContext::tenant();
-
-        if (! $tenant instanceof Tenant) {
-            abort(400, 'Tenant is missing.');
-        }
-
-        $tech = $request->input('tech_rate');
-        $client = $request->input('client_rate');
-
-        $validated = $request->validate([
-            'tech_rate' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
-            'client_rate' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
-        ]);
-
-        $model = User::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('is_admin', false)
-            ->whereKey($user)
-            ->firstOrFail();
-
-        if (! $model->hasRole('Technician')) {
-            return redirect()
-                ->route('tenant.technicians.index', ['business' => $tenant->slug])
-                ->with('status', __('User is not a technician.'));
-        }
-
-        $techCents = array_key_exists('tech_rate', $validated) && $validated['tech_rate'] !== null
-            ? (int) round(((float) $validated['tech_rate']) * 100)
-            : null;
-
-        $clientCents = array_key_exists('client_rate', $validated) && $validated['client_rate'] !== null
-            ? (int) round(((float) $validated['client_rate']) * 100)
-            : null;
-
-        $model->forceFill([
-            'tech_hourly_rate_cents' => $techCents,
-            'client_hourly_rate_cents' => $clientCents,
-        ])->save();
-
-        return redirect()
-            ->route('tenant.technicians.index', ['business' => $tenant->slug])
-            ->with('status', __('Hourly rates updated.'));
+        abort(404);
     }
 }

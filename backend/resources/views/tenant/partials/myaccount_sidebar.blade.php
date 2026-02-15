@@ -20,6 +20,7 @@
   $canSettingsManage = $isAuthed && $user?->can('settings.manage');
   $canTechniciansView = $isAuthed && ($user?->can('technicians.view') ?? false);
   $canManagersView = $isAuthed && ($user?->can('managers.view') ?? false);
+  $canHourlyRatesView = $isAuthed && ($user?->can('hourly_rates.view') ?? false);
 
   $canOps = $isAuthed && (
     $user?->can('devices.manage')
@@ -59,6 +60,7 @@
   $usersUrl = $tenantSlug ? route('tenant.settings.users.index', ['business' => $tenantSlug]) : '#';
   $rolesUrl = $tenantSlug ? route('tenant.settings.roles.index', ['business' => $tenantSlug]) : '#';
   $permissionsUrl = $tenantSlug ? route('tenant.settings.permissions.index', ['business' => $tenantSlug]) : '#';
+  $hourlyRatesUrl = $tenantSlug ? route('tenant.settings.hourly_rates.index', ['business' => $tenantSlug]) : '#';
 
   $navItems = [
     [
@@ -284,6 +286,14 @@
       'visible' => $canRolesManage,
     ],
     [
+      'id' => 'settings_hourly_rates',
+      'title' => 'Manage Hourly Rates',
+      'parent' => 'settings',
+      'icon' => 'bi bi-cash-coin',
+      'url' => $hourlyRatesUrl,
+      'visible' => $canHourlyRatesView,
+    ],
+    [
       'id' => 'profile',
       'title' => 'Profile',
       'icon' => 'bi bi-person-circle',
@@ -323,6 +333,8 @@
     $currentPage = 'settings';
   } elseif (request()->routeIs('tenant.settings.section')) {
     $currentPage = 'settings';
+  } elseif (request()->routeIs('tenant.settings.hourly_rates.*')) {
+    $currentPage = 'settings_hourly_rates';
   } elseif (request()->routeIs('tenant.technicians.*')) {
     $currentPage = 'technicians';
   } elseif (request()->routeIs('tenant.operations.brands.*')) {
