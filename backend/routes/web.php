@@ -85,6 +85,9 @@ Route::prefix('t/{business}')
             ->middleware('permission:branches.manage')
             ->name('tenant.settings.shops.default');
 
+        Route::post('/branch/active', [\App\Http\Controllers\Web\TenantBranchController::class, 'setActive'])
+            ->name('tenant.branch.active');
+
         Route::get('/settings/users/datatable', [\App\Http\Controllers\Web\Settings\UsersController::class, 'datatable'])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.datatable');

@@ -4,6 +4,22 @@
   $pageTitle = is_string($pageTitle ?? null) ? $pageTitle : 'Dashboard';
   $tenantSlug = $tenant?->slug;
 
+  $activeBranchId = session('active_branch_id');
+  $activeBranchId = is_numeric($activeBranchId) ? (int) $activeBranchId : (is_numeric($tenant?->default_branch_id) ? (int) $tenant?->default_branch_id : null);
+
+  $branchOptions = [];
+  if ($tenant && $user) {
+    $query = \App\Models\Branch::query()->where('is_active', true)->orderBy('name');
+    if (! $user->is_admin) {
+      $allowedBranchIds = \App\Support\BranchAccess::accessibleBranchIdsForUser($user);
+      $query->whereIn('id', $allowedBranchIds);
+    }
+    $branchOptions = $query
+      ->get(['id', 'code', 'name'])
+      ->mapWithKeys(fn (\App\Models\Branch $b) => [(int) $b->id => (string) ($b->code ? ($b->code.' - '.$b->name) : $b->name)])
+      ->all();
+  }
+
   $firstName = '';
   if ($user && is_string($user->name)) {
     $parts = preg_split('/\s+/', trim($user->name));
@@ -28,6 +44,17 @@
         </div>
         <div class="col-md-6 text-end">
           <div class="d-flex align-items-center justify-content-end gap-2">
+            @if (count($branchOptions ?? []) > 1)
+              <form method="post" action="{{ route('tenant.branch.active', ['business' => $tenantSlug]) }}" class="m-0">
+                @csrf
+                <select name="branch_id" class="form-select form-select-sm" style="max-width: 320px;" onchange="this.form.submit()" aria-label="{{ __('Shop') }}">
+                  @foreach (($branchOptions ?? []) as $id => $label)
+                    <option value="{{ (int) $id }}" @selected((int) $activeBranchId === (int) $id)>{{ $label }}</option>
+                  @endforeach
+                </select>
+              </form>
+            @endif
+
             <!-- Fullscreen Toggle -->
             <button class="btn btn-outline-secondary btn-sm" id="fullscreenToggle" title="Toggle Fullscreen">
               <i class="bi bi-arrows-fullscreen"></i>

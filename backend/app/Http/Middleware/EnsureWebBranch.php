@@ -21,7 +21,13 @@ class EnsureWebBranch
 
         // Some screens (e.g. Settings) should still be accessible even if a tenant does not
         // have an active default branch yet. Only enforce branch resolution when possible.
-        $branchId = is_numeric($tenant->default_branch_id) ? (int) $tenant->default_branch_id : null;
+        // For web UI, allow a per-user active branch stored in session.
+        $sessionBranchId = $request->session()->get('active_branch_id');
+        $branchId = is_numeric($sessionBranchId) ? (int) $sessionBranchId : null;
+
+        if (! $branchId) {
+            $branchId = is_numeric($tenant->default_branch_id) ? (int) $tenant->default_branch_id : null;
+        }
 
         if (! $branchId) {
             return $next($request);

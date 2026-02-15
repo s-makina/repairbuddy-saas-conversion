@@ -161,13 +161,15 @@
 									<div class="row align-items-center">
 										<label for="is_active" class="col-sm-3 col-form-label">{{ __('Active') }}</label>
 										<div class="col-sm-9">
-											<div class="form-check form-switch m-0">
-												@php
-													$active = old('is_active', (int) ($branch->is_active ?? 0) ? 1 : 0);
-												@endphp
-												<input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" @checked((bool) $active)>
+											<div class="d-flex align-items-center gap-2">
+												<div class="form-check form-switch m-0">
+													@php
+														$active = old('is_active', (int) ($branch->is_active ?? 0) ? 1 : 0);
+													@endphp
+													<input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" @checked((bool) $active)>
+												</div>
+												<label class="mb-0" for="is_active">{{ __('Enabled') }}</label>
 											</div>
-											<label class="form-check-label" for="is_active">{{ __('Enabled') }}</label>
 											@error('is_active')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 										</div>
 									</div>
