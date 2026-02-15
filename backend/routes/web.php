@@ -53,6 +53,76 @@ Route::prefix('t/{business}')
             ->where(['section' => '[A-Za-z0-9\-]+' ])
             ->name('tenant.settings.section');
 
+        Route::get('/settings/users', [\App\Http\Controllers\Web\Settings\UsersController::class, 'index'])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.index');
+
+        Route::get('/settings/users/datatable', [\App\Http\Controllers\Web\Settings\UsersController::class, 'datatable'])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.datatable');
+
+        Route::get('/settings/users/new', [\App\Http\Controllers\Web\Settings\UsersController::class, 'create'])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.create');
+
+        Route::get('/settings/users/{user}/edit', [\App\Http\Controllers\Web\Settings\UsersController::class, 'edit'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.edit');
+
+        Route::post('/settings/users', [\App\Http\Controllers\Web\Settings\UsersController::class, 'store'])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.store');
+
+        Route::post('/settings/users/{user}/update', [\App\Http\Controllers\Web\Settings\UsersController::class, 'update'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.update');
+
+        Route::post('/settings/users/{user}/delete', [\App\Http\Controllers\Web\Settings\UsersController::class, 'delete'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.delete');
+
+        Route::get('/settings/roles', [\App\Http\Controllers\Web\Settings\RolesController::class, 'index'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.index');
+
+        Route::get('/settings/roles/datatable', [\App\Http\Controllers\Web\Settings\RolesController::class, 'datatable'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.datatable');
+
+        Route::get('/settings/roles/new', [\App\Http\Controllers\Web\Settings\RolesController::class, 'create'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.create');
+
+        Route::get('/settings/roles/{role}/edit', [\App\Http\Controllers\Web\Settings\RolesController::class, 'edit'])
+            ->where(['role' => '[0-9]+' ])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.edit');
+
+        Route::post('/settings/roles', [\App\Http\Controllers\Web\Settings\RolesController::class, 'store'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.store');
+
+        Route::post('/settings/roles/{role}/update', [\App\Http\Controllers\Web\Settings\RolesController::class, 'update'])
+            ->where(['role' => '[0-9]+' ])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.update');
+
+        Route::post('/settings/roles/{role}/delete', [\App\Http\Controllers\Web\Settings\RolesController::class, 'delete'])
+            ->where(['role' => '[0-9]+' ])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.roles.delete');
+
+        Route::get('/settings/permissions', [\App\Http\Controllers\Web\Settings\PermissionsController::class, 'index'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.permissions.index');
+
+        Route::get('/settings/permissions/datatable', [\App\Http\Controllers\Web\Settings\PermissionsController::class, 'datatable'])
+            ->middleware('permission:roles.manage')
+            ->name('tenant.settings.permissions.datatable');
+
         Route::get('/operations/brands', [\App\Http\Controllers\Web\Operations\DeviceBrandOperationsController::class, 'index'])
             ->name('tenant.operations.brands.index');
 

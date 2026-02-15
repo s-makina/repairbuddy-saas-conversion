@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Support\Permissions;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +18,7 @@ class EnsurePermission
             ], 401);
         }
 
-        if (! Permissions::userHas($user, $permission)) {
+        if (! $user->can($permission)) {
             return response()->json([
                 'message' => 'Forbidden.',
             ], 403);

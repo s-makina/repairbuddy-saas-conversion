@@ -9,7 +9,6 @@ use App\Models\Tenant;
 use App\Models\AuthEvent;
 use App\Models\TenantSecuritySetting;
 use App\Models\User;
-use App\Support\Permissions;
 use App\Support\Totp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -34,7 +33,7 @@ class AuthController extends Controller
             return null;
         }
 
-        if (Permissions::userHas($user, 'branches.manage')) {
+        if ($user->can('branches.manage')) {
             $defaultBranchId = DB::table('tenants')->where('id', $tenantId)->value('default_branch_id');
             $defaultBranchId = is_numeric($defaultBranchId) ? (int) $defaultBranchId : null;
 

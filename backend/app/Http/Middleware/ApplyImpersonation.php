@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Models\ImpersonationSession;
 use App\Models\User;
 use App\Support\ImpersonationContext;
-use App\Support\Permissions;
 use App\Support\PlatformAudit;
 use Closure;
 use Illuminate\Http\Request;
@@ -30,7 +29,7 @@ class ApplyImpersonation
             ], 403);
         }
 
-        if (! Permissions::userHas($actor, 'admin.impersonation.start')) {
+        if (! $actor->can('admin.impersonation.start')) {
             return response()->json([
                 'message' => 'Forbidden.',
             ], 403);

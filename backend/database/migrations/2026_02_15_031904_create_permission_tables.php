@@ -20,33 +20,56 @@ return new class extends Migration
         throw_if(empty($tableNames), new Exception('Error: config/permission.php not loaded. Run [php artisan config:clear] and try again.'));
         throw_if($teams && empty($columnNames['team_foreign_key'] ?? null), new Exception('Error: team_foreign_key on config/permission.php not loaded. Run [php artisan config:clear] and try again.'));
 
-        Schema::create($tableNames['permissions'], static function (Blueprint $table) {
-            // $table->engine('InnoDB');
-            $table->bigIncrements('id'); // permission id
-            $table->string('name');       // For MyISAM use string('name', 225); // (or 166 for InnoDB with Redundant/Compact row format)
-            $table->string('guard_name'); // For MyISAM use string('guard_name', 25);
-            $table->timestamps();
-
-            $table->unique(['name', 'guard_name']);
-        });
-
-        Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames) {
-            // $table->engine('InnoDB');
-            $table->bigIncrements('id'); // role id
-            if ($teams || config('permission.testing')) { // permission.testing is a fix for sqlite testing
-                $table->unsignedBigInteger($columnNames['team_foreign_key'])->nullable();
-                $table->index($columnNames['team_foreign_key'], 'roles_team_foreign_key_index');
+        // This project already has legacy `permissions` and `roles` tables.
+        // Instead of creating them, we align them with Spatie expected columns.
+        if (Schema::hasTable($tableNames['permissions'])) {
+            if (! Schema::hasColumn($tableNames['permissions'], 'guard_name')) {
+                Schema::table($tableNames['permissions'], static function (Blueprint $table) {
+                    $table->string('guard_name')->default('web')->after('name');
+                });
             }
-            $table->string('name');       // For MyISAM use string('name', 225); // (or 166 for InnoDB with Redundant/Compact row format)
-            $table->string('guard_name'); // For MyISAM use string('guard_name', 25);
-            $table->timestamps();
-            if ($teams || config('permission.testing')) {
-                $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);
-            } else {
+        } else {
+            Schema::create($tableNames['permissions'], static function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->string('name');
+                $table->string('guard_name')->default('web');
+                $table->timestamps();
                 $table->unique(['name', 'guard_name']);
-            }
-        });
+            });
+        }
 
+        if (Schema::hasTable($tableNames['roles'])) {
+            if (! Schema::hasColumn($tableNames['roles'], 'guard_name')) {
+                Schema::table($tableNames['roles'], static function (Blueprint $table) {
+                    $table->string('guard_name')->default('web')->after('name');
+                });
+            }
+
+            if ($teams && ! Schema::hasColumn($tableNames['roles'], $columnNames['team_foreign_key'])) {
+                Schema::table($tableNames['roles'], static function (Blueprint $table) use ($columnNames) {
+                    $table->unsignedBigInteger($columnNames['team_foreign_key'])->nullable()->after('id');
+                    $table->index($columnNames['team_foreign_key'], 'roles_team_foreign_key_index');
+                });
+            }
+        } else {
+            Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames) {
+                $table->bigIncrements('id');
+                if ($teams || config('permission.testing')) {
+                    $table->unsignedBigInteger($columnNames['team_foreign_key'])->nullable();
+                    $table->index($columnNames['team_foreign_key'], 'roles_team_foreign_key_index');
+                }
+                $table->string('name');
+                $table->string('guard_name')->default('web');
+                $table->timestamps();
+                if ($teams || config('permission.testing')) {
+                    $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);
+                } else {
+                    $table->unique(['name', 'guard_name']);
+                }
+            });
+        }
+
+        if (! Schema::hasTable($tableNames['model_has_permissions'])) {
         Schema::create($tableNames['model_has_permissions'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotPermission, $teams) {
             $table->unsignedBigInteger($pivotPermission);
 
@@ -70,7 +93,9 @@ return new class extends Migration
             }
 
         });
+        }
 
+        if (! Schema::hasTable($tableNames['model_has_roles'])) {
         Schema::create($tableNames['model_has_roles'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotRole, $teams) {
             $table->unsignedBigInteger($pivotRole);
 
@@ -93,7 +118,9 @@ return new class extends Migration
                     'model_has_roles_role_model_type_primary');
             }
         });
+        }
 
+        if (! Schema::hasTable($tableNames['role_has_permissions'])) {
         Schema::create($tableNames['role_has_permissions'], static function (Blueprint $table) use ($tableNames, $pivotRole, $pivotPermission) {
             $table->unsignedBigInteger($pivotPermission);
             $table->unsignedBigInteger($pivotRole);
@@ -110,6 +137,7 @@ return new class extends Migration
 
             $table->primary([$pivotPermission, $pivotRole], 'role_has_permissions_permission_id_role_id_primary');
         });
+        }
 
         app('cache')
             ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)

@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenant
@@ -58,8 +59,12 @@ class ResolveTenant
 
         TenantContext::set($tenant);
 
+        // Spatie tenant-scoped permissions (teams) uses tenant_id as the team key.
+        app(PermissionRegistrar::class)->setPermissionsTeamId((int) $tenant->id);
+
         $response = $next($request);
 
+        app(PermissionRegistrar::class)->setPermissionsTeamId(null);
         TenantContext::set(null);
 
         return $response;

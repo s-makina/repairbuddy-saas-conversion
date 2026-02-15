@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\Branch;
 use App\Models\User;
-use App\Support\Permissions;
 
 class BranchAccess
 {
@@ -23,7 +22,7 @@ class BranchAccess
             return false;
         }
 
-        if (Permissions::userHas($user, 'branches.manage')) {
+        if ($user->can('branches.manage')) {
             return true;
         }
 
@@ -42,7 +41,7 @@ class BranchAccess
             return [];
         }
 
-        if (Permissions::userHas($user, 'branches.manage')) {
+        if ($user->can('branches.manage')) {
             return Branch::query()->pluck('id')->all();
         }
 
