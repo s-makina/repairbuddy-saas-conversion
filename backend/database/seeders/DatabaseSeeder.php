@@ -5,12 +5,14 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Permissions;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
@@ -168,6 +170,20 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
+        if (Schema::hasTable('roles')) {
+            Role::query()->firstOrCreate([
+                'tenant_id' => $tenant->id,
+                'name' => 'Owner',
+                'guard_name' => 'web',
+            ]);
+
+            Role::query()->firstOrCreate([
+                'tenant_id' => $tenant->id,
+                'name' => 'Member',
+                'guard_name' => 'web',
+            ]);
+        }
+
         $ownerRoleId = Role::query()
             ->where('tenant_id', $tenant->id)
             ->where('name', 'Owner')
@@ -190,6 +206,63 @@ class DatabaseSeeder extends Seeder
                 'role_id' => $memberRoleId,
                 'role' => null,
             ]);
+        }
+
+        if (Schema::hasTable('permissions') && Schema::hasTable('roles') && Schema::hasTable('role_has_permissions')) {
+            app(PermissionRegistrar::class)->setPermissionsTeamId((int) $tenant->id);
+
+            foreach (Permissions::all() as $permissionName) {
+                DB::table('permissions')->updateOrInsert([
+                    'name' => $permissionName,
+                    'guard_name' => 'web',
+                ], [
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            $ownerRoleId = Role::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('name', 'Owner')
+                ->value('id');
+
+            if ($ownerRoleId) {
+                $ownerRole = Role::query()->whereKey((int) $ownerRoleId)->first();
+
+                $baseline = [
+                    'settings.manage',
+                    'users.manage',
+                    'roles.manage',
+                    'branches.manage',
+                ];
+
+                if ($ownerRole) {
+                    $ownerRole->givePermissionTo($baseline);
+                }
+
+                $permissionIds = DB::table('permissions')
+                    ->where('guard_name', 'web')
+                    ->whereIn('name', $baseline)
+                    ->pluck('id')
+                    ->all();
+
+                foreach ($permissionIds as $permissionId) {
+                    DB::table('role_has_permissions')->updateOrInsert([
+                        'permission_id' => (int) $permissionId,
+                        'role_id' => (int) $ownerRoleId,
+                    ], []);
+                }
+
+                $demoOwner = User::query()->where('email', 'sarah@99smartx.com')->first();
+                if ($demoOwner && $ownerRole) {
+                    $demoOwner->syncRoles([$ownerRole]);
+                }
+
+                // Clear permission cache to ensure new grants take effect immediately.
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+            }
+
+            app(PermissionRegistrar::class)->setPermissionsTeamId(null);
         }
 
         if ($demoBranchId && Schema::hasTable('branch_user')) {

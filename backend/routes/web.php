@@ -49,10 +49,6 @@ Route::prefix('t/{business}')
         Route::get('/settings', [\App\Http\Controllers\Web\TenantSettingsController::class, 'show'])
             ->name('tenant.settings');
 
-        Route::get('/settings/{section}', [\App\Http\Controllers\Web\TenantSettingsController::class, 'section'])
-            ->where(['section' => '[A-Za-z0-9\-]+' ])
-            ->name('tenant.settings.section');
-
         Route::get('/settings/users', [\App\Http\Controllers\Web\Settings\UsersController::class, 'index'])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.index');
@@ -83,6 +79,10 @@ Route::prefix('t/{business}')
             ->where(['user' => '[0-9]+' ])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.delete');
+
+        Route::get('/settings/{section}', [\App\Http\Controllers\Web\TenantSettingsController::class, 'section'])
+            ->where(['section' => '[A-Za-z0-9\-]+' ])
+            ->name('tenant.settings.section');
 
         Route::get('/settings/roles', [\App\Http\Controllers\Web\Settings\RolesController::class, 'index'])
             ->middleware('permission:roles.manage')

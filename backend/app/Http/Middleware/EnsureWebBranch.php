@@ -19,16 +19,18 @@ class EnsureWebBranch
             abort(404, 'Business is invalid.');
         }
 
+        // Some screens (e.g. Settings) should still be accessible even if a tenant does not
+        // have an active default branch yet. Only enforce branch resolution when possible.
         $branchId = is_numeric($tenant->default_branch_id) ? (int) $tenant->default_branch_id : null;
 
         if (! $branchId) {
-            abort(409, 'Default branch is missing.');
+            return $next($request);
         }
 
         $branch = Branch::query()->whereKey($branchId)->first();
 
         if (! $branch || ! $branch->is_active || (int) $branch->tenant_id !== (int) $tenant->id) {
-            abort(404, 'Default branch is invalid.');
+            return $next($request);
         }
 
         BranchContext::set($branch);
