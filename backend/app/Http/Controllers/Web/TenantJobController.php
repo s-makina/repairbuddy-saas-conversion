@@ -114,7 +114,13 @@ class TenantJobController extends Controller
                 return is_string($job->payment_status_slug) ? e((string) $job->payment_status_slug) : '';
             })
             ->addColumn('status_display', function (RepairBuddyJob $job) {
-                return is_string($job->status_slug) ? e((string) $job->status_slug) : '';
+                $slug = is_string($job->status_slug) ? trim((string) $job->status_slug) : '';
+                if ($slug === '') {
+                    return '';
+                }
+
+                $label = strtoupper(str_replace(['-', '_'], ' ', $slug));
+                return '<span class="wcrb-pill wcrb-pill--active">' . e($label) . '</span>';
             })
             ->addColumn('priority_display', function (RepairBuddyJob $job) {
                 return is_string($job->priority) ? e((string) $job->priority) : '';
@@ -124,7 +130,7 @@ class TenantJobController extends Controller
                     return '';
                 }
                 $url = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]);
-                return '<a class="btn btn-outline-primary btn-sm" href="' . e($url) . '">View</a>';
+                return '<a class="btn btn-outline-primary btn-sm" href="' . e($url) . '" title="' . e(__('View')) . '" aria-label="' . e(__('View')) . '"><i class="bi bi-eye"></i></a>';
             })
             ->filter(function ($query) use ($request) {
                 $search = $request->input('search.value');
@@ -142,6 +148,7 @@ class TenantJobController extends Controller
             ->rawColumns([
                 'customer_display',
                 'dates_display',
+                'status_display',
                 'actions_display',
             ])
             ->toJson();

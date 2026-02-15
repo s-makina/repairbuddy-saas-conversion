@@ -46,7 +46,11 @@ class DeviceTypeOperationsController extends Controller
                 return (string) ($type->parent?->name ?? '');
             })
             ->addColumn('status_display', function (RepairBuddyDeviceType $type) {
-                return $type->is_active ? __('Active') : __('Inactive');
+                if ($type->is_active) {
+                    return '<span class="wcrb-pill wcrb-pill--active">' . e(__('Active')) . '</span>';
+                }
+
+                return '<span class="wcrb-pill wcrb-pill--inactive">' . e(__('Inactive')) . '</span>';
             })
             ->addColumn('actions_display', function (RepairBuddyDeviceType $type) use ($tenant) {
                 $editUrl = route('tenant.operations.brand_types.edit', ['business' => $tenant->slug, 'type' => $type->id]);
@@ -57,17 +61,19 @@ class DeviceTypeOperationsController extends Controller
                 $activeLabel = $type->is_active ? __('Deactivate') : __('Activate');
 
                 return '<div class="d-inline-flex gap-2">'
-                    . '<a class="btn btn-sm btn-outline-primary" href="' . e($editUrl) . '">' . e(__('Edit')) . '</a>'
+                    . '<a class="btn btn-sm btn-outline-primary" href="' . e($editUrl) . '" title="' . e(__('Edit')) . '" aria-label="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></a>'
                     . '<form method="post" action="' . e($activeUrl) . '">' . $csrf
                     . '<input type="hidden" name="is_active" value="' . e($activeValue) . '" />'
-                    . '<button type="submit" class="btn btn-sm btn-outline-secondary">' . e($activeLabel) . '</button>'
+                    . '<button type="submit" class="btn btn-sm btn-outline-secondary" title="' . e($activeLabel) . '" aria-label="' . e($activeLabel) . '">'
+                    . ($type->is_active ? '<i class="bi bi-toggle-off"></i>' : '<i class="bi bi-toggle-on"></i>')
+                    . '</button>'
                     . '</form>'
                     . '<form method="post" action="' . e($deleteUrl) . '">' . $csrf
-                    . '<button type="submit" class="btn btn-sm btn-outline-danger">' . e(__('Delete')) . '</button>'
+                    . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('Delete')) . '" aria-label="' . e(__('Delete')) . '"><i class="bi bi-trash"></i></button>'
                     . '</form>'
                     . '</div>';
             })
-            ->rawColumns(['actions_display'])
+            ->rawColumns(['status_display', 'actions_display'])
             ->toJson();
     }
 

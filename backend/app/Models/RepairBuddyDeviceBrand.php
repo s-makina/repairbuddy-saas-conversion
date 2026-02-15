@@ -23,6 +23,7 @@ class RepairBuddyDeviceBrand extends Model
         'tenant_id',
         'branch_id',
         'name',
+        'description',
         'image_path',
         'is_active',
     ];
