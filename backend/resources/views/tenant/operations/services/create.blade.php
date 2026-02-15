@@ -13,6 +13,10 @@
 			</div>
 		@endif
 
+		<div class="alert alert-warning">
+			{{ __('Create the service first, then you can set device-specific prices (by type, brand, or device) on the edit screen.') }}
+		</div>
+
 		<div class="row justify-content-center">
 			<div class="col-12 col-lg-7 col-xl-8">
 				<div class="card">

@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Web\Operations;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\RepairBuddyDevice;
+use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyService;
 use App\Models\RepairBuddyServicePriceOverride;
@@ -12,6 +16,8 @@ use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -31,6 +37,76 @@ class ServiceOperationsController extends Controller
             'activeNav' => 'operations',
             'pageTitle' => __('Services'),
         ]);
+    }
+
+    public function priceOverridesSection(Request $request, string $business, int $service): Response
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'section' => ['required', 'string', 'max:32'],
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'page' => ['sometimes', 'nullable', 'integer', 'min:1'],
+        ]);
+
+        $section = (string) $validated['section'];
+        if (! in_array($section, ['type', 'brand', 'device'], true)) {
+            abort(422, 'Section is invalid.');
+        }
+
+        $serviceModel = RepairBuddyService::query()->with(['type', 'tax'])->whereKey($service)->firstOrFail();
+
+        $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $page = is_numeric($validated['page'] ?? null) ? (int) $validated['page'] : 1;
+
+        if ($section === 'type') {
+            $query = RepairBuddyDeviceType::query()->orderBy('name');
+            if ($q !== '') {
+                $query->where('name', 'like', '%'.$q.'%');
+            }
+            $paginator = $query->paginate(5, ['id', 'name'], 'page', $page);
+        } elseif ($section === 'brand') {
+            $query = RepairBuddyDeviceBrand::query()->orderBy('name');
+            if ($q !== '') {
+                $query->where('name', 'like', '%'.$q.'%');
+            }
+            $paginator = $query->paginate(5, ['id', 'name'], 'page', $page);
+        } else {
+            $query = RepairBuddyDevice::query()->orderBy('model');
+            if ($q !== '') {
+                $query->where('model', 'like', '%'.$q.'%');
+            }
+            $paginator = $query->paginate(5, ['id', 'model', 'device_brand_id', 'device_type_id'], 'page', $page);
+        }
+
+        $overrides = RepairBuddyServicePriceOverride::query()
+            ->where('service_id', $serviceModel->id)
+            ->where('scope_type', $section)
+            ->orderByDesc('id')
+            ->get();
+
+        $overridesIndex = [];
+        foreach ($overrides as $o) {
+            $refId = is_numeric($o->scope_ref_id) ? (int) $o->scope_ref_id : null;
+            if ($refId === null) {
+                continue;
+            }
+            $overridesIndex[$section . ':' . $refId] = $o;
+        }
+
+        $html = view('tenant.operations.services._price_overrides_section', [
+            'section' => $section,
+            'tenant' => $tenant,
+            'service' => $serviceModel,
+            'paginator' => $paginator,
+            'servicePriceOverridesIndex' => $overridesIndex,
+        ])->render();
+
+        return response($html);
     }
 
     public function datatable(Request $request, string $business)
@@ -186,6 +262,51 @@ class ServiceOperationsController extends Controller
 
         $tenantCurrency = is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : '';
 
+        $typesQ = is_string($request->query('types_q')) ? trim((string) $request->query('types_q')) : '';
+        $brandsQ = is_string($request->query('brands_q')) ? trim((string) $request->query('brands_q')) : '';
+        $devicesQ = is_string($request->query('devices_q')) ? trim((string) $request->query('devices_q')) : '';
+
+        $deviceTypesQuery = RepairBuddyDeviceType::query()->orderBy('name');
+        if ($typesQ !== '') {
+            $deviceTypesQuery->where('name', 'like', '%'.$typesQ.'%');
+        }
+        $deviceTypes = $deviceTypesQuery
+            ->paginate(5, ['id', 'name'], 'types_page')
+            ->appends($request->except('types_page'));
+
+        $deviceBrandsQuery = RepairBuddyDeviceBrand::query()->orderBy('name');
+        if ($brandsQ !== '') {
+            $deviceBrandsQuery->where('name', 'like', '%'.$brandsQ.'%');
+        }
+        $deviceBrands = $deviceBrandsQuery
+            ->paginate(5, ['id', 'name'], 'brands_page')
+            ->appends($request->except('brands_page'));
+
+        $devicesQuery = RepairBuddyDevice::query()->orderBy('model');
+        if ($devicesQ !== '') {
+            $devicesQuery->where('model', 'like', '%'.$devicesQ.'%');
+        }
+        $devices = $devicesQuery
+            ->paginate(5, ['id', 'model', 'device_brand_id', 'device_type_id'], 'devices_page')
+            ->appends($request->except('devices_page'));
+
+        $overrides = RepairBuddyServicePriceOverride::query()
+            ->where('service_id', $model->id)
+            ->whereIn('scope_type', ['type', 'brand', 'device'])
+            ->orderByDesc('id')
+            ->get();
+
+        $overridesIndex = [];
+        foreach ($overrides as $o) {
+            $scopeType = is_string($o->scope_type) ? (string) $o->scope_type : '';
+            $refId = is_numeric($o->scope_ref_id) ? (int) $o->scope_ref_id : null;
+            if ($scopeType === '' || $refId === null) {
+                continue;
+            }
+
+            $overridesIndex[$scopeType . ':' . $refId] = $o;
+        }
+
         return view('tenant.operations.services.edit', [
             'tenant' => $tenant,
             'user' => $request->user(),
@@ -195,7 +316,103 @@ class ServiceOperationsController extends Controller
             'typeOptions' => $typeOptions,
             'taxOptions' => $taxOptions,
             'tenantCurrency' => $tenantCurrency,
+            'deviceTypes' => $deviceTypes,
+            'deviceBrands' => $deviceBrands,
+            'devices' => $devices,
+            'servicePriceOverridesIndex' => $overridesIndex,
         ]);
+    }
+
+    public function updatePriceOverrides(Request $request, string $business, int $service): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'scope_type' => ['required', 'string', 'max:32'],
+            'scope_ref_id' => ['required', 'array'],
+            'scope_ref_id.*' => ['nullable'],
+            'price' => ['required', 'array'],
+            'price.*' => ['nullable'],
+            'active_ref_id' => ['sometimes', 'array'],
+            'active_ref_id.*' => ['nullable'],
+        ]);
+
+        $scopeType = (string) $validated['scope_type'];
+        if (! in_array($scopeType, ['type', 'brand', 'device'], true)) {
+            return redirect()
+                ->route('tenant.operations.services.edit', ['business' => $tenant->slug, 'service' => $service])
+                ->withErrors(['scope_type' => __('Scope type is invalid.')]);
+        }
+
+        $model = RepairBuddyService::query()->whereKey($service)->firstOrFail();
+
+        $currency = is_string($model->base_price_currency) && $model->base_price_currency !== ''
+            ? strtoupper((string) $model->base_price_currency)
+            : (is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : null);
+
+        if ($currency === null || $currency === '') {
+            return redirect()
+                ->route('tenant.operations.services.edit', ['business' => $tenant->slug, 'service' => $model->id])
+                ->withErrors(['price' => __('Tenant currency is not configured.')]);
+        }
+
+        $activeRefIds = [];
+        if (array_key_exists('active_ref_id', $validated) && is_array($validated['active_ref_id'])) {
+            foreach ($validated['active_ref_id'] as $idRaw) {
+                if (is_numeric($idRaw)) {
+                    $activeRefIds[(int) $idRaw] = true;
+                }
+            }
+        }
+
+        $branches = Branch::query()->where('is_active', true)->orderBy('id')->get(['id']);
+
+        $refIds = is_array($validated['scope_ref_id']) ? $validated['scope_ref_id'] : [];
+        $prices = is_array($validated['price']) ? $validated['price'] : [];
+
+        DB::transaction(function () use ($branches, $currency, $model, $prices, $refIds, $scopeType, $tenant, $activeRefIds) {
+            foreach ($refIds as $idx => $refIdRaw) {
+                if (! is_numeric($refIdRaw)) {
+                    continue;
+                }
+
+                $refId = (int) $refIdRaw;
+                $isActive = array_key_exists($refId, $activeRefIds);
+
+                $priceRaw = array_key_exists($idx, $prices) ? $prices[$idx] : null;
+                $priceCents = null;
+                if ($priceRaw !== null && $priceRaw !== '') {
+                    $priceCents = (int) round(((float) $priceRaw) * 100);
+                }
+
+                foreach ($branches as $branch) {
+                    $branchId = (int) $branch->id;
+
+                    RepairBuddyServicePriceOverride::query()->updateOrCreate(
+                        [
+                            'tenant_id' => (int) $tenant->id,
+                            'branch_id' => $branchId,
+                            'service_id' => (int) $model->id,
+                            'scope_type' => $scopeType,
+                            'scope_ref_id' => $refId,
+                        ],
+                        [
+                            'price_amount_cents' => $priceCents,
+                            'price_currency' => $currency,
+                            'is_active' => $isActive,
+                        ]
+                    );
+                }
+            }
+        });
+
+        return redirect()
+            ->route('tenant.operations.services.edit', ['business' => $tenant->slug, 'service' => $model->id])
+            ->with('status', __('Pricing updated.'));
     }
 
     public function store(Request $request, string $business): RedirectResponse

@@ -322,12 +322,20 @@ Route::prefix('t/{business}')
             ->where(['service' => '[0-9]+' ])
             ->name('tenant.operations.services.edit');
 
+        Route::get('/operations/services/{service}/price-overrides/section', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'priceOverridesSection'])
+            ->where(['service' => '[0-9]+' ])
+            ->name('tenant.operations.services.price_overrides.section');
+
         Route::post('/operations/services', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'store'])
             ->name('tenant.operations.services.store');
 
         Route::post('/operations/services/{service}/update', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'update'])
             ->where(['service' => '[0-9]+' ])
             ->name('tenant.operations.services.update');
+
+        Route::post('/operations/services/{service}/price-overrides', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'updatePriceOverrides'])
+            ->where(['service' => '[0-9]+' ])
+            ->name('tenant.operations.services.price_overrides.update');
 
         Route::post('/operations/services/{service}/active', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'setActive'])
             ->where(['service' => '[0-9]+' ])
