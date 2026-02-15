@@ -37,7 +37,10 @@ class PartBrandOperationsController extends Controller
             return response()->json(['message' => 'Tenant is missing.'], 400);
         }
 
-        $query = RepairBuddyPartBrand::query()->orderByDesc('is_active')->orderBy('name');
+        $query = RepairBuddyPartBrand::query()
+            ->with(['parent'])
+            ->orderByDesc('is_active')
+            ->orderBy('name');
 
         return DataTables::eloquent($query)
             ->addColumn('image_display', function (RepairBuddyPartBrand $brand) {
@@ -49,6 +52,7 @@ class PartBrandOperationsController extends Controller
 
                 return '<img src="' . e($brand->image_url) . '" alt="' . e($alt) . '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;" />';
             })
+            ->addColumn('parent_display', fn (RepairBuddyPartBrand $brand) => (string) ($brand->parent?->name ?? ''))
             ->addColumn('status_display', function (RepairBuddyPartBrand $brand) {
                 if ($brand->is_active) {
                     return '<span class="wcrb-pill wcrb-pill--active">' . e(__('Active')) . '</span>';

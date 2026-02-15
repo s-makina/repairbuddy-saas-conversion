@@ -37,7 +37,10 @@ class PartTypeOperationsController extends Controller
             return response()->json(['message' => 'Tenant is missing.'], 400);
         }
 
-        $query = RepairBuddyPartType::query()->orderByDesc('is_active')->orderBy('name');
+        $query = RepairBuddyPartType::query()
+            ->with(['parent'])
+            ->orderByDesc('is_active')
+            ->orderBy('name');
 
         return DataTables::eloquent($query)
             ->addColumn('image_display', function (RepairBuddyPartType $type) {
@@ -49,6 +52,7 @@ class PartTypeOperationsController extends Controller
 
                 return '<img src="' . e($type->image_url) . '" alt="' . e($alt) . '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;" />';
             })
+            ->addColumn('parent_display', fn (RepairBuddyPartType $type) => (string) ($type->parent?->name ?? ''))
             ->addColumn('status_display', function (RepairBuddyPartType $type) {
                 if ($type->is_active) {
                     return '<span class="wcrb-pill wcrb-pill--active">' . e(__('Active')) . '</span>';

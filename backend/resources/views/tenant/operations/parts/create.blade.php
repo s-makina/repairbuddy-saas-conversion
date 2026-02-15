@@ -109,22 +109,6 @@
 
 								<div class="col-12">
 									<div class="row align-items-start">
-										<label for="tax_id" class="col-sm-3 col-form-label">{{ __('Tax') }}</label>
-										<div class="col-sm-9">
-											<select name="tax_id" id="tax_id" class="form-select @error('tax_id') is-invalid @enderror">
-												@foreach (($taxOptions ?? []) as $k => $v)
-													<option value="{{ $k }}" @selected((string) old('tax_id', '') === (string) $k)>{{ $v }}</option>
-												@endforeach
-											</select>
-											@error('tax_id')
-												<div class="invalid-feedback">{{ $message }}</div>
-											@enderror
-										</div>
-									</div>
-								</div>
-
-								<div class="col-12">
-									<div class="row align-items-start">
 										<label for="warranty" class="col-sm-3 col-form-label">{{ __('Warranty') }}</label>
 										<div class="col-sm-9">
 											<input type="text" name="warranty" id="warranty" class="form-control @error('warranty') is-invalid @enderror" value="{{ old('warranty', '') }}">
@@ -181,18 +165,6 @@
 										<div class="col-sm-9">
 											<input type="text" name="installation_message" id="installation_message" class="form-control @error('installation_message') is-invalid @enderror" value="{{ old('installation_message', '') }}">
 											@error('installation_message')
-												<div class="invalid-feedback">{{ $message }}</div>
-											@enderror
-										</div>
-									</div>
-								</div>
-
-								<div class="col-12">
-									<div class="row align-items-start">
-										<label for="stock" class="col-sm-3 col-form-label">{{ __('Stock') }}</label>
-										<div class="col-sm-9">
-											<input type="number" name="stock" id="stock" class="form-control @error('stock') is-invalid @enderror" value="{{ old('stock', '') }}" min="0">
-											@error('stock')
 												<div class="invalid-feedback">{{ $message }}</div>
 											@enderror
 										</div>
