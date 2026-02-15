@@ -139,9 +139,96 @@ Route::prefix('t/{business}')
             ->where(['device' => '[0-9]+' ])
             ->name('tenant.operations.devices.active');
 
+        Route::post('/operations/devices/{device}/variations', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'storeVariations'])
+            ->where(['device' => '[0-9]+' ])
+            ->name('tenant.operations.devices.variations.store');
+
         Route::post('/operations/devices/{device}/delete', [\App\Http\Controllers\Web\Operations\DeviceOperationsController::class, 'delete'])
             ->where(['device' => '[0-9]+' ])
             ->name('tenant.operations.devices.delete');
+
+        Route::get('/operations/clients', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'index'])
+            ->name('tenant.operations.clients.index');
+
+        Route::get('/operations/clients/datatable', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'datatable'])
+            ->name('tenant.operations.clients.datatable');
+
+        Route::get('/operations/clients/new', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'create'])
+            ->name('tenant.operations.clients.create');
+
+        Route::get('/operations/clients/{client}/edit', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'edit'])
+            ->where(['client' => '[0-9]+' ])
+            ->name('tenant.operations.clients.edit');
+
+        Route::post('/operations/clients', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'store'])
+            ->name('tenant.operations.clients.store');
+
+        Route::post('/operations/clients/{client}/update', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'update'])
+            ->where(['client' => '[0-9]+' ])
+            ->name('tenant.operations.clients.update');
+
+        Route::post('/operations/clients/{client}/delete', [\App\Http\Controllers\Web\Operations\ClientOperationsController::class, 'delete'])
+            ->where(['client' => '[0-9]+' ])
+            ->name('tenant.operations.clients.delete');
+
+        Route::get('/operations/service-types', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'index'])
+            ->name('tenant.operations.service_types.index');
+
+        Route::get('/operations/service-types/datatable', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'datatable'])
+            ->name('tenant.operations.service_types.datatable');
+
+        Route::get('/operations/service-types/new', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'create'])
+            ->name('tenant.operations.service_types.create');
+
+        Route::get('/operations/service-types/search', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'search'])
+            ->name('tenant.operations.service_types.search');
+
+        Route::get('/operations/service-types/{type}/edit', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'edit'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.service_types.edit');
+
+        Route::post('/operations/service-types', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'store'])
+            ->name('tenant.operations.service_types.store');
+
+        Route::post('/operations/service-types/{type}/update', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'update'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.service_types.update');
+
+        Route::post('/operations/service-types/{type}/active', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'setActive'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.service_types.active');
+
+        Route::post('/operations/service-types/{type}/delete', [\App\Http\Controllers\Web\Operations\ServiceTypeOperationsController::class, 'delete'])
+            ->where(['type' => '[0-9]+' ])
+            ->name('tenant.operations.service_types.delete');
+
+        Route::get('/operations/services', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'index'])
+            ->name('tenant.operations.services.index');
+
+        Route::get('/operations/services/datatable', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'datatable'])
+            ->name('tenant.operations.services.datatable');
+
+        Route::get('/operations/services/new', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'create'])
+            ->name('tenant.operations.services.create');
+
+        Route::get('/operations/services/{service}/edit', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'edit'])
+            ->where(['service' => '[0-9]+' ])
+            ->name('tenant.operations.services.edit');
+
+        Route::post('/operations/services', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'store'])
+            ->name('tenant.operations.services.store');
+
+        Route::post('/operations/services/{service}/update', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'update'])
+            ->where(['service' => '[0-9]+' ])
+            ->name('tenant.operations.services.update');
+
+        Route::post('/operations/services/{service}/active', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'setActive'])
+            ->where(['service' => '[0-9]+' ])
+            ->name('tenant.operations.services.active');
+
+        Route::post('/operations/services/{service}/delete', [\App\Http\Controllers\Web\Operations\ServiceOperationsController::class, 'delete'])
+            ->where(['service' => '[0-9]+' ])
+            ->name('tenant.operations.services.delete');
 
         Route::get('/profile', [\App\Http\Controllers\Web\TenantProfileController::class, 'edit'])
             ->name('tenant.profile.edit');

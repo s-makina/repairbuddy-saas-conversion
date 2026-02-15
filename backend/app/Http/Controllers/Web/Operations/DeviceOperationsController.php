@@ -150,6 +150,12 @@ class DeviceOperationsController extends Controller
 
         $model = RepairBuddyDevice::query()->with(['type', 'brand', 'parent'])->whereKey($device)->firstOrFail();
 
+        $variations = RepairBuddyDevice::query()
+            ->with(['type', 'brand'])
+            ->where('parent_device_id', $model->id)
+            ->orderBy('model')
+            ->get();
+
         $typeOptions = RepairBuddyDeviceType::query()
             ->orderBy('name')
             ->limit(500)
@@ -181,10 +187,71 @@ class DeviceOperationsController extends Controller
             'activeNav' => 'operations',
             'pageTitle' => __('Edit Device'),
             'device' => $model,
+            'variations' => $variations,
             'typeOptions' => $typeOptions,
             'brandOptions' => $brandOptions,
             'parentOptions' => $parentOptions,
         ]);
+    }
+
+    public function storeVariations(Request $request, string $business, int $device): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'variations_list' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $parent = RepairBuddyDevice::query()->whereKey($device)->firstOrFail();
+
+        $raw = trim((string) $validated['variations_list']);
+        $names = array_values(array_filter(array_map(static fn ($v) => trim((string) $v), explode(',', $raw)), static fn ($v) => $v !== ''));
+
+        if (count($names) === 0) {
+            return redirect()
+                ->route('tenant.operations.devices.edit', ['business' => $tenant->slug, 'device' => $parent->id])
+                ->withErrors(['variations_list' => __('Please enter at least one variation.')]);
+        }
+
+        $createdCount = 0;
+
+        foreach ($names as $name) {
+            $modelName = trim((string) $parent->model.' - '.$name);
+
+            if ($modelName === '' || strlen($modelName) > 255) {
+                continue;
+            }
+
+            $exists = RepairBuddyDevice::query()
+                ->where('device_type_id', $parent->device_type_id)
+                ->where('device_brand_id', $parent->device_brand_id)
+                ->where('model', $modelName)
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            RepairBuddyDevice::query()->create([
+                'model' => $modelName,
+                'device_type_id' => $parent->device_type_id,
+                'device_brand_id' => $parent->device_brand_id,
+                'parent_device_id' => $parent->id,
+                'disable_in_booking_form' => (bool) $parent->disable_in_booking_form,
+                'is_other' => (bool) $parent->is_other,
+                'is_active' => (bool) $parent->is_active,
+            ]);
+
+            $createdCount++;
+        }
+
+        return redirect()
+            ->route('tenant.operations.devices.edit', ['business' => $tenant->slug, 'device' => $parent->id])
+            ->with('status', $createdCount > 0 ? __('Variations created.') : __('No variations were created.'));
     }
 
     public function store(Request $request, string $business): RedirectResponse
@@ -203,6 +270,7 @@ class DeviceOperationsController extends Controller
             'disable_in_booking_form' => ['sometimes', 'nullable', 'boolean'],
             'is_other' => ['sometimes', 'nullable', 'boolean'],
             'image' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'variations_list' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
 
         $model = trim((string) $validated['model']);
@@ -255,6 +323,38 @@ class DeviceOperationsController extends Controller
             $deviceModel->forceFill([
                 'image_path' => $path,
             ])->save();
+        }
+
+        if (is_string($validated['variations_list'] ?? null) && trim((string) $validated['variations_list']) !== '') {
+            $raw = trim((string) $validated['variations_list']);
+            $names = array_values(array_filter(array_map(static fn ($v) => trim((string) $v), explode(',', $raw)), static fn ($v) => $v !== ''));
+
+            foreach ($names as $name) {
+                $modelName = trim((string) $deviceModel->model.' - '.$name);
+                if ($modelName === '' || strlen($modelName) > 255) {
+                    continue;
+                }
+
+                $exists = RepairBuddyDevice::query()
+                    ->where('device_type_id', $deviceModel->device_type_id)
+                    ->where('device_brand_id', $deviceModel->device_brand_id)
+                    ->where('model', $modelName)
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                RepairBuddyDevice::query()->create([
+                    'model' => $modelName,
+                    'device_type_id' => $deviceModel->device_type_id,
+                    'device_brand_id' => $deviceModel->device_brand_id,
+                    'parent_device_id' => $deviceModel->id,
+                    'disable_in_booking_form' => (bool) $deviceModel->disable_in_booking_form,
+                    'is_other' => (bool) $deviceModel->is_other,
+                    'is_active' => (bool) $deviceModel->is_active,
+                ]);
+            }
         }
 
         return redirect()

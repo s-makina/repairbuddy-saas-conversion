@@ -93,6 +93,18 @@
 								</div>
 								<div class="col-12">
 									<div class="row align-items-start">
+										<label for="variations_list" class="col-sm-3 col-form-label">{{ __('Add Variations') }}</label>
+										<div class="col-sm-9">
+											<textarea id="variations_list" name="variations_list" rows="3" class="form-control @error('variations_list') is-invalid @enderror" placeholder="{{ __('Black, 64GB, Silver, 128GB, etc.') }}">{{ old('variations_list', '') }}</textarea>
+											@error('variations_list')
+												<div class="invalid-feedback">{{ $message }}</div>
+											@enderror
+											<div class="form-text">{{ __('Enter variations separated by commas. They will be created as child devices after saving.') }}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-12">
+									<div class="row align-items-start">
 										<label for="disable_in_booking_form" class="col-sm-3 col-form-label">{{ __('Disable in booking forms') }}</label>
 										<div class="col-sm-9">
 											<div class="form-check form-switch">

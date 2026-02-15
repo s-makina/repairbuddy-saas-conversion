@@ -116,7 +116,9 @@ class ClientController extends Controller
     public function store(Request $request, string $business)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:64'],
             'company' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -134,6 +136,12 @@ class ClientController extends Controller
 
         $currency = $this->resolveClientCurrency($validated['currency'] ?? null);
 
+        $firstName = trim((string) $validated['first_name']);
+        $lastName = array_key_exists('last_name', $validated) && is_string($validated['last_name'])
+            ? trim((string) $validated['last_name'])
+            : null;
+        $fullName = trim($firstName.' '.($lastName ?? ''));
+
         $user = User::query()->create([
             'tenant_id' => $tenantId,
             'is_admin' => false,
@@ -141,7 +149,9 @@ class ClientController extends Controller
             'role_id' => null,
             'status' => 'active',
 
-            'name' => trim((string) $validated['name']),
+            'name' => $fullName,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'email' => trim((string) $validated['email']),
             'phone' => array_key_exists('phone', $validated) && is_string($validated['phone']) ? trim((string) $validated['phone']) : null,
             'company' => array_key_exists('company', $validated) && is_string($validated['company']) ? trim((string) $validated['company']) : null,
@@ -185,7 +195,9 @@ class ClientController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($client->id)],
             'phone' => ['sometimes', 'nullable', 'string', 'max:64'],
             'company' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -199,6 +211,12 @@ class ClientController extends Controller
             'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
         ]);
 
+        $firstName = trim((string) $validated['first_name']);
+        $lastName = array_key_exists('last_name', $validated) && is_string($validated['last_name'])
+            ? trim((string) $validated['last_name'])
+            : null;
+        $fullName = trim($firstName.' '.($lastName ?? ''));
+
         $currency = array_key_exists('currency', $validated)
             ? $this->resolveClientCurrency($validated['currency'])
             : $client->currency;
@@ -209,7 +227,9 @@ class ClientController extends Controller
             'is_admin' => false,
             'status' => $client->status ?: 'active',
 
-            'name' => trim((string) $validated['name']),
+            'name' => $fullName,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'email' => trim((string) $validated['email']),
             'phone' => array_key_exists('phone', $validated) && is_string($validated['phone']) ? trim((string) $validated['phone']) : null,
             'company' => array_key_exists('company', $validated) && is_string($validated['company']) ? trim((string) $validated['company']) : null,
@@ -350,6 +370,8 @@ class ClientController extends Controller
         return [
             'id' => $client->id,
             'name' => $client->name,
+            'first_name' => $client->first_name,
+            'last_name' => $client->last_name,
             'email' => $client->email,
             'phone' => $client->phone,
             'company' => $client->company,

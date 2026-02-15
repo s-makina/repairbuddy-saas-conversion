@@ -14,7 +14,7 @@
 		@endif
 
 		<div class="row justify-content-center">
-			<div class="col-12 col-lg-8 col-xl-6">
+			<div class="col-12 col-lg-7 col-xl-8">
 				<div class="card">
 					<div class="card-header">
 						<h5 class="card-title mb-0">{{ __('Edit Device') }}</h5>
@@ -124,6 +124,37 @@
 								</div>
 							</div>
 						</form>
+					</div>
+				</div>
+			</div>
+			<div class="col-12 col-lg-5 col-xl-4">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">{{ __('Device Variations') }}</h5>
+					</div>
+					<div class="card-body">
+						<form method="post" action="{{ route('tenant.operations.devices.variations.store', ['business' => $tenant->slug, 'device' => $device->id]) }}">
+							@csrf
+							<div class="mb-2">
+								<label for="variations_list" class="form-label fw-semibold">{{ __('Add Variations') }}</label>
+								<textarea id="variations_list" name="variations_list" rows="4" class="form-control" placeholder="{{ __('Black, 64GB, Silver, 128GB, etc.') }}"></textarea>
+								<div class="form-text">{{ __('Enter variations separated by commas. Each variation will be created as a child device.') }}</div>
+							</div>
+							<button type="submit" class="btn btn-primary">{{ __('Create Variations') }}</button>
+						</form>
+
+						@if (!empty($variations ?? null) && count($variations) > 0)
+							<hr>
+							<h6 class="mb-2">{{ __('Existing Variations') }}</h6>
+							<div class="list-group">
+								@foreach ($variations as $v)
+									<a class="list-group-item list-group-item-action d-flex align-items-center justify-content-between" href="{{ route('tenant.operations.devices.edit', ['business' => $tenant->slug, 'device' => $v->id]) }}">
+										<span class="text-truncate">{{ (string) ($v->model ?? '') }}</span>
+										<i class="bi bi-pencil"></i>
+									</a>
+								@endforeach
+							</div>
+						@endif
 					</div>
 				</div>
 			</div>
