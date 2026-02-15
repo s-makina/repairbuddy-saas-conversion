@@ -164,7 +164,8 @@ class ClientOperationsController extends Controller
             'address_city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'address_country' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'address_country' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
             'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
         ]);
 
@@ -193,7 +194,8 @@ class ClientOperationsController extends Controller
             'address_city' => array_key_exists('address_city', $validated) && is_string($validated['address_city']) ? trim((string) $validated['address_city']) : null,
             'address_state' => array_key_exists('address_state', $validated) && is_string($validated['address_state']) ? trim((string) $validated['address_state']) : null,
             'address_postal_code' => array_key_exists('address_postal_code', $validated) && is_string($validated['address_postal_code']) ? trim((string) $validated['address_postal_code']) : null,
-            'address_country' => array_key_exists('address_country', $validated) && is_string($validated['address_country']) ? strtoupper(trim((string) $validated['address_country'])) : null,
+            'address_country' => array_key_exists('address_country', $validated) && is_string($validated['address_country']) ? trim((string) $validated['address_country']) : null,
+            'address_country_code' => array_key_exists('address_country_code', $validated) && is_string($validated['address_country_code']) ? strtoupper(trim((string) $validated['address_country_code'])) : null,
             'currency' => array_key_exists('currency', $validated) && is_string($validated['currency']) ? strtoupper(trim((string) $validated['currency'])) : null,
 
             'password' => bcrypt(str()->random(48)),
@@ -232,7 +234,8 @@ class ClientOperationsController extends Controller
             'address_city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'address_country' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'address_country' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
             'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
         ]);
 
@@ -260,7 +263,8 @@ class ClientOperationsController extends Controller
             'address_city' => array_key_exists('address_city', $validated) && is_string($validated['address_city']) ? trim((string) $validated['address_city']) : null,
             'address_state' => array_key_exists('address_state', $validated) && is_string($validated['address_state']) ? trim((string) $validated['address_state']) : null,
             'address_postal_code' => array_key_exists('address_postal_code', $validated) && is_string($validated['address_postal_code']) ? trim((string) $validated['address_postal_code']) : null,
-            'address_country' => array_key_exists('address_country', $validated) && is_string($validated['address_country']) ? strtoupper(trim((string) $validated['address_country'])) : null,
+            'address_country' => array_key_exists('address_country', $validated) && is_string($validated['address_country']) ? trim((string) $validated['address_country']) : null,
+            'address_country_code' => array_key_exists('address_country_code', $validated) && is_string($validated['address_country_code']) ? strtoupper(trim((string) $validated['address_country_code'])) : null,
             'currency' => array_key_exists('currency', $validated) && is_string($validated['currency']) ? strtoupper(trim((string) $validated['currency'])) : null,
         ])->save();
 

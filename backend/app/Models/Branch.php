@@ -51,19 +51,11 @@ class Branch extends Model
             if (is_string($model->code) && $model->code !== '') {
                 $model->code = strtoupper($model->code);
             }
-
-            if (is_string($model->address_country) && $model->address_country !== '') {
-                $model->address_country = strtoupper($model->address_country);
-            }
         });
 
         static::updating(function (Branch $model) {
             if (is_string($model->code) && $model->code !== '') {
                 $model->code = strtoupper($model->code);
-            }
-
-            if (is_string($model->address_country) && $model->address_country !== '') {
-                $model->address_country = strtoupper($model->address_country);
             }
         });
     }

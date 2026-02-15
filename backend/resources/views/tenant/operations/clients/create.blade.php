@@ -172,7 +172,9 @@
 													<option value="{{ $country }}" @selected($selectedCountry === $country)>{{ $country }}</option>
 												@endforeach
 											</select>
+											<input type="hidden" name="address_country_code" id="address_country_code" value="{{ old('address_country_code', '') }}">
 											@error('address_country')<div class="invalid-feedback">{{ $message }}</div>@enderror
+											@error('address_country_code')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 										</div>
 									</div>
 								</div>
@@ -230,8 +232,57 @@
 			}
 
 			var $country = window.jQuery('#address_country');
+			var $code = window.jQuery('#address_country_code');
+
+			var countryCodes = {
+				'South Africa': 'ZA',
+				'United States': 'US',
+				'United Kingdom': 'GB',
+				'Germany': 'DE',
+				'France': 'FR',
+				'Italy': 'IT',
+				'Spain': 'ES',
+				'Netherlands': 'NL',
+				'Belgium': 'BE',
+				'Switzerland': 'CH',
+				'Austria': 'AT',
+				'Sweden': 'SE',
+				'Norway': 'NO',
+				'Denmark': 'DK',
+				'Finland': 'FI',
+				'Ireland': 'IE',
+				'Portugal': 'PT',
+				'Poland': 'PL',
+				'Czechia (Czech Republic)': 'CZ',
+				'Greece': 'GR',
+				'Hungary': 'HU',
+				'Romania': 'RO',
+				'Bulgaria': 'BG',
+				'Croatia': 'HR',
+				'Slovakia': 'SK',
+				'Slovenia': 'SI',
+				'Estonia': 'EE',
+				'Latvia': 'LV',
+				'Lithuania': 'LT',
+				'Canada': 'CA',
+				'Australia': 'AU',
+				'New Zealand': 'NZ',
+				'India': 'IN',
+				'Japan': 'JP',
+				'China': 'CN',
+				'Singapore': 'SG',
+				'United Arab Emirates': 'AE'
+			};
+
+			function updateCode() {
+				var name = ($country.val() || '').toString();
+				$code.val(countryCodes[name] || '');
+			}
+
 			if ($country.length) {
 				$country.select2({ width: '100%', placeholder: @json(__('Select a country')), allowClear: true });
+				$country.on('change', updateCode);
+				updateCode();
 			}
 		})();
 	</script>

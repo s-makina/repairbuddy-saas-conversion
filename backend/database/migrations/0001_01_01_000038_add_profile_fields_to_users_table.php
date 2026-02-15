@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('address_city')->nullable()->after('address_line2');
             $table->string('address_state')->nullable()->after('address_city');
             $table->string('address_postal_code', 64)->nullable()->after('address_state');
-            $table->string('address_country', 2)->nullable()->after('address_postal_code');
+            $table->string('address_country', 255)->nullable()->after('address_postal_code');
         });
     }
 

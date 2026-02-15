@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'address_state',
         'address_postal_code',
         'address_country',
+        'address_country_code',
         'currency',
         'password',
         'must_change_password',
