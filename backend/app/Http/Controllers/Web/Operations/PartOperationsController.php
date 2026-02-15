@@ -3,14 +3,20 @@
 namespace App\Http\Controllers\Web\Operations;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\RepairBuddyDevice;
+use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyPart;
 use App\Models\RepairBuddyPartBrand;
+use App\Models\RepairBuddyPartPriceOverride;
 use App\Models\RepairBuddyPartType;
-use App\Models\RepairBuddyTax;
 use App\Models\Tenant;
 use App\Support\TenantContext;
+use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class PartOperationsController extends Controller
@@ -121,20 +127,6 @@ class PartOperationsController extends Controller
             ->prepend((string) __('None'), '')
             ->all();
 
-        $taxOptions = RepairBuddyTax::query()
-            ->orderByDesc('is_default')
-            ->orderByDesc('is_active')
-            ->orderBy('name')
-            ->limit(500)
-            ->get()
-            ->mapWithKeys(function (RepairBuddyTax $t) {
-                $rateUi = rtrim(rtrim((string) $t->rate, '0'), '.');
-
-                return [(string) $t->id => (string) $t->name . ' (' . $rateUi . '%)'];
-            })
-            ->prepend((string) __('Select tax'), '')
-            ->all();
-
         $tenantCurrency = is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : '';
 
         return view('tenant.operations.parts.create', [
@@ -145,7 +137,6 @@ class PartOperationsController extends Controller
             'recentParts' => $recentParts,
             'typeOptions' => $typeOptions,
             'brandOptions' => $brandOptions,
-            'taxOptions' => $taxOptions,
             'tenantCurrency' => $tenantCurrency,
         ]);
     }
@@ -158,7 +149,7 @@ class PartOperationsController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
-        $model = RepairBuddyPart::query()->with(['type', 'brand', 'tax'])->whereKey($part)->firstOrFail();
+        $model = RepairBuddyPart::query()->with(['type', 'brand'])->whereKey($part)->firstOrFail();
 
         $typeOptions = RepairBuddyPartType::query()
             ->orderBy('name')
@@ -176,21 +167,53 @@ class PartOperationsController extends Controller
             ->prepend((string) __('None'), '')
             ->all();
 
-        $taxOptions = RepairBuddyTax::query()
-            ->orderByDesc('is_default')
-            ->orderByDesc('is_active')
-            ->orderBy('name')
-            ->limit(500)
-            ->get()
-            ->mapWithKeys(function (RepairBuddyTax $t) {
-                $rateUi = rtrim(rtrim((string) $t->rate, '0'), '.');
-
-                return [(string) $t->id => (string) $t->name . ' (' . $rateUi . '%)'];
-            })
-            ->prepend((string) __('Select tax'), '')
-            ->all();
-
         $tenantCurrency = is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : '';
+
+        $typesQ = is_string($request->query('types_q')) ? trim((string) $request->query('types_q')) : '';
+        $brandsQ = is_string($request->query('brands_q')) ? trim((string) $request->query('brands_q')) : '';
+        $devicesQ = is_string($request->query('devices_q')) ? trim((string) $request->query('devices_q')) : '';
+
+        $deviceTypesQuery = RepairBuddyDeviceType::query()->orderBy('name');
+        if ($typesQ !== '') {
+            $deviceTypesQuery->where('name', 'like', '%'.$typesQ.'%');
+        }
+        $deviceTypes = $deviceTypesQuery
+            ->paginate(5, ['id', 'name'], 'types_page')
+            ->appends($request->except('types_page'));
+
+        $deviceBrandsQuery = RepairBuddyDeviceBrand::query()->orderBy('name');
+        if ($brandsQ !== '') {
+            $deviceBrandsQuery->where('name', 'like', '%'.$brandsQ.'%');
+        }
+        $deviceBrands = $deviceBrandsQuery
+            ->paginate(5, ['id', 'name'], 'brands_page')
+            ->appends($request->except('brands_page'));
+
+        $devicesQuery = RepairBuddyDevice::query()->orderBy('model');
+        if ($devicesQ !== '') {
+            $devicesQuery->where('model', 'like', '%'.$devicesQ.'%');
+        }
+        $devices = $devicesQuery
+            ->paginate(5, ['id', 'model', 'device_brand_id', 'device_type_id'], 'devices_page')
+            ->appends($request->except('devices_page'));
+
+        $overrides = RepairBuddyPartPriceOverride::query()
+            ->where('part_id', $model->id)
+            ->whereNull('part_variant_id')
+            ->whereIn('scope_type', ['type', 'brand', 'device'])
+            ->orderByDesc('id')
+            ->get();
+
+        $overridesIndex = [];
+        foreach ($overrides as $o) {
+            $scopeType = is_string($o->scope_type) ? (string) $o->scope_type : '';
+            $refId = is_numeric($o->scope_ref_id) ? (int) $o->scope_ref_id : null;
+            if ($scopeType === '' || $refId === null) {
+                continue;
+            }
+
+            $overridesIndex[$scopeType . ':' . $refId] = $o;
+        }
 
         return view('tenant.operations.parts.edit', [
             'tenant' => $tenant,
@@ -200,9 +223,196 @@ class PartOperationsController extends Controller
             'part' => $model,
             'typeOptions' => $typeOptions,
             'brandOptions' => $brandOptions,
-            'taxOptions' => $taxOptions,
             'tenantCurrency' => $tenantCurrency,
+            'deviceTypes' => $deviceTypes,
+            'deviceBrands' => $deviceBrands,
+            'devices' => $devices,
+            'partPriceOverridesIndex' => $overridesIndex,
         ]);
+    }
+
+    public function priceOverridesSection(Request $request, string $business, int $part): Response
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'section' => ['required', 'string', 'max:32'],
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'page' => ['sometimes', 'nullable', 'integer', 'min:1'],
+        ]);
+
+        $section = (string) $validated['section'];
+        if (! in_array($section, ['type', 'brand', 'device'], true)) {
+            abort(422, 'Section is invalid.');
+        }
+
+        $partModel = RepairBuddyPart::query()->whereKey($part)->firstOrFail();
+
+        $q = is_string($validated['q'] ?? null) ? trim((string) $validated['q']) : '';
+        $page = is_numeric($validated['page'] ?? null) ? (int) $validated['page'] : 1;
+
+        if ($section === 'type') {
+            $query = RepairBuddyDeviceType::query()->orderBy('name');
+            if ($q !== '') {
+                $query->where('name', 'like', '%'.$q.'%');
+            }
+            $paginator = $query->paginate(5, ['id', 'name'], 'page', $page);
+        } elseif ($section === 'brand') {
+            $query = RepairBuddyDeviceBrand::query()->orderBy('name');
+            if ($q !== '') {
+                $query->where('name', 'like', '%'.$q.'%');
+            }
+            $paginator = $query->paginate(5, ['id', 'name'], 'page', $page);
+        } else {
+            $query = RepairBuddyDevice::query()->orderBy('model');
+            if ($q !== '') {
+                $query->where('model', 'like', '%'.$q.'%');
+            }
+            $paginator = $query->paginate(5, ['id', 'model', 'device_brand_id', 'device_type_id'], 'page', $page);
+        }
+
+        $overrides = RepairBuddyPartPriceOverride::query()
+            ->where('part_id', $partModel->id)
+            ->whereNull('part_variant_id')
+            ->where('scope_type', $section)
+            ->orderByDesc('id')
+            ->get();
+
+        $overridesIndex = [];
+        foreach ($overrides as $o) {
+            $refId = is_numeric($o->scope_ref_id) ? (int) $o->scope_ref_id : null;
+            if ($refId === null) {
+                continue;
+            }
+            $overridesIndex[$section . ':' . $refId] = $o;
+        }
+
+        $html = view('tenant.operations.parts._price_overrides_section', [
+            'section' => $section,
+            'tenant' => $tenant,
+            'part' => $partModel,
+            'paginator' => $paginator,
+            'partPriceOverridesIndex' => $overridesIndex,
+        ])->render();
+
+        return response($html);
+    }
+
+    public function updatePriceOverrides(Request $request, string $business, int $part): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $validated = $request->validate([
+            'scope_type' => ['required', 'string', 'max:32'],
+            'scope_ref_id' => ['required', 'array'],
+            'scope_ref_id.*' => ['nullable'],
+            'price' => ['required', 'array'],
+            'price.*' => ['nullable'],
+            'manufacturing_code' => ['required', 'array'],
+            'manufacturing_code.*' => ['nullable', 'string', 'max:255'],
+            'stock_code' => ['required', 'array'],
+            'stock_code.*' => ['nullable', 'string', 'max:255'],
+            'active_ref_id' => ['sometimes', 'array'],
+            'active_ref_id.*' => ['nullable'],
+        ]);
+
+        $scopeType = (string) $validated['scope_type'];
+        if (! in_array($scopeType, ['type', 'brand', 'device'], true)) {
+            return redirect()
+                ->route('tenant.operations.parts.edit', ['business' => $tenant->slug, 'part' => $part])
+                ->withErrors(['scope_type' => __('Scope type is invalid.')]);
+        }
+
+        $model = RepairBuddyPart::query()->whereKey($part)->firstOrFail();
+
+        $currency = is_string($model->price_currency) && $model->price_currency !== ''
+            ? strtoupper((string) $model->price_currency)
+            : (is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : null);
+
+        if ($currency === null || $currency === '') {
+            return redirect()
+                ->route('tenant.operations.parts.edit', ['business' => $tenant->slug, 'part' => $model->id])
+                ->withErrors(['price' => __('Tenant currency is not configured.')]);
+        }
+
+        $activeRefIds = [];
+        if (array_key_exists('active_ref_id', $validated) && is_array($validated['active_ref_id'])) {
+            foreach ($validated['active_ref_id'] as $idRaw) {
+                if (is_numeric($idRaw)) {
+                    $activeRefIds[(int) $idRaw] = true;
+                }
+            }
+        }
+
+        $branches = Branch::query()->where('is_active', true)->orderBy('id')->get(['id']);
+
+        $refIds = is_array($validated['scope_ref_id']) ? $validated['scope_ref_id'] : [];
+        $prices = is_array($validated['price']) ? $validated['price'] : [];
+        $mfgCodes = is_array($validated['manufacturing_code']) ? $validated['manufacturing_code'] : [];
+        $stockCodes = is_array($validated['stock_code']) ? $validated['stock_code'] : [];
+
+        DB::transaction(function () use ($branches, $currency, $model, $prices, $refIds, $scopeType, $tenant, $activeRefIds, $mfgCodes, $stockCodes) {
+            foreach ($refIds as $idx => $refIdRaw) {
+                if (! is_numeric($refIdRaw)) {
+                    continue;
+                }
+
+                $refId = (int) $refIdRaw;
+                $isActive = array_key_exists($refId, $activeRefIds);
+
+                $priceRaw = array_key_exists($idx, $prices) ? $prices[$idx] : null;
+                $priceCents = null;
+                if ($priceRaw !== null && $priceRaw !== '') {
+                    $priceCents = (int) round(((float) $priceRaw) * 100);
+                }
+
+                $mfgRaw = array_key_exists($idx, $mfgCodes) ? $mfgCodes[$idx] : null;
+                $mfg = is_string($mfgRaw) ? trim((string) $mfgRaw) : null;
+                if ($mfg === '') {
+                    $mfg = null;
+                }
+
+                $stockRaw = array_key_exists($idx, $stockCodes) ? $stockCodes[$idx] : null;
+                $stock = is_string($stockRaw) ? trim((string) $stockRaw) : null;
+                if ($stock === '') {
+                    $stock = null;
+                }
+
+                foreach ($branches as $branch) {
+                    $branchId = (int) $branch->id;
+
+                    RepairBuddyPartPriceOverride::query()->updateOrCreate(
+                        [
+                            'tenant_id' => (int) $tenant->id,
+                            'branch_id' => $branchId,
+                            'part_id' => (int) $model->id,
+                            'part_variant_id' => null,
+                            'scope_type' => $scopeType,
+                            'scope_ref_id' => $refId,
+                        ],
+                        [
+                            'price_amount_cents' => $priceCents,
+                            'price_currency' => $currency,
+                            'manufacturing_code' => $mfg,
+                            'stock_code' => $stock,
+                            'is_active' => $isActive,
+                        ]
+                    );
+                }
+            }
+        });
+
+        return redirect()
+            ->route('tenant.operations.parts.edit', ['business' => $tenant->slug, 'part' => $model->id])
+            ->with('status', __('Pricing updated.'));
     }
 
     public function store(Request $request, string $business): RedirectResponse
@@ -222,7 +432,6 @@ class PartOperationsController extends Controller
             'stock_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
-            'tax_id' => ['sometimes', 'nullable'],
             'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
             'core_features' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'capacity' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -237,8 +446,6 @@ class PartOperationsController extends Controller
         $partTypeId = is_numeric($partTypeIdRaw) ? (int) $partTypeIdRaw : null;
         $partBrandIdRaw = $validated['part_brand_id'] ?? null;
         $partBrandId = is_numeric($partBrandIdRaw) ? (int) $partBrandIdRaw : null;
-        $taxIdRaw = $validated['tax_id'] ?? null;
-        $taxId = is_numeric($taxIdRaw) ? (int) $taxIdRaw : null;
 
         if ($partTypeId !== null && ! RepairBuddyPartType::query()->whereKey($partTypeId)->exists()) {
             return redirect()
@@ -251,13 +458,6 @@ class PartOperationsController extends Controller
             return redirect()
                 ->route('tenant.operations.parts.create', ['business' => $tenant->slug])
                 ->withErrors(['part_brand_id' => __('Part brand is invalid.')])
-                ->withInput();
-        }
-
-        if ($taxId !== null && ! RepairBuddyTax::query()->whereKey($taxId)->exists()) {
-            return redirect()
-                ->route('tenant.operations.parts.create', ['business' => $tenant->slug])
-                ->withErrors(['tax_id' => __('Tax is invalid.')])
                 ->withInput();
         }
 
@@ -307,7 +507,7 @@ class PartOperationsController extends Controller
             'stock_code' => $validated['stock_code'] ?? null,
             'price_amount_cents' => $priceCents,
             'price_currency' => $priceCurrency,
-            'tax_id' => $taxId,
+            'tax_id' => null,
             'warranty' => $validated['warranty'] ?? null,
             'core_features' => $validated['core_features'] ?? null,
             'capacity' => $validated['capacity'] ?? null,
@@ -340,7 +540,6 @@ class PartOperationsController extends Controller
             'stock_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
-            'tax_id' => ['sometimes', 'nullable'],
             'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
             'core_features' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'capacity' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -357,8 +556,6 @@ class PartOperationsController extends Controller
         $partTypeId = is_numeric($partTypeIdRaw) ? (int) $partTypeIdRaw : null;
         $partBrandIdRaw = $validated['part_brand_id'] ?? null;
         $partBrandId = is_numeric($partBrandIdRaw) ? (int) $partBrandIdRaw : null;
-        $taxIdRaw = $validated['tax_id'] ?? null;
-        $taxId = is_numeric($taxIdRaw) ? (int) $taxIdRaw : null;
 
         if ($partTypeId !== null && ! RepairBuddyPartType::query()->whereKey($partTypeId)->exists()) {
             return redirect()
@@ -371,13 +568,6 @@ class PartOperationsController extends Controller
             return redirect()
                 ->route('tenant.operations.parts.edit', ['business' => $tenant->slug, 'part' => $model->id])
                 ->withErrors(['part_brand_id' => __('Part brand is invalid.')])
-                ->withInput();
-        }
-
-        if ($taxId !== null && ! RepairBuddyTax::query()->whereKey($taxId)->exists()) {
-            return redirect()
-                ->route('tenant.operations.parts.edit', ['business' => $tenant->slug, 'part' => $model->id])
-                ->withErrors(['tax_id' => __('Tax is invalid.')])
                 ->withInput();
         }
 
@@ -442,7 +632,7 @@ class PartOperationsController extends Controller
             'stock_code' => $validated['stock_code'] ?? null,
             'price_amount_cents' => $priceCents,
             'price_currency' => $priceCurrency,
-            'tax_id' => $taxId,
+            'tax_id' => null,
             'warranty' => $validated['warranty'] ?? null,
             'core_features' => $validated['core_features'] ?? null,
             'capacity' => $validated['capacity'] ?? null,

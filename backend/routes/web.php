@@ -366,12 +366,20 @@ Route::prefix('t/{business}')
             ->where(['part' => '[0-9]+' ])
             ->name('tenant.operations.parts.edit');
 
+        Route::get('/operations/parts/{part}/price-overrides/section', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'priceOverridesSection'])
+            ->where(['part' => '[0-9]+' ])
+            ->name('tenant.operations.parts.price_overrides.section');
+
         Route::post('/operations/parts', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'store'])
             ->name('tenant.operations.parts.store');
 
         Route::post('/operations/parts/{part}/update', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'update'])
             ->where(['part' => '[0-9]+' ])
             ->name('tenant.operations.parts.update');
+
+        Route::post('/operations/parts/{part}/price-overrides', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'updatePriceOverrides'])
+            ->where(['part' => '[0-9]+' ])
+            ->name('tenant.operations.parts.price_overrides.update');
 
         Route::post('/operations/parts/{part}/active', [\App\Http\Controllers\Web\Operations\PartOperationsController::class, 'setActive'])
             ->where(['part' => '[0-9]+' ])
