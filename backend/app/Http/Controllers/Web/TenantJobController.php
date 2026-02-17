@@ -10,10 +10,14 @@ use App\Models\RepairBuddyJobAttachment;
 use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyCustomerDeviceFieldValue;
 use App\Models\RepairBuddyDeviceFieldDefinition;
+use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
+use App\Models\RepairBuddyPart;
+use App\Models\RepairBuddyService;
+use App\Models\Role;
 use App\Models\Status;
 use App\Support\TenantContext;
 use App\Support\BranchContext;
@@ -217,18 +221,61 @@ class TenantJobController extends Controller
             ->limit(500)
             ->get();
 
+        $technicianRoleId = Role::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('name', 'Technician')
+            ->value('id');
+
+        $technicianRoleId = is_numeric($technicianRoleId) ? (int) $technicianRoleId : null;
+
         $technicians = \App\Models\User::query()
             ->where('tenant_id', (int) $tenant->id)
-            ->whereIn('role', ['technician', 'store_manager', 'administrator'])
+            ->where('is_admin', false)
+            ->where('status', 'active')
+            ->where(function ($q) use ($technicianRoleId) {
+                if ($technicianRoleId) {
+                    $q->where('role_id', $technicianRoleId);
+                }
+
+                $q->orWhereHas('roles', fn ($rq) => $rq->where('name', 'Technician'))
+                    ->orWhere('role', 'technician');
+            })
             ->orderBy('name')
             ->limit(500)
             ->get();
 
         $customerDevices = RepairBuddyCustomerDevice::query()
             ->with(['customer'])
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
             ->orderBy('id', 'desc')
             ->limit(500)
             ->get();
+
+        $devices = RepairBuddyDevice::query()
+            ->with(['type', 'brand', 'parent'])
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->where('is_active', true)
+            ->orderBy('model')
+            ->limit(2000)
+            ->get();
+
+        $parts = RepairBuddyPart::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(1000)
+            ->get(['id', 'name', 'sku']);
+
+        $services = RepairBuddyService::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(1000)
+            ->get(['id', 'name', 'service_code']);
 
         return view('tenant.job_create', [
             'tenant' => $tenant,
@@ -241,6 +288,9 @@ class TenantJobController extends Controller
             'customers' => $customers,
             'technicians' => $technicians,
             'customerDevices' => $customerDevices,
+            'devices' => $devices,
+            'parts' => $parts,
+            'services' => $services,
         ]);
     }
 

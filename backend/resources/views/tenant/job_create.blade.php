@@ -7,6 +7,9 @@
     $customers = is_iterable($customers ?? null) ? $customers : [];
     $technicians = is_iterable($technicians ?? null) ? $technicians : [];
     $customerDevices = is_iterable($customerDevices ?? null) ? $customerDevices : [];
+    $devices = is_iterable($devices ?? null) ? $devices : [];
+    $parts = is_iterable($parts ?? null) ? $parts : [];
+    $services = is_iterable($services ?? null) ? $services : [];
 
     $tenantSlug = is_string($tenant?->slug) ? (string) $tenant->slug : null;
 
@@ -236,20 +239,16 @@
                                             <div class="col-lg-9 col-8">
                                                 <select id="device_modal_device" class="form-select">
                                                     <option value="">{{ __('Select Device') }}</option>
-                                                    @foreach ($customerDevices as $cd)
+                                                    @foreach ($devices as $d)
                                                         @php
-                                                            $label = $cd->label;
-                                                            $cname = $cd->customer?->name;
-                                                            $serial = $cd->serial;
-                                                            $text = $label;
-                                                            if (is_string($cname) && $cname !== '') {
-                                                                $text .= ' — ' . $cname;
-                                                            }
-                                                            if (is_string($serial) && $serial !== '') {
-                                                                $text .= ' (' . $serial . ')';
+                                                            $brand = is_string($d->brand?->name ?? null) ? (string) $d->brand?->name : '';
+                                                            $model = is_string($d->model ?? null) ? (string) $d->model : '';
+                                                            $text = trim(trim($brand . ' ' . $model));
+                                                            if ($text === '') {
+                                                                $text = __('Device') . ' #' . $d->id;
                                                             }
                                                         @endphp
-                                                        <option value="{{ $cd->id }}">{{ $text }}</option>
+                                                        <option value="{{ $d->id }}">{{ $text }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -326,10 +325,10 @@
                                 <tbody>
                                     @php
                                         $oldDevIds = (array) old('job_device_customer_device_id', []);
-                                        $oldDevImeis = (array) old('job_device_imei', []);
-                                        $oldDevPasswords = (array) old('job_device_password', []);
-                                        $oldDevNotes = (array) old('job_device_note', []);
-                                        $devRows = max(count($oldDevIds), count($oldDevImeis), count($oldDevPasswords), count($oldDevNotes));
+                                        $oldDevSerials = (array) old('job_device_serial', []);
+                                        $oldDevPins = (array) old('job_device_pin', []);
+                                        $oldDevNotes = (array) old('job_device_notes', []);
+                                        $devRows = max(count($oldDevIds), count($oldDevSerials), count($oldDevPins), count($oldDevNotes));
                                     @endphp
                                     @if ($devRows === 0)
                                         <tr class="devices-empty-row">
@@ -341,23 +340,16 @@
                                         @for ($i = 0; $i < $devRows; $i++)
                                             @php
                                                 $devId = (string) ($oldDevIds[$i] ?? '');
-                                                $imei = is_string($oldDevImeis[$i] ?? null) ? (string) $oldDevImeis[$i] : '';
-                                                $pwd = is_string($oldDevPasswords[$i] ?? null) ? (string) $oldDevPasswords[$i] : '';
+                                                $imei = is_string($oldDevSerials[$i] ?? null) ? (string) $oldDevSerials[$i] : '';
+                                                $pwd = is_string($oldDevPins[$i] ?? null) ? (string) $oldDevPins[$i] : '';
                                                 $note = is_string($oldDevNotes[$i] ?? null) ? (string) $oldDevNotes[$i] : '';
 
                                                 $deviceText = '';
-                                                foreach ($customerDevices as $cd) {
-                                                    if ((string) $cd->id === $devId) {
-                                                        $label = $cd->label;
-                                                        $cname = $cd->customer?->name;
-                                                        $serial = $cd->serial;
-                                                        $deviceText = $label;
-                                                        if (is_string($cname) && $cname !== '') {
-                                                            $deviceText .= ' — ' . $cname;
-                                                        }
-                                                        if (is_string($serial) && $serial !== '') {
-                                                            $deviceText .= ' (' . $serial . ')';
-                                                        }
+                                                foreach ($devices as $d) {
+                                                    if ((string) $d->id === $devId) {
+                                                        $brand = is_string($d->brand?->name ?? null) ? (string) $d->brand?->name : '';
+                                                        $model = is_string($d->model ?? null) ? (string) $d->model : '';
+                                                        $deviceText = trim(trim($brand . ' ' . $model));
                                                         break;
                                                     }
                                                 }
@@ -378,11 +370,11 @@
                                                     </button>
 
                                                     <input type="hidden" name="job_device_customer_device_id[]" value="{{ $devId }}" />
-                                                    <input type="hidden" name="job_device_imei[]" value="{{ $imei }}" />
+                                                    <input type="hidden" name="job_device_serial[]" value="{{ $imei }}" />
                                                     @if ($enablePinCodeField)
-                                                        <input type="hidden" name="job_device_password[]" value="{{ $pwd }}" />
+                                                        <input type="hidden" name="job_device_pin[]" value="{{ $pwd }}" />
                                                     @endif
-                                                    <input type="hidden" name="job_device_note[]" value="{{ $note }}" />
+                                                    <input type="hidden" name="job_device_notes[]" value="{{ $note }}" />
                                                 </td>
                                             </tr>
                                         @endfor
@@ -562,31 +554,16 @@
                 <div class="card mb-4" id="section-parts">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">{{ __('Select Parts') }}</h5>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="addPartBtn">
-                            <i class="bi bi-box-seam me-1"></i>
-                            {{ __('Add Part') }}
-                        </button>
                     </div>
                     <div class="card-body">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-10">
-                                <label class="form-label" for="parts_select">{{ __('Part') }}</label>
-                                <select id="parts_select" class="form-select">
-                                    <option value="">{{ __('Search and select...') }}</option>
-                                    <option value="Charging Port">Charging Port</option>
-                                    <option value="Battery">Battery</option>
-                                    <option value="LCD Cable">LCD Cable</option>
-                                    <option value="Transistor">Transistor</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2 d-grid">
-                                <button type="button" class="btn btn-primary" id="addSelectedPartBtn">
-                                    <i class="bi bi-plus-circle me-1"></i>
-                                    {{ __('Add') }}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="form-text mt-2">{{ __('Selected parts will be added to the items table as type Part.') }}</div>
+                        <div id="devicePartsSelects" class="row g-2"></div>
+
+                        <select id="parts_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
+                            <option value="">{{ __('Search and select...') }}</option>
+                            @foreach ($parts as $p)
+                                <option value="{{ $p->name }}">{{ $p->name }}</option>
+                            @endforeach
+                        </select>
 
                         <div class="table-responsive mt-3">
                             <table class="table table-sm align-middle mb-0" id="partsTable">
@@ -626,9 +603,9 @@
                                 <label class="form-label" for="services_select">{{ __('Service') }}</label>
                                 <select id="services_select" class="form-select">
                                     <option value="">{{ __('Search and select...') }}</option>
-                                    <option value="Screen Repair">Screen Repair</option>
-                                    <option value="Diagnostics">Diagnostics</option>
-                                    <option value="Software Install">Software Install</option>
+                                    @foreach ($services as $s)
+                                        <option value="{{ $s->name }}">{{ $s->name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="col-md-2 d-grid">
@@ -845,10 +822,9 @@
     var servicesTable = document.getElementById('servicesTable');
     var otherItemsTable = document.getElementById('otherItemsTable');
 
-    var addPartBtn = document.getElementById('addPartBtn');
-
     var partsSelect = document.getElementById('parts_select');
-    var addSelectedPartBtn = document.getElementById('addSelectedPartBtn');
+
+    var devicePartsSelects = document.getElementById('devicePartsSelects');
 
     var servicesSelect = document.getElementById('services_select');
     var addSelectedServiceBtn = document.getElementById('addSelectedServiceBtn');
@@ -946,21 +922,114 @@
         ensureOtherEmptyState();
     }
 
-    function initPartsSelect2() {
+    function initDevicePartsSelect2(selectEl, placeholderText) {
+        if (!selectEl) return;
         if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
             return;
         }
-        if (!partsSelect) {
+        var $sel = window.jQuery(selectEl);
+        if ($sel.hasClass('select2-hidden-accessible')) {
             return;
         }
-        var $ps = window.jQuery(partsSelect);
-        if ($ps.hasClass('select2-hidden-accessible')) {
-            return;
-        }
-        $ps.select2({
+        $sel.select2({
             width: '100%',
             theme: 'bootstrap-5',
-            placeholder: 'Search and select...'
+            placeholder: placeholderText || 'Search and select...',
+            allowClear: true
+        });
+    }
+
+    function clonePartsOptionsHtml() {
+        if (!partsSelect) return '';
+        return partsSelect.innerHTML || '';
+    }
+
+    function getSelectedDeviceLabels() {
+        var devicesTable = document.getElementById('devicesTable');
+        if (!devicesTable) return [];
+        var labels = [];
+        devicesTable.querySelectorAll('tbody tr:not(.devices-empty-row)').forEach(function (tr) {
+            var deviceId = tr.querySelector('input[name="job_device_customer_device_id[]"]')?.value || '';
+            if (!deviceId) return;
+            var label = (typeof deviceLabelMap !== 'undefined' && deviceLabelMap && deviceLabelMap[deviceId]) ? deviceLabelMap[deviceId] : (tr.querySelector('.device-label')?.textContent || '');
+            label = (label || '').trim();
+            if (label === '' || label === '—') {
+                label = 'Device';
+            }
+            labels.push({ deviceId: deviceId, label: label });
+        });
+        return labels;
+    }
+
+    function renderDevicePartsSelects() {
+        if (!devicePartsSelects) return;
+        var devices = getSelectedDeviceLabels();
+        devicePartsSelects.innerHTML = '';
+
+        if (devices.length === 0) {
+            return;
+        }
+
+        var optionsHtml = clonePartsOptionsHtml();
+
+        devices.forEach(function (d, idx) {
+            var col = document.createElement('div');
+            col.className = 'col-md-6';
+
+            var label = document.createElement('label');
+            label.className = 'form-label';
+            label.textContent = 'Part for ' + d.label;
+
+            var sel = document.createElement('select');
+            sel.className = 'form-select js-device-part-select';
+            sel.dataset.deviceId = d.deviceId;
+            sel.dataset.deviceLabel = d.label;
+            sel.innerHTML = optionsHtml;
+
+            col.appendChild(label);
+            col.appendChild(sel);
+            devicePartsSelects.appendChild(col);
+
+            initDevicePartsSelect2(sel, 'Select parts for ' + d.label);
+
+            function handlePartSelected() {
+                var partName = '';
+                if (window.jQuery) {
+                    partName = window.jQuery(sel).val() || '';
+                } else {
+                    partName = sel.value || '';
+                }
+                if (partName === '') return;
+
+                partRows.push({
+                    id: newRowId('part'),
+                    name: partName,
+                    code: '',
+                    capacity: '',
+                    device: d.label,
+                    qty: '1',
+                    price: '0'
+                });
+                renderPartRows();
+
+                if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+                    window.jQuery(sel).off('change.rbDevicePart');
+                    window.jQuery(sel).val('').trigger('change');
+                    window.jQuery(sel).on('change.rbDevicePart', handlePartSelected);
+                } else {
+                    sel.value = '';
+                }
+            }
+
+            if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+                window.jQuery(sel)
+                    .off('change.rbDevicePart')
+                    .on('change.rbDevicePart', handlePartSelected)
+                    .off('select2:select.rbDevicePart')
+                    .on('select2:select.rbDevicePart', handlePartSelected);
+            } else {
+                sel.addEventListener('change', handlePartSelected);
+            }
         });
     }
 
@@ -1210,6 +1279,16 @@
         ensurePartsEmptyState();
     }
 
+    var devicesTableForParts = document.getElementById('devicesTable');
+    if (devicesTableForParts) {
+        devicesTableForParts.addEventListener('click', function (e) {
+            var rmBtn = e.target.closest('.removeDeviceLine');
+            if (rmBtn) {
+                setTimeout(renderDevicePartsSelects, 0);
+            }
+        });
+    }
+
     function renderOtherRows() {
         if (!otherItemsTable) return;
         var tbody = otherItemsTable.querySelector('tbody');
@@ -1240,32 +1319,6 @@
         });
 
         ensureOtherEmptyState();
-    }
-
-    if (addPartBtn) {
-        addPartBtn.addEventListener('click', function () {
-            if (addSelectedPartBtn) {
-                addSelectedPartBtn.click();
-            }
-        });
-    }
-
-    if (addSelectedPartBtn) {
-        addSelectedPartBtn.addEventListener('click', function () {
-            var val = partsSelect.value || '';
-            if (val === '') {
-                return;
-            }
-
-            partRows.push({ id: newRowId('part'), name: val, qty: '1', price: '0' });
-            renderPartRows();
-
-            if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
-                window.jQuery(partsSelect).val('').trigger('change');
-            } else {
-                partsSelect.value = '';
-            }
-        });
     }
 
     if (addServiceLineBtn) {
@@ -1389,6 +1442,8 @@
     renderServiceRows();
     renderOtherRows();
 
+    renderDevicePartsSelects();
+
     var deviceAddBtn = document.getElementById('addDeviceLine');
     var devicesTable = document.getElementById('devicesTable');
     var deviceModalEl = document.getElementById('deviceModal');
@@ -1405,20 +1460,16 @@
     var enablePinCodeField = @json($enablePinCodeField);
 
     var deviceLabelMap = {};
-    @foreach ($customerDevices as $cd)
+    @foreach ($devices as $d)
         @php
-            $label = $cd->label;
-            $cname = $cd->customer?->name;
-            $serial = $cd->serial;
-            $text = $label;
-            if (is_string($cname) && $cname !== '') {
-                $text .= ' — ' . $cname;
-            }
-            if (is_string($serial) && $serial !== '') {
-                $text .= ' (' . $serial . ')';
+            $brand = is_string($d->brand?->name ?? null) ? (string) $d->brand?->name : '';
+            $model = is_string($d->model ?? null) ? (string) $d->model : '';
+            $text = trim(trim($brand . ' ' . $model));
+            if ($text === '') {
+                $text = __('Device') . ' #' . $d->id;
             }
         @endphp
-        deviceLabelMap[@json((string) $cd->id)] = @json($text);
+        deviceLabelMap[@json((string) $d->id)] = @json($text);
     @endforeach
 
     function ensureDeviceModal() {
@@ -1475,9 +1526,9 @@
         initDeviceModalSelect2();
 
         var devId = tr.querySelector('input[name="job_device_customer_device_id[]"]')?.value || '';
-        var imeiVal = tr.querySelector('input[name="job_device_imei[]"]')?.value || '';
-        var noteVal = tr.querySelector('input[name="job_device_note[]"]')?.value || '';
-        var pwdVal = enablePinCodeField ? (tr.querySelector('input[name="job_device_password[]"]')?.value || '') : '';
+        var imeiVal = tr.querySelector('input[name="job_device_serial[]"]')?.value || '';
+        var noteVal = tr.querySelector('input[name="job_device_notes[]"]')?.value || '';
+        var pwdVal = enablePinCodeField ? (tr.querySelector('input[name="job_device_pin[]"]')?.value || '') : '';
 
         if (deviceModalDevice) {
             if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
@@ -1497,9 +1548,9 @@
     function renderDeviceRowSummary(tr) {
         if (!tr) return;
         var devId = tr.querySelector('input[name="job_device_customer_device_id[]"]')?.value || '';
-        var imeiVal = tr.querySelector('input[name="job_device_imei[]"]')?.value || '';
-        var noteVal = tr.querySelector('input[name="job_device_note[]"]')?.value || '';
-        var pwdVal = enablePinCodeField ? (tr.querySelector('input[name="job_device_password[]"]')?.value || '') : '';
+        var imeiVal = tr.querySelector('input[name="job_device_serial[]"]')?.value || '';
+        var noteVal = tr.querySelector('input[name="job_device_notes[]"]')?.value || '';
+        var pwdVal = enablePinCodeField ? (tr.querySelector('input[name="job_device_pin[]"]')?.value || '') : '';
 
         var labelCell = tr.querySelector('.device-label');
         var imeiCell = tr.querySelector('.device-imei');
@@ -1542,16 +1593,16 @@
             + '  <button type="button" class="btn btn-outline-primary btn-sm editDeviceLine" aria-label="Edit"><i class="bi bi-pencil"></i></button>'
             + '  <button type="button" class="btn btn-outline-danger btn-sm removeDeviceLine" aria-label="Remove"><i class="bi bi-trash"></i></button>'
             + '  <input type="hidden" name="job_device_customer_device_id[]" value="" />'
-            + '  <input type="hidden" name="job_device_imei[]" value="" />'
-            + (enablePinCodeField ? '  <input type="hidden" name="job_device_password[]" value="" />' : '')
-            + '  <input type="hidden" name="job_device_note[]" value="" />'
+            + '  <input type="hidden" name="job_device_serial[]" value="" />'
+            + (enablePinCodeField ? '  <input type="hidden" name="job_device_pin[]" value="" />' : '')
+            + '  <input type="hidden" name="job_device_notes[]" value="" />'
             + '</td>';
 
         tr.querySelector('input[name="job_device_customer_device_id[]"]').value = values.deviceId || '';
-        tr.querySelector('input[name="job_device_imei[]"]').value = values.imei || '';
-        tr.querySelector('input[name="job_device_note[]"]').value = values.note || '';
+        tr.querySelector('input[name="job_device_serial[]"]').value = values.imei || '';
+        tr.querySelector('input[name="job_device_notes[]"]').value = values.note || '';
         if (enablePinCodeField) {
-            tr.querySelector('input[name="job_device_password[]"]').value = values.password || '';
+            tr.querySelector('input[name="job_device_pin[]"]').value = values.password || '';
         }
         renderDeviceRowSummary(tr);
         return tr;
@@ -1594,16 +1645,17 @@
             ensureDevicesEmptyState();
         } else {
             targetRow.querySelector('input[name="job_device_customer_device_id[]"]').value = values.deviceId;
-            targetRow.querySelector('input[name="job_device_imei[]"]').value = values.imei;
-            targetRow.querySelector('input[name="job_device_note[]"]').value = values.note;
+            targetRow.querySelector('input[name="job_device_serial[]"]').value = values.imei;
+            targetRow.querySelector('input[name="job_device_notes[]"]').value = values.note;
             if (enablePinCodeField) {
-                targetRow.querySelector('input[name="job_device_password[]"]').value = values.password;
+                targetRow.querySelector('input[name="job_device_pin[]"]').value = values.password;
             }
             renderDeviceRowSummary(targetRow);
         }
 
         editingDeviceRow = null;
         ensureDevicesEmptyState();
+        renderDevicePartsSelects();
         var m = ensureDeviceModal();
         if (m) m.hide();
     }
@@ -1634,6 +1686,7 @@
                 if (tr2) {
                     tr2.remove();
                     ensureDevicesEmptyState();
+                    renderDevicePartsSelects();
                 }
             }
         });
