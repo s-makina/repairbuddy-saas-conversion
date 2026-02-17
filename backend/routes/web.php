@@ -129,6 +129,10 @@ Route::prefix('t/{business}')
             ->middleware('permission:technicians.view')
             ->name('tenant.technicians.index');
 
+        Route::post('/technicians', [\App\Http\Controllers\Web\TechniciansController::class, 'store'])
+            ->middleware('permission:users.manage')
+            ->name('tenant.technicians.store');
+
         Route::get('/technicians/datatable', [\App\Http\Controllers\Web\TechniciansController::class, 'datatable'])
             ->middleware('permission:technicians.view')
             ->name('tenant.technicians.datatable');

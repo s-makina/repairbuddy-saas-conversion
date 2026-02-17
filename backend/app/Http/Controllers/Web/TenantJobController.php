@@ -277,6 +277,13 @@ class TenantJobController extends Controller
             ->limit(1000)
             ->get(['id', 'name', 'service_code']);
 
+        $branches = Branch::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->orderBy('code')
+            ->orderBy('name')
+            ->limit(200)
+            ->get();
+
         return view('tenant.job_create', [
             'tenant' => $tenant,
             'user' => $user,
@@ -287,6 +294,7 @@ class TenantJobController extends Controller
             'paymentStatuses' => $paymentStatuses,
             'customers' => $customers,
             'technicians' => $technicians,
+            'branches' => $branches,
             'customerDevices' => $customerDevices,
             'devices' => $devices,
             'parts' => $parts,

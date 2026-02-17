@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -144,7 +145,7 @@ class ClientOperationsController extends Controller
         ]);
     }
 
-    public function store(Request $request, string $business): RedirectResponse
+    public function store(Request $request, string $business): RedirectResponse|JsonResponse
     {
         $tenant = TenantContext::tenant();
 
@@ -175,7 +176,7 @@ class ClientOperationsController extends Controller
             : null;
         $fullName = trim($firstName.' '.($lastName ?? ''));
 
-        User::query()->create([
+        $client = User::query()->create([
             'tenant_id' => $tenant->id,
             'is_admin' => false,
             'role' => 'customer',
@@ -201,6 +202,28 @@ class ClientOperationsController extends Controller
             'password' => bcrypt(str()->random(48)),
             'email_verified_at' => null,
         ]);
+
+        if ($request->expectsJson()) {
+            $label = $client->name;
+            if (is_string($client->email) && $client->email !== '') {
+                $label .= ' ('.$client->email.')';
+            }
+            if (is_string($client->phone) && $client->phone !== '') {
+                $label .= ' — '.$client->phone;
+            }
+            if (is_string($client->company) && $client->company !== '') {
+                $label .= ' — '.$client->company;
+            }
+
+            return response()->json([
+                'client' => [
+                    'id' => $client->id,
+                    'label' => $label,
+                    'name' => $client->name,
+                    'email' => $client->email,
+                ],
+            ]);
+        }
 
         return redirect()
             ->route('tenant.operations.clients.index', ['business' => $tenant->slug])

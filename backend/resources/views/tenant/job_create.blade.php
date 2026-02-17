@@ -136,6 +136,9 @@
     <form method="POST" action="{{ route('tenant.jobs.store', ['business' => $tenantSlug]) }}" enctype="multipart/form-data">
         @csrf
 
+        @include('tenant.partials.quick_create_customer_modal')
+        @include('tenant.partials.quick_create_technician_modal')
+
         <div class="row g-4">
             <div class="col-xl-8">
                 <div class="card mb-4" id="section-job-details">
@@ -167,13 +170,16 @@
                                         <option value="">{{ __('Select...') }}</option>
                                         @foreach ($customers as $c)
                                             <option value="{{ $c->id }}" {{ (string) old('customer_id') === (string) $c->id ? 'selected' : '' }}>
-                                                {{ $c->name }} ({{ $c->email }})
+                                                {{ $c->name }}
+                                                @if (!empty($c->email)) ({{ $c->email }}) @endif
+                                                @if (!empty($c->phone)) — {{ $c->phone }} @endif
+                                                @if (!empty($c->company)) — {{ $c->company }} @endif
                                             </option>
                                         @endforeach
                                     </select>
-                                    <a class="btn btn-primary" href="{{ route('tenant.operations.clients.create', ['business' => $tenantSlug]) }}" target="_blank" rel="noopener" title="{{ __('Add new customer') }}" aria-label="{{ __('Add new customer') }}">
+                                    <button type="button" class="btn btn-primary" id="rb_open_quick_customer" title="{{ __('Add new customer') }}" aria-label="{{ __('Add new customer') }}">
                                         <i class="bi bi-person-plus"></i>
-                                    </a>
+                                    </button>
                                 </div>
                                 @error('customer_id')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
@@ -188,9 +194,9 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <a class="btn btn-primary" href="{{ route('tenant.technicians.index', ['business' => $tenantSlug]) }}" target="_blank" rel="noopener" title="{{ __('Add technician') }}" aria-label="{{ __('Add technician') }}">
+                                    <button type="button" class="btn btn-primary" id="rb_open_quick_technician" title="{{ __('Add technician') }}" aria-label="{{ __('Add technician') }}">
                                         <i class="bi bi-person-plus"></i>
-                                    </a>
+                                    </button>
                                 </div>
                                 @error('technician_ids')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
@@ -598,24 +604,14 @@
                         </button>
                     </div>
                     <div class="card-body">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-10">
-                                <label class="form-label" for="services_select">{{ __('Service') }}</label>
-                                <select id="services_select" class="form-select">
-                                    <option value="">{{ __('Search and select...') }}</option>
-                                    @foreach ($services as $s)
-                                        <option value="{{ $s->name }}">{{ $s->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-2 d-grid">
-                                <button type="button" class="btn btn-primary" id="addSelectedServiceBtn">
-                                    <i class="bi bi-plus-circle me-1"></i>
-                                    {{ __('Add') }}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="form-text mt-2">{{ __('Selected services will be added to the items table as type Service.') }}</div>
+                        <div id="deviceServicesSelects" class="row g-2"></div>
+
+                        <select id="services_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
+                            <option value="">{{ __('Search and select...') }}</option>
+                            @foreach ($services as $s)
+                                <option value="{{ $s->name }}">{{ $s->name }}</option>
+                            @endforeach
+                        </select>
 
                         <div class="table-responsive mt-3">
                             <table class="table table-sm align-middle mb-0" id="servicesTable">
@@ -826,14 +822,20 @@
 
     var devicePartsSelects = document.getElementById('devicePartsSelects');
 
+    var deviceServicesSelects = document.getElementById('deviceServicesSelects');
+
     var servicesSelect = document.getElementById('services_select');
-    var addSelectedServiceBtn = document.getElementById('addSelectedServiceBtn');
     var addServiceLineBtn = document.getElementById('addServiceLineBtn');
     var addOtherItemLineBtn = document.getElementById('addOtherItemLineBtn');
 
     var partRows = [];
     var serviceRows = [];
     var otherRows = [];
+
+    function newRowId(prefix) {
+        var p = (prefix || 'row');
+        return p + '-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
 
     function ensureOtherEmptyState() {
         if (!otherItemsTable) return;
@@ -939,9 +941,103 @@
         });
     }
 
+    function initDeviceServicesSelect2(selectEl, placeholderText) {
+        if (!selectEl) return;
+        if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
+            return;
+        }
+        var $sel = window.jQuery(selectEl);
+        if ($sel.hasClass('select2-hidden-accessible')) {
+            return;
+        }
+        $sel.select2({
+            width: '100%',
+            theme: 'bootstrap-5',
+            placeholder: placeholderText || 'Search and select...',
+            allowClear: true
+        });
+    }
+
+    function renderDeviceServicesSelects() {
+        if (!deviceServicesSelects) return;
+        var devices = getSelectedDeviceLabels();
+        deviceServicesSelects.innerHTML = '';
+
+        if (devices.length === 0) {
+            return;
+        }
+
+        var optionsHtml = cloneServicesOptionsHtml();
+
+        devices.forEach(function (d) {
+            var col = document.createElement('div');
+            col.className = 'col-md-6';
+
+            var label = document.createElement('label');
+            label.className = 'form-label';
+            label.textContent = 'Service for ' + d.label;
+
+            var sel = document.createElement('select');
+            sel.className = 'form-select js-device-service-select';
+            sel.dataset.deviceId = d.deviceId;
+            sel.dataset.deviceLabel = d.label;
+            sel.innerHTML = optionsHtml;
+
+            col.appendChild(label);
+            col.appendChild(sel);
+            deviceServicesSelects.appendChild(col);
+
+            initDeviceServicesSelect2(sel, 'Select services for ' + d.label);
+
+            function handleServiceSelected() {
+                var serviceName = '';
+                if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+                    serviceName = window.jQuery(sel).val() || '';
+                } else {
+                    serviceName = sel.value || '';
+                }
+                if (serviceName === '') return;
+
+                var deviceIdForRow = d.deviceId ? String(d.deviceId) : '';
+
+                serviceRows.push({
+                    id: newRowId('service'),
+                    name: serviceName,
+                    code: '',
+                    device_id: deviceIdForRow,
+                    device: d.label,
+                    qty: '1',
+                    price: '0'
+                });
+                renderServiceRows();
+
+                if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+                    window.jQuery(sel).val(null).trigger('change');
+                } else {
+                    sel.value = '';
+                }
+            }
+
+            if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+                window.jQuery(sel)
+                    .off('change.rbDeviceService')
+                    .on('change.rbDeviceService', handleServiceSelected)
+                    .off('select2:select.rbDeviceService')
+                    .on('select2:select.rbDeviceService', handleServiceSelected);
+            } else {
+                sel.addEventListener('change', handleServiceSelected);
+            }
+        });
+    }
+
     function clonePartsOptionsHtml() {
         if (!partsSelect) return '';
         return partsSelect.innerHTML || '';
+    }
+
+    function cloneServicesOptionsHtml() {
+        if (!servicesSelect) return '';
+        return servicesSelect.innerHTML || '';
     }
 
     function getSelectedDeviceLabels() {
@@ -950,6 +1046,9 @@
         var labels = [];
         devicesTable.querySelectorAll('tbody tr:not(.devices-empty-row)').forEach(function (tr) {
             var deviceId = tr.querySelector('input[name="job_device_customer_device_id[]"]')?.value || '';
+            if (!deviceId) {
+                deviceId = tr.querySelector('.device-label')?.dataset?.value || '';
+            }
             if (!deviceId) return;
             var label = (typeof deviceLabelMap !== 'undefined' && deviceLabelMap && deviceLabelMap[deviceId]) ? deviceLabelMap[deviceId] : (tr.querySelector('.device-label')?.textContent || '');
             label = (label || '').trim();
@@ -959,6 +1058,93 @@
             labels.push({ deviceId: deviceId, label: label });
         });
         return labels;
+    }
+
+    function buildDeviceOptionsHtml(selectedDeviceId) {
+        var devices = getSelectedDeviceLabels();
+        if (!Array.isArray(devices) || devices.length === 0) {
+            return '<option value="">—</option>';
+        }
+
+        var selId = selectedDeviceId ? String(selectedDeviceId) : '';
+        return devices
+            .map(function (d) {
+                var id = String(d.deviceId || '');
+                var label = String(d.label || '');
+                var selected = selId !== '' && id === selId ? ' selected' : '';
+                return '<option value="' + id.replace(/"/g, '&quot;') + '"' + selected + '>' + label + '</option>';
+            })
+            .join('');
+    }
+
+    function buildDeviceOptionsHtmlAllowBlank(selectedDeviceId) {
+        var devices = getSelectedDeviceLabels();
+        var selId = selectedDeviceId ? String(selectedDeviceId) : '';
+        var options = ['<option value=""' + (selId === '' ? ' selected' : '') + '>—</option>'];
+
+        if (!Array.isArray(devices) || devices.length === 0) {
+            return options.join('');
+        }
+
+        devices.forEach(function (d) {
+            var id = String(d.deviceId || '');
+            var label = String(d.label || '');
+            var selected = selId !== '' && id === selId ? ' selected' : '';
+            options.push('<option value="' + id.replace(/"/g, '&quot;') + '"' + selected + '>' + label + '</option>');
+        });
+
+        return options.join('');
+    }
+
+    function initRowDeviceSelect2(selectEl) {
+        if (!selectEl) return;
+        if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
+            return;
+        }
+        var $sel = window.jQuery(selectEl);
+        if ($sel.hasClass('select2-hidden-accessible')) {
+            return;
+        }
+        $sel.select2({
+            width: '100%',
+            theme: 'bootstrap-5',
+            placeholder: 'Select device...',
+            allowClear: true
+        });
+    }
+
+    function refreshRowDeviceSelectOptions(rootEl) {
+        if (!rootEl) return;
+        rootEl.querySelectorAll('select.js-part-device, select.js-service-device, select.js-other-device').forEach(function (sel) {
+            var current = sel.value || '';
+            var nextOptionsHtml = buildDeviceOptionsHtml(current);
+
+            if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+                var $sel = window.jQuery(sel);
+
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    try {
+                        $sel.select2('destroy');
+                    } catch (e) {
+                    }
+                }
+
+                sel.innerHTML = nextOptionsHtml;
+                if (current) {
+                    sel.value = current;
+                }
+                initRowDeviceSelect2(sel);
+
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    $sel.trigger('change');
+                }
+            } else {
+                sel.innerHTML = nextOptionsHtml;
+                if (current) {
+                    sel.value = current;
+                }
+            }
+        });
     }
 
     function renderDevicePartsSelects() {
@@ -994,18 +1180,21 @@
 
             function handlePartSelected() {
                 var partName = '';
-                if (window.jQuery) {
+                if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
                     partName = window.jQuery(sel).val() || '';
                 } else {
                     partName = sel.value || '';
                 }
                 if (partName === '') return;
 
+                var deviceIdForRow = d.deviceId ? String(d.deviceId) : '';
+
                 partRows.push({
                     id: newRowId('part'),
                     name: partName,
                     code: '',
                     capacity: '',
+                    device_id: deviceIdForRow,
                     device: d.label,
                     qty: '1',
                     price: '0'
@@ -1013,9 +1202,7 @@
                 renderPartRows();
 
                 if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
-                    window.jQuery(sel).off('change.rbDevicePart');
-                    window.jQuery(sel).val('').trigger('change');
-                    window.jQuery(sel).on('change.rbDevicePart', handlePartSelected);
+                    window.jQuery(sel).val(null).trigger('change');
                 } else {
                     sel.value = '';
                 }
@@ -1039,6 +1226,7 @@
                 id: newRowId('other'),
                 name: '',
                 code: '',
+                device_id: '',
                 device: '',
                 qty: '1',
                 price: '0'
@@ -1223,9 +1411,9 @@
             var tr = document.createElement('tr');
             tr.dataset.rowId = row.id;
             tr.innerHTML = ''
-                + '<td><input type="text" class="form-control form-control-sm js-service-name" value="" /></td>'
-                + '<td><input type="text" class="form-control form-control-sm js-service-code" value="" /></td>'
-                + '<td><input type="text" class="form-control form-control-sm js-service-device" value="" /></td>'
+                + '<td class="js-service-name"></td>'
+                + '<td class="js-service-code"></td>'
+                + '<td><select class="form-select form-select-sm js-service-device" aria-label="Device">' + buildDeviceOptionsHtml(row.device_id) + '</select></td>'
                 + '<td class="text-end"><input type="number" min="0" class="form-control form-control-sm text-end js-service-qty" value="0" /></td>'
                 + '<td class="text-end"><input type="number" min="0" class="form-control form-control-sm text-end js-service-price" value="0" /></td>'
                 + '<td class="service-total text-end"></td>'
@@ -1233,9 +1421,20 @@
                 + '  <button type="button" class="btn btn-outline-danger btn-sm removeService" aria-label="Remove"><i class="bi bi-trash"></i></button>'
                 + '</td>';
 
-            tr.querySelector('.js-service-name').value = row.name || '';
-            tr.querySelector('.js-service-code').value = row.code || '';
-            tr.querySelector('.js-service-device').value = row.device || '';
+            tr.querySelector('.js-service-name').textContent = row.name || '';
+            tr.querySelector('.js-service-code').textContent = row.code || '';
+            var devSel = tr.querySelector('.js-service-device');
+            if (devSel) {
+                var current = row.device_id ? String(row.device_id) : '';
+                if (current !== '') {
+                    devSel.value = current;
+                } else {
+                    var opt0 = devSel.querySelector('option');
+                    if (opt0) {
+                        devSel.value = opt0.value;
+                    }
+                }
+            }
             tr.querySelector('.js-service-qty').value = normalizeQty(row.qty);
             tr.querySelector('.js-service-price').value = formatCents(row.price);
             tr.querySelector('.service-total').textContent = calcTotalCents(row.qty, row.price);
@@ -1255,10 +1454,10 @@
             var tr = document.createElement('tr');
             tr.dataset.rowId = row.id;
             tr.innerHTML = ''
-                + '<td><input type="text" class="form-control form-control-sm js-part-name" value="" /></td>'
-                + '<td><input type="text" class="form-control form-control-sm js-part-code" value="" /></td>'
-                + '<td><input type="text" class="form-control form-control-sm js-part-capacity" value="" /></td>'
-                + '<td><input type="text" class="form-control form-control-sm js-part-device" value="" /></td>'
+                + '<td class="js-part-name"></td>'
+                + '<td class="js-part-code"></td>'
+                + '<td class="js-part-capacity"></td>'
+                + '<td><select class="form-select form-select-sm js-part-device" aria-label="Device">' + buildDeviceOptionsHtml(row.device_id) + '</select></td>'
                 + '<td class="text-end"><input type="number" min="0" class="form-control form-control-sm text-end js-part-qty" value="0" /></td>'
                 + '<td class="text-end"><input type="number" min="0" class="form-control form-control-sm text-end js-part-price" value="0" /></td>'
                 + '<td class="part-total text-end"></td>'
@@ -1266,10 +1465,21 @@
                 + '  <button type="button" class="btn btn-outline-danger btn-sm removePart" aria-label="Remove"><i class="bi bi-trash"></i></button>'
                 + '</td>';
 
-            tr.querySelector('.js-part-name').value = row.name || '';
-            tr.querySelector('.js-part-code').value = row.code || '';
-            tr.querySelector('.js-part-capacity').value = row.capacity || '';
-            tr.querySelector('.js-part-device').value = row.device || '';
+            tr.querySelector('.js-part-name').textContent = row.name || '';
+            tr.querySelector('.js-part-code').textContent = row.code || '';
+            tr.querySelector('.js-part-capacity').textContent = row.capacity || '';
+            var devSel = tr.querySelector('.js-part-device');
+            if (devSel) {
+                var current = row.device_id ? String(row.device_id) : '';
+                if (current !== '') {
+                    devSel.value = current;
+                } else {
+                    var opt0 = devSel.querySelector('option');
+                    if (opt0) {
+                        devSel.value = opt0.value;
+                    }
+                }
+            }
             tr.querySelector('.js-part-qty').value = normalizeQty(row.qty);
             tr.querySelector('.js-part-price').value = formatCents(row.price);
             tr.querySelector('.part-total').textContent = calcTotalCents(row.qty, row.price);
@@ -1284,7 +1494,14 @@
         devicesTableForParts.addEventListener('click', function (e) {
             var rmBtn = e.target.closest('.removeDeviceLine');
             if (rmBtn) {
-                setTimeout(renderDevicePartsSelects, 0);
+                setTimeout(function () {
+                    renderDevicePartsSelects();
+                    renderDeviceServicesSelects();
+                    renderPartRows();
+                    renderServiceRows();
+                    renderOtherRows();
+                    refreshRowDeviceSelectOptions(document);
+                }, 0);
             }
         });
     }
@@ -1301,7 +1518,7 @@
             tr.innerHTML = ''
                 + '<td><input type="text" class="form-control form-control-sm js-other-name" value="" /></td>'
                 + '<td><input type="text" class="form-control form-control-sm js-other-code" value="" /></td>'
-                + '<td><input type="text" class="form-control form-control-sm js-other-device" value="" /></td>'
+                + '<td><select class="form-select form-select-sm js-other-device" aria-label="Device">' + buildDeviceOptionsHtmlAllowBlank(row.device_id) + '</select></td>'
                 + '<td class="text-end"><input type="number" min="0" class="form-control form-control-sm text-end js-other-qty" value="0" /></td>'
                 + '<td class="text-end"><input type="number" min="0" class="form-control form-control-sm text-end js-other-price" value="0" /></td>'
                 + '<td class="other-total text-end"></td>'
@@ -1311,7 +1528,12 @@
 
             tr.querySelector('.js-other-name').value = row.name || '';
             tr.querySelector('.js-other-code').value = row.code || '';
-            tr.querySelector('.js-other-device').value = row.device || '';
+            var devSel = tr.querySelector('.js-other-device');
+            if (devSel) {
+                var current = row.device_id ? String(row.device_id) : '';
+                devSel.value = current;
+                initRowDeviceSelect2(devSel);
+            }
             tr.querySelector('.js-other-qty').value = normalizeQty(row.qty);
             tr.querySelector('.js-other-price').value = formatCents(row.price);
             tr.querySelector('.other-total').textContent = calcTotalCents(row.qty, row.price);
@@ -1323,26 +1545,9 @@
 
     if (addServiceLineBtn) {
         addServiceLineBtn.addEventListener('click', function () {
-            if (addSelectedServiceBtn) {
-                addSelectedServiceBtn.click();
-            }
-        });
-    }
-
-    if (addSelectedServiceBtn) {
-        addSelectedServiceBtn.addEventListener('click', function () {
-            var val = servicesSelect.value || '';
-            if (val === '') {
-                return;
-            }
-
-            serviceRows.push({ id: newRowId('service'), name: val, qty: '1', price: '0' });
-            renderServiceRows();
-
-            if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
-                window.jQuery(servicesSelect).val('').trigger('change');
-            } else {
-                servicesSelect.value = '';
+            var first = deviceServicesSelects ? deviceServicesSelects.querySelector('select.js-device-service-select') : null;
+            if (first) {
+                first.focus();
             }
         });
     }
@@ -1356,10 +1561,17 @@
             var row = partRows.find(function (r) { return r.id === rowId; });
             if (!row) return;
 
-            row.name = tr.querySelector('.js-part-name')?.value || '';
-            row.code = tr.querySelector('.js-part-code')?.value || '';
-            row.capacity = tr.querySelector('.js-part-capacity')?.value || '';
-            row.device = tr.querySelector('.js-part-device')?.value || '';
+            var devSel = tr.querySelector('.js-part-device');
+            if (devSel) {
+                var devId = devSel.value || '';
+                row.device_id = devId;
+                if (devId && typeof deviceLabelMap !== 'undefined' && deviceLabelMap && deviceLabelMap[devId]) {
+                    row.device = deviceLabelMap[devId];
+                } else {
+                    var opt = devSel.options && devSel.selectedIndex >= 0 ? devSel.options[devSel.selectedIndex] : null;
+                    row.device = opt ? (opt.textContent || '') : '';
+                }
+            }
             row.qty = normalizeQty(tr.querySelector('.js-part-qty')?.value || '0');
             row.price = formatCents(tr.querySelector('.js-part-price')?.value || '0');
 
@@ -1387,9 +1599,17 @@
             var row = serviceRows.find(function (r) { return r.id === rowId; });
             if (!row) return;
 
-            row.name = tr.querySelector('.js-service-name')?.value || '';
-            row.code = tr.querySelector('.js-service-code')?.value || '';
-            row.device = tr.querySelector('.js-service-device')?.value || '';
+            var devSel = tr.querySelector('.js-service-device');
+            if (devSel) {
+                var devId = devSel.value || '';
+                row.device_id = devId;
+                if (devId && typeof deviceLabelMap !== 'undefined' && deviceLabelMap && deviceLabelMap[devId]) {
+                    row.device = deviceLabelMap[devId];
+                } else {
+                    var opt = devSel.options && devSel.selectedIndex >= 0 ? devSel.options[devSel.selectedIndex] : null;
+                    row.device = opt ? (opt.textContent || '') : '';
+                }
+            }
             row.qty = normalizeQty(tr.querySelector('.js-service-qty')?.value || '0');
             row.price = formatCents(tr.querySelector('.js-service-price')?.value || '0');
 
@@ -1419,7 +1639,17 @@
 
             row.name = tr.querySelector('.js-other-name')?.value || '';
             row.code = tr.querySelector('.js-other-code')?.value || '';
-            row.device = tr.querySelector('.js-other-device')?.value || '';
+            var devSel = tr.querySelector('.js-other-device');
+            if (devSel) {
+                var devId = devSel.value || '';
+                row.device_id = devId;
+                if (devId && typeof deviceLabelMap !== 'undefined' && deviceLabelMap && deviceLabelMap[devId]) {
+                    row.device = deviceLabelMap[devId];
+                } else {
+                    var opt = devSel.options && devSel.selectedIndex >= 0 ? devSel.options[devSel.selectedIndex] : null;
+                    row.device = opt ? (opt.textContent || '') : '';
+                }
+            }
             row.qty = normalizeQty(tr.querySelector('.js-other-qty')?.value || '0');
             row.price = formatCents(tr.querySelector('.js-other-price')?.value || '0');
 
@@ -1443,6 +1673,7 @@
     renderOtherRows();
 
     renderDevicePartsSelects();
+    renderDeviceServicesSelects();
 
     var deviceAddBtn = document.getElementById('addDeviceLine');
     var devicesTable = document.getElementById('devicesTable');
@@ -1632,7 +1863,9 @@
         if (!tbody) return;
 
         var values = {
-            deviceId: deviceModalDevice ? deviceModalDevice.value : '',
+            deviceId: (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function' && deviceModalDevice)
+                ? (window.jQuery(deviceModalDevice).val() || '')
+                : (deviceModalDevice ? deviceModalDevice.value : ''),
             imei: deviceModalImei ? deviceModalImei.value : '',
             note: deviceModalNote ? deviceModalNote.value : '',
             password: deviceModalPassword ? deviceModalPassword.value : ''
@@ -1640,6 +1873,8 @@
 
         var targetRow = editingDeviceRow;
         if (!targetRow) {
+            var emptyRow = tbody.querySelector('.devices-empty-row');
+            if (emptyRow) emptyRow.remove();
             targetRow = buildDeviceRow(values);
             tbody.appendChild(targetRow);
             ensureDevicesEmptyState();
@@ -1656,6 +1891,11 @@
         editingDeviceRow = null;
         ensureDevicesEmptyState();
         renderDevicePartsSelects();
+        renderDeviceServicesSelects();
+        renderPartRows();
+        renderServiceRows();
+        renderOtherRows();
+        refreshRowDeviceSelectOptions(document);
         var m = ensureDeviceModal();
         if (m) m.hide();
     }
@@ -1687,6 +1927,11 @@
                     tr2.remove();
                     ensureDevicesEmptyState();
                     renderDevicePartsSelects();
+                    renderDeviceServicesSelects();
+                    renderPartRows();
+                    renderServiceRows();
+                    renderOtherRows();
+                    refreshRowDeviceSelectOptions(document);
                 }
             }
         });
@@ -1947,7 +2192,38 @@
         });
     }
 })();
-</script>
+
+@push('page-scripts')
+    <script>
+        (function () {
+            window.RBQuickCustomerModal = window.RBQuickCustomerModal || {};
+            window.RBQuickCustomerModal.createUrl = @json(route('tenant.operations.clients.store', ['business' => $tenantSlug]));
+            window.RBQuickCustomerModal.targetSelectId = 'customer_id';
+
+            window.RBQuickTechnicianModal = window.RBQuickTechnicianModal || {};
+            window.RBQuickTechnicianModal.createUrl = @json(route('tenant.technicians.store', ['business' => $tenantSlug]));
+            window.RBQuickTechnicianModal.targetSelectId = 'technician_ids';
+
+            var openBtn = document.getElementById('rb_open_quick_customer');
+            if (openBtn) {
+                openBtn.addEventListener('click', function () {
+                    if (window.RBQuickCustomerModal && typeof window.RBQuickCustomerModal.open === 'function') {
+                        window.RBQuickCustomerModal.open({});
+                    }
+                });
+            }
+
+            var openTechBtn = document.getElementById('rb_open_quick_technician');
+            if (openTechBtn) {
+                openTechBtn.addEventListener('click', function () {
+                    if (window.RBQuickTechnicianModal && typeof window.RBQuickTechnicianModal.open === 'function') {
+                        window.RBQuickTechnicianModal.open({});
+                    }
+                });
+            }
+        })();
+    </script>
+@endpush
 
 @push('page-scripts')
     <script>
