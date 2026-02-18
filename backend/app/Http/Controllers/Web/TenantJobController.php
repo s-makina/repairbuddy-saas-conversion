@@ -503,6 +503,8 @@ class TenantJobController extends Controller
             'item_qty.*' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9999'],
             'item_unit_price_cents' => ['sometimes', 'array'],
             'item_unit_price_cents.*' => ['sometimes', 'nullable', 'integer', 'min:-1000000000', 'max:1000000000'],
+            'item_meta_json' => ['sometimes', 'array'],
+            'item_meta_json.*' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
 
         DB::transaction(function () use ($validated, $job, $tenant, $user) {
@@ -635,8 +637,9 @@ class TenantJobController extends Controller
             $names = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
             $qtys = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
             $prices = is_array($validated['item_unit_price_cents'] ?? null) ? $validated['item_unit_price_cents'] : [];
+            $metas = is_array($validated['item_meta_json'] ?? null) ? $validated['item_meta_json'] : [];
 
-            $max = max(count($types), count($names), count($qtys), count($prices));
+            $max = max(count($types), count($names), count($qtys), count($prices), count($metas));
             for ($i = 0; $i < $max; $i++) {
                 $t = is_string($types[$i] ?? null) ? trim((string) $types[$i]) : '';
                 $n = is_string($names[$i] ?? null) ? trim((string) $names[$i]) : '';
@@ -650,6 +653,15 @@ class TenantJobController extends Controller
                 $q = is_numeric($qtys[$i] ?? null) ? (int) $qtys[$i] : 1;
                 $p = is_numeric($prices[$i] ?? null) ? (int) $prices[$i] : 0;
 
+                $metaDecoded = null;
+                $rawMeta = is_string($metas[$i] ?? null) ? trim((string) $metas[$i]) : '';
+                if ($rawMeta !== '') {
+                    $maybe = json_decode($rawMeta, true);
+                    if (is_array($maybe)) {
+                        $metaDecoded = $maybe;
+                    }
+                }
+
                 RepairBuddyJobItem::query()->create([
                     'job_id' => $job->id,
                     'item_type' => $t,
@@ -659,7 +671,7 @@ class TenantJobController extends Controller
                     'unit_price_amount_cents' => $p,
                     'unit_price_currency' => is_string($tenant->currency ?? null) ? (string) $tenant->currency : null,
                     'tax_id' => null,
-                    'meta_json' => null,
+                    'meta_json' => $metaDecoded,
                 ]);
             }
 
@@ -1106,6 +1118,7 @@ class TenantJobController extends Controller
             ->get();
 
         $devices = RepairBuddyJobDevice::query()
+            ->with(['customerDevice.device.brand', 'customerDevice.device.type'])
             ->where('job_id', $job->id)
             ->orderBy('id', 'desc')
             ->get();

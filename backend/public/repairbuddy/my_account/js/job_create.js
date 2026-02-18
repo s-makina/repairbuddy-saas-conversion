@@ -1188,7 +1188,7 @@
 
     function clearExistingHiddenItems() {
         if (!formEl) return;
-        formEl.querySelectorAll('input[name="item_type[]"], input[name="item_name[]"], input[name="item_qty[]"], input[name="item_unit_price_cents[]"]').forEach(function (el) {
+        formEl.querySelectorAll('input[name="item_type[]"], input[name="item_name[]"], input[name="item_qty[]"], input[name="item_unit_price_cents[]"], input[name="item_meta_json[]"]').forEach(function (el) {
             el.remove();
         });
     }
@@ -1212,10 +1212,18 @@
             var price = parseInt(r && r.price != null ? String(r.price) : '0', 10);
             if (!Number.isFinite(price)) price = 0;
 
+            var meta = {
+                code: r && r.code != null ? String(r.code) : '',
+                capacity: r && r.capacity != null ? String(r.capacity) : '',
+                device_id: r && r.device_id != null ? String(r.device_id) : '',
+                device_label: r && r.device != null ? String(r.device) : ''
+            };
+
             appendHidden('item_type[]', String(type));
             appendHidden('item_name[]', name);
             appendHidden('item_qty[]', String(qty));
             appendHidden('item_unit_price_cents[]', String(price));
+            appendHidden('item_meta_json[]', JSON.stringify(meta));
         });
     }
 

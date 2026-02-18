@@ -128,18 +128,18 @@
 @endpush
 
 <main class="dashboard-content container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <h3 class="mb-1">{{ $isEdit ? __('Edit Job') : __('Create Job') }}</h3>
-            <div class="text-muted">{{ $isEdit ? __('Update job details.') : __('Enter job details and create a new job.') }}</div>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i>
-                {{ __('Back') }}
+    <x-ui.page-hero
+        :back-href="route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs'"
+        icon-class="bi bi-briefcase-fill"
+        :title="e($isEdit ? __('Edit Job') : __('Create Job'))"
+        :subtitle="e($isEdit ? __('Update job details.') : __('Enter job details and create a new job.'))"
+    >
+        <x-slot:actions>
+            <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn btn-save-review">
+                <i class="bi bi-check2-circle me-2"></i>{{ __('Back to List') }}
             </a>
-        </div>
-    </div>
+        </x-slot:actions>
+    </x-ui.page-hero>
 
     @include('tenant.partials.quick_create_customer_modal')
     @include('tenant.partials.quick_create_technician_modal')
@@ -854,6 +854,7 @@
                 'name_snapshot' => $it->name_snapshot,
                 'qty' => $it->qty,
                 'unit_price_amount_cents' => $it->unit_price_amount_cents,
+                'meta_json' => $it->meta_json,
             ])
             ->values()
             ->all();
@@ -865,13 +866,14 @@
 
     foreach ($seedItems as $it) {
         $type = (string) ($it['item_type'] ?? '');
+        $meta = is_array($it['meta_json'] ?? null) ? (array) $it['meta_json'] : [];
         $row = [
             'id' => uniqid($type . '-', true),
             'name' => (string) ($it['name_snapshot'] ?? ''),
-            'code' => '',
-            'capacity' => '',
-            'device_id' => '',
-            'device' => '',
+            'code' => is_string($meta['code'] ?? null) ? (string) $meta['code'] : '',
+            'capacity' => is_string($meta['capacity'] ?? null) ? (string) $meta['capacity'] : '',
+            'device_id' => is_string($meta['device_id'] ?? null) ? (string) $meta['device_id'] : '',
+            'device' => is_string($meta['device_label'] ?? null) ? (string) $meta['device_label'] : '',
             'qty' => (string) ((int) ($it['qty'] ?? 1)),
             'price' => (string) ((int) ($it['unit_price_amount_cents'] ?? 0)),
         ];

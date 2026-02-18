@@ -283,33 +283,74 @@
         .bg-danger { background-color: #EF4444 !important; }
         .border-primary { border-color: var(--rb-primary) !important; }
         .border-danger { border-color: #EF4444 !important; }
+
+        .rb-device-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 14px;
+            padding: 0.9rem;
+            background: rgba(248, 250, 252, 0.85);
+        }
+        .rb-device-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .rb-device-title {
+            font-weight: 800;
+            color: var(--rb-text-dark);
+            line-height: 1.2;
+        }
+        .rb-device-subtitle {
+            color: var(--rb-text-muted);
+            font-size: 0.82rem;
+            margin-top: 0.15rem;
+        }
+        .rb-device-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+            margin-top: 0.85rem;
+        }
+        .rb-device-meta .rb-kv-value {
+            font-size: 0.88rem;
+        }
+        .rb-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.18);
+            color: var(--rb-primary-dark);
+            font-weight: 800;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+        .rb-table-compact td,
+        .rb-table-compact th {
+            padding-top: 0.55rem;
+            padding-bottom: 0.55rem;
+            vertical-align: top;
+        }
     </style>
 @endpush
 
 <main class="dashboard-content container-fluid py-4">
-    <div class="hero-header shadow-sm">
-        <div class="d-flex align-items-center gap-4">
-            <a href="{{ route('tenant.dashboard', ['business' => $tenant?->slug]) . '?screen=jobs' }}" class="btn btn-export p-2">
-                <i class="bi bi-chevron-left"></i>
-            </a>
-            <div class="hero-icon">
-                <i class="bi bi-person-fill text-white"></i>
-            </div>
-            <div class="hero-title">
-                <h2 class="mb-0"><span>{{ __('Job Review') }}:</span> {{ $job?->title ?? __('No Title') }}</h2>
-                <div class="subtitle">
-                    #{{ $job?->case_number ?? 'N/A' }} • 
-                    @if (! empty($job?->status_slug))
-                        {{ strtoupper($job->status_slug) }}
-                    @else
-                        N/A
-                    @endif
-                    <i class="bi bi-pencil-square ms-2 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex align-items-center gap-3">
+    @php
+        $rbTopbarTitle = '<span>' . e(__('Job Review')) . ':</span> ' . e($job?->title ?? __('No Title'));
+        $rbStatusText = ! empty($job?->status_slug) ? strtoupper((string) $job->status_slug) : 'N/A';
+        $rbTopbarSubtitle = '#' . e($job?->case_number ?? 'N/A') . ' • ' . e($rbStatusText) . ' <i class="bi bi-pencil-square ms-2 opacity-50"></i>';
+        $rbBackHref = route('tenant.dashboard', ['business' => $tenant?->slug]) . '?screen=jobs';
+    @endphp
+    <x-ui.page-hero
+        :back-href="$rbBackHref"
+        icon-class="bi bi-person-fill"
+        :title="$rbTopbarTitle"
+        :subtitle="$rbTopbarSubtitle"
+    >
+        <x-slot:actions>
             <div class="d-none d-md-flex gap-2">
                 <button type="button" class="btn btn-export" disabled>
                     <i class="bi bi-download me-2"></i>{{ __('Export Job') }}
@@ -326,8 +367,8 @@
             <a href="{{ route('tenant.dashboard', ['business' => $tenant?->slug]) . '?screen=jobs' }}" class="btn btn-save-review">
                 <i class="bi bi-check2-circle me-2"></i>{{ __('Back to List') }}
             </a>
-        </div>
-    </div>
+        </x-slot:actions>
+    </x-ui.page-hero>
 
     <div class="row g-4">
         <!-- Column 1: Customer Details -->
@@ -515,16 +556,103 @@
                 <div class="card-body">
                     @if (count($jobDevices) > 0)
                         @foreach ($jobDevices as $d)
-                            <div class="p-2 rounded bg-light bg-opacity-50 border border-light mb-2">
-                                <div class="fw-semibold">{{ $d->label_snapshot ?? __('Device') }}</div>
-                                @if (! empty($d?->serial_snapshot))
-                                    <div class="text-muted small">{{ __('Serial') }}: {{ $d->serial_snapshot }}</div>
-                                @endif
-                                @if (! empty($d?->pin_snapshot))
-                                    <div class="text-muted small">{{ __('PIN') }}: {{ $d->pin_snapshot }}</div>
-                                @endif
+                            @php
+                                $cd = $d?->customerDevice;
+                                $master = $cd?->device;
+                                $brand = $master?->brand?->name;
+                                $type = $master?->type?->name;
+                                $model = $master?->model;
+
+                                $deviceLineParts = [];
+                                if (is_string($brand) && trim($brand) !== '') {
+                                    $deviceLineParts[] = trim($brand);
+                                }
+                                if (is_string($model) && trim($model) !== '') {
+                                    $deviceLineParts[] = trim($model);
+                                }
+                                if (is_string($type) && trim($type) !== '') {
+                                    $deviceLineParts[] = trim($type);
+                                }
+                                $deviceLine = implode(' • ', $deviceLineParts);
+
+                                $extraFields = is_array($d?->extra_fields_snapshot_json) ? (array) $d->extra_fields_snapshot_json : [];
+                                $portalExtra = [];
+                                foreach ($extraFields as $f) {
+                                    if (! is_array($f)) {
+                                        continue;
+                                    }
+                                    $showInPortal = (bool) ($f['show_in_portal'] ?? false);
+                                    $val = is_string($f['value_text'] ?? null) ? trim((string) $f['value_text']) : '';
+                                    if (! $showInPortal || $val === '') {
+                                        continue;
+                                    }
+                                    $portalExtra[] = $f;
+                                }
+                            @endphp
+
+                            <div class="rb-device-card mb-3">
+                                <div class="rb-device-top">
+                                    <div class="flex-grow-1">
+                                        <div class="rb-device-title">{{ $d->label_snapshot ?? __('Device') }}</div>
+                                        @if ($deviceLine !== '')
+                                            <div class="rb-device-subtitle">{{ $deviceLine }}</div>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <span class="rb-chip"><i class="bi bi-hdd-network"></i>{{ __('Device') }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="rb-device-meta">
+                                    <div class="rb-kv">
+                                        <i class="bi bi-upc-scan"></i>
+                                        <div>
+                                            <div class="rb-kv-label">{{ __('Serial') }}</div>
+                                            <div class="rb-kv-value">{{ ! empty($d?->serial_snapshot) ? $d->serial_snapshot : '—' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="rb-kv">
+                                        <i class="bi bi-key"></i>
+                                        <div>
+                                            <div class="rb-kv-label">{{ __('PIN') }}</div>
+                                            <div class="rb-kv-value">{{ ! empty($d?->pin_snapshot) ? $d->pin_snapshot : '—' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 @if (! empty($d?->notes_snapshot))
-                                    <div class="text-muted small" style="white-space: pre-wrap; line-height: 1.35;">{{ $d->notes_snapshot }}</div>
+                                    <div class="mt-3">
+                                        <div class="rb-kv">
+                                            <i class="bi bi-journal-text"></i>
+                                            <div>
+                                                <div class="rb-kv-label">{{ __('Notes') }}</div>
+                                                <div class="rb-kv-value" style="white-space: pre-wrap; line-height: 1.35;">{{ $d->notes_snapshot }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if (count($portalExtra) > 0)
+                                    <div class="mt-3">
+                                        <div class="detail-label mb-2">{{ __('Device Details') }}</div>
+                                        <div class="row g-2">
+                                            @foreach ($portalExtra as $f)
+                                                @php
+                                                    $label = is_string($f['label'] ?? null) ? trim((string) $f['label']) : '';
+                                                    $label = $label !== '' ? $label : (is_string($f['key'] ?? null) ? (string) $f['key'] : '');
+                                                    $val = is_string($f['value_text'] ?? null) ? trim((string) $f['value_text']) : '';
+                                                @endphp
+                                                @if ($label !== '' && $val !== '')
+                                                    <div class="col-md-6">
+                                                        <div class="p-2 rounded border bg-white">
+                                                            <div class="detail-label mb-0">{{ $label }}</div>
+                                                            <div class="detail-value">{{ $val }}</div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         @endforeach
@@ -655,15 +783,40 @@
                     @if ($partItems->count() === 0)
                         <p class="text-muted small mb-0">{{ __('No parts recorded') }}</p>
                     @else
-                        @foreach ($partItems as $it)
-                            <div class="d-flex justify-content-between align-items-start py-2 border-bottom">
-                                <div class="pe-2">
-                                    <div class="fw-semibold">{{ $it->name_snapshot }}</div>
-                                    <div class="text-muted small">{{ __('Qty') }}: {{ $it->qty ?? 1 }} • {{ __('Unit') }}: {{ $formatMoney($it->unit_price_amount_cents) }} {{ $currency }}</div>
-                                </div>
-                                <div class="text-end fw-semibold">{{ $formatMoney($lineTotalCents($it)) }} {{ $currency }}</div>
-                            </div>
-                        @endforeach
+                        <div class="table-responsive">
+                            <table class="table table-sm rb-table-compact mb-0">
+                                <thead class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em;">
+                                    <tr>
+                                        <th style="min-width: 180px;">{{ __('Part') }}</th>
+                                        <th class="text-end" style="width: 90px;">{{ __('Qty') }}</th>
+                                        <th class="text-end" style="width: 140px;">{{ __('Unit') }}</th>
+                                        <th class="text-end" style="width: 160px;">{{ __('Line Total') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($partItems as $it)
+                                        @php
+                                            $qty = is_numeric($it->qty ?? null) ? (int) $it->qty : 1;
+                                            $unit = $formatMoney($it->unit_price_amount_cents);
+                                            $line = $formatMoney($lineTotalCents($it));
+                                            $meta = is_array($it->meta_json ?? null) ? (array) $it->meta_json : [];
+                                            $sku = is_string($meta['sku'] ?? null) ? trim((string) $meta['sku']) : '';
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">{{ $it->name_snapshot }}</div>
+                                                @if ($sku !== '')
+                                                    <div class="text-muted small">{{ __('SKU') }}: {{ $sku }}</div>
+                                                @endif
+                                            </td>
+                                            <td class="text-end fw-semibold">{{ $qty }}</td>
+                                            <td class="text-end">{{ $unit }} {{ $currency }}</td>
+                                            <td class="text-end fw-semibold">{{ $line }} {{ $currency }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     @endif
                 </div>
             </div>
