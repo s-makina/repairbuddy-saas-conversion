@@ -2,7 +2,10 @@
     const config = window.RBJobCreateConfig || {
         enablePinCodeField: false,
         deviceLabelMap: {},
-        translations: {}
+        translations: {},
+        initialPartRows: [],
+        initialServiceRows: [],
+        initialOtherRows: []
     };
 
     var partsTable = document.getElementById('partsTable');
@@ -19,9 +22,36 @@
     var serviceRows = [];
     var otherRows = [];
 
+    var formEl = document.getElementById('jobForm');
+    if (!formEl) {
+        // Fallback: pick the first POST form that looks like the job create/edit form.
+        formEl = document.querySelector('form[method="POST"][enctype="multipart/form-data"]');
+    }
+
     function newRowId(prefix) {
         var p = (prefix || 'row');
         return p + '-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
+
+    function normalizeSeedRows(seed) {
+        if (!Array.isArray(seed)) return [];
+        return seed
+            .map(function (r) {
+                if (!r) return null;
+                return {
+                    id: r.id || newRowId('seed'),
+                    name: r.name || '',
+                    code: r.code || '',
+                    capacity: r.capacity || '',
+                    device_id: r.device_id || '',
+                    device: r.device || '',
+                    qty: r.qty != null ? String(r.qty) : '1',
+                    price: r.price != null ? String(r.price) : '0'
+                };
+            })
+            .filter(function (r) {
+                return r && String(r.name || '').trim() !== '';
+            });
     }
 
     function ensureOtherEmptyState() {
@@ -1144,6 +1174,10 @@
     }
 
     // Run Initial Renders
+    partRows = normalizeSeedRows(config.initialPartRows);
+    serviceRows = normalizeSeedRows(config.initialServiceRows);
+    otherRows = normalizeSeedRows(config.initialOtherRows);
+
     ensureDevicesEmptyState();
     renderPartRows();
     renderServiceRows();
@@ -1151,5 +1185,54 @@
     renderDevicePartsSelects();
     renderDeviceServicesSelects();
     initSelect2();
+
+    function clearExistingHiddenItems() {
+        if (!formEl) return;
+        formEl.querySelectorAll('input[name="item_type[]"], input[name="item_name[]"], input[name="item_qty[]"], input[name="item_unit_price_cents[]"]').forEach(function (el) {
+            el.remove();
+        });
+    }
+
+    function appendHidden(name, value) {
+        if (!formEl) return;
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value != null ? String(value) : '';
+        formEl.appendChild(input);
+    }
+
+    function serializeRowArray(type, rows) {
+        if (!Array.isArray(rows)) return;
+        rows.forEach(function (r) {
+            var name = String(r && r.name ? r.name : '').trim();
+            if (name === '') return;
+            var qty = parseInt(r && r.qty != null ? String(r.qty) : '1', 10);
+            if (!Number.isFinite(qty) || qty < 1) qty = 1;
+            var price = parseInt(r && r.price != null ? String(r.price) : '0', 10);
+            if (!Number.isFinite(price)) price = 0;
+
+            appendHidden('item_type[]', String(type));
+            appendHidden('item_name[]', name);
+            appendHidden('item_qty[]', String(qty));
+            appendHidden('item_unit_price_cents[]', String(price));
+        });
+    }
+
+    if (formEl) {
+        formEl.addEventListener('submit', function () {
+            try {
+                clearExistingHiddenItems();
+                serializeRowArray('part', partRows);
+                serializeRowArray('service', serviceRows);
+                serializeRowArray('fee', otherRows);
+            } catch (e) {
+                // Never block submit because of serialization issues
+                if (window && window.console && typeof window.console.error === 'function') {
+                    window.console.error('RB job form serialization failed:', e);
+                }
+            }
+        });
+    }
 
 })();

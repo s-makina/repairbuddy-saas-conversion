@@ -2,6 +2,11 @@
 
 @section('content')
 @php
+    /** @var \App\Models\RepairBuddyJob|null $job */
+    $job = $job ?? null;
+    $jobId = $jobId ?? null;
+    $isEdit = is_numeric($jobId) && (int) $jobId > 0;
+
     $jobStatuses = is_iterable($jobStatuses ?? null) ? $jobStatuses : [];
     $paymentStatuses = is_iterable($paymentStatuses ?? null) ? $paymentStatuses : [];
     $customers = is_iterable($customers ?? null) ? $customers : [];
@@ -10,6 +15,9 @@
     $devices = is_iterable($devices ?? null) ? $devices : [];
     $parts = is_iterable($parts ?? null) ? $parts : [];
     $services = is_iterable($services ?? null) ? $services : [];
+
+    $jobDevices = is_iterable($jobDevices ?? null) ? $jobDevices : [];
+    $jobItems = is_iterable($jobItems ?? null) ? $jobItems : [];
 
     $tenantSlug = is_string($tenant?->slug) ? (string) $tenant->slug : null;
 
@@ -122,8 +130,8 @@
 <main class="dashboard-content container-fluid py-4">
     <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <h3 class="mb-1">{{ __('Create Job') }}</h3>
-            <div class="text-muted">{{ __('Enter job details and create a new job.') }}</div>
+            <h3 class="mb-1">{{ $isEdit ? __('Edit Job') : __('Create Job') }}</h3>
+            <div class="text-muted">{{ $isEdit ? __('Update job details.') : __('Enter job details and create a new job.') }}</div>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn btn-outline-secondary btn-sm">
@@ -133,11 +141,15 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('tenant.jobs.store', ['business' => $tenantSlug]) }}" enctype="multipart/form-data">
+    @include('tenant.partials.quick_create_customer_modal')
+    @include('tenant.partials.quick_create_technician_modal')
+
+    <form id="jobForm" method="POST" action="{{ $isEdit ? route('tenant.jobs.update', ['business' => $tenantSlug, 'jobId' => $jobId]) : route('tenant.jobs.store', ['business' => $tenantSlug]) }}" enctype="multipart/form-data">
         @csrf
 
-        @include('tenant.partials.quick_create_customer_modal')
-        @include('tenant.partials.quick_create_technician_modal')
+        @if ($isEdit)
+            @method('PUT')
+        @endif
 
         <div class="row g-4">
             <div class="col-xl-8">
@@ -153,13 +165,13 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">{{ __('Case Number') }}</label>
-                                <input type="text" name="case_number" class="form-control" value="{{ old('case_number') }}" placeholder="{{ __('Leave blank to auto-generate') }}" />
+                                <input type="text" name="case_number" class="form-control" value="{{ old('case_number', $isEdit ? ($job?->case_number ?? '') : '') }}" placeholder="{{ __('Leave blank to auto-generate') }}" />
                                 @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">{{ __('Title') }}</label>
-                                <input type="text" name="title" class="form-control" value="{{ old('title') }}" placeholder="{{ __('Optional') }}" />
+                                <input type="text" name="title" class="form-control" value="{{ old('title', $isEdit ? ($job?->title ?? '') : '') }}" placeholder="{{ __('Optional') }}" />
                                 @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
@@ -169,11 +181,9 @@
                                     <select name="customer_id" id="customer_id" class="form-select">
                                         <option value="">{{ __('Select...') }}</option>
                                         @foreach ($customers as $c)
-                                            <option value="{{ $c->id }}" {{ (string) old('customer_id') === (string) $c->id ? 'selected' : '' }}>
+                                            <option value="{{ $c->id }}" {{ (string) old('customer_id', $isEdit ? (string) ($job?->customer_id ?? '') : '') === (string) $c->id ? 'selected' : '' }}>
                                                 {{ $c->name }}
-                                                @if (!empty($c->email)) ({{ $c->email }}) @endif
-                                                @if (!empty($c->phone)) — {{ $c->phone }} @endif
-                                                @if (!empty($c->company)) — {{ $c->company }} @endif
+                                                <!-- @if (!empty($c->email)) ({{ $c->email }}) @endif -->
                                             </option>
                                         @endforeach
                                     </select>
@@ -186,11 +196,15 @@
 
                             <div class="col-md-6">
                                 <label class="form-label" for="technician_ids">{{ __('Technicians') }}</label>
+                                @php
+                                    $techOld = (array) old('technician_ids', $isEdit ? ($job?->technicians?->pluck('id')->all() ?? []) : []);
+                                    $techOld = array_map('strval', $techOld);
+                                @endphp
                                 <div class="input-group">
                                     <select name="technician_ids[]" id="technician_ids" class="form-select" multiple>
                                         @foreach ($technicians as $t)
-                                            <option value="{{ $t->id }}" {{ in_array((string) $t->id, array_map('strval', (array) old('technician_ids', [])), true) ? 'selected' : '' }}>
-                                                {{ $t->name }} ({{ $t->email }})
+                                            <option value="{{ $t->id }}" {{ in_array((string) $t->id, $techOld, true) ? 'selected' : '' }}>
+                                                {{ $t->name }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -203,25 +217,25 @@
 
                             <div class="col-md-4">
                                 <label class="form-label">{{ __('Pickup Date') }}</label>
-                                <input type="date" name="pickup_date" class="form-control" value="{{ old('pickup_date') }}" />
+                                <input type="date" name="pickup_date" class="form-control" value="{{ old('pickup_date', $isEdit ? ($job?->pickup_date ?? '') : '') }}" />
                                 @error('pickup_date')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label">{{ __('Delivery Date') }}</label>
-                                <input type="date" name="delivery_date" class="form-control" value="{{ old('delivery_date') }}" />
+                                <input type="date" name="delivery_date" class="form-control" value="{{ old('delivery_date', $isEdit ? ($job?->delivery_date ?? '') : '') }}" />
                                 @error('delivery_date')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label">{{ __('Next Service Date') }}</label>
-                                <input type="date" name="next_service_date" class="form-control" value="{{ old('next_service_date') }}" />
+                                <input type="date" name="next_service_date" class="form-control" value="{{ old('next_service_date', $isEdit ? ($job?->next_service_date ?? '') : '') }}" />
                                 @error('next_service_date')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label">{{ __('Job Details') }}</label>
-                                <textarea name="case_detail" class="form-control" rows="4" placeholder="{{ __('Enter details about job.') }}">{{ old('case_detail') }}</textarea>
+                                <textarea name="case_detail" class="form-control" rows="4" placeholder="{{ __('Enter details about job.') }}">{{ old('case_detail', $isEdit ? ($job?->case_detail ?? '') : '') }}</textarea>
                                 @error('case_detail')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
                         </div>
@@ -330,10 +344,10 @@
                                 </thead>
                                 <tbody>
                                     @php
-                                        $oldDevIds = (array) old('job_device_customer_device_id', []);
-                                        $oldDevSerials = (array) old('job_device_serial', []);
-                                        $oldDevPins = (array) old('job_device_pin', []);
-                                        $oldDevNotes = (array) old('job_device_notes', []);
+                                        $oldDevIds = (array) old('job_device_customer_device_id', $isEdit ? collect($jobDevices)->pluck('customer_device_id')->all() : []);
+                                        $oldDevSerials = (array) old('job_device_serial', $isEdit ? collect($jobDevices)->pluck('serial_snapshot')->all() : []);
+                                        $oldDevPins = (array) old('job_device_pin', $isEdit ? collect($jobDevices)->pluck('pin_snapshot')->all() : []);
+                                        $oldDevNotes = (array) old('job_device_notes', $isEdit ? collect($jobDevices)->pluck('notes_snapshot')->all() : []);
                                         $devRows = max(count($oldDevIds), count($oldDevSerials), count($oldDevPins), count($oldDevNotes));
                                     @endphp
                                     @if ($devRows === 0)
@@ -681,7 +695,7 @@
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label class="form-label">{{ __('Order Status') }}</label>
-                                    @php $statusOld = old('status_slug', 'neworder'); @endphp
+                                    @php $statusOld = old('status_slug', $isEdit ? (string) ($job?->status_slug ?? 'neworder') : 'neworder'); @endphp
                                     <select name="status_slug" class="form-select">
                                         <option value="" {{ $statusOld === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
                                         @foreach ($jobStatuses as $s)
@@ -695,7 +709,7 @@
 
                                 <div class="col-12">
                                     <label class="form-label">{{ __('Payment Status') }}</label>
-                                    @php $payOld = old('payment_status_slug', 'nostatus'); @endphp
+                                    @php $payOld = old('payment_status_slug', $isEdit ? (string) ($job?->payment_status_slug ?? 'nostatus') : 'nostatus'); @endphp
                                     <select name="payment_status_slug" class="form-select">
                                         <option value="" {{ $payOld === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
                                         @foreach ($paymentStatuses as $ps)
@@ -709,7 +723,7 @@
 
                                 <div class="col-12">
                                     <label class="form-label">{{ __('Priority') }}</label>
-                                    @php $p = old('priority', 'normal'); @endphp
+                                    @php $p = old('priority', $isEdit ? (string) ($job?->priority ?? 'normal') : 'normal'); @endphp
                                     <select name="priority" class="form-select">
                                         <option value="normal" {{ $p === 'normal' ? 'selected' : '' }}>{{ __('Normal') }}</option>
                                         <option value="high" {{ $p === 'high' ? 'selected' : '' }}>{{ __('High') }}</option>
@@ -720,7 +734,7 @@
 
                                 <div class="col-12">
                                     <label class="form-label">{{ __('Tax Mode') }}</label>
-                                    @php $taxMode = old('prices_inclu_exclu'); @endphp
+                                    @php $taxMode = old('prices_inclu_exclu', $isEdit ? (string) ($job?->prices_inclu_exclu ?? '') : ''); @endphp
                                     <select name="prices_inclu_exclu" class="form-select">
                                         <option value="" {{ $taxMode === '' ? 'selected' : '' }}>{{ __('Select...') }}</option>
                                         <option value="exclusive" {{ $taxMode === 'exclusive' ? 'selected' : '' }}>{{ __('Exclusive') }}</option>
@@ -744,9 +758,9 @@
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary w-100">
                                         <i class="bi bi-check2-circle me-1"></i>
-                                        {{ __('Create Job') }}
+                                        {{ $isEdit ? __('Update Job') : __('Create Job') }}
                                     </button>
-                                    <div class="text-muted small mt-2">{{ __('After creating, you will be redirected to the job page.') }}</div>
+                                    <div class="text-muted small mt-2">{{ $isEdit ? __('After updating, you will be redirected to the job page.') : __('After creating, you will be redirected to the job page.') }}</div>
                                 </div>
 
                                 <div class="col-12">
@@ -814,6 +828,63 @@
 
 @push('page-scripts')
 <script>
+@php
+    $oldTypes = (array) old('item_type', []);
+    $oldNames = (array) old('item_name', []);
+    $oldQtys = (array) old('item_qty', []);
+    $oldPrices = (array) old('item_unit_price_cents', []);
+    $oldMax = max(count($oldTypes), count($oldNames), count($oldQtys), count($oldPrices));
+
+    $seedItems = [];
+    if ($oldMax > 0) {
+        for ($i = 0; $i < $oldMax; $i++) {
+            $t = is_string($oldTypes[$i] ?? null) ? trim((string) $oldTypes[$i]) : '';
+            $n = is_string($oldNames[$i] ?? null) ? trim((string) $oldNames[$i]) : '';
+            if ($t === '' || $n === '') {
+                continue;
+            }
+            $q = is_numeric($oldQtys[$i] ?? null) ? (int) $oldQtys[$i] : 1;
+            $p = is_numeric($oldPrices[$i] ?? null) ? (int) $oldPrices[$i] : 0;
+            $seedItems[] = ['item_type' => $t, 'name_snapshot' => $n, 'qty' => $q, 'unit_price_amount_cents' => $p];
+        }
+    } elseif ($isEdit) {
+        $seedItems = collect($jobItems)
+            ->map(fn ($it) => [
+                'item_type' => $it->item_type,
+                'name_snapshot' => $it->name_snapshot,
+                'qty' => $it->qty,
+                'unit_price_amount_cents' => $it->unit_price_amount_cents,
+            ])
+            ->values()
+            ->all();
+    }
+
+    $initialPartRows = [];
+    $initialServiceRows = [];
+    $initialOtherRows = [];
+
+    foreach ($seedItems as $it) {
+        $type = (string) ($it['item_type'] ?? '');
+        $row = [
+            'id' => uniqid($type . '-', true),
+            'name' => (string) ($it['name_snapshot'] ?? ''),
+            'code' => '',
+            'capacity' => '',
+            'device_id' => '',
+            'device' => '',
+            'qty' => (string) ((int) ($it['qty'] ?? 1)),
+            'price' => (string) ((int) ($it['unit_price_amount_cents'] ?? 0)),
+        ];
+
+        if ($type === 'part') {
+            $initialPartRows[] = $row;
+        } elseif ($type === 'service') {
+            $initialServiceRows[] = $row;
+        } else {
+            $initialOtherRows[] = $row;
+        }
+    }
+@endphp
 window.RBJobCreateConfig = {
     enablePinCodeField: @json($enablePinCodeField),
     deviceLabelMap: {
@@ -831,6 +902,9 @@ window.RBJobCreateConfig = {
     },
     quickCustomerCreateUrl: @json(route('tenant.operations.clients.store', ['business' => $tenantSlug])),
     quickTechnicianCreateUrl: @json(route('tenant.technicians.store', ['business' => $tenantSlug])),
+    initialPartRows: @json($initialPartRows),
+    initialServiceRows: @json($initialServiceRows),
+    initialOtherRows: @json($initialOtherRows),
     translations: {
         select: @json(__('Select...')),
         selectDevice: @json(__('Select Device')),

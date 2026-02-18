@@ -626,9 +626,17 @@ Route::prefix('t/{business}')
         Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
             ->name('tenant.jobs.create');
 
+        Route::get('/jobs/{jobId}/edit', [\App\Http\Controllers\Web\TenantJobController::class, 'edit'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.jobs.edit');
+
         Route::get('/jobs/{jobId}', [\App\Http\Controllers\Web\TenantJobController::class, 'show'])
             ->where(['jobId' => '[0-9]+' ])
             ->name('tenant.jobs.show');
+
+        Route::put('/jobs/{jobId}', [\App\Http\Controllers\Web\TenantJobController::class, 'update'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.jobs.update');
 
         Route::post('/jobs', [\App\Http\Controllers\Web\TenantJobController::class, 'store'])
             ->name('tenant.jobs.store');
