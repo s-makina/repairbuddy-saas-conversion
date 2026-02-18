@@ -638,4 +638,8 @@ Route::prefix('t/{business}')
 
         Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
             ->name('tenant.calendar.events');
+
+        // Legacy AJAX handler
+        Route::match(['get', 'post'], '/legacy-ajax', [\App\Http\Controllers\Web\AjaxController::class, 'handle'])
+            ->name('tenant.legacy-ajax');
     });

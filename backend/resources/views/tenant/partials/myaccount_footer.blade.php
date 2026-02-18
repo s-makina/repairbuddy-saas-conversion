@@ -5,11 +5,11 @@
   src="{{ asset('repairbuddy/my_account/js/jquery.min.js') }}"
   onerror="(function(){var s=document.createElement('script');s.src='https://code.jquery.com/jquery-3.7.1.min.js';document.head.appendChild(s);})()"
 ></script>
-<script defer src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
   window.wcrb_ajax = window.wcrb_ajax || {
-    ajax_url: '',
-    nonce: ''
+    ajax_url: "{{ isset($tenant?->slug) ? route('tenant.legacy-ajax', ['business' => $tenant->slug]) : '' }}",
+    nonce: "{{ csrf_token() }}"
   };
   window.wcrbAjax = window.wcrbAjax || window.wcrb_ajax;
 
