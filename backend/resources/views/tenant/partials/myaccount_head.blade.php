@@ -36,6 +36,8 @@
     }
   </style>
 
+  @livewireStyles
+
   @stack('page-styles')
 </head>
 <body>

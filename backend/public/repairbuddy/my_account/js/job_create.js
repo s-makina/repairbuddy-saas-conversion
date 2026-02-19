@@ -1075,41 +1075,48 @@
     }
 
     // Devices & Extra Field Event Listeners
-    if (deviceAddBtn) deviceAddBtn.addEventListener('click', openDeviceModalForAdd);
-    if (deviceModalSave) deviceModalSave.addEventListener('click', saveDeviceModal);
-    if (devicesTable) {
-        devicesTable.addEventListener('click', function (e) {
-            var editBtn = e.target.closest('.editDeviceLine');
-            if (editBtn) { openDeviceModalForEdit(editBtn.closest('tr')); return; }
-            var rmBtn = e.target.closest('.removeDeviceLine');
-            if (rmBtn) {
-                var tr = rmBtn.closest('tr');
-                if (tr) {
-                    tr.remove();
-                    ensureDevicesEmptyState();
-                    renderDevicePartsSelects();
-                    renderDeviceServicesSelects();
-                    renderPartRows();
-                    renderServiceRows();
-                    renderOtherRows();
-                    refreshRowDeviceSelectOptions(document);
+    var devicesManagedByAlpine = !!(devicesTable && devicesTable.dataset && devicesTable.dataset.alpineManaged === '1');
+    var extrasManagedByAlpine = !!(extraTable && extraTable.dataset && extraTable.dataset.alpineManaged === '1');
+
+    if (!devicesManagedByAlpine) {
+        if (deviceAddBtn) deviceAddBtn.addEventListener('click', openDeviceModalForAdd);
+        if (deviceModalSave) deviceModalSave.addEventListener('click', saveDeviceModal);
+        if (devicesTable) {
+            devicesTable.addEventListener('click', function (e) {
+                var editBtn = e.target.closest('.editDeviceLine');
+                if (editBtn) { openDeviceModalForEdit(editBtn.closest('tr')); return; }
+                var rmBtn = e.target.closest('.removeDeviceLine');
+                if (rmBtn) {
+                    var tr = rmBtn.closest('tr');
+                    if (tr) {
+                        tr.remove();
+                        ensureDevicesEmptyState();
+                        renderDevicePartsSelects();
+                        renderDeviceServicesSelects();
+                        renderPartRows();
+                        renderServiceRows();
+                        renderOtherRows();
+                        refreshRowDeviceSelectOptions(document);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
-    if (extraAddBtn) extraAddBtn.addEventListener('click', openExtraModalForAdd);
-    if (extraModalSave) extraModalSave.addEventListener('click', saveExtraModal);
-    if (extraTable) {
-        extraTable.addEventListener('click', function (e) {
-            var editBtn = e.target.closest('.editExtraLine');
-            if (editBtn) { openExtraModalForEdit(editBtn.closest('tr')); return; }
-            var rmBtn = e.target.closest('.removeExtraLine');
-            if (rmBtn) {
-                var tr = rmBtn.closest('tr');
-                if (tr) tr.remove();
-            }
-        });
+    if (!extrasManagedByAlpine) {
+        if (extraAddBtn) extraAddBtn.addEventListener('click', openExtraModalForAdd);
+        if (extraModalSave) extraModalSave.addEventListener('click', saveExtraModal);
+        if (extraTable) {
+            extraTable.addEventListener('click', function (e) {
+                var editBtn = e.target.closest('.editExtraLine');
+                if (editBtn) { openExtraModalForEdit(editBtn.closest('tr')); return; }
+                var rmBtn = e.target.closest('.removeExtraLine');
+                if (rmBtn) {
+                    var tr = rmBtn.closest('tr');
+                    if (tr) tr.remove();
+                }
+            });
+        }
     }
 
     // Quick Connect Modals
@@ -1178,13 +1185,29 @@
     serviceRows = normalizeSeedRows(config.initialServiceRows);
     otherRows = normalizeSeedRows(config.initialOtherRows);
 
-    ensureDevicesEmptyState();
+    if (!devicesManagedByAlpine) {
+        ensureDevicesEmptyState();
+    }
     renderPartRows();
     renderServiceRows();
     renderOtherRows();
     renderDevicePartsSelects();
     renderDeviceServicesSelects();
     initSelect2();
+
+    if (devicesManagedByAlpine) {
+        document.addEventListener('rb:devices-changed', function () {
+            try {
+                renderDevicePartsSelects();
+                renderDeviceServicesSelects();
+                renderPartRows();
+                renderServiceRows();
+                renderOtherRows();
+                refreshRowDeviceSelectOptions(document);
+            } catch (e) {
+            }
+        });
+    }
 
     function clearExistingHiddenItems() {
         if (!formEl) return;

@@ -10,6 +10,7 @@
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.2",
         "laravel/tinker": "^2.9",
+        "livewire/livewire": "^4.1",
         "phpoffice/phpspreadsheet": "^2.2",
         "spatie/laravel-permission": "6.19",
         "symfony/intl": "^7.4",

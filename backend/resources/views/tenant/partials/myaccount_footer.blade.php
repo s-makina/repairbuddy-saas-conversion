@@ -26,6 +26,10 @@
 <script defer src="{{ asset('repairbuddy/my_account/js/wcrb_ajax.js') }}"></script>
 <script defer src="{{ asset('repairbuddy/my_account/js/wcrbscript.js') }}"></script>
 
+@livewireScripts
+
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
 @stack('page-scripts')
 
 </body>
