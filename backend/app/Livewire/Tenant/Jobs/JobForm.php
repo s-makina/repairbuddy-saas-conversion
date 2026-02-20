@@ -417,8 +417,15 @@ class JobForm extends Component
         $search = $this->technician_search;
         $query = \App\Models\User::query()
             ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_admin', false)
             ->where('status', 'active')
-            ->where('role', '!=', 'customer');
+            ->where(function ($q) {
+                // The legacy `role` column is NULL for staff/technicians created via
+                // UserController (role = null), but 'customer' for customer accounts.
+                // SQL's `!=` operator excludes NULLs, so we must explicit-or IS NULL.
+                $q->whereNull('role')
+                  ->orWhere('role', '!=', 'customer');
+            });
 
         if (!empty($this->technician_ids)) {
             $query->whereNotIn('id', $this->technician_ids);
