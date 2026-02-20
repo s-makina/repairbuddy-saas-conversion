@@ -25,12 +25,191 @@
 
 @push('page-styles')
     <style>
+        /* Vertical Stepper Styles */
+        .job-stepper-container {
+            display: flex;
+            gap: 2rem;
+            min-height: calc(100vh - 280px);
+        }
+
+        .stepper-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+        }
+
+        .stepper-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stepper-nav {
+            position: sticky;
+            top: 1rem;
+        }
+
+        .stepper-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 2px solid transparent;
+        }
+
+        .stepper-item:hover {
+            background: rgba(var(--bs-primary-rgb), 0.05);
+        }
+
+        .stepper-item.active {
+            background: rgba(var(--bs-primary-rgb), 0.1);
+            border-color: var(--bs-primary);
+        }
+
+        .stepper-item.completed {
+            background: rgba(25, 135, 84, 0.08);
+        }
+
+        .stepper-item.completed .stepper-icon {
+            background: var(--bs-success);
+            border-color: var(--bs-success);
+            color: white;
+        }
+
+        .stepper-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            background: var(--bs-gray-200);
+            border: 2px solid var(--bs-gray-300);
+            color: var(--bs-gray-600);
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .stepper-item.active .stepper-icon {
+            background: var(--bs-primary);
+            border-color: var(--bs-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.4);
+        }
+
+        .stepper-info {
+            margin-left: 1rem;
+            flex: 1;
+        }
+
+        .stepper-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--bs-gray-800);
+            margin-bottom: 0.125rem;
+        }
+
+        .stepper-desc {
+            font-size: 0.8rem;
+            color: var(--bs-gray-500);
+        }
+
+        .stepper-item.completed .stepper-title {
+            color: var(--bs-success);
+        }
+
+        /* Step Content Panels */
+        .step-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .step-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-card {
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+
+        .step-card-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--bs-border-color);
+            background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.03) 0%, rgba(var(--bs-primary-rgb), 0.01) 100%);
+        }
+
+        .step-card-header h4 {
+            margin: 0;
+            font-weight: 600;
+            color: var(--bs-gray-800);
+        }
+
+        .step-card-header p {
+            margin: 0.5rem 0 0;
+            color: var(--bs-gray-500);
+            font-size: 0.9rem;
+        }
+
+        .step-card-body {
+            padding: 2rem;
+        }
+
+        /* Form Elements */
+        .form-label {
+            font-weight: 500;
+            color: var(--bs-gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid var(--bs-gray-300);
+            padding: 0.625rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
+        }
+
+        /* Navigation Buttons */
+        .step-navigation {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--bs-border-color);
+            background: var(--bs-gray-50);
+        }
+
+        .btn-step {
+            padding: 0.75rem 1.75rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Select2 Styling */
         #customer_id + .select2-container--bootstrap-5 .select2-selection,
         #technician_ids + .select2-container--bootstrap-5 .select2-selection {
             min-height: calc(1.5em + .75rem + 2px);
             padding: .375rem .75rem;
-            border: 1px solid var(--bs-border-color);
-            border-radius: var(--bs-border-radius);
+            border: 1px solid var(--bs-gray-300);
+            border-radius: 8px;
             background-color: var(--bs-body-bg);
         }
 
@@ -64,8 +243,8 @@
 
         #customer_id + .select2-container--bootstrap-5.select2-container--focus .select2-selection,
         #technician_ids + .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
         }
 
         .input-group > .select2-container {
@@ -81,6 +260,7 @@
         .input-group > .btn {
             flex: 0 0 auto;
             white-space: nowrap;
+            border-radius: 0 8px 8px 0;
         }
 
         .input-group > .select2-container--bootstrap-5 .select2-selection,
@@ -108,535 +288,439 @@
             display: inline-block;
         }
 
-        #section-extras td,
-        #section-extras th,
-        #section-devices td,
-        #section-devices th {
-            vertical-align: middle;
+        /* Tables in steps */
+        .step-table {
+            margin-top: 1rem;
         }
 
-        #section-extras .extra-data span {
-            max-width: 420px;
-            white-space: nowrap;
+        .step-table th {
+            background: var(--bs-gray-50);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            color: var(--bs-gray-600);
+        }
+
+        .step-table td, .step-table th {
+            vertical-align: middle;
+            padding: 0.875rem 1rem;
+        }
+
+        /* Progress bar */
+        .stepper-progress {
+            height: 4px;
+            background: var(--bs-gray-200);
+            border-radius: 2px;
+            margin-bottom: 1.5rem;
             overflow: hidden;
-            text-overflow: ellipsis;
+        }
+
+        .stepper-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--bs-primary) 0%, var(--bs-success) 100%);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 991.98px) {
+            .job-stepper-container {
+                flex-direction: column;
+            }
+
+            .stepper-sidebar {
+                width: 100%;
+            }
+
+            .stepper-nav {
+                position: relative;
+                top: 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .stepper-item {
+                flex: 1;
+                min-width: 140px;
+                padding: 0.75rem;
+            }
+
+            .stepper-info {
+                margin-left: 0.5rem;
+            }
+
+            .stepper-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 0.875rem;
+            }
+
+            .stepper-desc {
+                display: none;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .stepper-item {
+                min-width: auto;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stepper-info {
+                margin-left: 0;
+                margin-top: 0.5rem;
+            }
+
+            .step-card-body {
+                padding: 1.25rem;
+            }
+
+            .step-navigation {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
         }
     </style>
 @endpush
 
 <main class="dashboard-content container-fluid py-4">
-    <x-ui.page-hero
-        :back-href="route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs'"
-        icon-class="bi bi-briefcase-fill"
-        :title="e($isEdit ? __('Edit Job') : __('Create Job'))"
-        :subtitle="e($isEdit ? __('Update job details.') : __('Enter job details and create a new job.'))"
-    >
-        <x-slot:actions>
-            <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn btn-save-review">
-                <i class="bi bi-check2-circle me-2"></i>{{ __('Back to List') }}
-            </a>
-        </x-slot:actions>
-    </x-ui.page-hero>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="mb-1">{{ $isEdit ? __('Edit Job') : __('Create New Job') }}</h4>
+            <p class="text-muted mb-0">{{ $isEdit ? __('Update job details and information.') : __('Fill in the details below to create a new repair job.') }}</p>
+        </div>
+        <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>{{ __('Back to Jobs') }}
+        </a>
+    </div>
 
     @include('tenant.partials.quick_create_customer_modal')
     @include('tenant.partials.quick_create_technician_modal')
 
     <form id="jobForm" method="POST" action="{{ $isEdit ? route('tenant.jobs.update', ['business' => $tenantSlug, 'jobId' => $jobId]) : route('tenant.jobs.store', ['business' => $tenantSlug]) }}" enctype="multipart/form-data">
         @csrf
-
         @if ($isEdit)
             @method('PUT')
         @endif
 
-        <div class="row g-4">
-            <div class="col-xl-8">
-                <div class="card mb-4" id="section-job-details">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ __('Job Details') }}</h5>
-                        <a href="#section-items" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-box-seam me-1"></i>
-                            {{ __('Jump to Items') }}
-                        </a>
+        <div class="job-stepper-container">
+            <!-- Stepper Sidebar -->
+            <aside class="stepper-sidebar">
+                <nav class="stepper-nav">
+                    <div class="stepper-progress">
+                        <div class="stepper-progress-bar" id="stepperProgress" style="width: 25%"></div>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">{{ __('Case Number') }}</label>
-                                <input type="text" name="case_number" class="form-control" value="{{ old('case_number', $isEdit ? ($job?->case_number ?? '') : '') }}" placeholder="{{ __('Leave blank to auto-generate') }}" />
-                                @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label">{{ __('Title') }}</label>
-                                <input type="text" name="title" class="form-control" value="{{ old('title', $isEdit ? ($job?->title ?? '') : '') }}" placeholder="{{ __('Optional') }}" />
-                                @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
+                    <div class="stepper-item active" data-step="1" onclick="goToStep(1)">
+                        <div class="stepper-icon">
+                            <i class="bi bi-clipboard-data"></i>
+                        </div>
+                        <div class="stepper-info">
+                            <div class="stepper-title">{{ __('Job Details') }}</div>
+                            <div class="stepper-desc">{{ __('Basic information') }}</div>
+                        </div>
+                    </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label" for="customer_id">{{ __('Customer') }}</label>
-                                <div class="input-group">
-                                    <select name="customer_id" id="customer_id" class="form-select">
-                                        <option value="">{{ __('Select...') }}</option>
-                                        @foreach ($customers as $c)
-                                            <option value="{{ $c->id }}" {{ (string) old('customer_id', $isEdit ? (string) ($job?->customer_id ?? '') : '') === (string) $c->id ? 'selected' : '' }}>
-                                                {{ $c->name }}
-                                                <!-- @if (!empty($c->email)) ({{ $c->email }}) @endif -->
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <button type="button" class="btn btn-primary" id="rb_open_quick_customer" title="{{ __('Add new customer') }}" aria-label="{{ __('Add new customer') }}">
-                                        <i class="bi bi-person-plus"></i>
-                                    </button>
+                    <div class="stepper-item" data-step="2" onclick="goToStep(2)">
+                        <div class="stepper-icon">
+                            <i class="bi bi-phone"></i>
+                        </div>
+                        <div class="stepper-info">
+                            <div class="stepper-title">{{ __('Devices') }}</div>
+                            <div class="stepper-desc">{{ __('Add repair devices') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="stepper-item" data-step="3" onclick="goToStep(3)">
+                        <div class="stepper-icon">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                        <div class="stepper-info">
+                            <div class="stepper-title">{{ __('Parts & Services') }}</div>
+                            <div class="stepper-desc">{{ __('Items and costs') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="stepper-item" data-step="4" onclick="goToStep(4)">
+                        <div class="stepper-icon">
+                            <i class="bi bi-gear"></i>
+                        </div>
+                        <div class="stepper-info">
+                            <div class="stepper-title">{{ __('Settings & Review') }}</div>
+                            <div class="stepper-desc">{{ __('Finalize job') }}</div>
+                        </div>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Stepper Content -->
+            <div class="stepper-content">
+                <!-- Step 1: Job Details -->
+                <div class="step-panel active" id="step1">
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <h4><i class="bi bi-clipboard-data me-2"></i>{{ __('Job Details') }}</h4>
+                            <p>{{ __('Enter the basic information for this repair job.') }}</p>
+                        </div>
+                        <div class="step-card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ __('Case Number') }}</label>
+                                    <input type="text" name="case_number" class="form-control" value="{{ old('case_number', $isEdit ? ($job?->case_number ?? '') : '') }}" placeholder="{{ __('Leave blank to auto-generate') }}" />
+                                    <div class="form-text">{{ __('Auto-generated if left empty') }}</div>
+                                    @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
-                                @error('customer_id')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label" for="technician_ids">{{ __('Technicians') }}</label>
-                                @php
-                                    $techOld = (array) old('technician_ids', $isEdit ? ($job?->technicians?->pluck('id')->all() ?? []) : []);
-                                    $techOld = array_map('strval', $techOld);
-                                @endphp
-                                <div class="input-group">
-                                    <select name="technician_ids[]" id="technician_ids" class="form-select" multiple>
-                                        @foreach ($technicians as $t)
-                                            <option value="{{ $t->id }}" {{ in_array((string) $t->id, $techOld, true) ? 'selected' : '' }}>
-                                                {{ $t->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <button type="button" class="btn btn-primary" id="rb_open_quick_technician" title="{{ __('Add technician') }}" aria-label="{{ __('Add technician') }}">
-                                        <i class="bi bi-person-plus"></i>
-                                    </button>
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ __('Title') }}</label>
+                                    <input type="text" name="title" class="form-control" value="{{ old('title', $isEdit ? ($job?->title ?? '') : '') }}" placeholder="{{ __('e.g., iPhone 14 Screen Repair') }}" />
+                                    @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
-                                @error('technician_ids')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">{{ __('Pickup Date') }}</label>
-                                <input type="date" name="pickup_date" class="form-control" value="{{ old('pickup_date', $isEdit ? ($job?->pickup_date ?? '') : '') }}" />
-                                @error('pickup_date')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="customer_id">{{ __('Customer') }} <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <select name="customer_id" id="customer_id" class="form-select" required>
+                                            <option value="">{{ __('Select customer...') }}</option>
+                                            @foreach ($customers as $c)
+                                                <option value="{{ $c->id }}" {{ (string) old('customer_id', $isEdit ? (string) ($job?->customer_id ?? '') : '') === (string) $c->id ? 'selected' : '' }}>
+                                                    {{ $c->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="button" class="btn btn-primary" id="rb_open_quick_customer" title="{{ __('Add new customer') }}">
+                                            <i class="bi bi-person-plus"></i>
+                                        </button>
+                                    </div>
+                                    @error('customer_id')<div class="text-danger small">{{ $message }}</div>@enderror
+                                </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">{{ __('Delivery Date') }}</label>
-                                <input type="date" name="delivery_date" class="form-control" value="{{ old('delivery_date', $isEdit ? ($job?->delivery_date ?? '') : '') }}" />
-                                @error('delivery_date')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="technician_ids">{{ __('Assigned Technicians') }}</label>
+                                    @php
+                                        $techOld = (array) old('technician_ids', $isEdit ? ($job?->technicians?->pluck('id')->all() ?? []) : []);
+                                        $techOld = array_map('strval', $techOld);
+                                    @endphp
+                                    <div class="input-group">
+                                        <select name="technician_ids[]" id="technician_ids" class="form-select" multiple>
+                                            @foreach ($technicians as $t)
+                                                <option value="{{ $t->id }}" {{ in_array((string) $t->id, $techOld, true) ? 'selected' : '' }}>
+                                                    {{ $t->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="button" class="btn btn-primary" id="rb_open_quick_technician" title="{{ __('Add technician') }}">
+                                            <i class="bi bi-person-plus"></i>
+                                        </button>
+                                    </div>
+                                    @error('technician_ids')<div class="text-danger small">{{ $message }}</div>@enderror
+                                </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">{{ __('Next Service Date') }}</label>
-                                <input type="date" name="next_service_date" class="form-control" value="{{ old('next_service_date', $isEdit ? ($job?->next_service_date ?? '') : '') }}" />
-                                @error('next_service_date')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">{{ __('Pickup Date') }}</label>
+                                    <input type="date" name="pickup_date" class="form-control" value="{{ old('pickup_date', $isEdit ? ($job?->pickup_date ?? '') : '') }}" />
+                                    @error('pickup_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                                </div>
 
-                            <div class="col-12">
-                                <label class="form-label">{{ __('Job Details') }}</label>
-                                <textarea name="case_detail" class="form-control" rows="4" placeholder="{{ __('Enter details about job.') }}">{{ old('case_detail', $isEdit ? ($job?->case_detail ?? '') : '') }}</textarea>
-                                @error('case_detail')<div class="text-danger small">{{ $message }}</div>@enderror
+                                <div class="col-md-4">
+                                    <label class="form-label">{{ __('Delivery Date') }}</label>
+                                    <input type="date" name="delivery_date" class="form-control" value="{{ old('delivery_date', $isEdit ? ($job?->delivery_date ?? '') : '') }}" />
+                                    @error('delivery_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">{{ __('Next Service Date') }}</label>
+                                    <input type="date" name="next_service_date" class="form-control" value="{{ old('next_service_date', $isEdit ? ($job?->next_service_date ?? '') : '') }}" />
+                                    @error('next_service_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">{{ __('Job Description') }}</label>
+                                    <textarea name="case_detail" class="form-control" rows="4" placeholder="{{ __('Describe the repair issue, customer notes, or any relevant details...') }}">{{ old('case_detail', $isEdit ? ($job?->case_detail ?? '') : '') }}</textarea>
+                                    @error('case_detail')<div class="text-danger small">{{ $message }}</div>@enderror
+                                </div>
                             </div>
+                        </div>
+                        <div class="step-navigation">
+                            <div></div>
+                            <button type="button" class="btn btn-primary btn-step" onclick="nextStep()">
+                                {{ __('Continue') }} <i class="bi bi-arrow-right"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal fade" id="deviceModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">{{ __('Device') }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row g-3 align-items-center">
-                                    <div class="col-12">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-lg-3 col-4">
-                                                <label class="form-label mb-0" for="device_modal_device">{{ __('Device') }}</label>
-                                            </div>
-                                            <div class="col-lg-9 col-8">
-                                                <select id="device_modal_device" class="form-select">
-                                                    <option value="">{{ __('Select Device') }}</option>
-                                                    @foreach ($devices as $d)
-                                                        @php
-                                                            $brand = is_string($d->brand?->name ?? null) ? (string) $d->brand?->name : '';
-                                                            $model = is_string($d->model ?? null) ? (string) $d->model : '';
-                                                            $text = trim(trim($brand . ' ' . $model));
-                                                            if ($text === '') {
-                                                                $text = __('Device') . ' #' . $d->id;
-                                                            }
-                                                        @endphp
-                                                        <option value="{{ $d->id }}">{{ $text }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
+                <!-- Step 2: Devices -->
+                <div class="step-panel" id="step2">
+                    @php
+                        $oldDevIds = (array) old('job_device_customer_device_id', $isEdit ? collect($jobDevices)->pluck('customer_device_id')->all() : []);
+                        $oldDevSerials = (array) old('job_device_serial', $isEdit ? collect($jobDevices)->pluck('serial_snapshot')->all() : []);
+                        $oldDevPins = (array) old('job_device_pin', $isEdit ? collect($jobDevices)->pluck('pin_snapshot')->all() : []);
+                        $oldDevNotes = (array) old('job_device_notes', $isEdit ? collect($jobDevices)->pluck('notes_snapshot')->all() : []);
+                        $devRows = max(count($oldDevIds), count($oldDevSerials), count($oldDevPins), count($oldDevNotes));
 
-                                    <div class="col-12">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-lg-3 col-4">
-                                                <label class="form-label mb-0" for="device_modal_imei">{{ __('Device ID/IMEI') }}</label>
-                                            </div>
-                                            <div class="col-lg-9 col-8">
-                                                <input type="text" id="device_modal_imei" class="form-control" />
-                                            </div>
-                                        </div>
-                                    </div>
+                        $seedDevices = [];
+                        for ($i = 0; $i < $devRows; $i++) {
+                            $seedDevices[] = [
+                                'device_id' => (string) ($oldDevIds[$i] ?? ''),
+                                'serial' => is_string($oldDevSerials[$i] ?? null) ? (string) $oldDevSerials[$i] : '',
+                                'pin' => is_string($oldDevPins[$i] ?? null) ? (string) $oldDevPins[$i] : '',
+                                'notes' => is_string($oldDevNotes[$i] ?? null) ? (string) $oldDevNotes[$i] : '',
+                            ];
+                        }
+                    @endphp
 
-                                    @if ($enablePinCodeField)
-                                        <div class="col-12">
-                                            <div class="row g-2 align-items-center">
-                                                <div class="col-lg-3 col-4">
-                                                    <label class="form-label mb-0" for="device_modal_password">{{ __('Pin Code/Password') }}</label>
-                                                </div>
-                                                <div class="col-lg-9 col-8">
-                                                    <input type="text" id="device_modal_password" class="form-control" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="col-12">
-                                        <div class="row g-2">
-                                            <div class="col-lg-3 col-4">
-                                                <label class="form-label mb-0" for="device_modal_note">{{ __('Device Note') }}</label>
-                                            </div>
-                                            <div class="col-lg-9 col-8">
-                                                <textarea id="device_modal_note" class="form-control" rows="3"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-                                <button type="button" class="btn btn-primary" id="deviceModalSave">{{ __('Save') }}</button>
-                            </div>
+                    <div class="step-card" x-data="window.RBJobDevicesExtras.devices(@json($seedDevices), @json($enablePinCodeField))" x-init="window.rbDevices = $data">
+                        <div class="step-card-header">
+                            <h4><i class="bi bi-phone me-2"></i>{{ __('Devices') }}</h4>
+                            <p>{{ __('Add the devices that need to be repaired.') }}</p>
                         </div>
-                    </div>
-                </div>
+                        <div class="step-card-body">
+                            <div class="d-flex justify-content-end mb-3">
+                                <button type="button" class="btn btn-success" id="addDeviceLine" @click="openAdd()">
+                                    <i class="bi bi-plus-circle me-1"></i>{{ __('Add Device') }}
+                                </button>
+                            </div>
 
-                @php
-                    $oldDevIds = (array) old('job_device_customer_device_id', $isEdit ? collect($jobDevices)->pluck('customer_device_id')->all() : []);
-                    $oldDevSerials = (array) old('job_device_serial', $isEdit ? collect($jobDevices)->pluck('serial_snapshot')->all() : []);
-                    $oldDevPins = (array) old('job_device_pin', $isEdit ? collect($jobDevices)->pluck('pin_snapshot')->all() : []);
-                    $oldDevNotes = (array) old('job_device_notes', $isEdit ? collect($jobDevices)->pluck('notes_snapshot')->all() : []);
-                    $devRows = max(count($oldDevIds), count($oldDevSerials), count($oldDevPins), count($oldDevNotes));
-
-                    $seedDevices = [];
-                    for ($i = 0; $i < $devRows; $i++) {
-                        $seedDevices[] = [
-                            'device_id' => (string) ($oldDevIds[$i] ?? ''),
-                            'serial' => is_string($oldDevSerials[$i] ?? null) ? (string) $oldDevSerials[$i] : '',
-                            'pin' => is_string($oldDevPins[$i] ?? null) ? (string) $oldDevPins[$i] : '',
-                            'notes' => is_string($oldDevNotes[$i] ?? null) ? (string) $oldDevNotes[$i] : '',
-                        ];
-                    }
-                @endphp
-
-                <div class="card mb-4" id="section-devices" x-data="window.RBJobDevicesExtras.devices(@json($seedDevices), @json($enablePinCodeField))" x-init="window.rbDevices = $data">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ __('Devices') }}</h5>
-                        <button type="button" class="btn btn-success btn-sm" id="addDeviceLine" @click="openAdd()">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            {{ __('Add Device') }}
-                        </button>
-                    </div>
-                    <div class="card-body">
-
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle" id="devicesTable" data-alpine-managed="1">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>{{ __('Device') }}</th>
-                                        <th style="width:180px">{{ __('Device ID/IMEI') }}</th>
-                                        @if ($enablePinCodeField)
-                                            <th style="width:180px">{{ __('Pin Code/Password') }}</th>
-                                        @endif
-                                        <th>{{ __('Device Note') }}</th>
-                                        <th style="width:120px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-if="rows.length === 0">
-                                        <tr class="devices-empty-row">
-                                            <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="text-center text-muted py-4">
-                                                {{ __('No devices added yet.') }}
-                                            </td>
-                                        </tr>
-                                    </template>
-
-                                    <template x-for="(row, idx) in rows" :key="idx">
+                            <div class="table-responsive">
+                                <table class="table step-table" id="devicesTable" data-alpine-managed="1">
+                                    <thead>
                                         <tr>
-                                            <td class="device-label" :data-value="row.device_id" x-text="deviceLabel(row.device_id)"></td>
-                                            <td class="device-imei" :data-value="row.serial" x-text="row.serial && row.serial.trim() !== '' ? row.serial : '—'"></td>
+                                            <th>{{ __('Device') }}</th>
+                                            <th style="width:180px">{{ __('Device ID/IMEI') }}</th>
                                             @if ($enablePinCodeField)
-                                                <td class="device-password" :data-value="row.pin" x-text="row.pin && row.pin.trim() !== '' ? row.pin : '—'"></td>
+                                                <th style="width:180px">{{ __('Pin Code/Password') }}</th>
                                             @endif
-                                            <td class="device-note" :data-value="row.notes"><span class="d-inline-block text-truncate" style="max-width: 420px;" x-text="row.notes && row.notes.trim() !== '' ? row.notes : '—'" :title="row.notes"></span></td>
-                                            <td class="text-end">
-                                                <button type="button" class="btn btn-outline-primary btn-sm" @click="openEdit(idx)" aria-label="{{ __('Edit') }}">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-outline-danger btn-sm" @click="remove(idx)" aria-label="{{ __('Remove') }}">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                            <th>{{ __('Device Note') }}</th>
+                                            <th style="width:120px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-if="rows.length === 0">
+                                            <tr class="devices-empty-row">
+                                                <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="text-center text-muted py-5">
+                                                    <i class="bi bi-phone display-4 d-block mb-2 opacity-50"></i>
+                                                    {{ __('No devices added yet. Click "Add Device" to get started.') }}
+                                                </td>
+                                            </tr>
+                                        </template>
 
-                                                <input type="hidden" name="job_device_customer_device_id[]" :value="row.device_id" />
-                                                <input type="hidden" name="job_device_serial[]" :value="row.serial" />
+                                        <template x-for="(row, idx) in rows" :key="idx">
+                                            <tr>
+                                                <td class="device-label" :data-value="row.device_id" x-text="deviceLabel(row.device_id)"></td>
+                                                <td class="device-imei" :data-value="row.serial" x-text="row.serial && row.serial.trim() !== '' ? row.serial : '—'"></td>
                                                 @if ($enablePinCodeField)
-                                                    <input type="hidden" name="job_device_pin[]" :value="row.pin" />
+                                                    <td class="device-password" :data-value="row.pin" x-text="row.pin && row.pin.trim() !== '' ? row.pin : '—'"></td>
                                                 @endif
-                                                <input type="hidden" name="job_device_notes[]" :value="row.notes" />
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
+                                                <td class="device-note" :data-value="row.notes"><span class="d-inline-block text-truncate" style="max-width: 420px;" x-text="row.notes && row.notes.trim() !== '' ? row.notes : '—'" :title="row.notes"></span></td>
+                                                <td class="text-end">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm me-1" @click="openEdit(idx)" aria-label="{{ __('Edit') }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" @click="remove(idx)" aria-label="{{ __('Remove') }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
 
-                        @error('job_device_customer_device_id')<div class="text-danger small">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                @php
-                    $oldExDates = (array) old('extra_item_occurred_at', []);
-                    $oldExLabels = (array) old('extra_item_label', []);
-                    $oldExData = (array) old('extra_item_data_text', []);
-                    $oldExDesc = (array) old('extra_item_description', []);
-                    $oldExVis = (array) old('extra_item_visibility', []);
-                    $exRows = max(count($oldExLabels), count($oldExData), count($oldExDesc), count($oldExVis), count($oldExDates));
-
-                    $seedExtras = [];
-                    for ($i = 0; $i < $exRows; $i++) {
-                        $seedExtras[] = [
-                            'occurred_at' => is_string($oldExDates[$i] ?? null) ? (string) $oldExDates[$i] : '',
-                            'label' => is_string($oldExLabels[$i] ?? null) ? (string) $oldExLabels[$i] : '',
-                            'data_text' => is_string($oldExData[$i] ?? null) ? (string) $oldExData[$i] : '',
-                            'description' => is_string($oldExDesc[$i] ?? null) ? (string) $oldExDesc[$i] : '',
-                            'visibility' => is_string($oldExVis[$i] ?? null) ? (string) $oldExVis[$i] : 'private',
-                        ];
-                    }
-                @endphp
-
-                <div class="card mb-4" id="section-extras" x-data="window.RBJobDevicesExtras.extras(@json($seedExtras))" x-init="window.rbExtras = $data">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ __('Extra Fields & Files') }}</h5>
-                        <button type="button" class="btn btn-success btn-sm" id="addExtraLine" @click="openAdd()">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            {{ __('Add Field') }}
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle" id="extraTable" data-alpine-managed="1">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width:160px">{{ __('Date') }}</th>
-                                        <th style="width:220px">{{ __('Label') }}</th>
-                                        <th>{{ __('Data') }}</th>
-                                        <th style="width:140px">{{ __('Visibility') }}</th>
-                                        <th style="width:140px">{{ __('File') }}</th>
-                                        <th style="width:120px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-if="rows.length === 0">
-                                        <tr class="extras-empty-row">
-                                            <td colspan="6" class="text-center text-muted py-4">
-                                                {{ __('No extra fields added yet.') }}
-                                            </td>
-                                        </tr>
-                                    </template>
-
-                                    <template x-for="(row, idx) in rows" :key="idx">
-                                        <tr>
-                                            <td class="extra-date" :data-value="row.occurred_at" x-text="row.occurred_at && row.occurred_at.trim() !== '' ? row.occurred_at : '—'"></td>
-                                            <td class="extra-label" :data-value="row.label" x-text="row.label && row.label.trim() !== '' ? row.label : '—'"></td>
-                                            <td class="extra-data" :data-value="row.data_text" :data-desc="row.description">
-                                                <span class="d-inline-block text-truncate" style="max-width: 420px;" x-text="row.data_text && row.data_text.trim() !== '' ? row.data_text : '—'" :title="row.data_text"></span>
-                                            </td>
-                                            <td class="extra-vis" :data-value="row.visibility" x-text="row.visibility === 'public' ? '{{ __('Public') }}' : '{{ __('Private') }}'"></td>
-                                            <td class="extra-file" :data-value="row.file_name" x-text="row.file_name && row.file_name.trim() !== '' ? row.file_name : '—'"></td>
-                                            <td class="text-end">
-                                                <button type="button" class="btn btn-outline-primary btn-sm" @click="openEdit(idx)" aria-label="{{ __('Edit') }}">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-outline-danger btn-sm" @click="remove(idx)" aria-label="{{ __('Remove') }}">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-
-                                                <input type="hidden" name="extra_item_occurred_at[]" :value="row.occurred_at" />
-                                                <input type="hidden" name="extra_item_label[]" :value="row.label" />
-                                                <input type="hidden" name="extra_item_data_text[]" :value="row.data_text" />
-                                                <input type="hidden" name="extra_item_description[]" :value="row.description" />
-                                                <input type="hidden" name="extra_item_visibility[]" :value="row.visibility" />
-                                                <input type="file" name="extra_item_file[]" class="d-none" :ref="'file_' + idx" />
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                        @error('extra_item_label')<div class="text-danger small">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                <div class="modal fade" id="extraModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">{{ __('Extra Field / File') }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+                                                    <input type="hidden" name="job_device_customer_device_id[]" :value="row.device_id" />
+                                                    <input type="hidden" name="job_device_serial[]" :value="row.serial" />
+                                                    @if ($enablePinCodeField)
+                                                        <input type="hidden" name="job_device_pin[]" :value="row.pin" />
+                                                    @endif
+                                                    <input type="hidden" name="job_device_notes[]" :value="row.notes" />
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="modal-body">
-                                <div class="row g-3 align-items-center">
-                                    <div class="col-lg-6">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-4">
-                                                <label class="form-label mb-0" for="extra_modal_date">{{ __('Date') }}</label>
-                                            </div>
-                                            <div class="col-8">
-                                                <input type="date" id="extra_modal_date" class="form-control" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-6">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-4">
-                                                <label class="form-label mb-0" for="extra_modal_vis">{{ __('Visibility') }}</label>
-                                            </div>
-                                            <div class="col-8">
-                                                <select id="extra_modal_vis" class="form-select">
-                                                    <option value="public">{{ __('Customer & Staff') }}</option>
-                                                    <option value="private">{{ __('Staff') }}</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div class="col-12">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-lg-2 col-4">
-                                                <label class="form-label mb-0" for="extra_modal_label">{{ __('Label') }}</label>
-                                            </div>
-                                            <div class="col-lg-10 col-8">
-                                                <input type="text" id="extra_modal_label" class="form-control" />
-                                            </div>
-                                        </div>
-                                    </div>
+                            @error('job_device_customer_device_id')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="step-navigation">
+                            <button type="button" class="btn btn-outline-secondary btn-step" onclick="prevStep()">
+                                <i class="bi bi-arrow-left"></i> {{ __('Back') }}
+                            </button>
+                            <button type="button" class="btn btn-primary btn-step" onclick="nextStep()">
+                                {{ __('Continue') }} <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-                                    <div class="col-12">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-lg-2 col-4">
-                                                <label class="form-label mb-0" for="extra_modal_data">{{ __('Data') }}</label>
-                                            </div>
-                                            <div class="col-lg-10 col-8">
-                                                <input type="text" id="extra_modal_data" class="form-control" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <div class="row g-2">
-                                            <div class="col-lg-2 col-4">
-                                                <label class="form-label mb-0" for="extra_modal_desc">{{ __('Description') }}</label>
-                                            </div>
-                                            <div class="col-lg-10 col-8">
-                                                <textarea id="extra_modal_desc" class="form-control" rows="3"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-lg-2 col-4">
-                                                <label class="form-label mb-0" for="extra_modal_file">{{ __('File') }}</label>
-                                            </div>
-                                            <div class="col-lg-10 col-8">
-                                                <input type="file" id="extra_modal_file" class="form-control" />
-                                                <div class="form-text">{{ __('Files will be submitted with the job form.') }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
+                <!-- Step 3: Parts & Services -->
+                <div class="step-panel" id="step3">
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <h4><i class="bi bi-box-seam me-2"></i>{{ __('Parts & Services') }}</h4>
+                            <p>{{ __('Add parts, services, and other items for this job.') }}</p>
+                        </div>
+                        <div class="step-card-body">
+                            <!-- Parts Section -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>{{ __('Parts') }}</h6>
+                                </div>
+                                <div id="devicePartsSelects" class="row g-2"></div>
+                                <select id="parts_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
+                                    <option value="">{{ __('Search and select...') }}</option>
+                                    @foreach ($parts as $p)
+                                        <option value="{{ $p->name }}">{{ $p->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="table-responsive">
+                                    <table class="table step-table" id="partsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ __('Name') }}</th>
+                                                <th style="width:110px">{{ __('Code') }}</th>
+                                                <th style="width:110px">{{ __('Capacity') }}</th>
+                                                <th style="width:140px">{{ __('Device') }}</th>
+                                                <th style="width:90px" class="text-end">{{ __('Qty') }}</th>
+                                                <th style="width:130px" class="text-end">{{ __('Price') }}</th>
+                                                <th style="width:130px" class="text-end">{{ __('Total') }}</th>
+                                                <th style="width:90px"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="parts-empty-row">
+                                                <td colspan="8" class="text-center text-muted py-4">{{ __('No parts selected yet.') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-                                <button type="button" class="btn btn-primary" id="extraModalSave">{{ __('Save') }}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="card mb-4" id="section-parts">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ __('Select Parts') }}</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="devicePartsSelects" class="row g-2"></div>
-
-                        <select id="parts_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
-                            <option value="">{{ __('Search and select...') }}</option>
-                            @foreach ($parts as $p)
-                                <option value="{{ $p->name }}">{{ $p->name }}</option>
-                            @endforeach
-                        </select>
-
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm align-middle mb-0" id="partsTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>{{ __('Name') }}</th>
-                                        <th style="width:110px">{{ __('Code') }}</th>
-                                        <th style="width:110px">{{ __('Capacity') }}</th>
-                                        <th style="width:140px">{{ __('Device') }}</th>
-                                        <th style="width:90px" class="text-end">{{ __('Qty') }}</th>
-                                        <th style="width:130px" class="text-end">{{ __('Price') }}</th>
-                                        <th style="width:130px" class="text-end">{{ __('Total') }}</th>
-                                        <th style="width:90px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="parts-empty-row">
-                                        <td colspan="8" class="text-center text-muted py-3">{{ __('No parts selected yet.') }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mb-4" id="section-services">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ __('Select Services') }}</h5>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="addServiceLineBtn">
-                            <i class="bi bi-wrench-adjustable-circle me-1"></i>
-                            {{ __('Add Service') }}
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="deviceServicesSelects" class="row g-2"></div>
-
-                        <select id="services_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
-                            <option value="">{{ __('Search and select...') }}</option>
-                            @foreach ($services as $s)
-                                <option value="{{ $s->name }}">{{ $s->name }}</option>
-                            @endforeach
-                        </select>
-
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm align-middle mb-0" id="servicesTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>{{ __('Name') }}</th>
-                                        <th style="width:140px">{{ __('Service Code') }}</th>
-                                        <th style="width:160px">{{ __('Device') }}</th>
-                                        <th style="width:90px" class="text-end">{{ __('Qty') }}</th>
-                                        <th style="width:130px" class="text-end">{{ __('Price') }}</th>
-                                        <th style="width:130px" class="text-end">{{ __('Total') }}</th>
-                                        <th style="width:90px"></th>
-                                    </tr>
+                            <!-- Services Section -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0"><i class="bi bi-wrench-adjustable-circle me-2"></i>{{ __('Services') }}</h6>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addServiceLineBtn">
+                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Service') }}
+                                    </button>
+                                </div>
+                                <div id="deviceServicesSelects" class="row g-2"></div>
+                                <select id="services_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
+                                    <option value="">{{ __('Search and select...') }}</option>
+                                    @foreach ($services as $s)
+                                        <option value="{{ $s->name }}">{{ $s->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="table-responsive">
+                                    <table class="table step-table" id="servicesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ __('Name') }}</th>
+                                                <th style="width:140px">{{ __('Service Code') }}</th>
+                                                <th style="width:160px">{{ __('Device') }}</th>
+                                                <th style="width:90px" class="text-end">{{ __('Qty') }}</th>
+                                                <th style="width:130px" class="text-end">{{ __('Price') }}</th>
+                                                <th style="width:130px" class="text-end">{{ __('Total') }}</th>
+                                                <th style="width:90px"></th>
+                                            </tr>
                                 </thead>
                                 <tbody>
                                     <tr class="services-empty-row">
@@ -644,54 +728,142 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            </div>
+                        </div>
+
+                            <!-- Other Items Section -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ __('Other Items') }}</h6>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addOtherItemLineBtn">
+                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Item') }}
+                                    </button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table step-table" id="otherItemsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ __('Name') }}</th>
+                                                <th style="width:140px">{{ __('Code') }}</th>
+                                                <th style="width:160px">{{ __('Device') }}</th>
+                                                <th style="width:90px" class="text-end">{{ __('Qty') }}</th>
+                                                <th style="width:130px" class="text-end">{{ __('Price') }}</th>
+                                                <th style="width:130px" class="text-end">{{ __('Total') }}</th>
+                                                <th style="width:90px"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="other-empty-row">
+                                                <td colspan="7" class="text-center text-muted py-4">{{ __('No other items added yet.') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step-navigation">
+                            <button type="button" class="btn btn-outline-secondary btn-step" onclick="prevStep()">
+                                <i class="bi bi-arrow-left"></i> {{ __('Back') }}
+                            </button>
+                            <button type="button" class="btn btn-primary btn-step" onclick="nextStep()">
+                                {{ __('Continue') }} <i class="bi bi-arrow-right"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="card mb-4" id="section-other-items">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ __('Other Items') }}</h5>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="addOtherItemLineBtn">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            {{ __('Add Other Item') }}
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm align-middle mb-0" id="otherItemsTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>{{ __('Name') }}</th>
-                                        <th style="width:140px">{{ __('Code') }}</th>
-                                        <th style="width:160px">{{ __('Device') }}</th>
-                                        <th style="width:90px" class="text-end">{{ __('Qty') }}</th>
-                                        <th style="width:130px" class="text-end">{{ __('Price') }}</th>
-                                        <th style="width:130px" class="text-end">{{ __('Total') }}</th>
-                                        <th style="width:90px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="other-empty-row">
-                                        <td colspan="7" class="text-center text-muted py-3">{{ __('No other items added yet.') }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                <!-- Step 4: Settings & Review -->
+                <div class="step-panel" id="step4">
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <h4><i class="bi bi-gear me-2"></i>{{ __('Settings & Review') }}</h4>
+                            <p>{{ __('Set status, payment, and other options. Review and submit your job.') }}</p>
                         </div>
-                    </div>
-                </div>
-            </div>
+                        <div class="step-card-body">
+                            @php
+                                $oldExDates = (array) old('extra_item_occurred_at', []);
+                                $oldExLabels = (array) old('extra_item_label', []);
+                                $oldExData = (array) old('extra_item_data_text', []);
+                                $oldExDesc = (array) old('extra_item_description', []);
+                                $oldExVis = (array) old('extra_item_visibility', []);
+                                $exRows = max(count($oldExLabels), count($oldExData), count($oldExDesc), count($oldExVis), count($oldExDates));
 
-            <div class="col-xl-4">
-                <div class="position-sticky" style="top: 1rem;">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">{{ __('Order Information') }}</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="small text-muted mb-3">{{ __('Totals will calculate after saving the job.') }}</div>
+                                $seedExtras = [];
+                                for ($i = 0; $i < $exRows; $i++) {
+                                    $seedExtras[] = [
+                                        'occurred_at' => is_string($oldExDates[$i] ?? null) ? (string) $oldExDates[$i] : '',
+                                        'label' => is_string($oldExLabels[$i] ?? null) ? (string) $oldExLabels[$i] : '',
+                                        'data_text' => is_string($oldExData[$i] ?? null) ? (string) $oldExData[$i] : '',
+                                        'description' => is_string($oldExDesc[$i] ?? null) ? (string) $oldExDesc[$i] : '',
+                                        'visibility' => is_string($oldExVis[$i] ?? null) ? (string) $oldExVis[$i] : 'private',
+                                    ];
+                                }
+                            @endphp
 
+                            <!-- Extra Fields & Files Section -->
+                            <div class="mb-4" x-data="window.RBJobDevicesExtras.extras(@json($seedExtras))" x-init="window.rbExtras = $data">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0"><i class="bi bi-paperclip me-2"></i>{{ __('Extra Fields & Files') }}</h6>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addExtraLine" @click="openAdd()">
+                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Field') }}
+                                    </button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table step-table" id="extraTable" data-alpine-managed="1">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:160px">{{ __('Date') }}</th>
+                                                <th style="width:220px">{{ __('Label') }}</th>
+                                                <th>{{ __('Data') }}</th>
+                                                <th style="width:140px">{{ __('Visibility') }}</th>
+                                                <th style="width:140px">{{ __('File') }}</th>
+                                                <th style="width:120px"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-if="rows.length === 0">
+                                                <tr class="extras-empty-row">
+                                                    <td colspan="6" class="text-center text-muted py-4">
+                                                        {{ __('No extra fields added yet.') }}
+                                                    </td>
+                                                </tr>
+                                            </template>
+
+                                            <template x-for="(row, idx) in rows" :key="idx">
+                                                <tr>
+                                                    <td class="extra-date" :data-value="row.occurred_at" x-text="row.occurred_at && row.occurred_at.trim() !== '' ? row.occurred_at : '—'"></td>
+                                                    <td class="extra-label" :data-value="row.label" x-text="row.label && row.label.trim() !== '' ? row.label : '—'"></td>
+                                                    <td class="extra-data" :data-value="row.data_text" :data-desc="row.description">
+                                                        <span class="d-inline-block text-truncate" style="max-width: 420px;" x-text="row.data_text && row.data_text.trim() !== '' ? row.data_text : '—'" :title="row.data_text"></span>
+                                                    </td>
+                                                    <td class="extra-vis" :data-value="row.visibility" x-text="row.visibility === 'public' ? '{{ __('Public') }}' : '{{ __('Private') }}'"></td>
+                                                    <td class="extra-file" :data-value="row.file_name" x-text="row.file_name && row.file_name.trim() !== '' ? row.file_name : '—'"></td>
+                                                    <td class="text-end">
+                                                        <button type="button" class="btn btn-outline-primary btn-sm me-1" @click="openEdit(idx)" aria-label="{{ __('Edit') }}">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-danger btn-sm" @click="remove(idx)" aria-label="{{ __('Remove') }}">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+
+                                                        <input type="hidden" name="extra_item_occurred_at[]" :value="row.occurred_at" />
+                                                        <input type="hidden" name="extra_item_label[]" :value="row.label" />
+                                                        <input type="hidden" name="extra_item_data_text[]" :value="row.data_text" />
+                                                        <input type="hidden" name="extra_item_description[]" :value="row.description" />
+                                                        <input type="hidden" name="extra_item_visibility[]" :value="row.visibility" />
+                                                        <input type="file" name="extra_item_file[]" class="d-none" :ref="'file_' + idx" />
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @error('extra_item_label')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                            </div>
+
+                            <!-- Order Settings -->
                             <div class="row g-3">
-                                <div class="col-12">
+                                <div class="col-md-6">
                                     <label class="form-label">{{ __('Order Status') }}</label>
                                     @php $statusOld = old('status_slug', $isEdit ? (string) ($job?->status_slug ?? 'neworder') : 'neworder'); @endphp
                                     <select name="status_slug" class="form-select">
@@ -705,7 +877,7 @@
                                     @error('status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
 
-                                <div class="col-12">
+                                <div class="col-md-6">
                                     <label class="form-label">{{ __('Payment Status') }}</label>
                                     @php $payOld = old('payment_status_slug', $isEdit ? (string) ($job?->payment_status_slug ?? 'nostatus') : 'nostatus'); @endphp
                                     <select name="payment_status_slug" class="form-select">
@@ -719,7 +891,7 @@
                                     @error('payment_status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
 
-                                <div class="col-12">
+                                <div class="col-md-6">
                                     <label class="form-label">{{ __('Priority') }}</label>
                                     @php $p = old('priority', $isEdit ? (string) ($job?->priority ?? 'normal') : 'normal'); @endphp
                                     <select name="priority" class="form-select">
@@ -730,7 +902,7 @@
                                     @error('priority')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
 
-                                <div class="col-12">
+                                <div class="col-md-6">
                                     <label class="form-label">{{ __('Tax Mode') }}</label>
                                     @php $taxMode = old('prices_inclu_exclu', $isEdit ? (string) ($job?->prices_inclu_exclu ?? '') : ''); @endphp
                                     <select name="prices_inclu_exclu" class="form-select">
@@ -743,7 +915,7 @@
 
                                 <div class="col-12">
                                     <label class="form-label">{{ __('Order Notes') }}</label>
-                                    <textarea name="wc_order_note" class="form-control" rows="3" placeholder="{{ __('Visible to customer.') }}">{{ old('wc_order_note') }}</textarea>
+                                    <textarea name="wc_order_note" class="form-control" rows="3" placeholder="{{ __('Notes visible to customer.') }}">{{ old('wc_order_note') }}</textarea>
                                     @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
 
@@ -752,76 +924,126 @@
                                     <input type="file" name="job_file" class="form-control" />
                                     @error('job_file')<div class="text-danger small">{{ $message }}</div>@enderror
                                 </div>
-
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="bi bi-check2-circle me-1"></i>
-                                        {{ $isEdit ? __('Update Job') : __('Create Job') }}
-                                    </button>
-                                    <div class="text-muted small mt-2">{{ $isEdit ? __('After updating, you will be redirected to the job page.') : __('After creating, you will be redirected to the job page.') }}</div>
-                                </div>
-
-                                <div class="col-12">
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                            <i class="bi bi-printer me-1"></i>
-                                            {{ __('Print') }}
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                            <i class="bi bi-file-earmark-pdf me-1"></i>
-                                            {{ __('Download PDF') }}
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                            <i class="bi bi-envelope me-1"></i>
-                                            {{ __('Email Customer') }}
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                            <i class="bi bi-pen me-1"></i>
-                                            {{ __('Signature Request') }}
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">{{ __('Navigation') }}</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <a class="btn btn-outline-secondary btn-sm text-start" href="#section-job-details">
-                                    <i class="bi bi-card-text me-1"></i>
-                                    {{ __('Job Details') }}
-                                </a>
-                                <a class="btn btn-outline-secondary btn-sm text-start" href="#section-devices">
-                                    <i class="bi bi-phone me-1"></i>
-                                    {{ __('Devices') }}
-                                </a>
-                                <a class="btn btn-outline-secondary btn-sm text-start" href="#section-extras">
-                                    <i class="bi bi-paperclip me-1"></i>
-                                    {{ __('Extra Fields & Files') }}
-                                </a>
-                                <a class="btn btn-outline-secondary btn-sm text-start" href="#section-parts">
-                                    <i class="bi bi-box-seam me-1"></i>
-                                    {{ __('Select Parts') }}
-                                </a>
-                                <a class="btn btn-outline-secondary btn-sm text-start" href="#section-services">
-                                    <i class="bi bi-wrench-adjustable-circle me-1"></i>
-                                    {{ __('Select Services') }}
-                                </a>
-                                <a class="btn btn-outline-secondary btn-sm text-start" href="#section-other-items">
-                                    <i class="bi bi-plus-circle me-1"></i>
-                                    {{ __('Other Items') }}
-                                </a>
-                            </div>
+                        <div class="step-navigation">
+                            <button type="button" class="btn btn-outline-secondary btn-step" onclick="prevStep()">
+                                <i class="bi bi-arrow-left"></i> {{ __('Back') }}
+                            </button>
+                            <button type="submit" class="btn btn-success btn-step">
+                                <i class="bi bi-check2-circle"></i> {{ $isEdit ? __('Update Job') : __('Create Job') }}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </form>
+
+    <!-- Device Modal -->
+    <div class="modal fade" id="deviceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ __('Device') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="device_modal_device">{{ __('Device') }}</label>
+                            <select id="device_modal_device" class="form-select">
+                                <option value="">{{ __('Select Device') }}</option>
+                                @foreach ($devices as $d)
+                                    @php
+                                        $brand = is_string($d->brand?->name ?? null) ? (string) $d->brand?->name : '';
+                                        $model = is_string($d->model ?? null) ? (string) $d->model : '';
+                                        $text = trim(trim($brand . ' ' . $model));
+                                        if ($text === '') {
+                                            $text = __('Device') . ' #' . $d->id;
+                                        }
+                                    @endphp
+                                    <option value="{{ $d->id }}">{{ $text }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label" for="device_modal_imei">{{ __('Device ID/IMEI') }}</label>
+                            <input type="text" id="device_modal_imei" class="form-control" />
+                        </div>
+
+                        @if ($enablePinCodeField)
+                            <div class="col-md-6">
+                                <label class="form-label" for="device_modal_password">{{ __('Pin Code/Password') }}</label>
+                                <input type="text" id="device_modal_password" class="form-control" />
+                            </div>
+                        @endif
+
+                        <div class="col-12">
+                            <label class="form-label" for="device_modal_note">{{ __('Device Note') }}</label>
+                            <textarea id="device_modal_note" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="button" class="btn btn-primary" id="deviceModalSave">{{ __('Save') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extra Field Modal -->
+    <div class="modal fade" id="extraModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ __('Extra Field / File') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="extra_modal_date">{{ __('Date') }}</label>
+                            <input type="date" id="extra_modal_date" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="extra_modal_vis">{{ __('Visibility') }}</label>
+                            <select id="extra_modal_vis" class="form-select">
+                                <option value="public">{{ __('Customer & Staff') }}</option>
+                                <option value="private">{{ __('Staff Only') }}</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="extra_modal_label">{{ __('Label') }}</label>
+                            <input type="text" id="extra_modal_label" class="form-control" placeholder="{{ __('e.g., Diagnosis Result') }}" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="extra_modal_data">{{ __('Data') }}</label>
+                            <input type="text" id="extra_modal_data" class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="extra_modal_desc">{{ __('Description') }}</label>
+                            <textarea id="extra_modal_desc" class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="extra_modal_file">{{ __('File') }}</label>
+                            <input type="file" id="extra_modal_file" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="button" class="btn btn-primary" id="extraModalSave">{{ __('Save') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 @push('page-scripts')
@@ -1150,6 +1372,62 @@ window.RBJobDevicesExtras = window.RBJobDevicesExtras || {
         };
     }
 };
+
+// Stepper Navigation Functions
+var currentStep = 1;
+var totalSteps = 4;
+
+function goToStep(step) {
+    if (step < 1 || step > totalSteps) return;
+    
+    // Update current step
+    currentStep = step;
+    
+    // Update stepper items
+    document.querySelectorAll('.stepper-item').forEach(function(item) {
+        var itemStep = parseInt(item.getAttribute('data-step'), 10);
+        item.classList.remove('active');
+        if (itemStep < step) {
+            item.classList.add('completed');
+        } else {
+            item.classList.remove('completed');
+        }
+        if (itemStep === step) {
+            item.classList.add('active');
+        }
+    });
+    
+    // Update step panels
+    document.querySelectorAll('.step-panel').forEach(function(panel) {
+        panel.classList.remove('active');
+    });
+    var activePanel = document.getElementById('step' + step);
+    if (activePanel) {
+        activePanel.classList.add('active');
+    }
+    
+    // Update progress bar
+    var progressBar = document.getElementById('stepperProgress');
+    if (progressBar) {
+        var progress = (step / totalSteps) * 100;
+        progressBar.style.width = progress + '%';
+    }
+    
+    // Scroll to top of form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+    if (currentStep < totalSteps) {
+        goToStep(currentStep + 1);
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        goToStep(currentStep - 1);
+    }
+}
 
 document.addEventListener('click', function (e) {
     var deviceSave = e.target && e.target.id === 'deviceModalSave' ? e.target : (e.target ? e.target.closest('#deviceModalSave') : null);
