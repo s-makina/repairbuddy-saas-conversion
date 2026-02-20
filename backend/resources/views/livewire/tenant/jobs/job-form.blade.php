@@ -381,17 +381,7 @@
         .step-navigation {
             flex-direction: column; gap: .65rem; padding: 1rem;
         }
-        .step-navigation .btn-step { width: 100%; justify-content: center; }
-    }
 </style>
-<script>
-    document.addEventListener('alpine:init', () => {
-        console.log('Alpine initialized');
-    });
-    document.addEventListener('livewire:initialized', () => {
-        console.log('Livewire initialized');
-    });
-</script>
 @endpush
 
 <div class="container-fluid px-4 py-4">
@@ -505,6 +495,7 @@
                                                         <input type="text" class="form-control" 
                                                                placeholder="{{ __('Search by name, email or phone...') }}"
                                                                wire:model.live.debounce.300ms="customer_search"
+                                                               autocomplete="off"
                                                                @focus="open = true" 
                                                                @input="open = true"
                                                                @keydown.escape="open = false" />
@@ -514,21 +505,19 @@
                                                         </a>
                                                     </div>
                                                     
-                                                    @if(strlen($customer_search) >= 2)
-                                                        <div class="search-dropdown" x-show="open" x-cloak>
-                                                            @forelse($this->filtered_customers as $c)
-                                                                <div class="search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="open = false">
-                                                                    <div>
-                                                                        <div class="item-title">{{ $c->name }}</div>
-                                                                        <div class="item-meta">{{ $c->email }} | {{ $c->phone }}</div>
-                                                                    </div>
-                                                                    <i class="bi bi-plus text-primary"></i>
+                                                    <div class="search-dropdown" x-show="open" x-cloak>
+                                                        @forelse($this->filtered_customers as $c)
+                                                            <div class="search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="open = false">
+                                                                <div>
+                                                                    <div class="item-title">{{ $c->name }}</div>
+                                                                    <div class="item-meta">{{ $c->email }} | {{ $c->phone }}</div>
                                                                 </div>
-                                                            @empty
-                                                                <div class="p-3 text-center text-muted small">{{ __('No customers found') }}</div>
-                                                            @endforelse
-                                                        </div>
-                                                    @endif
+                                                                <i class="bi bi-plus text-primary"></i>
+                                                            </div>
+                                                        @empty
+                                                            <div class="p-3 text-center text-muted small">{{ __('No customers found') }}</div>
+                                                        @endforelse
+                                                    </div>
                                                 </div>
                                             @endif
                                             @error('customer_id')<div class="text-danger small">{{ $message }}</div>@enderror
@@ -543,6 +532,7 @@
                                                     <input type="text" class="form-control" 
                                                            placeholder="{{ __('Search technician...') }}"
                                                            wire:model.live.debounce.300ms="technician_search"
+                                                           autocomplete="off"
                                                            @focus="open = true"
                                                            @input="open = true"
                                                            @keydown.escape="open = false" />
@@ -552,21 +542,19 @@
                                                     </a>
                                                 </div>
                                                 
-                                                @if(strlen($technician_search) >= 2)
-                                                    <div class="search-dropdown" x-show="open" x-cloak>
-                                                        @forelse($this->filtered_technicians as $t)
-                                                            <div class="search-item" wire:key="tech-res-{{ $t->id }}" wire:click="selectTechnician({{ $t->id }})" @click="open = false">
-                                                                <div>
-                                                                    <div class="item-title">{{ $t->name }}</div>
-                                                                    <div class="item-meta">{{ $t->email }}</div>
-                                                                </div>
-                                                                <i class="bi bi-plus text-primary"></i>
+                                                <div class="search-dropdown" x-show="open" x-cloak>
+                                                    @forelse($this->filtered_technicians as $t)
+                                                        <div class="search-item" wire:key="tech-res-{{ $t->id }}" wire:click="selectTechnician({{ $t->id }})" @click="open = false">
+                                                            <div>
+                                                                <div class="item-title">{{ $t->name }}</div>
+                                                                <div class="item-meta">{{ $t->email }}</div>
                                                             </div>
-                                                        @empty
-                                                            <div class="p-3 text-center text-muted small">{{ __('No technicians found') }}</div>
-                                                        @endforelse
-                                                    </div>
-                                                @endif
+                                                            <i class="bi bi-plus text-primary"></i>
+                                                        </div>
+                                                    @empty
+                                                        <div class="p-3 text-center text-muted small">{{ __('No technicians found') }}</div>
+                                                    @endforelse
+                                                </div>
                                             </div>
 
                                             <div class="search-chips-container">

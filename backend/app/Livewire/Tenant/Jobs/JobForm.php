@@ -6,10 +6,8 @@ use App\Actions\RepairBuddy\UpsertRepairBuddyJob;
 use App\Models\Branch;
 use App\Models\RepairBuddyJob;
 use App\Support\BranchContext;
-use Illuminate\Http\UploadedFile;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
-use Illuminate\Support\Facades\Log;
 
 class JobForm extends Component
 {
@@ -92,7 +90,6 @@ class JobForm extends Component
         $jobDevices = null,
         $jobExtras = null,
     ): void {
-        Log::debug('JobForm mounted', ['tenant_id' => $tenant->id ?? 'N/A']);
         $this->tenant = $tenant;
         $this->user = $user;
         $this->activeNav = $activeNav;
@@ -179,13 +176,7 @@ class JobForm extends Component
         }
     }
 
-    public function updated($propertyName): void
-    {
-        Log::debug('Property updated', [
-            'property' => $propertyName,
-            'value' => $this->$propertyName
-        ]);
-    }
+
 
     protected function rules(): array
     {
@@ -403,62 +394,46 @@ class JobForm extends Component
 
     public function getFilteredCustomersProperty()
     {
-        if (strlen($this->customer_search) < 2) {
-            return collect();
-        }
-
         $search = $this->customer_search;
-        return \App\Models\User::query()
+        $query = \App\Models\User::query()
             ->where('tenant_id', (int) $this->tenant->id)
-            ->where('role', 'customer')
-            ->where(function ($q) use ($search) {
+            ->where('role', 'customer');
+
+        if (strlen($search) >= 2) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
-            })
-            ->orderBy('name')
-            ->limit(10)
+            });
+        }
+
+        return $query->orderBy('name')
+            ->limit(strlen($search) >= 2 ? 10 : 5)
             ->get();
-
-        Log::debug('Customer search triggered', [
-            'search' => $search,
-            'result_count' => $results->count(),
-            'tenant_id' => $this->tenant->id ?? 'N/A'
-        ]);
-
-        return $results;
     }
 
     public function getFilteredTechniciansProperty()
     {
-        if (strlen($this->technician_search) < 2) {
-            return collect();
+        $search = $this->technician_search;
+        $query = \App\Models\User::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('status', 'active')
+            ->where('role', '!=', 'customer');
+
+        if (!empty($this->technician_ids)) {
+            $query->whereNotIn('id', $this->technician_ids);
         }
 
-        $search = $this->technician_search;
-        return \App\Models\User::query()
-            ->where('tenant_id', (int) $this->tenant->id)
-            ->where('is_admin', false)
-            ->where('status', 'active')
-            ->where(function ($q) use ($search) {
+        if (strlen($search) >= 2) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->where(function ($q) {
-                $q->where('role', 'technician')
-                  ->orWhereHas('roles', fn ($rq) => $rq->where('name', 'Technician'));
-            })
-            ->orderBy('name')
-            ->limit(10)
+            });
+        }
+
+        return $query->orderBy('name')
+            ->limit(strlen($search) >= 2 ? 10 : 5)
             ->get();
-
-        Log::debug('Technician search triggered', [
-            'search' => $search,
-            'result_count' => $results->count(),
-            'tenant_id' => $this->tenant->id ?? 'N/A'
-        ]);
-
-        return $results;
     }
 
     public function selectCustomer($id)
@@ -512,7 +487,6 @@ class JobForm extends Component
 
     public function render()
     {
-        Log::debug('JobForm rendering');
         return view('livewire.tenant.jobs.job-form');
     }
 }
