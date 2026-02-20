@@ -6,6 +6,10 @@ use App\Actions\RepairBuddy\UpsertRepairBuddyJob;
 use App\Models\Branch;
 use App\Models\RepairBuddyJob;
 use App\Support\BranchContext;
+use App\Models\RepairBuddyCustomerDevice;
+use App\Models\RepairBuddyCustomerDeviceFieldValue;
+use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyDeviceFieldDefinition;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 
@@ -57,7 +61,18 @@ class JobForm extends Component
     /** @var array<int,int|string> */
     public array $technician_ids = [];
 
-    /** @var array<int,array{customer_device_id:mixed,serial:mixed,pin:mixed,notes:mixed}> */
+    public $device_search = '';
+    public $selected_device_id = null;
+    public $selected_device_name = '';
+    public $selected_device_image = null;
+    public $device_serial = '';
+    public $device_pin = '';
+    public $device_note = '';
+    public array $additional_fields = [];
+
+    public $fieldDefinitions = [];
+
+    /** @var array<int,array{customer_device_id:mixed,serial:mixed,pin:mixed,notes:mixed,brand_id:mixed,device_id:mixed,brand_name:string,device_model:string,additional_fields:array}> */
     public array $deviceRows = [];
 
     /** @var array<int,array{occurred_at:mixed,label:mixed,data_text:mixed,description:mixed,visibility:mixed}> */
@@ -110,6 +125,16 @@ class JobForm extends Component
         $this->jobDevices = $jobDevices;
         $this->jobExtras = $jobExtras;
 
+        $this->fieldDefinitions = RepairBuddyDeviceFieldDefinition::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_active', true)
+            ->where('show_in_booking', true)
+            ->get();
+
+        foreach ($this->fieldDefinitions as $def) {
+            $this->additional_fields[$def->key] = '';
+        }
+
         $settings = data_get($this->tenant?->setup_state ?? [], 'repairbuddy_settings');
         $devicesBrandsSettings = is_array($settings) ? (array) data_get($settings, 'devicesBrands', []) : [];
         $this->enablePinCodeField = (bool) ($devicesBrandsSettings['enablePinCodeField'] ?? false);
@@ -137,11 +162,21 @@ class JobForm extends Component
         $this->deviceRows = [];
         if (is_iterable($jobDevices)) {
             foreach ($jobDevices as $jd) {
+                $brandName = '';
+                $deviceModel = '';
+                if ($jd->customerDevice && $jd->customerDevice->device) {
+                    $brandName = $jd->customerDevice->device->brand?->name ?? '';
+                    $deviceModel = $jd->customerDevice->device->model ?? '';
+                }
+
                 $this->deviceRows[] = [
                     'customer_device_id' => $jd->customer_device_id ?? null,
                     'serial' => $jd->serial_snapshot ?? null,
                     'pin' => $jd->pin_snapshot ?? null,
                     'notes' => $jd->notes_snapshot ?? null,
+                    'brand_name' => $brandName,
+                    'device_model' => $deviceModel,
+                    'additional_fields' => $jd->extra_fields_snapshot_json ?? [],
                 ];
             }
         }
@@ -173,6 +208,13 @@ class JobForm extends Component
                     'meta_json' => is_array($it->meta_json ?? null) ? json_encode($it->meta_json) : null,
                 ];
             }
+        }
+    }
+
+    public function hydrate(): void
+    {
+        if ($this->tenant instanceof \App\Models\Tenant) {
+            \App\Support\TenantContext::set($this->tenant);
         }
     }
 
@@ -226,13 +268,88 @@ class JobForm extends Component
         ];
     }
 
+    public function getFilteredDevicesProperty()
+    {
+        $search = $this->device_search;
+        if (strlen($search) < 2) {
+            return collect();
+        }
+
+        return \App\Models\RepairBuddyDevice::query()
+            ->with(['brand'])
+            ->where('is_active', true)
+            ->where(function ($q) use ($search) {
+                $q->where('model', 'like', "%{$search}%")
+                  ->orWhereHas('brand', function ($bq) use ($search) {
+                      $bq->where('name', 'like', "%{$search}%");
+                  });
+            })
+            ->limit(30)
+            ->get()
+            ->groupBy(function ($d) {
+                return $d->brand?->name ?? 'Other';
+            });
+    }
+
+    public function selectDevice($id, $name): void
+    {
+        $this->selected_device_id = $id;
+        $this->selected_device_name = $name;
+        
+        $device = \App\Models\RepairBuddyDevice::find($id);
+        $this->selected_device_image = $device?->image_url;
+        
+        $this->device_search = ''; // Clear search after selection
+    }
+
+    public function addDeviceToTable(): void
+    {
+        $this->validate([
+            'selected_device_id' => ['required', 'integer'],
+            'device_serial' => ['nullable', 'string', 'max:255'],
+            'device_pin' => ['nullable', 'string', 'max:255'],
+            'device_note' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $device = \App\Models\RepairBuddyDevice::with('brand')->find($this->selected_device_id);
+
+        $this->deviceRows[] = [
+            'customer_device_id' => null,
+            'brand_id' => $device?->device_brand_id,
+            'device_id' => $device?->id,
+            'brand_name' => $device?->brand?->name ?? '',
+            'device_model' => $device?->model ?? '',
+            'image_url' => $device?->image_url,
+            'serial' => $this->device_serial,
+            'pin' => $this->device_pin,
+            'notes' => $this->device_note,
+            'additional_fields' => $this->additional_fields,
+        ];
+
+        // Reset form
+        $this->selected_device_id = null;
+        $this->selected_device_name = '';
+        $this->selected_device_image = null;
+        $this->device_search = '';
+        $this->device_serial = '';
+        $this->device_pin = '';
+        $this->device_note = '';
+        foreach ($this->additional_fields as $k => $v) {
+            $this->additional_fields[$k] = '';
+        }
+    }
+
     public function addDevice(): void
     {
+        // Legacy add device - we probably don't need this anymore but let's keep it for compatibility if needed
         $this->deviceRows[] = [
             'customer_device_id' => null,
             'serial' => null,
             'pin' => null,
             'notes' => null,
+            'brand_name' => '',
+            'device_model' => '',
+            'additional_fields' => [],
         ];
     }
 
@@ -337,6 +454,49 @@ class JobForm extends Component
             }
         }
 
+        // Process newly added devices (create CustomerDevice records)
+        foreach ($this->deviceRows as $idx => $row) {
+            if (! empty($row['customer_device_id'])) {
+                continue;
+            }
+
+            if (! $this->customer_id) {
+                // Should be caught by validation, but safety first
+                continue;
+            }
+
+            $branch = BranchContext::branch();
+
+            $cd = RepairBuddyCustomerDevice::create([
+                'tenant_id' => (int) $this->tenant->id,
+                'branch_id' => $branch ? (int) $branch->id : null,
+                'customer_id' => (int) $this->customer_id,
+                'device_id' => (int) $row['device_id'],
+                'label' => $row['brand_name'] . ' ' . $row['device_model'],
+                'serial' => $row['serial'],
+                'pin' => $row['pin'],
+                'notes' => $row['notes'],
+            ]);
+
+            $this->deviceRows[$idx]['customer_device_id'] = $cd->id;
+
+            // Save additional fields
+            if (! empty($row['additional_fields'])) {
+                foreach ($this->fieldDefinitions as $def) {
+                    $val = $row['additional_fields'][$def->key] ?? '';
+                    if ($val !== '') {
+                        RepairBuddyCustomerDeviceFieldValue::create([
+                            'tenant_id' => (int) $this->tenant->id,
+                            'branch_id' => $branch ? (int) $branch->id : null,
+                            'customer_device_id' => $cd->id,
+                            'field_definition_id' => $def->id,
+                            'value_text' => $val,
+                        ]);
+                    }
+                }
+            }
+        }
+
         $validated = [
             'case_number' => $this->case_number,
             'title' => $this->title,
@@ -376,7 +536,7 @@ class JobForm extends Component
         $action = new UpsertRepairBuddyJob();
 
         if (is_numeric($this->jobId) && (int) $this->jobId > 0 && $this->job instanceof RepairBuddyJob) {
-            $jobFile = $this->job_file instanceof UploadedFile ? $this->job_file : null;
+            $jobFile = $this->job_file instanceof \Illuminate\Http\UploadedFile ? $this->job_file : null;
             $extraFiles = is_array($this->extra_item_files) ? $this->extra_item_files : [];
             $job = $action->update($this->tenant, $this->user, $this->job, $validated, $jobFile, $extraFiles);
         } else {
@@ -384,7 +544,7 @@ class JobForm extends Component
             if (! $branch instanceof Branch) {
                 abort(400, 'Tenant or branch context is missing.');
             }
-            $jobFile = $this->job_file instanceof UploadedFile ? $this->job_file : null;
+            $jobFile = $this->job_file instanceof \Illuminate\Http\UploadedFile ? $this->job_file : null;
             $extraFiles = is_array($this->extra_item_files) ? $this->extra_item_files : [];
             $job = $action->create($this->tenant, $branch, $this->user, $validated, $jobFile, $extraFiles);
         }

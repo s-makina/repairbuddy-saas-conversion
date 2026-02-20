@@ -506,17 +506,25 @@
                                                     </div>
                                                     
                                                     <div class="search-dropdown" x-show="open" x-cloak>
-                                                        @forelse($this->filtered_customers as $c)
-                                                            <div class="search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="open = false">
-                                                                <div>
-                                                                    <div class="item-title">{{ $c->name }}</div>
-                                                                    <div class="item-meta">{{ $c->email }} | {{ $c->phone }}</div>
+                                                        <!-- Loading State -->
+                                                        <div wire:loading wire:target="customer_search" class="p-3 text-center">
+                                                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                                            <span class="text-muted small">{{ __('Searching customers...') }}</span>
+                                                        </div>
+
+                                                        <div wire:loading.remove wire:target="customer_search">
+                                                            @forelse($this->filtered_customers as $c)
+                                                                <div class="search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="open = false">
+                                                                    <div>
+                                                                        <div class="item-title">{{ $c->name }}</div>
+                                                                        <div class="item-meta">{{ $c->email }} | {{ $c->phone }}</div>
+                                                                    </div>
+                                                                    <i class="bi bi-plus text-primary"></i>
                                                                 </div>
-                                                                <i class="bi bi-plus text-primary"></i>
-                                                            </div>
-                                                        @empty
-                                                            <div class="p-3 text-center text-muted small">{{ __('No customers found') }}</div>
-                                                        @endforelse
+                                                            @empty
+                                                                <div class="p-3 text-center text-muted small">{{ __('No customers found') }}</div>
+                                                            @endforelse
+                                                        </div>
                                                     </div>
                                                 </div>
                                             @endif
@@ -543,17 +551,25 @@
                                                 </div>
                                                 
                                                 <div class="search-dropdown" x-show="open" x-cloak>
-                                                    @forelse($this->filtered_technicians as $t)
-                                                        <div class="search-item" wire:key="tech-res-{{ $t->id }}" wire:click="selectTechnician({{ $t->id }})" @click="open = false">
-                                                            <div>
-                                                                <div class="item-title">{{ $t->name }}</div>
-                                                                <div class="item-meta">{{ $t->email }}</div>
+                                                    <!-- Loading State -->
+                                                    <div wire:loading wire:target="technician_search" class="p-3 text-center">
+                                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                                        <span class="text-muted small">{{ __('Searching technicians...') }}</span>
+                                                    </div>
+
+                                                    <div wire:loading.remove wire:target="technician_search">
+                                                        @forelse($this->filtered_technicians as $t)
+                                                            <div class="search-item" wire:key="tech-res-{{ $t->id }}" wire:click="selectTechnician({{ $t->id }})" @click="open = false">
+                                                                <div>
+                                                                    <div class="item-title">{{ $t->name }}</div>
+                                                                    <div class="item-meta">{{ $t->email }}</div>
+                                                                </div>
+                                                                <i class="bi bi-plus text-primary"></i>
                                                             </div>
-                                                            <i class="bi bi-plus text-primary"></i>
-                                                        </div>
-                                                    @empty
-                                                        <div class="p-3 text-center text-muted small">{{ __('No technicians found') }}</div>
-                                                    @endforelse
+                                                        @empty
+                                                            <div class="p-3 text-center text-muted small">{{ __('No technicians found') }}</div>
+                                                        @endforelse
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -615,78 +631,207 @@
 
             <!-- Step 2: Devices -->
                 <div class="step-panel" :class="{ 'active': currentStep === 2 }">
-                    <div class="step-card">
+                    <!-- Add Device Form -->
+                    <div class="step-card mb-4 shadow-sm">
+                        <div class="step-card-header py-3">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-plus-square me-2"></i>{{ __('Add New Device') }}</h6>
+                        </div>
                         <div class="step-card-body">
-                            <div class="d-flex justify-content-end mb-3">
-                                <button type="button" class="btn btn-success" wire:click="addDevice">
-                                    <i class="bi bi-plus-circle me-1"></i>{{ __('Add Device') }}
-                                </button>
-                            </div>
-
-                            <div class="table-responsive">
-                                <table class="table step-table">
-                                    <thead>
-                                        <tr>
-                                            <th>{{ __('Device') }}</th>
-                                            <th style="width:180px">{{ __('Device ID/IMEI') }}</th>
-                                            @if ($enablePinCodeField)
-                                                <th style="width:180px">{{ __('Pin Code/Password') }}</th>
+                            <div class="row g-3">
+                                <!-- Grouped Device Search -->
+                                <div class="col-md-8">
+                                    <label class="form-label small fw-bold text-muted">{{ __('Select Device (Search Model or Brand)') }}</label>
+                                    <div class="position-relative" x-data="{ 
+                                        open: false, 
+                                        search: @entangle('device_search').live 
+                                    }" @click.away="open = false">
+                                        <div class="input-group shadow-sm">
+                                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                            <input type="text" 
+                                                   class="form-control border-start-0" 
+                                                   placeholder="{{ __('Start typing model or brand...') }}"
+                                                   x-model="search"
+                                                   @focus="open = true"
+                                                   @input="open = true">
+                                            @if($selected_device_id)
+                                                <button type="button" class="btn btn-outline-secondary border-start-0" wire:click="$set('selected_device_id', null); $set('selected_device_name', '')">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
                                             @endif
-                                            <th>{{ __('Device Note') }}</th>
-                                            <th style="width:120px"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (count($deviceRows) === 0)
-                                            <tr>
-                                                <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="step-empty-state">
-                                                    <i class="bi bi-phone"></i>
-                                                    <span>{{ __('No devices added yet. Click "Add Device" to get started.') }}</span>
-                                                </td>
-                                            </tr>
+                                        </div>
+
+                                        <!-- Selected Device Display -->
+                                        @if($selected_device_name)
+                                            <div class="mt-2">
+                                                <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center">
+                                                    @if($selected_device_image)
+                                                        <img src="{{ $selected_device_image }}" class="rounded-circle me-2" style="width: 20px; height: 20px; object-fit: cover; border: 1px solid rgba(255,255,255,0.5);">
+                                                    @else
+                                                        <i class="bi bi-check-circle-fill me-1"></i>
+                                                    @endif
+                                                    {{ $selected_device_name }}
+                                                </span>
+                                            </div>
                                         @endif
 
-                                        @foreach ($deviceRows as $i => $row)
-                                            <tr>
-                                                <td>
-                                                    <select class="form-select" wire:model.defer="deviceRows.{{ $i }}.customer_device_id">
-                                                        <option value="">{{ __('Select...') }}</option>
-                                                        @foreach ($customerDevices ?? [] as $cd)
-                                                            <option value="{{ $cd->id }}">{{ $cd->label ?? ('#'.$cd->id) }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('deviceRows.' . $i . '.customer_device_id')<div class="text-danger small">{{ $message }}</div>@enderror
-                                                </td>
-                                                <td>
-                                                    <input type="text" class="form-control" wire:model.defer="deviceRows.{{ $i }}.serial" />
-                                                    @error('deviceRows.' . $i . '.serial')<div class="text-danger small">{{ $message }}</div>@enderror
-                                                </td>
-                                                @if ($enablePinCodeField)
-                                                    <td>
-                                                        <input type="text" class="form-control" wire:model.defer="deviceRows.{{ $i }}.pin" />
-                                                        @error('deviceRows.' . $i . '.pin')<div class="text-danger small">{{ $message }}</div>@enderror
-                                                    </td>
-                                                @endif
-                                                <td>
-                                                    <input type="text" class="form-control" wire:model.defer="deviceRows.{{ $i }}.notes" />
-                                                    @error('deviceRows.' . $i . '.notes')<div class="text-danger small">{{ $message }}</div>@enderror
-                                                </td>
-                                                <td class="text-end">
-                                                    <button type="button" class="btn btn-outline-danger btn-sm" wire:click="removeDevice({{ $i }})">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                        <!-- Dropdown Results -->
+                                        <div class="dropdown-menu shadow-lg border-0 w-100 mt-1 scrollbar-thin" 
+                                             :class="{ 'show': open && search.length >= 2 }" 
+                                             style="max-height: 400px; overflow-y: auto; z-index: 1050;">
+                                            
+                                            <!-- Loading State -->
+                                            <div wire:loading wire:target="device_search" class="p-4 text-center">
+                                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                                <span class="text-muted small">{{ __('Searching devices...') }}</span>
+                                            </div>
+
+                                            <div wire:loading.remove wire:target="device_search">
+                                                @forelse($this->filteredDevices as $brandName => $groupDevices)
+                                                    <div class="dropdown-header bg-light py-2 text-uppercase fw-bold small text-primary sticky-top">
+                                                        {{ $brandName }}
+                                                    </div>
+                                                    @foreach($groupDevices as $device)
+                                                        <button type="button" 
+                                                                class="dropdown-item py-2 d-flex align-items-center" 
+                                                                wire:click="selectDevice({{ $device->id }}, '{{ $brandName }} {{ $device->model }}')"
+                                                                @click="open = false">
+                                                            <div class="me-2 rounded shadow-sm border overflow-hidden d-flex align-items-center justify-content-center bg-light" style="width: 32px; height: 32px;">
+                                                                @if($device->image_url)
+                                                                    <img src="{{ $device->image_url }}" alt="{{ $device->model }}" class="img-fluid" style="object-fit: cover; width: 100%; height: 100%;">
+                                                                @else
+                                                                    <i class="bi bi-phone text-muted small"></i>
+                                                                @endif
+                                                            </div>
+                                                            <span>{{ $device->model }}</span>
+                                                        </button>
+                                                    @endforeach
+                                                @empty
+                                                    <div class="p-3 text-center text-muted small">
+                                                        {{ __('No matching devices found') }}
+                                                    </div>
+                                                @endforelse
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @error('selected_device_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold text-muted">{{ __('ID / IMEI / Serial') }}</label>
+                                    <input type="text" class="form-control shadow-sm" wire:model.defer="device_serial" placeholder="{{ __('Search or Enter Serial...') }}">
+                                    @error('device_serial') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                </div>
+
+                                @if($enablePinCodeField)
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">{{ __('Pincode / Password') }}</label>
+                                        <input type="text" class="form-control shadow-sm" wire:model.defer="device_pin" placeholder="{{ __('e.g. 1234') }}">
+                                    </div>
+                                @endif
+
+                                @foreach($fieldDefinitions as $def)
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">{{ __($def->label) }}</label>
+                                        <input type="text" class="form-control shadow-sm" wire:model.defer="additional_fields.{{ $def->key }}">
+                                    </div>
+                                @endforeach
+
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold text-muted">{{ __('Device Note') }}</label>
+                                    <textarea class="form-control shadow-sm" wire:model.defer="device_note" rows="2" placeholder="{{ __('Pre-existing damage, specific issues, etc.') }}"></textarea>
+                                </div>
+
+                                <div class="col-12 text-end">
+                                    <button type="button" class="btn btn-success px-4" wire:click="addDeviceToTable">
+                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add to Job') }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="step-navigation">
-                            <button type="button" class="btn btn-outline-secondary btn-step" @click="currentStep = 1">
+                    </div>
+
+                    <!-- Added Devices List -->
+                    <div class="step-card shadow-sm">
+                        <div class="step-card-header py-3 bg-light">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>{{ __('Devices in this Job') }}</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">{{ __('Device Details') }}</th>
+                                        <th>{{ __('IMEI / Serial') }}</th>
+                                        @if($enablePinCodeField)
+                                            <th>{{ __('Pin') }}</th>
+                                        @endif
+                                        <th>{{ __('Notes') }}</th>
+                                        <th class="text-end pe-4">{{ __('Actions') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($deviceRows as $idx => $row)
+                                        <tr>
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center">
+                                                    @if(!empty($row['image_url']))
+                                                        <div class="me-3 rounded border overflow-hidden d-flex align-items-center justify-content-center bg-light" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                            <img src="{{ $row['image_url'] }}" alt="{{ $row['device_model'] }}" class="img-fluid" style="object-fit: cover; width: 100%; height: 100%;">
+                                                        </div>
+                                                    @else
+                                                        <div class="me-3 rounded border d-flex align-items-center justify-content-center bg-light text-muted" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                            <i class="bi bi-phone"></i>
+                                                        </div>
+                                                    @endif
+                                                    <div>
+                                                        <div class="fw-bold">{{ $row['brand_name'] }} {{ $row['device_model'] }}</div>
+                                                        @if(!empty($row['additional_fields']))
+                                                            <div class="small mt-1">
+                                                                @foreach($fieldDefinitions as $def)
+                                                                    @if(!empty($row['additional_fields'][$def->key]))
+                                                                        <span class="badge bg-light text-dark border me-1">{{ $def->label }}: {{ $row['additional_fields'][$def->key] }}</span>
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><code class="text-dark bg-light px-2 py-1 rounded small">{{ $row['serial'] ?: '--' }}</code></td>
+                                            @if($enablePinCodeField)
+                                                <td>{{ $row['pin'] ?: '--' }}</td>
+                                            @endif
+                                            <td>
+                                                @if($row['notes'])
+                                                    <span class="text-muted small d-inline-block text-truncate" style="max-width: 200px;" title="{{ $row['notes'] }}">
+                                                        {{ $row['notes'] }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted italic small">--</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeDevice({{ $idx }})">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="text-center py-5">
+                                                <div class="text-muted">
+                                                    <i class="bi bi-phone fs-2 d-block mb-2 opacity-25"></i>
+                                                    {{ __('No devices added yet. Please use the form above to add at least one device.') }}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="step-navigation p-3">
+                            <button type="button" class="btn btn-outline-secondary btn-step px-4" @click="currentStep = 1">
                                 <i class="bi bi-arrow-left"></i> {{ __('Back') }}
                             </button>
-                            <button type="button" class="btn btn-primary btn-step" @click="currentStep = 3">
+                            <button type="button" class="btn btn-primary btn-step px-4" @click="currentStep = 3" {{ count($deviceRows) === 0 ? 'disabled' : '' }}>
                                 {{ __('Continue') }} <i class="bi bi-arrow-right"></i>
                             </button>
                         </div>
