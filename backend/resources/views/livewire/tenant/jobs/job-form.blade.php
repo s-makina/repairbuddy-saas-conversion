@@ -9,286 +9,408 @@
 
 @push('page-styles')
 <style>
-    /* Vertical Stepper Layout */
+    /* ── Shared Design Tokens (matching job_show) ── */
+    :root {
+        --rb-primary: #3B82F6;
+        --rb-primary-hover: #2563EB;
+        --rb-success: #10B981;
+        --rb-danger: #EF4444;
+        --rb-warning: #F59E0B;
+        --rb-hero-bg: #1e293b;
+        --rb-card-bg: #ffffff;
+        --rb-card-border: #e2e8f0;
+        --rb-card-radius: 14px;
+        --rb-card-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
+        --rb-section-bg: #f8fafc;
+        --rb-text-primary: #1e293b;
+        --rb-text-secondary: #64748b;
+        --rb-text-muted: #94a3b8;
+        --rb-border-color: #cbd5e1; /* Slightly darker for visibility */
+        --rb-gradient-active: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    }
+
+    [x-cloak] { display: none !important; }
+
+    /* ── Hero Header ── */
+    .job-hero-header {
+        background: var(--rb-hero-bg);
+        background-image: radial-gradient(ellipse at 50% 0%, rgba(100,116,139,.35) 0%, transparent 70%);
+        border-radius: var(--rb-card-radius);
+        padding: 1.75rem 2rem;
+        margin-bottom: 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .hero-left { display: flex; align-items: center; gap: 1rem; }
+    .job-hero-icon {
+        width: 48px; height: 48px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem; color: #93c5fd;
+    }
+    .job-hero-header h4 {
+        margin: 0; font-weight: 700; font-size: 1.25rem; color: #f1f5f9;
+    }
+    .hero-subtitle { color: #94a3b8; font-size: .875rem; margin-top: .2rem; }
+    .btn-hero-back {
+        display: inline-flex; align-items: center; gap: .45rem;
+        padding: .5rem 1.15rem; border-radius: 8px; font-size: .875rem;
+        font-weight: 500; color: #cbd5e1;
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.1);
+        text-decoration: none; transition: all .2s;
+    }
+    .btn-hero-back:hover { background: rgba(255,255,255,.12); color: #f1f5f9; }
+
+    /* ── Vertical Stepper Layout ── */
     .job-stepper-container {
         display: flex;
         gap: 2rem;
         min-height: calc(100vh - 280px);
     }
+    .stepper-sidebar { width: 280px; flex-shrink: 0; }
+    .stepper-content  { flex: 1; min-width: 0; }
 
-    .stepper-sidebar {
-        width: 280px;
-        flex-shrink: 0;
+    .stepper-nav {
+        position: sticky; top: 1rem;
+        background: var(--rb-card-bg);
+        border-radius: var(--rb-card-radius);
+        box-shadow: var(--rb-card-shadow);
+        padding: 1.25rem;
     }
 
-    .stepper-content {
+    .stepper-progress {
+        height: 4px; background: #e9ecef; border-radius: 2px;
+        margin-bottom: 1rem; overflow: hidden;
+    }
+    .stepper-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--rb-primary) 0%, var(--rb-success) 100%);
+        border-radius: 2px; transition: width .3s ease;
+    }
+
+    /* Stepper items + vertical connector line */
+    .stepper-item {
+        display: flex; align-items: flex-start;
+        padding: .85rem .75rem; margin-bottom: .35rem;
+        border-radius: 10px; cursor: pointer;
+        transition: all .2s ease;
+        background: transparent;
+        border: 2px solid transparent;
+        position: relative;
+    }
+    .stepper-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: calc(.75rem + 19px);
+        top: calc(.85rem + 40px);
+        width: 2px;
+        height: calc(100% - 40px + .35rem);
+        background: var(--rb-border-color);
+    }
+    .stepper-item:not(:last-child).completed::after {
+        background: var(--rb-success);
+    }
+
+    .stepper-item:hover { background: rgba(59,130,246,.04); }
+    .stepper-item.active {
+        background: rgba(59,130,246,.06);
+        border-color: var(--rb-primary);
+    }
+    .stepper-item.completed { background: rgba(16,185,129,.05); }
+
+    .stepper-icon {
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 600; font-size: 1rem;
+        background: #f1f5f9; border: 2px solid var(--rb-border-color);
+        color: var(--rb-text-secondary);
+        flex-shrink: 0; transition: all .2s;
+    }
+    .stepper-item.active .stepper-icon {
+        background: var(--rb-gradient-active);
+        border-color: var(--rb-primary); color: #fff;
+        box-shadow: 0 4px 14px rgba(59,130,246,.25);
+    }
+    .stepper-item.completed .stepper-icon {
+        background: var(--rb-success); border-color: var(--rb-success); color: #fff;
+    }
+
+    .stepper-info  { margin-left: .85rem; flex: 1; }
+    .stepper-title { font-weight: 600; font-size: .9rem; color: var(--rb-text-primary); margin-bottom: .1rem; }
+    .stepper-desc  { font-size: .78rem; color: var(--rb-text-muted); }
+    .stepper-item.active  .stepper-title { color: var(--rb-primary); }
+    .stepper-item.completed .stepper-title { color: var(--rb-success); }
+
+    /* ── Step Panels ── */
+    .step-panel { display: none; animation: fadeIn .3s ease; }
+    .step-panel.active { display: block; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Step Cards ── */
+    .step-card {
+        background: var(--rb-card-bg);
+        border: 1px solid var(--rb-card-border);
+        border-radius: var(--rb-card-radius);
+        box-shadow: var(--rb-card-shadow);
+        overflow: hidden;
+    }
+    .step-card-header {
+        display: flex; align-items: flex-start; gap: 1rem;
+        padding: 1.35rem 1.75rem;
+        border-bottom: 1px solid var(--rb-border-color);
+        background: linear-gradient(135deg, rgba(59,130,246,.025) 0%, transparent 100%);
+    }
+    .step-header-icon {
+        width: 38px; height: 38px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(59,130,246,.08); color: var(--rb-primary);
+        border-radius: 10px; font-size: 1.1rem;
+    }
+    .step-card-header h4 {
+        margin: 0; font-weight: 650; font-size: 1.05rem; color: var(--rb-text-primary);
+    }
+    .step-card-header p {
+        margin: .2rem 0 0; color: var(--rb-text-secondary); font-size: .85rem;
+    }
+    .step-card-body { padding: 1.75rem; }
+
+    /* ── Form Styling ── */
+    .form-label { font-weight: 500; color: #374151; margin-bottom: .4rem; font-size: .9rem; }
+    .form-control, .form-select {
+        background-color: #f8fafc;
+        border-radius: 8px; border: 1.5px solid var(--rb-border-color);
+        padding: .7rem .95rem; transition: all .2s;
+        color: var(--rb-text-primary); font-size: .9rem;
+    }
+    .form-control:focus, .form-select:focus {
+        background-color: #fff;
+        border-color: var(--rb-primary);
+        box-shadow: none;
+        outline: none;
+    }
+    .form-text { font-size: .8rem; color: var(--rb-text-muted); }
+
+    /* ── Navigation Buttons ── */
+    .step-navigation {
+        display: flex; justify-content: space-between;
+        padding: 1.25rem 1.75rem;
+        border-top: 1px solid var(--rb-border-color);
+        background: var(--rb-section-bg);
+        border-radius: 0 0 var(--rb-card-radius) var(--rb-card-radius);
+    }
+    .btn-step {
+        padding: .65rem 1.5rem; border-radius: 8px; font-weight: 500;
+        display: inline-flex; align-items: center; gap: .45rem;
+        transition: all .2s;
+    }
+    .btn-primary { background: var(--rb-primary); border-color: var(--rb-primary); }
+    .btn-primary:hover { background: var(--rb-primary-hover); border-color: var(--rb-primary-hover); }
+    .btn-success { background: var(--rb-success); border-color: var(--rb-success); }
+    .btn-success:hover { background: #059669; border-color: #059669; }
+
+    /* ── Tables ── */
+    .step-table { margin-bottom: 0; }
+    .step-table th {
+        background: var(--rb-section-bg); font-weight: 600; font-size: .8rem;
+        text-transform: uppercase; letter-spacing: .04em;
+        color: var(--rb-text-secondary); border-bottom-width: 1px;
+    }
+    .step-table td, .step-table th {
+        vertical-align: middle; padding: .75rem .85rem;
+        border-color: var(--rb-border-color);
+    }
+    .step-table tbody tr:hover { background: rgba(59,130,246,.02); }
+
+    /* ── Empty states ── */
+    .step-empty-state {
+        text-align: center; padding: 2.5rem 1rem !important;
+        color: var(--rb-text-muted); font-size: .9rem;
+    }
+    .step-empty-state i {
+        display: block; font-size: 2rem; margin-bottom: .5rem; opacity: .45;
+    }
+
+    /* ── Section headings & dividers ── */
+    .step-section-heading {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: .85rem;
+    }
+    .step-section-heading h6 {
+        margin: 0; font-weight: 600; font-size: .95rem; color: var(--rb-text-primary);
+        display: flex; align-items: center; gap: .5rem;
+    }
+    .step-section-heading h6 i { color: var(--rb-primary); font-size: 1rem; }
+    .step-section-divider {
+        border: none; border-top: 1px dashed var(--rb-border-color);
+        margin: 1.5rem 0;
+    }
+
+    /* ── Horizontal Field Layout (Labels Left, Inputs Right) ── */
+    .field-row {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        gap: 2rem;
+    }
+    .field-label {
+        width: 180px;
+        flex-shrink: 0;
+        padding-top: calc(0.6rem + 1px); /* Align with input padding */
+        font-weight: 600;
+        color: var(--rb-text-primary);
+        font-size: 0.9rem;
+    }
+    .field-content {
         flex: 1;
         min-width: 0;
     }
 
-    .stepper-nav {
-        position: sticky;
-        top: 1rem;
+    /* ── Searchable Select (Custom) ── */
+    .search-select-container { position: relative; width: 100%; }
+    .search-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0;
+        z-index: 1050; background: #fff;
+        border: 1px solid var(--rb-card-border);
+        border-radius: 10px; margin-top: 5px;
+        box-shadow: 0 10px 25px rgba(0,0,0,.1);
+        max-height: 280px; overflow-y: auto;
     }
-
-    .stepper-progress {
-        height: 4px;
-        background: #e9ecef;
-        border-radius: 2px;
-        margin-bottom: 1.5rem;
-        overflow: hidden;
+    .search-item {
+        padding: .65rem 1rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: space-between;
+        transition: all .15s ease; border-bottom: 1px solid #f1f5f9;
     }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover { background: #f8fafc; }
+    .search-item .item-title { font-weight: 500; font-size: .875rem; color: var(--rb-text-primary); }
+    .search-item .item-meta { font-size: .75rem; color: var(--rb-text-muted); }
 
-    .stepper-progress-bar {
-        height: 100%;
-        background: linear-gradient(90deg, #667eea 0%, #10b981 100%);
-        border-radius: 2px;
-        transition: width 0.3s ease;
+    .search-selected-box {
+        background: #f8fafc; border: 1.5px solid var(--rb-card-border);
+        border-radius: 10px; padding: .5rem .75rem;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .5rem;
     }
-
-    .stepper-item {
-        display: flex;
-        align-items: flex-start;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background: transparent;
-        border: 2px solid transparent;
+    .search-chips-container { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+    .search-chip {
+        display: inline-flex; align-items: center; gap: .4rem;
+        background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+        padding: .25rem .65rem; border-radius: 6px; font-size: .78rem; font-weight: 500;
     }
-
-    .stepper-item:hover {
-        background: rgba(102, 126, 234, 0.05);
+    .search-chip .btn-remove-chip {
+        background: none; border: none; padding: 0;
+        color: #60a5fa; cursor: pointer; font-size: 1rem;
+        line-height: 1; transition: color .15s;
     }
+    .search-chip .btn-remove-chip:hover { color: #1d4ed8; }
 
-    .stepper-item.active {
-        background: rgba(102, 126, 234, 0.1);
-        border-color: #667eea;
-    }
-
-    .stepper-item.completed {
-        background: rgba(16, 185, 129, 0.08);
-    }
-
-    .stepper-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .btn-gradient {
+        background: var(--rb-gradient-active);
+        border: none;
+        color: #fff !important;
         font-weight: 600;
-        font-size: 1rem;
-        background: #e9ecef;
-        border: 2px solid #dee2e6;
-        color: #6c757d;
-        flex-shrink: 0;
-        transition: all 0.2s ease;
-    }
-
-    .stepper-item.active .stepper-icon {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-color: #667eea;
-        color: white;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    .stepper-item.completed .stepper-icon {
-        background: #10b981;
-        border-color: #10b981;
-        color: white;
-    }
-
-    .stepper-info {
-        margin-left: 1rem;
-        flex: 1;
-    }
-
-    .stepper-title {
-        font-weight: 600;
-        font-size: 0.95rem;
-        color: #1a1a2e;
-        margin-bottom: 0.125rem;
-    }
-
-    .stepper-desc {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-
-    .stepper-item.completed .stepper-title {
-        color: #10b981;
-    }
-
-    /* Step Content Panels */
-    .step-panel {
-        display: none;
-        animation: fadeIn 0.3s ease;
-    }
-
-    .step-panel.active {
-        display: block;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .step-card {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-        overflow: hidden;
-    }
-
-    .step-card-header {
-        padding: 1.5rem 2rem;
-        border-bottom: 1px solid #e9ecef;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(102, 126, 234, 0.01) 100%);
-    }
-
-    .step-card-header h4 {
-        margin: 0;
-        font-weight: 600;
-        color: #1a1a2e;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .step-card-header p {
-        margin: 0.5rem 0 0;
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
-
-    .step-card-body {
-        padding: 2rem;
-    }
-
-    .form-label {
-        font-weight: 500;
-        color: #374151;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-control, .form-select {
-        border-radius: 8px;
-        border: 1px solid #dee2e6;
-        padding: 0.625rem 1rem;
-        transition: all 0.2s ease;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
-    }
-
-    /* Navigation Buttons */
-    .step-navigation {
-        display: flex;
-        justify-content: space-between;
-        padding: 1.5rem 2rem;
-        border-top: 1px solid #e9ecef;
-        background: #f8fafc;
-    }
-
-    .btn-step {
-        padding: 0.75rem 1.75rem;
-        border-radius: 8px;
-        font-weight: 500;
+        transition: all .2s ease;
+        box-shadow: 0 4px 12px rgba(59,130,246,.2);
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
     }
-
-    /* Tables in steps */
-    .step-table th {
-        background: #f8fafc;
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
-        color: #64748b;
+    .btn-gradient:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(59,130,246,.3);
+        filter: brightness(1.1);
+        color: #fff !important;
     }
+    .btn-gradient:active { transform: translateY(0); }
 
-    .step-table td, .step-table th {
-        vertical-align: middle;
-        padding: 0.875rem 1rem;
+    .dates-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
     }
-
-    /* Responsive */
-    @media (max-width: 991.98px) {
-        .job-stepper-container {
+    
+    @media (max-width: 991px) {
+        .dates-grid { grid-template-columns: 1fr; }
+    }
+    
+    @media (max-width: 767.98px) {
+        .field-row {
             flex-direction: column;
-        }
-
-        .stepper-sidebar {
-            width: 100%;
-        }
-
-        .stepper-nav {
-            position: relative;
-            top: 0;
-            display: flex;
-            flex-wrap: wrap;
             gap: 0.5rem;
-            margin-bottom: 1.5rem;
         }
-
-        .stepper-progress {
-            display: none;
-        }
-
-        .stepper-item {
-            flex: 1;
-            min-width: 140px;
-            padding: 0.75rem;
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .stepper-info {
-            margin-left: 0;
-            margin-top: 0.5rem;
-        }
-
-        .stepper-icon {
-            width: 36px;
-            height: 36px;
-            font-size: 0.875rem;
-        }
-
-        .stepper-desc {
-            display: none;
+        .field-label {
+            width: 100%;
+            text-align: left;
+            padding-top: 0;
         }
     }
 
-    @media (max-width: 575.98px) {
+    /* ── Responsive ── */
+    @media (max-width: 991.98px) {
+        .job-stepper-container { flex-direction: column; }
+        .stepper-sidebar { width: 100%; }
+        .stepper-nav {
+            position: relative; top: 0;
+            display: flex; flex-wrap: wrap; gap: .5rem;
+            padding: 1rem;
+        }
+        .stepper-progress { display: none; }
         .stepper-item {
-            min-width: auto;
+            flex: 1; min-width: 130px; padding: .65rem;
+            flex-direction: column; text-align: center; margin-bottom: 0;
         }
-
-        .step-card-body {
-            padding: 1.25rem;
-        }
-
+        .stepper-item:not(:last-child)::after { display: none; }
+        .stepper-info { margin-left: 0; margin-top: .35rem; }
+        .stepper-icon { width: 34px; height: 34px; font-size: .85rem; }
+        .stepper-desc { display: none; }
+        .job-hero-header { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 575.98px) {
+        .stepper-item { min-width: auto; }
+        .step-card-body { padding: 1.15rem; }
+        .step-card-header { padding: 1.15rem; }
         .step-navigation {
-            flex-direction: column;
-            gap: 0.75rem;
+            flex-direction: column; gap: .65rem; padding: 1rem;
         }
-
-        .step-navigation .btn-step {
-            width: 100%;
-            justify-content: center;
-        }
+        .step-navigation .btn-step { width: 100%; justify-content: center; }
     }
 </style>
+<script>
+    document.addEventListener('alpine:init', () => {
+        console.log('Alpine initialized');
+    });
+    document.addEventListener('livewire:initialized', () => {
+        console.log('Livewire initialized');
+    });
+</script>
 @endpush
 
-<div x-data="{ currentStep: 1 }">
+<div class="container-fluid px-4 py-4">
+    <div x-data="{ currentStep: 1 }">
+    <div class="job-hero-header">
+        <div class="hero-left">
+            <div class="job-hero-icon">
+                <i class="bi bi-clipboard-plus"></i>
+            </div>
+            <div>
+                <h4>{{ $jobId ? __('Edit Job') : __('Create New Job') }}</h4>
+                <div class="hero-subtitle">{{ $jobId ? __('Update job details and information.') : __('Fill in the details below to create a new repair job.') }}</div>
+            </div>
+        </div>
+        <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}" class="btn-hero-back">
+            <i class="bi bi-arrow-left"></i> {{ __('Back to Jobs') }}
+        </a>
+    </div>
+
     <form wire:submit.prevent="save" enctype="multipart/form-data">
         <div class="job-stepper-container">
             <!-- Stepper Sidebar -->
@@ -349,68 +471,148 @@
             <!-- Step 1: Job Details -->
                 <div class="step-panel" :class="{ 'active': currentStep === 1 }">
                     <div class="step-card">
-                        <div class="step-card-header">
-                            <h4><i class="bi bi-clipboard-data me-2"></i>{{ __('Job Details') }}</h4>
-                            <p>{{ __('Enter the basic information for this repair job.') }}</p>
-                        </div>
                         <div class="step-card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">{{ __('Case Number') }}</label>
-                                    <input type="text" class="form-control" wire:model.defer="case_number" placeholder="{{ __('Leave blank to auto-generate') }}" />
-                                    <div class="form-text">{{ __('Auto-generated if left empty') }}</div>
-                                    @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">{{ __('Title') }}</label>
-                                    <input type="text" class="form-control" wire:model.defer="title" placeholder="{{ __('e.g., iPhone 14 Screen Repair') }}" />
-                                    @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label" for="customer_id">{{ __('Customer') }} <span class="text-danger">*</span></label>
-                                    <select id="customer_id" class="form-select" wire:model.defer="customer_id">
-                                        <option value="">{{ __('Select customer...') }}</option>
-                                        @foreach ($customers ?? [] as $c)
-                                            <option value="{{ $c->id }}">{{ $c->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('customer_id')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label" for="technician_ids">{{ __('Assigned Technicians') }}</label>
-                                    <select id="technician_ids" class="form-select" multiple wire:model.defer="technician_ids">
-                                        @foreach ($technicians ?? [] as $t)
-                                            <option value="{{ $t->id }}">{{ $t->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('technician_ids')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">{{ __('Pickup Date') }}</label>
-                                    <input type="date" class="form-control" wire:model.defer="pickup_date" />
-                                    @error('pickup_date')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">{{ __('Delivery Date') }}</label>
-                                    <input type="date" class="form-control" wire:model.defer="delivery_date" />
-                                    @error('delivery_date')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">{{ __('Next Service Date') }}</label>
-                                    <input type="date" class="form-control" wire:model.defer="next_service_date" />
-                                    @error('next_service_date')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
+                            <div class="row">
                                 <div class="col-12">
-                                    <label class="form-label">{{ __('Job Description') }}</label>
-                                    <textarea class="form-control" rows="4" wire:model.defer="case_detail" placeholder="{{ __('Describe the repair issue, customer notes, or any relevant details...') }}"></textarea>
-                                    @error('case_detail')<div class="text-danger small">{{ $message }}</div>@enderror
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Case Number') }}</label>
+                                        <div class="field-content">
+                                            <input type="text" class="form-control" wire:model.defer="case_number" placeholder="{{ __('Leave blank to auto-generate') }}" />
+                                            <div class="form-text">{{ __('Auto-generated if left empty') }}</div>
+                                            @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+
+
+                                    <!-- Customer Selection -->
+                                    <div class="field-row">
+                                        <label class="field-label" for="customer_id">{{ __('Customer') }} <span class="text-danger">*</span></label>
+                                        <div class="field-content">
+                                            @if($this->selected_customer)
+                                                <div class="search-selected-box">
+                                                    <div>
+                                                        <div class="item-title">{{ $this->selected_customer->name }}</div>
+                                                        <div class="item-meta">{{ $this->selected_customer->email }} | {{ $this->selected_customer->phone }}</div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-link text-danger" wire:click="$set('customer_id', null)">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </div>
+                                            @else
+
+                                                <div class="search-select-container" x-data="{ open: false }" @click.away="open = false">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" 
+                                                               placeholder="{{ __('Search by name, email or phone...') }}"
+                                                               wire:model.live.debounce.300ms="customer_search"
+                                                               @focus="open = true" 
+                                                               @input="open = true"
+                                                               @keydown.escape="open = false" />
+                                                        <div wire:loading wire:target="customer_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
+                                                        <a href="{{ route('tenant.operations.clients.create', ['business' => $tenant->slug]) }}" class="btn btn-gradient" title="{{ __('Create New Customer') }}" target="_blank">
+                                                            <i class="bi bi-plus-lg"></i>
+                                                        </a>
+                                                    </div>
+                                                    
+                                                    @if(strlen($customer_search) >= 2)
+                                                        <div class="search-dropdown" x-show="open" x-cloak>
+                                                            @forelse($this->filtered_customers as $c)
+                                                                <div class="search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="open = false">
+                                                                    <div>
+                                                                        <div class="item-title">{{ $c->name }}</div>
+                                                                        <div class="item-meta">{{ $c->email }} | {{ $c->phone }}</div>
+                                                                    </div>
+                                                                    <i class="bi bi-plus text-primary"></i>
+                                                                </div>
+                                                            @empty
+                                                                <div class="p-3 text-center text-muted small">{{ __('No customers found') }}</div>
+                                                            @endforelse
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                            @error('customer_id')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <!-- Technician Selection -->
+                                    <div class="field-row">
+                                        <label class="field-label" for="technician_ids">{{ __('Assigned Technicians') }}</label>
+                                        <div class="field-content">
+                                            <div class="search-select-container" x-data="{ open: false }" @click.away="open = false">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" 
+                                                           placeholder="{{ __('Search technician...') }}"
+                                                           wire:model.live.debounce.300ms="technician_search"
+                                                           @focus="open = true"
+                                                           @input="open = true"
+                                                           @keydown.escape="open = false" />
+                                                    <div wire:loading wire:target="technician_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
+                                                    <a href="{{ route('tenant.settings.users.create', ['business' => $tenant->slug]) }}" class="btn btn-gradient" title="{{ __('Create New Technician') }}" target="_blank">
+                                                        <i class="bi bi-plus-lg"></i>
+                                                    </a>
+                                                </div>
+                                                
+                                                @if(strlen($technician_search) >= 2)
+                                                    <div class="search-dropdown" x-show="open" x-cloak>
+                                                        @forelse($this->filtered_technicians as $t)
+                                                            <div class="search-item" wire:key="tech-res-{{ $t->id }}" wire:click="selectTechnician({{ $t->id }})" @click="open = false">
+                                                                <div>
+                                                                    <div class="item-title">{{ $t->name }}</div>
+                                                                    <div class="item-meta">{{ $t->email }}</div>
+                                                                </div>
+                                                                <i class="bi bi-plus text-primary"></i>
+                                                            </div>
+                                                        @empty
+                                                            <div class="p-3 text-center text-muted small">{{ __('No technicians found') }}</div>
+                                                        @endforelse
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <div class="search-chips-container">
+                                                @foreach($this->selected_technicians as $st)
+                                                    <span class="search-chip" wire:key="selected-tech-{{ $st->id }}">
+                                                        {{ $st->name }}
+                                                        <button type="button" class="btn-remove-chip" wire:click="removeTechnician({{ $st->id }})">
+                                                            <i class="bi bi-x"></i>
+                                                        </button>
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                            @error('technician_ids')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Schedule Dates') }}</label>
+                                        <div class="field-content">
+                                            <div class="dates-grid">
+                                                <div>
+                                                    <label class="form-label small text-muted mb-1">{{ __('Pickup Date') }}</label>
+                                                    <input type="date" class="form-control" wire:model.defer="pickup_date" />
+                                                    @error('pickup_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                </div>
+                                                <div>
+                                                    <label class="form-label small text-muted mb-1">{{ __('Delivery Date') }}</label>
+                                                    <input type="date" class="form-control" wire:model.defer="delivery_date" />
+                                                    @error('delivery_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                </div>
+                                                <div>
+                                                    <label class="form-label small text-muted mb-1">{{ __('Next Service') }}</label>
+                                                    <input type="date" class="form-control" wire:model.defer="next_service_date" />
+                                                    @error('next_service_date')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Job Description') }}</label>
+                                        <div class="field-content">
+                                            <textarea class="form-control" rows="4" wire:model.defer="case_detail" placeholder="{{ __('Describe the repair issue, customer notes, or any relevant details...') }}"></textarea>
+                                            @error('case_detail')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -426,10 +628,6 @@
             <!-- Step 2: Devices -->
                 <div class="step-panel" :class="{ 'active': currentStep === 2 }">
                     <div class="step-card">
-                        <div class="step-card-header">
-                            <h4><i class="bi bi-phone me-2"></i>{{ __('Devices') }}</h4>
-                            <p>{{ __('Add the devices that need to be repaired.') }}</p>
-                        </div>
                         <div class="step-card-body">
                             <div class="d-flex justify-content-end mb-3">
                                 <button type="button" class="btn btn-success" wire:click="addDevice">
@@ -453,9 +651,9 @@
                                     <tbody>
                                         @if (count($deviceRows) === 0)
                                             <tr>
-                                                <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="text-center text-muted py-5">
-                                                    <i class="bi bi-phone display-4 d-block mb-2 opacity-50"></i>
-                                                    {{ __('No devices added yet. Click "Add Device" to get started.') }}
+                                                <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="step-empty-state">
+                                                    <i class="bi bi-phone"></i>
+                                                    <span>{{ __('No devices added yet. Click "Add Device" to get started.') }}</span>
                                                 </td>
                                             </tr>
                                         @endif
@@ -510,15 +708,11 @@
             <!-- Step 3: Parts & Services -->
                 <div class="step-panel" :class="{ 'active': currentStep === 3 }">
                     <div class="step-card">
-                        <div class="step-card-header">
-                            <h4><i class="bi bi-box-seam me-2"></i>{{ __('Parts & Services') }}</h4>
-                            <p>{{ __('Add parts, services, and other items for this job.') }}</p>
-                        </div>
                         <div class="step-card-body">
                             <!-- Parts -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>{{ __('Parts') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-cpu"></i>{{ __('Parts') }}</h6>
                                     <button type="button" class="btn btn-success btn-sm" wire:click="addPart">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Part') }}
                                     </button>
@@ -537,7 +731,7 @@
                                         <tbody>
                                             @php $partsItems = array_filter($items, fn($r) => ($r['type'] ?? '') === 'part'); @endphp
                                             @if (count($partsItems) === 0)
-                                                <tr><td colspan="5" class="text-center text-muted py-3">{{ __('No parts added yet') }}</td></tr>
+                                                <tr><td colspan="5" class="step-empty-state"><i class="bi bi-cpu"></i><span>{{ __('No parts added yet') }}</span></td></tr>
                                             @endif
                                             @foreach ($items as $i => $row)
                                                 @if (($row['type'] ?? '') === 'part')
@@ -555,10 +749,12 @@
                                 </div>
                             </div>
 
+                            <hr class="step-section-divider" />
+
                             <!-- Services -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-wrench-adjustable-circle me-2"></i>{{ __('Services') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-wrench-adjustable-circle"></i>{{ __('Services') }}</h6>
                                     <button type="button" class="btn btn-success btn-sm" wire:click="addService">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Service') }}
                                     </button>
@@ -577,7 +773,7 @@
                                         <tbody>
                                             @php $servicesItems = array_filter($items, fn($r) => ($r['type'] ?? '') === 'service'); @endphp
                                             @if (count($servicesItems) === 0)
-                                                <tr><td colspan="5" class="text-center text-muted py-3">{{ __('No services added yet') }}</td></tr>
+                                                <tr><td colspan="5" class="step-empty-state"><i class="bi bi-wrench-adjustable-circle"></i><span>{{ __('No services added yet') }}</span></td></tr>
                                             @endif
                                             @foreach ($items as $i => $row)
                                                 @if (($row['type'] ?? '') === 'service')
@@ -595,10 +791,12 @@
                                 </div>
                             </div>
 
+                            <hr class="step-section-divider" />
+
                             <!-- Other Items -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ __('Other Items') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-receipt"></i>{{ __('Other Items') }}</h6>
                                     <button type="button" class="btn btn-success btn-sm" wire:click="addOtherItem">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Item') }}
                                     </button>
@@ -617,7 +815,7 @@
                                         <tbody>
                                             @php $otherItems = array_filter($items, fn($r) => !in_array($r['type'] ?? '', ['part', 'service'])); @endphp
                                             @if (count($otherItems) === 0)
-                                                <tr><td colspan="5" class="text-center text-muted py-3">{{ __('No other items added yet') }}</td></tr>
+                                                <tr><td colspan="5" class="step-empty-state"><i class="bi bi-receipt"></i><span>{{ __('No other items added yet') }}</span></td></tr>
                                             @endif
                                             @foreach ($items as $i => $row)
                                                 @if (!in_array($row['type'] ?? '', ['part', 'service']))
@@ -654,15 +852,11 @@
             <!-- Step 4: Settings & Review -->
                 <div class="step-panel" :class="{ 'active': currentStep === 4 }">
                     <div class="step-card">
-                        <div class="step-card-header">
-                            <h4><i class="bi bi-gear me-2"></i>{{ __('Settings & Review') }}</h4>
-                            <p>{{ __('Set status, payment, and other options. Review and submit your job.') }}</p>
-                        </div>
                         <div class="step-card-body">
                             <!-- Extra Fields & Files -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-paperclip me-2"></i>{{ __('Extra Fields & Files') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-paperclip"></i>{{ __('Extra Fields & Files') }}</h6>
                                     <button type="button" class="btn btn-success btn-sm" wire:click="addExtra">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Field') }}
                                     </button>
@@ -681,7 +875,7 @@
                                         </thead>
                                         <tbody>
                                             @if (count($extras) === 0)
-                                                <tr><td colspan="6" class="text-center text-muted py-3">{{ __('No extra fields added yet') }}</td></tr>
+                                                <tr><td colspan="6" class="step-empty-state"><i class="bi bi-paperclip"></i><span>{{ __('No extra fields added yet') }}</span></td></tr>
                                             @endif
                                             @foreach ($extras as $i => $row)
                                                 <tr>
@@ -709,67 +903,89 @@
                                 </div>
                             </div>
 
+                            <hr class="step-section-divider" />
+
                             <!-- Order Settings -->
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">{{ __('Order Status') }}</label>
-                                    <select class="form-select" wire:model.defer="status_slug">
-                                        <option value="">{{ __('Select...') }}</option>
-                                        @foreach ($jobStatuses ?? [] as $st)
-                                            <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">{{ __('Payment Status') }}</label>
-                                    <select class="form-select" wire:model.defer="payment_status_slug">
-                                        <option value="">{{ __('Select...') }}</option>
-                                        @foreach ($paymentStatuses ?? [] as $st)
-                                            <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('payment_status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">{{ __('Priority') }}</label>
-                                    <select class="form-select" wire:model.defer="priority">
-                                        <option value="normal">{{ __('Normal') }}</option>
-                                        <option value="high">{{ __('High') }}</option>
-                                        <option value="urgent">{{ __('Urgent') }}</option>
-                                    </select>
-                                    @error('priority')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">{{ __('Tax Mode') }}</label>
-                                    <select class="form-select" wire:model.defer="prices_inclu_exclu">
-                                        <option value="">{{ __('Select...') }}</option>
-                                        <option value="inclusive">{{ __('Inclusive') }}</option>
-                                        <option value="exclusive">{{ __('Exclusive') }}</option>
-                                    </select>
-                                    @error('prices_inclu_exclu')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
-
+                            <div class="step-section-heading">
+                                <h6><i class="bi bi-gear"></i>{{ __('Order Settings') }}</h6>
+                            </div>
+                            <div class="row">
                                 <div class="col-12">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="can_review_it" wire:model.defer="can_review_it">
-                                        <label class="form-check-label" for="can_review_it">{{ __('Customer can review this job') }}</label>
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Order Status') }}</label>
+                                        <div class="field-content">
+                                            <select class="form-select" wire:model.defer="status_slug">
+                                                <option value="">{{ __('Select...') }}</option>
+                                                @foreach ($jobStatuses ?? [] as $st)
+                                                    <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="col-12">
-                                    <label class="form-label">{{ __('Order Notes') }}</label>
-                                    <textarea class="form-control" rows="3" wire:model.defer="wc_order_note" placeholder="{{ __('Notes visible to customer.') }}"></textarea>
-                                    @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
-                                </div>
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Payment Status') }}</label>
+                                        <div class="field-content">
+                                            <select class="form-select" wire:model.defer="payment_status_slug">
+                                                <option value="">{{ __('Select...') }}</option>
+                                                @foreach ($paymentStatuses ?? [] as $st)
+                                                    <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('payment_status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
 
-                                <div class="col-12">
-                                    <label class="form-label">{{ __('File Attachment') }}</label>
-                                    <input type="file" class="form-control" wire:model="job_file" />
-                                    @error('job_file')<div class="text-danger small">{{ $message }}</div>@enderror
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Priority') }}</label>
+                                        <div class="field-content">
+                                            <select class="form-select" wire:model.defer="priority">
+                                                <option value="normal">{{ __('Normal') }}</option>
+                                                <option value="high">{{ __('High') }}</option>
+                                                <option value="urgent">{{ __('Urgent') }}</option>
+                                            </select>
+                                            @error('priority')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Tax Mode') }}</label>
+                                        <div class="field-content">
+                                            <select class="form-select" wire:model.defer="prices_inclu_exclu">
+                                                <option value="">{{ __('Select...') }}</option>
+                                                <option value="inclusive">{{ __('Inclusive') }}</option>
+                                                <option value="exclusive">{{ __('Exclusive') }}</option>
+                                            </select>
+                                            @error('prices_inclu_exclu')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Customer Review') }}</label>
+                                        <div class="field-content">
+                                            <div class="form-check form-switch pt-1">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="can_review_it" wire:model.defer="can_review_it">
+                                                <label class="form-check-label" for="can_review_it">{{ __('Customer can review this job') }}</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Order Notes') }}</label>
+                                        <div class="field-content">
+                                            <textarea class="form-control" rows="3" wire:model.defer="wc_order_note" placeholder="{{ __('Notes visible to customer.') }}"></textarea>
+                                            @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('File Attachment') }}</label>
+                                        <div class="field-content">
+                                            <input type="file" class="form-control" wire:model="job_file" />
+                                            @error('job_file')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -778,7 +994,7 @@
                                 <i class="bi bi-arrow-left"></i> {{ __('Back') }}
                             </button>
                             <button type="submit" class="btn btn-success btn-step">
-                                <i class="bi bi-check2-circle"></i> {{ __('Create Job') }}
+                                <i class="bi bi-check2-circle"></i> {{ $jobId ? __('Update Job') : __('Create Job') }}
                             </button>
                         </div>
                     </div>
@@ -786,4 +1002,5 @@
             </div>
         </div>
     </form>
+    </div>
 </div>

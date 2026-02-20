@@ -9,6 +9,7 @@ use App\Support\BranchContext;
 use Illuminate\Http\UploadedFile;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
+use Illuminate\Support\Facades\Log;
 
 class JobForm extends Component
 {
@@ -50,6 +51,9 @@ class JobForm extends Component
     public ?string $case_detail = null;
     public ?string $wc_order_note = null;
 
+    public string $customer_search = '';
+    public string $technician_search = '';
+
     public $job_file = null;
 
     /** @var array<int,int|string> */
@@ -88,6 +92,7 @@ class JobForm extends Component
         $jobDevices = null,
         $jobExtras = null,
     ): void {
+        Log::debug('JobForm mounted', ['tenant_id' => $tenant->id ?? 'N/A']);
         $this->tenant = $tenant;
         $this->user = $user;
         $this->activeNav = $activeNav;
@@ -172,6 +177,14 @@ class JobForm extends Component
                 ];
             }
         }
+    }
+
+    public function updated($propertyName): void
+    {
+        Log::debug('Property updated', [
+            'property' => $propertyName,
+            'value' => $this->$propertyName
+        ]);
     }
 
     protected function rules(): array
@@ -388,8 +401,118 @@ class JobForm extends Component
         return redirect()->route('tenant.jobs.show', ['business' => $this->tenant->slug, 'jobId' => $job->id]);
     }
 
+    public function getFilteredCustomersProperty()
+    {
+        if (strlen($this->customer_search) < 2) {
+            return collect();
+        }
+
+        $search = $this->customer_search;
+        return \App\Models\User::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('role', 'customer')
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            })
+            ->orderBy('name')
+            ->limit(10)
+            ->get();
+
+        Log::debug('Customer search triggered', [
+            'search' => $search,
+            'result_count' => $results->count(),
+            'tenant_id' => $this->tenant->id ?? 'N/A'
+        ]);
+
+        return $results;
+    }
+
+    public function getFilteredTechniciansProperty()
+    {
+        if (strlen($this->technician_search) < 2) {
+            return collect();
+        }
+
+        $search = $this->technician_search;
+        return \App\Models\User::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_admin', false)
+            ->where('status', 'active')
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->where(function ($q) {
+                $q->where('role', 'technician')
+                  ->orWhereHas('roles', fn ($rq) => $rq->where('name', 'Technician'));
+            })
+            ->orderBy('name')
+            ->limit(10)
+            ->get();
+
+        Log::debug('Technician search triggered', [
+            'search' => $search,
+            'result_count' => $results->count(),
+            'tenant_id' => $this->tenant->id ?? 'N/A'
+        ]);
+
+        return $results;
+    }
+
+    public function selectCustomer($id)
+    {
+        $this->customer_id = $id;
+        $this->customer_search = '';
+    }
+
+    public function selectTechnician($id)
+    {
+        if (!in_array($id, $this->technician_ids)) {
+            $this->technician_ids[] = (int) $id;
+        }
+        $this->technician_search = '';
+    }
+
+    public function removeTechnician($id)
+    {
+        $this->technician_ids = array_values(array_filter($this->technician_ids, fn($tid) => $tid != $id));
+    }
+
+    public function getSelectedCustomerProperty()
+    {
+        if (!$this->customer_id) {
+            return null;
+        }
+
+        $customer = collect($this->customers)->firstWhere('id', $this->customer_id);
+        if ($customer) {
+            return $customer;
+        }
+
+        return \App\Models\User::where('tenant_id', $this->tenant->id)->find($this->customer_id);
+    }
+
+    public function getSelectedTechniciansProperty()
+    {
+        if (empty($this->technician_ids)) {
+            return collect();
+        }
+
+        $cached = collect($this->technicians)->whereIn('id', $this->technician_ids);
+        if ($cached->count() === count($this->technician_ids)) {
+            return $cached;
+        }
+
+        return \App\Models\User::where('tenant_id', $this->tenant->id)
+            ->whereIn('id', $this->technician_ids)
+            ->get();
+    }
+
     public function render()
     {
+        Log::debug('JobForm rendering');
         return view('livewire.tenant.jobs.job-form');
     }
 }

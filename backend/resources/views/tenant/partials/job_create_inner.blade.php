@@ -25,15 +25,91 @@
 
 @push('page-styles')
     <style>
-        /* Vertical Stepper Styles */
+        /* ── Design Tokens (shared with job_show) ── */
+        :root {
+            --rb-primary: #3B82F6;
+            --rb-primary-dark: #1D4ED8;
+            --rb-primary-rgb: 59, 130, 246;
+            --rb-hero-bg: radial-gradient(circle at center, #4b5563 0%, #1f2937 100%);
+            --rb-card-border: #e2e8f0;
+            --rb-text-muted: #64748b;
+            --rb-text-dark: #0f172a;
+            --rb-accent: #3B82F6;
+            --rb-success: #10b981;
+            --rb-success-rgb: 16, 185, 129;
+            --rb-gradient-active: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* ── Hero Header ── */
+        .job-hero-header {
+            background: var(--rb-hero-bg);
+            border-radius: 16px;
+            padding: 1.75rem 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .job-hero-header .hero-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+            min-width: 0;
+        }
+        .job-hero-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .job-hero-header h4 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 0;
+            color: #fff !important;
+        }
+        .job-hero-header .hero-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            margin-top: 0.15rem;
+        }
+        .job-hero-header .btn-hero-back {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: background 0.2s;
+        }
+        .job-hero-header .btn-hero-back:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        /* ── Stepper Layout ── */
         .job-stepper-container {
             display: flex;
             gap: 2rem;
-            min-height: calc(100vh - 280px);
+            min-height: calc(100vh - 320px);
         }
 
         .stepper-sidebar {
-            width: 280px;
+            width: 270px;
             flex-shrink: 0;
         }
 
@@ -45,172 +121,300 @@
         .stepper-nav {
             position: sticky;
             top: 1rem;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid var(--rb-card-border);
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         }
 
+        /* ── Progress Bar ── */
+        .stepper-progress {
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+
+        .stepper-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--rb-primary) 0%, var(--rb-success) 100%);
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        /* ── Stepper Items ── */
         .stepper-item {
             display: flex;
-            align-items: flex-start;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 12px;
+            align-items: center;
+            padding: 0.75rem 0.875rem;
+            margin-bottom: 0.25rem;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
             background: transparent;
-            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .stepper-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Vertical connector line */
+        .stepper-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: calc(0.875rem + 18px);
+            top: calc(0.75rem + 38px);
+            width: 2px;
+            height: calc(100% - 30px);
+            background: #e2e8f0;
+            z-index: 0;
+        }
+        .stepper-item.completed:not(:last-child)::after {
+            background: var(--rb-success);
         }
 
         .stepper-item:hover {
-            background: rgba(var(--bs-primary-rgb), 0.05);
+            background: rgba(var(--rb-primary-rgb), 0.04);
         }
 
         .stepper-item.active {
-            background: rgba(var(--bs-primary-rgb), 0.1);
-            border-color: var(--bs-primary);
+            background: rgba(var(--rb-primary-rgb), 0.08);
         }
 
         .stepper-item.completed {
-            background: rgba(25, 135, 84, 0.08);
+            background: rgba(var(--rb-success-rgb), 0.05);
         }
 
-        .stepper-item.completed .stepper-icon {
-            background: var(--bs-success);
-            border-color: var(--bs-success);
-            color: white;
-        }
-
+        /* ── Stepper Icons ── */
         .stepper-icon {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 1rem;
-            background: var(--bs-gray-200);
-            border: 2px solid var(--bs-gray-300);
-            color: var(--bs-gray-600);
+            font-size: 0.95rem;
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            color: var(--rb-text-muted);
             flex-shrink: 0;
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
+            position: relative;
+            z-index: 1;
         }
 
         .stepper-item.active .stepper-icon {
-            background: var(--bs-primary);
-            border-color: var(--bs-primary);
+            background: var(--rb-gradient-active);
+            border-color: transparent;
             color: white;
-            box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.4);
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.45);
+        }
+
+        .stepper-item.completed .stepper-icon {
+            background: var(--rb-success);
+            border-color: var(--rb-success);
+            color: white;
+            box-shadow: 0 2px 8px rgba(var(--rb-success-rgb), 0.3);
         }
 
         .stepper-info {
-            margin-left: 1rem;
+            margin-left: 0.75rem;
             flex: 1;
+            min-width: 0;
         }
 
         .stepper-title {
             font-weight: 600;
-            font-size: 0.95rem;
-            color: var(--bs-gray-800);
-            margin-bottom: 0.125rem;
+            font-size: 0.88rem;
+            color: var(--rb-text-dark);
+            margin-bottom: 0;
+            line-height: 1.3;
         }
 
         .stepper-desc {
-            font-size: 0.8rem;
-            color: var(--bs-gray-500);
+            font-size: 0.75rem;
+            color: var(--rb-text-muted);
+            line-height: 1.3;
+        }
+
+        .stepper-item.active .stepper-title {
+            color: var(--rb-primary-dark);
         }
 
         .stepper-item.completed .stepper-title {
-            color: var(--bs-success);
+            color: var(--rb-success);
         }
 
-        /* Step Content Panels */
+        /* ── Step Content Panels ── */
         .step-panel {
             display: none;
-            animation: fadeIn 0.3s ease;
+            animation: stepFadeIn 0.35s ease;
         }
 
         .step-panel.active {
             display: block;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+        @keyframes stepFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* ── Step Cards ── */
         .step-card {
-            background: var(--bs-card-bg, #fff);
+            background: #fff;
             border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+            border: 1px solid var(--rb-card-border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.03);
             overflow: hidden;
         }
 
         .step-card-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--bs-border-color);
-            background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.03) 0%, rgba(var(--bs-primary-rgb), 0.01) 100%);
+            padding: 1.25rem 1.75rem;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .step-card-header .step-header-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(var(--rb-primary-rgb), 0.1);
+            border: 1px solid rgba(var(--rb-primary-rgb), 0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--rb-primary);
+            font-size: 1.1rem;
+            flex-shrink: 0;
         }
 
         .step-card-header h4 {
             margin: 0;
-            font-weight: 600;
-            color: var(--bs-gray-800);
+            font-weight: 700;
+            color: var(--rb-text-dark);
+            font-size: 1.05rem;
+            line-height: 1.2;
         }
 
         .step-card-header p {
-            margin: 0.5rem 0 0;
-            color: var(--bs-gray-500);
-            font-size: 0.9rem;
+            margin: 0.15rem 0 0;
+            color: var(--rb-text-muted);
+            font-size: 0.82rem;
+            line-height: 1.3;
         }
 
         .step-card-body {
-            padding: 2rem;
+            padding: 1.75rem;
         }
 
-        /* Form Elements */
+        /* ── Form Elements ── */
         .form-label {
             font-weight: 500;
-            color: var(--bs-gray-700);
-            margin-bottom: 0.5rem;
+            color: #374151;
+            margin-bottom: 0.4rem;
+            font-size: 0.875rem;
         }
 
         .form-control, .form-select {
             border-radius: 8px;
-            border: 1px solid var(--bs-gray-300);
-            padding: 0.625rem 1rem;
-            transition: all 0.2s ease;
+            border: 1px solid #d1d5db;
+            padding: 0.6rem 0.875rem;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background-color: #fff;
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--bs-primary);
-            box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
+            border-color: var(--rb-primary);
+            box-shadow: 0 0 0 3px rgba(var(--rb-primary-rgb), 0.12);
         }
 
-        /* Navigation Buttons */
-        .step-navigation {
+        .form-text {
+            color: var(--rb-text-muted);
+            font-size: 0.78rem;
+        }
+
+        /* ── Section Dividers inside steps ── */
+        .step-section-divider {
+            border: 0;
+            border-top: 1px dashed #e2e8f0;
+            margin: 1.5rem 0;
+        }
+
+        .step-section-heading {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            padding: 1.5rem 2rem;
-            border-top: 1px solid var(--bs-border-color);
-            background: var(--bs-gray-50);
+            margin-bottom: 0.875rem;
         }
-
-        .btn-step {
-            padding: 0.75rem 1.75rem;
-            border-radius: 8px;
-            font-weight: 500;
-            display: inline-flex;
+        .step-section-heading h6 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--rb-text-dark);
+            display: flex;
             align-items: center;
             gap: 0.5rem;
         }
+        .step-section-heading h6 i {
+            color: var(--rb-primary);
+            font-size: 1rem;
+        }
 
-        /* Select2 Styling */
+        /* ── Navigation Buttons ── */
+        .step-navigation {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.25rem 1.75rem;
+            border-top: 1px solid var(--rb-card-border);
+            background: #fafbfc;
+        }
+
+        .btn-step {
+            padding: 0.65rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+
+        .btn-step.btn-primary {
+            background: var(--rb-primary);
+            border-color: var(--rb-primary);
+        }
+        .btn-step.btn-primary:hover {
+            background: var(--rb-primary-dark);
+            border-color: var(--rb-primary-dark);
+        }
+
+        .btn-step.btn-success {
+            background: var(--rb-success);
+            border-color: var(--rb-success);
+        }
+        .btn-step.btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        /* ── Select2 Overrides ── */
         #customer_id + .select2-container--bootstrap-5 .select2-selection,
         #technician_ids + .select2-container--bootstrap-5 .select2-selection {
             min-height: calc(1.5em + .75rem + 2px);
             padding: .375rem .75rem;
-            border: 1px solid var(--bs-gray-300);
+            border: 1px solid #d1d5db;
             border-radius: 8px;
-            background-color: var(--bs-body-bg);
+            background-color: #fff;
         }
 
         #customer_id + .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
@@ -243,8 +447,8 @@
 
         #customer_id + .select2-container--bootstrap-5.select2-container--focus .select2-selection,
         #technician_ids + .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-            border-color: var(--bs-primary);
-            box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
+            border-color: var(--rb-primary);
+            box-shadow: 0 0 0 3px rgba(var(--rb-primary-rgb), 0.12);
         }
 
         .input-group > .select2-container {
@@ -288,42 +492,73 @@
             display: inline-block;
         }
 
-        /* Tables in steps */
+        /* ── Tables in Steps ── */
         .step-table {
-            margin-top: 1rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0;
         }
 
-        .step-table th {
-            background: var(--bs-gray-50);
+        .step-table thead th {
+            background: #f8fafc;
             font-weight: 600;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.025em;
-            color: var(--bs-gray-600);
+            letter-spacing: 0.04em;
+            color: var(--rb-text-muted);
+            border-bottom: 1px solid var(--rb-card-border);
         }
 
         .step-table td, .step-table th {
             vertical-align: middle;
-            padding: 0.875rem 1rem;
+            padding: 0.75rem 0.875rem;
         }
 
-        /* Progress bar */
-        .stepper-progress {
-            height: 4px;
-            background: var(--bs-gray-200);
-            border-radius: 2px;
-            margin-bottom: 1.5rem;
-            overflow: hidden;
+        .step-table tbody tr:hover {
+            background: rgba(var(--rb-primary-rgb), 0.02);
         }
 
-        .stepper-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--bs-primary) 0%, var(--bs-success) 100%);
-            border-radius: 2px;
-            transition: width 0.3s ease;
+        /* ── Empty States ── */
+        .step-empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--rb-text-muted);
+        }
+        .step-empty-state i {
+            font-size: 2.5rem;
+            opacity: 0.35;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .step-empty-state span {
+            font-size: 0.88rem;
         }
 
-        /* Responsive */
+        /* ── Modals ── */
+        .modal-content {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        .modal-header {
+            border-bottom: 1px solid var(--rb-card-border);
+            padding: 1.25rem 1.5rem;
+        }
+        .modal-header .modal-title {
+            font-weight: 700;
+            color: var(--rb-text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .modal-footer {
+            border-top: 1px solid var(--rb-card-border);
+            padding: 1rem 1.5rem;
+        }
+
+        /* ── Responsive ── */
         @media (max-width: 991.98px) {
             .job-stepper-container {
                 flex-direction: column;
@@ -337,42 +572,54 @@
                 position: relative;
                 top: 0;
                 display: flex;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-                margin-bottom: 1.5rem;
+                flex-wrap: nowrap;
+                gap: 0.25rem;
+                padding: 0.75rem;
+                overflow-x: auto;
             }
 
             .stepper-item {
                 flex: 1;
-                min-width: 140px;
-                padding: 0.75rem;
+                min-width: 120px;
+                padding: 0.6rem;
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+
+            .stepper-item:not(:last-child)::after {
+                display: none;
             }
 
             .stepper-info {
-                margin-left: 0.5rem;
+                margin-left: 0;
+                margin-top: 0.4rem;
             }
 
             .stepper-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 0.875rem;
+                width: 34px;
+                height: 34px;
+                font-size: 0.85rem;
             }
 
             .stepper-desc {
                 display: none;
             }
+
+            .job-hero-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.25rem 1.5rem;
+            }
         }
 
         @media (max-width: 575.98px) {
             .stepper-item {
-                min-width: auto;
-                flex-direction: column;
-                text-align: center;
+                min-width: 80px;
             }
 
-            .stepper-info {
-                margin-left: 0;
-                margin-top: 0.5rem;
+            .stepper-title {
+                font-size: 0.78rem;
             }
 
             .step-card-body {
@@ -381,20 +628,30 @@
 
             .step-navigation {
                 flex-direction: column;
-                gap: 0.75rem;
+                gap: 0.5rem;
+            }
+
+            .step-navigation .btn-step {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
 @endpush
 
 <main class="dashboard-content container-fluid py-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h4 class="mb-1">{{ $isEdit ? __('Edit Job') : __('Create New Job') }}</h4>
-            <p class="text-muted mb-0">{{ $isEdit ? __('Update job details and information.') : __('Fill in the details below to create a new repair job.') }}</p>
+    <div class="job-hero-header">
+        <div class="hero-left">
+            <div class="job-hero-icon">
+                <i class="bi bi-clipboard-plus"></i>
+            </div>
+            <div>
+                <h4>{{ $isEdit ? __('Edit Job') : __('Create New Job') }}</h4>
+                <div class="hero-subtitle">{{ $isEdit ? __('Update job details and information.') : __('Fill in the details below to create a new repair job.') }}</div>
+            </div>
         </div>
-        <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>{{ __('Back to Jobs') }}
+        <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' }}" class="btn-hero-back">
+            <i class="bi bi-arrow-left"></i> {{ __('Back to Jobs') }}
         </a>
     </div>
 
@@ -463,8 +720,11 @@
                 <div class="step-panel active" id="step1">
                     <div class="step-card">
                         <div class="step-card-header">
-                            <h4><i class="bi bi-clipboard-data me-2"></i>{{ __('Job Details') }}</h4>
-                            <p>{{ __('Enter the basic information for this repair job.') }}</p>
+                            <div class="step-header-icon"><i class="bi bi-clipboard-data"></i></div>
+                            <div>
+                                <h4>{{ __('Job Details') }}</h4>
+                                <p>{{ __('Enter the basic information for this repair job.') }}</p>
+                            </div>
                         </div>
                         <div class="step-card-body">
                             <div class="row g-3">
@@ -576,8 +836,11 @@
 
                     <div class="step-card" x-data="window.RBJobDevicesExtras.devices(@json($seedDevices), @json($enablePinCodeField))" x-init="window.rbDevices = $data">
                         <div class="step-card-header">
-                            <h4><i class="bi bi-phone me-2"></i>{{ __('Devices') }}</h4>
-                            <p>{{ __('Add the devices that need to be repaired.') }}</p>
+                            <div class="step-header-icon"><i class="bi bi-phone"></i></div>
+                            <div>
+                                <h4>{{ __('Devices') }}</h4>
+                                <p>{{ __('Add the devices that need to be repaired.') }}</p>
+                            </div>
                         </div>
                         <div class="step-card-body">
                             <div class="d-flex justify-content-end mb-3">
@@ -602,9 +865,9 @@
                                     <tbody>
                                         <template x-if="rows.length === 0">
                                             <tr class="devices-empty-row">
-                                                <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="text-center text-muted py-5">
-                                                    <i class="bi bi-phone display-4 d-block mb-2 opacity-50"></i>
-                                                    {{ __('No devices added yet. Click "Add Device" to get started.') }}
+                                                <td colspan="{{ $enablePinCodeField ? 5 : 4 }}" class="step-empty-state">
+                                                    <i class="bi bi-phone"></i>
+                                                    <span>{{ __('No devices added yet. Click "Add Device" to get started.') }}</span>
                                                 </td>
                                             </tr>
                                         </template>
@@ -655,14 +918,17 @@
                 <div class="step-panel" id="step3">
                     <div class="step-card">
                         <div class="step-card-header">
-                            <h4><i class="bi bi-box-seam me-2"></i>{{ __('Parts & Services') }}</h4>
-                            <p>{{ __('Add parts, services, and other items for this job.') }}</p>
+                            <div class="step-header-icon"><i class="bi bi-box-seam"></i></div>
+                            <div>
+                                <h4>{{ __('Parts & Services') }}</h4>
+                                <p>{{ __('Add parts, services, and other items for this job.') }}</p>
+                            </div>
                         </div>
                         <div class="step-card-body">
                             <!-- Parts Section -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>{{ __('Parts') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-cpu"></i>{{ __('Parts') }}</h6>
                                 </div>
                                 <div id="devicePartsSelects" class="row g-2"></div>
                                 <select id="parts_select" class="form-select d-none" tabindex="-1" aria-hidden="true">
@@ -687,17 +953,22 @@
                                         </thead>
                                         <tbody>
                                             <tr class="parts-empty-row">
-                                                <td colspan="8" class="text-center text-muted py-4">{{ __('No parts selected yet.') }}</td>
+                                                <td colspan="8" class="step-empty-state">
+                                                    <i class="bi bi-cpu"></i>
+                                                    <span>{{ __('No parts selected yet.') }}</span>
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
 
+                            <hr class="step-section-divider" />
+
                             <!-- Services Section -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-wrench-adjustable-circle me-2"></i>{{ __('Services') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-wrench-adjustable-circle"></i>{{ __('Services') }}</h6>
                                     <button type="button" class="btn btn-outline-primary btn-sm" id="addServiceLineBtn">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Service') }}
                                     </button>
@@ -724,17 +995,22 @@
                                 </thead>
                                 <tbody>
                                     <tr class="services-empty-row">
-                                        <td colspan="7" class="text-center text-muted py-3">{{ __('No services selected yet.') }}</td>
+                                        <td colspan="7" class="step-empty-state">
+                                            <i class="bi bi-wrench-adjustable-circle"></i>
+                                            <span>{{ __('No services selected yet.') }}</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
                             </div>
                         </div>
 
+                            <hr class="step-section-divider" />
+
                             <!-- Other Items Section -->
                             <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>{{ __('Other Items') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-receipt"></i>{{ __('Other Items') }}</h6>
                                     <button type="button" class="btn btn-outline-primary btn-sm" id="addOtherItemLineBtn">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Item') }}
                                     </button>
@@ -754,7 +1030,10 @@
                                         </thead>
                                         <tbody>
                                             <tr class="other-empty-row">
-                                                <td colspan="7" class="text-center text-muted py-4">{{ __('No other items added yet.') }}</td>
+                                                <td colspan="7" class="step-empty-state">
+                                                    <i class="bi bi-receipt"></i>
+                                                    <span>{{ __('No other items added yet.') }}</span>
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -776,8 +1055,11 @@
                 <div class="step-panel" id="step4">
                     <div class="step-card">
                         <div class="step-card-header">
-                            <h4><i class="bi bi-gear me-2"></i>{{ __('Settings & Review') }}</h4>
-                            <p>{{ __('Set status, payment, and other options. Review and submit your job.') }}</p>
+                            <div class="step-header-icon"><i class="bi bi-gear"></i></div>
+                            <div>
+                                <h4>{{ __('Settings & Review') }}</h4>
+                                <p>{{ __('Set status, payment, and other options. Review and submit your job.') }}</p>
+                            </div>
                         </div>
                         <div class="step-card-body">
                             @php
@@ -802,8 +1084,8 @@
 
                             <!-- Extra Fields & Files Section -->
                             <div class="mb-4" x-data="window.RBJobDevicesExtras.extras(@json($seedExtras))" x-init="window.rbExtras = $data">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="bi bi-paperclip me-2"></i>{{ __('Extra Fields & Files') }}</h6>
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-paperclip"></i>{{ __('Extra Fields & Files') }}</h6>
                                     <button type="button" class="btn btn-outline-primary btn-sm" id="addExtraLine" @click="openAdd()">
                                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Field') }}
                                     </button>
@@ -823,8 +1105,9 @@
                                         <tbody>
                                             <template x-if="rows.length === 0">
                                                 <tr class="extras-empty-row">
-                                                    <td colspan="6" class="text-center text-muted py-4">
-                                                        {{ __('No extra fields added yet.') }}
+                                                    <td colspan="6" class="step-empty-state">
+                                                        <i class="bi bi-paperclip"></i>
+                                                        <span>{{ __('No extra fields added yet.') }}</span>
                                                     </td>
                                                 </tr>
                                             </template>
