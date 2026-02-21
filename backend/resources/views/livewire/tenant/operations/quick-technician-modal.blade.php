@@ -2,7 +2,7 @@
     <div x-data="{ show: @entangle('showModal').live }"
          x-show="show"
          x-on:keydown.escape.window="show = false"
-         @close-Technician-modal.window="show = false"
+         @close-technician-modal.window="show = false"
          class="rb-modal-backdrop"
          style="display: none;">
         

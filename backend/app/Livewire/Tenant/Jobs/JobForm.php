@@ -70,6 +70,15 @@ class JobForm extends Component
     public $selected_part_id = null;
     public $selected_part_name = '';
 
+    // Add Inline Part State
+    public bool $isAddingNewPart = false;
+    public string $new_part_name = '';
+    public string $new_part_sku = '';
+    public string $new_part_price = '';
+    public ?int $new_part_type_id = null;
+    public ?int $new_part_brand_id = null;
+    public string $new_part_stock = '';
+
     public $service_search = '';
     public $selected_service_id = null;
     public $selected_service_name = '';
@@ -101,6 +110,7 @@ class JobForm extends Component
     protected $listeners = [
         'customerCreated' => 'handleCustomerCreated',
         'technicianCreated' => 'handleTechnicianCreated',
+        'partCreated' => 'handlePartCreated',
     ];
 
     // Job Extra Modal & Form State
@@ -418,6 +428,73 @@ class JobForm extends Component
         $this->selected_service_id = $id;
         $this->selected_service_name = $name;
         $this->service_search = '';
+    }
+
+    // --- Inline Part Creation Methods ---
+
+    public function toggleAddNewPart(): void
+    {
+        $this->isAddingNewPart = !$this->isAddingNewPart;
+        if ($this->isAddingNewPart) {
+            $this->resetNewPartForm();
+            // Prefill name with current search query
+            if (!empty($this->part_search)) {
+                $this->new_part_name = $this->part_search;
+            }
+        }
+    }
+
+    public function cancelNewPart(): void
+    {
+        $this->isAddingNewPart = false;
+        $this->resetNewPartForm();
+    }
+
+    protected function resetNewPartForm(): void
+    {
+        $this->new_part_name = '';
+        $this->new_part_sku = '';
+        $this->new_part_price = '';
+        $this->new_part_type_id = null;
+        $this->new_part_brand_id = null;
+        $this->new_part_stock = '';
+    }
+
+    public function saveNewPart(): void
+    {
+        $this->validate([
+            'new_part_name' => 'required|string|max:255',
+            'new_part_sku' => 'nullable|string|max:255',
+            'new_part_price' => 'required|numeric|min:0',
+            'new_part_type_id' => 'nullable|integer',
+            'new_part_brand_id' => 'nullable|integer',
+            'new_part_stock' => 'nullable|integer|min:0',
+        ]);
+
+        $tenant_id = $this->tenant ? $this->tenant->id : \App\Support\TenantContext::tenant()?->id;
+        $branch_id = session('active_branch_id'); // We need a branch context, defaulting if not found usually
+
+        $price_cents = (int) round(((float) $this->new_part_price) * 100);
+
+        $part = \App\Models\RepairBuddyPart::create([
+            'tenant_id' => $tenant_id,
+            'branch_id' => $branch_id,
+            'name' => $this->new_part_name,
+            'sku' => $this->new_part_sku,
+            'price_amount_cents' => $price_cents,
+            'price_currency' => \App\Support\TenantContext::tenant()?->currency ?? 'USD',
+            'part_type_id' => $this->new_part_type_id ?: null,
+            'part_brand_id' => $this->new_part_brand_id ?: null,
+            'stock' => $this->new_part_stock ?: 0,
+            'is_active' => true,
+        ]);
+
+        $this->cancelNewPart();
+        
+        // Auto-select and add to job
+        $this->selectPart($part->id, $part->name);
+        $this->addPart();
+        $this->dispatch('toast', message: __('Part created and added.'), type: 'success');
     }
 
     public function addDeviceToTable(): void
@@ -1025,7 +1102,15 @@ class JobForm extends Component
 
     public function render()
     {
-        return view('livewire.tenant.jobs.job-form');
+        $tenant_id = $this->tenant ? $this->tenant->id : \App\Support\TenantContext::tenant()?->id;
+
+        $types = \App\Models\RepairBuddyPartType::where('tenant_id', $tenant_id)->where('is_active', true)->get();
+        $brands = \App\Models\RepairBuddyPartBrand::where('tenant_id', $tenant_id)->where('is_active', true)->get();
+
+        return view('livewire.tenant.jobs.job-form', [
+            'partTypes' => $types,
+            'partBrands' => $brands,
+        ]);
     }
 
     public function handleCustomerCreated($customerId)
@@ -1050,5 +1135,15 @@ class JobForm extends Component
         }
 
         $this->dispatch('toast', message: __('Technician created and added.'), type: 'success');
+    }
+
+    public function handlePartCreated($partId)
+    {
+        $part = \App\Models\RepairBuddyPart::find($partId);
+        if ($part) {
+            $this->selectPart($part->id, $part->name);
+        }
+
+        $this->dispatch('toast', message: __('Part created and selected.'), type: 'success');
     }
 }
