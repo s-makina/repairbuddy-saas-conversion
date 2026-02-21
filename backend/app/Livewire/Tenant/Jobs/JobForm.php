@@ -96,6 +96,16 @@ class JobForm extends Component
     /** @var array<int,\Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null> */
     public array $extra_item_files = [];
 
+    // Job Extra Modal & Form State
+    public bool $showExtraModal = false;
+    public ?int $editingExtraIndex = null;
+    public ?string $extra_occurred_at = null;
+    public ?string $extra_label = null;
+    public ?string $extra_data_text = null;
+    public string $extra_visibility = 'public';
+    public ?string $extra_description = null;
+    public $extra_temp_file = null;
+
     /** @var array<int,array{type:mixed,name:mixed,qty:mixed,unit_price_cents:mixed,meta_json:mixed}> */
     public array $items = [];
 
@@ -493,16 +503,68 @@ class JobForm extends Component
         $this->deviceRows = array_values($this->deviceRows);
     }
 
-    public function addExtra(): void
+    public function openExtraModal(?int $idx = null): void
     {
-        $this->extras[] = [
-            'occurred_at' => null,
-            'label' => null,
-            'data_text' => null,
-            'description' => null,
-            'visibility' => 'private',
+        $this->editingExtraIndex = $idx;
+        if ($idx !== null && isset($this->extras[$idx])) {
+            $extra = $this->extras[$idx];
+            $this->extra_occurred_at = $extra['occurred_at'] ?? null;
+            $this->extra_label = $extra['label'] ?? null;
+            $this->extra_data_text = $extra['data_text'] ?? null;
+            $this->extra_description = $extra['description'] ?? null;
+            $this->extra_visibility = $extra['visibility'] ?? 'public';
+        } else {
+            $this->resetExtraForm();
+            $this->extra_occurred_at = now()->format('Y-m-d');
+        }
+        $this->showExtraModal = true;
+    }
+
+    public function closeExtraModal(): void
+    {
+        $this->showExtraModal = false;
+        $this->resetExtraForm();
+    }
+
+    protected function resetExtraForm(): void
+    {
+        $this->editingExtraIndex = null;
+        $this->extra_occurred_at = null;
+        $this->extra_label = null;
+        $this->extra_data_text = null;
+        $this->extra_description = null;
+        $this->extra_visibility = 'public';
+        $this->extra_temp_file = null;
+    }
+
+    public function saveExtra(): void
+    {
+        $this->validate([
+            'extra_label' => ['required', 'string', 'max:255'],
+            'extra_occurred_at' => ['nullable', 'date'],
+            'extra_visibility' => ['required', 'in:public,private'],
+            'extra_temp_file' => ['nullable', 'file', 'max:10240'], // 10MB
+        ]);
+
+        $extraData = [
+            'occurred_at' => $this->extra_occurred_at,
+            'label' => $this->extra_label,
+            'data_text' => $this->extra_data_text,
+            'description' => $this->extra_description,
+            'visibility' => $this->extra_visibility,
         ];
-        $this->extra_item_files[] = null;
+
+        if ($this->editingExtraIndex !== null && isset($this->extras[$this->editingExtraIndex])) {
+            $this->extras[$this->editingExtraIndex] = $extraData;
+            if ($this->extra_temp_file) {
+                $this->extra_item_files[$this->editingExtraIndex] = $this->extra_temp_file;
+            }
+        } else {
+            $this->extras[] = $extraData;
+            $this->extra_item_files[] = $this->extra_temp_file;
+        }
+
+        $this->closeExtraModal();
     }
 
     public function removeExtra(int $idx): void
@@ -629,14 +691,21 @@ class JobForm extends Component
 
     public function addOtherItem(): void
     {
+        $deviceRow = $this->selected_device_link_index !== null ? ($this->deviceRows[$this->selected_device_link_index] ?? null) : null;
+
         $this->items[] = [
             'type' => 'fee',
             'name' => null,
             'code' => null,
             'qty' => 1,
             'unit_price_cents' => 0,
+            'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
+            'device_row_index' => $this->selected_device_link_index,
             'meta_json' => null,
         ];
+
+        // Reset
+        $this->selected_device_link_index = null;
     }
 
     public function removeItem(int $idx): void

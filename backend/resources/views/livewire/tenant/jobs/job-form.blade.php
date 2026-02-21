@@ -376,11 +376,37 @@
     }
     @media (max-width: 575.98px) {
         .stepper-item { min-width: auto; }
-        .step-card-body { padding: 1.15rem; }
+    .step-card-body { padding: 1.15rem; }
         .step-card-header { padding: 1.15rem; }
         .step-navigation {
             flex-direction: column; gap: .65rem; padding: 1rem;
         }
+    }
+
+    /* ── Modal Styling (Custom) ── */
+    .rb-modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+        z-index: 2000; display: flex; align-items: center; justify-content: center;
+        padding: 1.5rem; animation: fadeInModal .2s ease;
+    }
+    .rb-modal-container {
+        background: #fff; width: 100%; max-width: 550px;
+        border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden; position: relative; animation: slideUpModal .3s ease;
+    }
+    .rb-modal-header {
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+        display: flex; align-items: center; justify-content: space-between;
+        background: #f8fafc;
+    }
+    .rb-modal-body { padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
+    .rb-modal-footer {
+        padding: 1.25rem 1.5rem; border-top: 1px solid #f1f5f9;
+        background: #f8fafc; display: flex; justify-content: flex-end; gap: .75rem;
+    }
+    @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 @endpush
 
@@ -1166,18 +1192,45 @@
 
                             <!-- Other Items -->
                             <div class="mb-4">
-                                <div class="step-section-heading">
-                                    <h6><i class="bi bi-receipt"></i>{{ __('Other Items') }}</h6>
-                                    <button type="button" class="btn btn-success btn-sm" wire:click="addOtherItem">
-                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Item') }}
-                                    </button>
+                                <div class="step-section-heading align-items-end">
+                                    <div class="flex-grow-1">
+                                        <h6><i class="bi bi-receipt"></i>{{ __('Other Items') }}</h6>
+                                        <div class="row align-items-end gx-3">
+                                            <!-- Label/Spacer (Col-5) -->
+                                            <div class="col-md-5">
+                                                <div class="small fw-bold text-muted mb-2">{{ __('Add Miscellaneous Fees or Items') }}</div>
+                                                <div class="text-muted small opacity-75">
+                                                    {{ __('Use this section for any additional charges not covered by parts or services.') }}
+                                                </div>
+                                            </div>
+
+                                            <!-- Device Selection (Col-4) -->
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-muted">{{ __('Associate with Device') }}</label>
+                                                <select class="form-select form-select-sm" wire:model.defer="selected_device_link_index">
+                                                    <option value="">{{ __('Select Device...') }}</option>
+                                                    @foreach($deviceRows as $idx => $device)
+                                                        <option value="{{ $idx }}">{{ $device['brand_name'] }} {{ $device['device_model'] }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <!-- Add Button (Col-3) -->
+                                            <div class="col-md-3 text-end">
+                                                <button type="button" class="btn btn-success w-100 btn-sm" wire:click="addOtherItem">
+                                                    <i class="bi bi-plus-circle me-1"></i>{{ __('Add Item') }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table step-table">
                                         <thead class="bg-light">
                                             <tr>
                                                 <th class="ps-3">{{ __('Name') }}</th>
-                                                <th style="width:120px">{{ __('Type') }}</th>
+                                                <th style="width: 140px;">{{ __('Code') }}</th>
+                                                <th>{{ __('Device') }}</th>
                                                 <th style="width:100px" class="text-center">{{ __('Qty') }}</th>
                                                 <th class="text-end" style="width: 140px;">{{ __('Price') }}</th>
                                                 <th class="text-end" style="width: 120px;">{{ __('Total') }}</th>
@@ -1186,18 +1239,16 @@
                                         </thead>
                                         <tbody>
                                             @php $otherItems = array_filter($items, fn($r) => !in_array($r['type'] ?? '', ['part', 'service'])); @endphp
-                                            @forelse ($items as $i => $row)
-                                                @if (!in_array($row['type'] ?? '', ['part', 'service']))
+                                            @forelse ($otherItems as $i => $row)
                                                 <tr>
-                                                    <td class="ps-3"><input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.name" /></td>
+                                                    <td class="ps-3">
+                                                        <input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.name" placeholder="{{ __('Item Name...') }}" />
+                                                    </td>
                                                     <td>
-                                                        <select class="form-select form-select-sm" wire:model.defer="items.{{ $i }}.type">
-                                                            <option value="item">{{ __('Item') }}</option>
-                                                            <option value="fee">{{ __('Fee') }}</option>
-                                                            <option value="discount">{{ __('Discount') }}</option>
-                                                            <option value="tax">{{ __('Tax') }}</option>
-                                                            <option value="payment">{{ __('Payment') }}</option>
-                                                        </select>
+                                                        <input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.code" placeholder="{{ __('Code...') }}" />
+                                                    </td>
+                                                    <td class="small text-muted align-middle">
+                                                        {{ $row['device_info'] ?? '--' }}
                                                     </td>
                                                     <td class="text-center">
                                                         <div class="input-group input-group-sm justify-content-center">
@@ -1219,12 +1270,80 @@
                                                         </button>
                                                     </td>
                                                 </tr>
-                                                @endif
                                             @empty
                                                 <tr>
-                                                    <td colspan="6" class="text-center py-4 text-muted italic small">
+                                                    <td colspan="7" class="text-center py-4 text-muted italic small">
                                                         <i class="bi bi-receipt fs-3 d-block mb-1 opacity-25"></i>
                                                         {{ __('No other items added yet') }}
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                            </div>
+
+                            <hr class="step-section-divider" />
+
+                            <!-- Extra Fields & Files -->
+                            <div class="mb-4">
+                                <div class="step-section-heading">
+                                    <h6><i class="bi bi-paperclip"></i>{{ __('Job Extras & Attachments') }}</h6>
+                                    <button type="button" class="btn btn-outline-success btn-sm" wire:click="openExtraModal()">
+                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Extra Field') }}
+                                    </button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table step-table">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="ps-3" style="width:140px">{{ __('Date') }}</th>
+                                                <th style="width:200px">{{ __('Label') }}</th>
+                                                <th>{{ __('Data / Description') }}</th>
+                                                <th style="width:120px" class="text-center">{{ __('Visibility') }}</th>
+                                                <th style="width:80px"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse ($extras as $i => $row)
+                                                <tr>
+                                                    <td class="ps-3 align-middle">{{ $row['occurred_at'] ?: '--' }}</td>
+                                                    <td class="align-middle fw-bold text-primary">{{ $row['label'] }}</td>
+                                                    <td class="align-middle">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="flex-grow-1">
+                                                                <div>{{ $row['data_text'] ?: '--' }}</div>
+                                                                @if(!empty($row['description']))
+                                                                    <div class="small text-muted">{{ $row['description'] }}</div>
+                                                                @endif
+                                                            </div>
+                                                            @if(!empty($extra_item_files[$i]))
+                                                                <div class="ms-2">
+                                                                    <i class="bi bi-file-earmark-check text-success" title="{{ __('File attached') }}"></i>
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center align-middle">
+                                                        <span class="badge {{ ($row['visibility'] ?? 'public') === 'public' ? 'bg-light text-success border border-success' : 'bg-light text-muted border' }}">
+                                                            {{ __('' . ucfirst($row['visibility'] ?? 'public')) }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-end pe-3 align-middle">
+                                                        <div class="d-flex justify-content-end gap-1">
+                                                            <button type="button" class="btn btn-outline-primary btn-sm border-0" wire:click="openExtraModal({{ $i }})">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeExtra({{ $i }})">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="5" class="text-center py-4 text-muted italic small">
+                                                        <i class="bi bi-paperclip fs-3 d-block mb-1 opacity-25"></i>
+                                                        {{ __('No extra fields or attachments added yet') }}
                                                     </td>
                                                 </tr>
                                             @endforelse
@@ -1274,57 +1393,6 @@
                 <div class="step-panel" :class="{ 'active': currentStep === 4 }">
                     <div class="step-card">
                         <div class="step-card-body">
-                            <!-- Extra Fields & Files -->
-                            <div class="mb-4">
-                                <div class="step-section-heading">
-                                    <h6><i class="bi bi-paperclip"></i>{{ __('Extra Fields & Files') }}</h6>
-                                    <button type="button" class="btn btn-success btn-sm" wire:click="addExtra">
-                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Field') }}
-                                    </button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table step-table">
-                                        <thead>
-                                            <tr>
-                                                <th style="width:140px">{{ __('Date') }}</th>
-                                                <th style="width:180px">{{ __('Label') }}</th>
-                                                <th>{{ __('Data') }}</th>
-                                                <th style="width:120px">{{ __('Visibility') }}</th>
-                                                <th style="width:160px">{{ __('File') }}</th>
-                                                <th style="width:80px"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @if (count($extras) === 0)
-                                                <tr><td colspan="6" class="step-empty-state"><i class="bi bi-paperclip"></i><span>{{ __('No extra fields added yet') }}</span></td></tr>
-                                            @endif
-                                            @foreach ($extras as $i => $row)
-                                                <tr>
-                                                    <td><input type="date" class="form-control" wire:model.defer="extras.{{ $i }}.occurred_at" /></td>
-                                                    <td>
-                                                        <input type="text" class="form-control" wire:model.defer="extras.{{ $i }}.label" />
-                                                        @error('extras.' . $i . '.label')<div class="text-danger small">{{ $message }}</div>@enderror
-                                                    </td>
-                                                    <td><input type="text" class="form-control" wire:model.defer="extras.{{ $i }}.data_text" /></td>
-                                                    <td>
-                                                        <select class="form-select" wire:model.defer="extras.{{ $i }}.visibility">
-                                                            <option value="public">{{ __('Public') }}</option>
-                                                            <option value="private">{{ __('Private') }}</option>
-                                                        </select>
-                                                    </td>
-                                                    <td>
-                                                        <input type="file" class="form-control form-control-sm" wire:model="extra_item_files.{{ $i }}" />
-                                                        @error('extra_item_files.' . $i)<div class="text-danger small">{{ $message }}</div>@enderror
-                                                    </td>
-                                                    <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" wire:click="removeExtra({{ $i }})"><i class="bi bi-trash"></i></button></td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <hr class="step-section-divider" />
 
                             <!-- Order Settings -->
                             <div class="step-section-heading">
@@ -1423,5 +1491,70 @@
             </div>
         </div>
     </form>
+
+    <!-- Job Extra Modal -->
+    <div x-data="{ show: @entangle('showExtraModal') }" x-show="show" x-cloak class="rb-modal-backdrop" @keydown.escape.window="show = false">
+        <div class="rb-modal-container" @click.away="show = false">
+            <div class="rb-modal-header">
+                <h5 class="mb-0 fw-bold">{{ $editingExtraIndex !== null ? __('Edit Job Extra') : __('Add Job Extra') }}</h5>
+                <button type="button" class="btn-close" @click="show = false"></button>
+            </div>
+            <div class="rb-modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">{{ __('Field Label / Name') }}</label>
+                        <input type="text" class="form-control" wire:model.defer="extra_label" placeholder="{{ __('e.g. Purchase Receipt, Box Status...') }}">
+                        @error('extra_label') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">{{ __('Occurrence Date') }}</label>
+                        <input type="date" class="form-control" wire:model.defer="extra_occurred_at">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">{{ __('Visibility') }}</label>
+                        <select class="form-select" wire:model.defer="extra_visibility">
+                            <option value="public">{{ __('Public (Customer can see)') }}</option>
+                            <option value="private">{{ __('Private (Internal only)') }}</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">{{ __('Data / Short Note') }}</label>
+                        <input type="text" class="form-control" wire:model.defer="extra_data_text" placeholder="{{ __('Value or summary data') }}">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">{{ __('Extended Description') }}</label>
+                        <textarea class="form-control" rows="2" wire:model.defer="extra_description" placeholder="{{ __('Optional details...') }}"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">{{ __('Attachment / File') }}</label>
+                        <div class="p-3 border rounded bg-light">
+                            <input type="file" class="form-control form-control-sm" wire:model="extra_temp_file">
+                            <div wire:loading wire:target="extra_temp_file" class="mt-2 small text-primary">
+                                <div class="spinner-border spinner-border-sm me-1"></div> {{ __('Uploading...') }}
+                            </div>
+                            @if($extra_temp_file)
+                                <div class="mt-2 small text-success">
+                                    <i class="bi bi-file-earmark-check me-1"></i> {{ __('File ready to save') }}
+                                </div>
+                            @endif
+                            @error('extra_temp_file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rb-modal-footer">
+                <button type="button" class="btn btn-outline-secondary px-4" @click="show = false">{{ __('Cancel') }}</button>
+                <button type="button" class="btn btn-primary px-4" wire:click="saveExtra" wire:loading.attr="disabled">
+                    <i class="bi bi-check-circle me-1"></i> {{ __('Save Extra') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
     </div>
 </div>
