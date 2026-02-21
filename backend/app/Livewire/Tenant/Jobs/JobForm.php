@@ -67,6 +67,11 @@ class JobForm extends Component
     public $part_search = '';
     public $selected_part_id = null;
     public $selected_part_name = '';
+
+    public $service_search = '';
+    public $selected_service_id = null;
+    public $selected_service_name = '';
+
     public $selected_device_link_index = null;
 
     public $device_search = '';
@@ -368,6 +373,32 @@ class JobForm extends Component
         $this->part_search = ''; // This will trigger the wire:model.live update and hide dropdown
     }
 
+    public function getFilteredServicesProperty()
+    {
+        $search = trim($this->service_search);
+        if (strlen($search) < 2) {
+            return collect();
+        }
+
+        return \App\Models\RepairBuddyService::query()
+            ->withoutGlobalScopes([\App\Models\Scopes\BranchScope::class])
+            ->where('tenant_id', $this->tenant->id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('service_code', 'like', "%{$search}%");
+            })
+            ->limit(20)
+            ->get();
+    }
+
+    public function selectService($id, $name): void
+    {
+        $this->selected_service_id = $id;
+        $this->selected_service_name = $name;
+        $this->service_search = '';
+    }
+
     public function addDeviceToTable(): void
     {
         $this->validate([
@@ -558,14 +589,42 @@ class JobForm extends Component
 
     public function addService(): void
     {
-        $this->items[] = [
-            'type' => 'service',
-            'name' => null,
-            'code' => null,
-            'qty' => 1,
-            'unit_price_cents' => 0,
-            'meta_json' => null,
-        ];
+        $deviceRow = $this->selected_device_link_index !== null ? ($this->deviceRows[$this->selected_device_link_index] ?? null) : null;
+
+        if ($this->selected_service_id) {
+            $service = \App\Models\RepairBuddyService::withoutGlobalScopes([\App\Models\Scopes\BranchScope::class])
+                ->find($this->selected_service_id);
+            
+            if ($service) {
+                $this->items[] = [
+                    'type' => 'service',
+                    'name' => $service->name,
+                    'code' => $service->service_code,
+                    'qty' => 1,
+                    'unit_price_cents' => $service->base_price_amount_cents / 100,
+                    'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
+                    'device_row_index' => $this->selected_device_link_index,
+                    'meta_json' => null,
+                ];
+            }
+        } else {
+            $this->items[] = [
+                'type' => 'service',
+                'name' => $this->service_search ?: null,
+                'code' => null,
+                'qty' => 1,
+                'unit_price_cents' => 0,
+                'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
+                'device_row_index' => $this->selected_device_link_index,
+                'meta_json' => null,
+            ];
+        }
+
+        // Reset
+        $this->selected_service_id = null;
+        $this->selected_service_name = '';
+        $this->service_search = '';
+        $this->selected_device_link_index = null;
     }
 
     public function addOtherItem(): void

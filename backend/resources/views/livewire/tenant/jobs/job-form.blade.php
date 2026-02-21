@@ -1016,11 +1016,92 @@
 
                             <!-- Services -->
                             <div class="mb-4">
-                                <div class="step-section-heading">
-                                    <h6><i class="bi bi-wrench-adjustable-circle"></i>{{ __('Services') }}</h6>
-                                    <button type="button" class="btn btn-success btn-sm" wire:click="addService">
-                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Service') }}
-                                    </button>
+                                <div class="step-section-heading align-items-end">
+                                    <div class="flex-grow-1">
+                                        <h6><i class="bi bi-wrench-adjustable-circle"></i>{{ __('Services') }}</h6>
+                                        <div class="row align-items-end gx-3">
+                                            <!-- Service Search (Col-5) -->
+                                            <div class="col-md-5">
+                                                <label class="form-label small fw-bold text-muted">{{ __('Search Catalog') }}</label>
+                                                <div class="position-relative" x-data="{ open: false, search: @entangle('service_search').live }" @click.away="open = false">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                                        <input type="text" 
+                                                               class="form-control border-start-0" 
+                                                               placeholder="{{ __('Type service name...') }}"
+                                                               x-model="search"
+                                                               @focus="open = true"
+                                                               @input="open = true" />
+                                                    </div>
+
+                                                    <!-- Selected Badge -->
+                                                    @if($selected_service_id)
+                                                        <div class="mt-2">
+                                                            <span class="badge bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center">
+                                                                <i class="bi bi-check-circle-fill me-1"></i>
+                                                                {{ $selected_service_name }}
+                                                                <button type="button" class="btn btn-sm p-0 ms-2 text-white" wire:click="$set('selected_service_id', null)">
+                                                                    <i class="bi bi-x-circle"></i>
+                                                                </button>
+                                                            </span>
+                                                        </div>
+                                                    @endif
+
+                                                    <div class="dropdown-menu shadow-lg border-0 w-100 mt-1 scrollbar-thin" 
+                                                         style="max-height: 300px; overflow-y: auto; z-index: 1050;" 
+                                                         :class="{ 'show': open && search.length >= 2 }">
+                                                        
+                                                        <div wire:loading wire:target="service_search" class="w-100 p-3 text-center">
+                                                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                                            <span class="ms-2 small text-muted">{{ __('Searching...') }}</span>
+                                                        </div>
+
+                                                        <div wire:loading.remove wire:target="service_search">
+                                                            @forelse($this->filteredServices as $service)
+                                                                <button type="button" 
+                                                                        class="dropdown-item py-2 d-flex justify-content-between align-items-center" 
+                                                                        wire:click="selectService({{ $service->id }}, '{{ $service->name }}')"
+                                                                        @click="open = false">
+                                                                    <div>
+                                                                        <div class="fw-bold">{{ $service->name }}</div>
+                                                                        <div class="small text-muted">{{ $service->service_code ?: '--' }}</div>
+                                                                    </div>
+                                                                    <div class="text-primary fw-bold">
+                                                                        {{ Number::currency($service->base_price_amount_cents / 100, $currency_code) }}
+                                                                    </div>
+                                                                </button>
+                                                            @empty
+                                                                <div class="p-3 text-center">
+                                                                    <div class="text-muted small mb-2">{{ __('No services found.') }}</div>
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addService">
+                                                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Custom') }}
+                                                                    </button>
+                                                                </div>
+                                                            @endforelse
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Device Selection (Col-4) -->
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-muted">{{ __('Associate with Device') }}</label>
+                                                <select class="form-select" wire:model.defer="selected_device_link_index">
+                                                    <option value="">{{ __('Select Device...') }}</option>
+                                                    @foreach($deviceRows as $idx => $device)
+                                                        <option value="{{ $idx }}">{{ $device['brand_name'] }} {{ $device['device_model'] }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <!-- Add Button (Col-3) -->
+                                            <div class="col-md-3 text-end">
+                                                <button type="button" class="btn btn-success w-100" wire:click="addService" {{ !$selected_service_id && strlen($service_search) < 2 ? 'disabled' : '' }}>
+                                                    <i class="bi bi-plus-circle me-1"></i>{{ $selected_service_id ? __('Add Service') : __('Add Custom') }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table step-table">
@@ -1028,6 +1109,7 @@
                                             <tr>
                                                 <th class="ps-3">{{ __('Name') }}</th>
                                                 <th>{{ __('Code') }}</th>
+                                                <th>{{ __('Device') }}</th>
                                                 <th style="width:100px" class="text-center">{{ __('Qty') }}</th>
                                                 <th class="text-end" style="width: 140px;">{{ __('Price') }}</th>
                                                 <th class="text-end" style="width: 120px;">{{ __('Total') }}</th>
@@ -1038,8 +1120,15 @@
                                             @php $servicesItems = array_filter($items, fn($r) => ($r['type'] ?? '') === 'service'); @endphp
                                             @forelse ($servicesItems as $i => $row)
                                                 <tr>
-                                                    <td class="ps-3"><input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.name" /></td>
-                                                    <td><input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.code" /></td>
+                                                    <td class="ps-3 align-middle fw-medium">
+                                                        {{ $row['name'] ?? '--' }}
+                                                    </td>
+                                                    <td class="align-middle text-muted small">
+                                                        {{ $row['code'] ?? '--' }}
+                                                    </td>
+                                                    <td class="small text-muted align-middle">
+                                                        {{ $row['device_info'] ?? '--' }}
+                                                    </td>
                                                     <td class="text-center">
                                                         <div class="input-group input-group-sm justify-content-center">
                                                             <input type="number" min="1" class="form-control text-center" style="max-width: 60px;" wire:model.live="items.{{ $i }}.qty" />
