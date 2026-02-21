@@ -26,28 +26,120 @@
                             @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
-                        {{-- Brand --}}
+                        {{-- Brand (Searchable) --}}
                         <div class="col-md-6">
                             <label class="form-label" for="qp_brand">{{ __('Brand') }}</label>
-                            <select id="qp_brand" class="form-select @error('part_brand_id') is-invalid @enderror" wire:model.defer="part_brand_id">
-                                <option value="">{{ __('None') }}</option>
-                                @foreach($brands as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('part_brand_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div class="search-select-container" 
+                                 data-options='@json($brands->map(fn($b) => ["id" => $b->id, "name" => $b->name]))'
+                                 x-data="{ 
+                                    open: false, 
+                                    search: '', 
+                                    selectedId: @entangle('part_brand_id'),
+                                    options: [],
+                                    init() {
+                                        this.options = JSON.parse($el.dataset.options || '[]');
+                                    },
+                                    get selectedName() {
+                                        let item = this.options.find(o => o.id == this.selectedId);
+                                        return item ? item.name : '{{ __('None') }}';
+                                    },
+                                    get filteredOptions() {
+                                        if (!this.search) return this.options;
+                                        return this.options.filter(o => o.name.toLowerCase().includes(this.search.toLowerCase()));
+                                    },
+                                    select(id) {
+                                        this.selectedId = id;
+                                        this.open = false;
+                                        this.search = '';
+                                    }
+                                 }" @click.away="open = false; search = ''">
+                                
+                                <div class="input-group">
+                                    <input type="text" class="form-control" 
+                                           :placeholder="selectedName"
+                                           x-model="search"
+                                           @focus="open = true"
+                                           @keydown.escape="open = false; search = ''"
+                                           style="background-image: none !important;">
+                                    <button type="button" class="btn btn-outline-secondary" @click="open = !open">
+                                        <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                                    </button>
+                                </div>
+
+                                <div class="search-dropdown" x-show="open" x-cloak style="width: 100%; border-color: var(--rb-primary);">
+                                    <div class="search-item" @click="select(null)">
+                                        <span class="item-title text-muted fst-italic">{{ __('None') }}</span>
+                                    </div>
+                                    <template x-for="opt in filteredOptions" :key="opt.id">
+                                        <div class="search-item" @click="select(opt.id)" :class="{'bg-light': selectedId == opt.id}">
+                                            <span class="item-title" x-text="opt.name"></span>
+                                            <i class="bi bi-check text-primary" x-show="selectedId == opt.id"></i>
+                                        </div>
+                                    </template>
+                                    <div class="p-3 text-center text-muted small" x-show="filteredOptions.length === 0">
+                                        {{ __('No results found') }}
+                                    </div>
+                                </div>
+                            </div>
+                            @error('part_brand_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
 
-                        {{-- Type --}}
+                        {{-- Type (Searchable) --}}
                         <div class="col-md-6">
                             <label class="form-label" for="qp_type">{{ __('Type') }}</label>
-                            <select id="qp_type" class="form-select @error('part_type_id') is-invalid @enderror" wire:model.defer="part_type_id">
-                                <option value="">{{ __('None') }}</option>
-                                @foreach($types as $t)
-                                    <option value="{{ $t->id }}">{{ $t->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('part_type_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div class="search-select-container" 
+                                 data-options='@json($types->map(fn($t) => ["id" => $t->id, "name" => $t->name]))'
+                                 x-data="{ 
+                                    open: false, 
+                                    search: '', 
+                                    selectedId: @entangle('part_type_id'),
+                                    options: [],
+                                    init() {
+                                        this.options = JSON.parse($el.dataset.options || '[]');
+                                    },
+                                    get selectedName() {
+                                        let item = this.options.find(o => o.id == this.selectedId);
+                                        return item ? item.name : '{{ __('None') }}';
+                                    },
+                                    get filteredOptions() {
+                                        if (!this.search) return this.options;
+                                        return this.options.filter(o => o.name.toLowerCase().includes(this.search.toLowerCase()));
+                                    },
+                                    select(id) {
+                                        this.selectedId = id;
+                                        this.open = false;
+                                        this.search = '';
+                                    }
+                                 }" @click.away="open = false; search = ''">
+                                
+                                <div class="input-group">
+                                    <input type="text" class="form-control" 
+                                           :placeholder="selectedName"
+                                           x-model="search"
+                                           @focus="open = true"
+                                           @keydown.escape="open = false; search = ''"
+                                           style="background-image: none !important;">
+                                    <button type="button" class="btn btn-outline-secondary" @click="open = !open">
+                                        <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                                    </button>
+                                </div>
+
+                                <div class="search-dropdown" x-show="open" x-cloak style="width: 100%; border-color: var(--rb-primary);">
+                                    <div class="search-item" @click="select(null)">
+                                        <span class="item-title text-muted fst-italic">{{ __('None') }}</span>
+                                    </div>
+                                    <template x-for="opt in filteredOptions" :key="opt.id">
+                                        <div class="search-item" @click="select(opt.id)" :class="{'bg-light': selectedId == opt.id}">
+                                            <span class="item-title" x-text="opt.name"></span>
+                                            <i class="bi bi-check text-primary" x-show="selectedId == opt.id"></i>
+                                        </div>
+                                    </template>
+                                    <div class="p-3 text-center text-muted small" x-show="filteredOptions.length === 0">
+                                        {{ __('No results found') }}
+                                    </div>
+                                </div>
+                            </div>
+                            @error('part_type_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
 
                         {{-- Manufacturing Code * --}}
