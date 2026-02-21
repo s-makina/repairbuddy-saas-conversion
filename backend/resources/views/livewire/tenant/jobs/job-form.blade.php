@@ -910,12 +910,15 @@
                                                                 <div class="small text-muted">{{ $part->manufacturing_code ?: $part->sku }}</div>
                                                             </div>
                                                             <div class="text-primary fw-bold">
-                                                                {{ Number::currency($part->price_amount_cents / 100, $part->price_currency ?: 'USD') }}
+                                                                {{ Number::currency($part->price_amount_cents / 100, $part->price_currency ?: $currency_code) }}
                                                             </div>
                                                         </button>
                                                     @empty
-                                                        <div class="p-3 text-center text-muted small">
-                                                            {{ __('No parts found') }}
+                                                        <div class="p-3 text-center">
+                                                            <div class="text-muted small mb-2">{{ __('No parts found matching your search.') }}</div>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addCustomPart">
+                                                                <i class="bi bi-plus-circle me-1"></i>{{ __('Add as Custom Part') }}
+                                                            </button>
                                                         </div>
                                                     @endforelse
                                                 </div>
@@ -936,7 +939,7 @@
                                     </div>
 
                                     <div class="col-md-3 text-end">
-                                        <button type="button" class="btn btn-success w-100" wire:click="addPart">
+                                        <button type="button" class="btn btn-success w-100" wire:click="addPart" {{ !$selected_part_id ? 'disabled' : '' }}>
                                             <i class="bi bi-plus-circle me-1"></i>{{ __('Add Part') }}
                                         </button>
                                     </div>
@@ -948,35 +951,47 @@
                                             <tr>
                                                 <th class="ps-3">{{ __('Name') }}</th>
                                                 <th>{{ __('Code') }}</th>
-                                                <th>{{ __('Capacity') }}</th>
                                                 <th>{{ __('Device') }}</th>
-                                                <th style="width:100px">{{ __('Qty') }}</th>
-                                                <th class="text-end">{{ __('Price') }}</th>
-                                                <th class="text-end">{{ __('Total') }}</th>
+                                                <th style="width:100px" class="text-center">{{ __('Qty') }}</th>
+                                                <th class="text-end" style="width: 140px;">{{ __('Price') }}</th>
+                                                <th class="text-end" style="width: 120px;">{{ __('Total') }}</th>
                                                 <th style="width:60px"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @php $partsItems = array_filter($items, fn($r) => ($r['type'] ?? '') === 'part'); @endphp
-                                            @forelse ($items as $i => $row)
-                                                @if (($row['type'] ?? '') === 'part')
+                                            @forelse ($partsItems as $i => $row)
                                                 <tr>
                                                     <td class="ps-3">
-                                                        <div class="fw-bold">{{ $row['name'] }}</div>
+                                                        @if(empty($row['part_id']))
+                                                            <input type="text" class="form-control form-control-sm mb-1" wire:model.defer="items.{{ $i }}.name" placeholder="{{ __('Part Name') }}" />
+                                                        @else
+                                                            <div class="fw-bold">{{ $row['name'] }}</div>
+                                                        @endif
                                                     </td>
-                                                    <td><span class="text-muted small">{{ $row['code'] ?: '--' }}</span></td>
-                                                    <td><span class="text-muted small">{{ $row['capacity'] ?: '--' }}</span></td>
+                                                    <td>
+                                                        @if(empty($row['part_id']))
+                                                            <input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.code" placeholder="{{ __('Code') }}" />
+                                                        @else
+                                                            <span class="text-muted small">{{ $row['code'] ?: '--' }}</span>
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         <span class="badge bg-light text-dark border">{{ $row['device_info'] ?? '--' }}</span>
                                                     </td>
-                                                    <td>
-                                                        <input type="number" min="1" class="form-control form-control-sm" wire:model.live="items.{{ $i }}.qty" />
+                                                    <td class="text-center">
+                                                        <div class="input-group input-group-sm justify-content-center">
+                                                            <input type="number" min="1" class="form-control text-center" style="max-width: 60px;" wire:model.live="items.{{ $i }}.qty" />
+                                                        </div>
                                                     </td>
                                                     <td class="text-end">
-                                                        {{ Number::currency(($row['unit_price_cents'] ?? 0) / 100, 'USD') }}
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text bg-white px-2">{{ $currency_symbol }}</span>
+                                                            <input type="number" class="form-control text-end px-2" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
+                                                        </div>
                                                     </td>
                                                     <td class="text-end fw-bold">
-                                                        {{ Number::currency((($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1)) / 100, 'USD') }}
+                                                        {{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}
                                                     </td>
                                                     <td class="text-end pe-3">
                                                         <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeItem({{ $i }})">
@@ -984,7 +999,6 @@
                                                         </button>
                                                     </td>
                                                 </tr>
-                                                @endif
                                             @empty
                                                 <tr>
                                                     <td colspan="8" class="text-center py-5 text-muted italic">
@@ -1010,31 +1024,50 @@
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table step-table">
-                                        <thead>
+                                        <thead class="bg-light">
                                             <tr>
-                                                <th>{{ __('Name') }}</th>
-                                                <th style="width:140px">{{ __('Code') }}</th>
-                                                <th style="width:100px">{{ __('Qty') }}</th>
-                                                <th style="width:140px">{{ __('Price') }}</th>
-                                                <th style="width:80px"></th>
+                                                <th class="ps-3">{{ __('Name') }}</th>
+                                                <th>{{ __('Code') }}</th>
+                                                <th style="width:100px" class="text-center">{{ __('Qty') }}</th>
+                                                <th class="text-end" style="width: 140px;">{{ __('Price') }}</th>
+                                                <th class="text-end" style="width: 120px;">{{ __('Total') }}</th>
+                                                <th style="width:60px"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @php $servicesItems = array_filter($items, fn($r) => ($r['type'] ?? '') === 'service'); @endphp
-                                            @if (count($servicesItems) === 0)
-                                                <tr><td colspan="5" class="step-empty-state"><i class="bi bi-wrench-adjustable-circle"></i><span>{{ __('No services added yet') }}</span></td></tr>
-                                            @endif
-                                            @foreach ($items as $i => $row)
-                                                @if (($row['type'] ?? '') === 'service')
+                                            @forelse ($servicesItems as $i => $row)
                                                 <tr>
-                                                    <td><input type="text" class="form-control" wire:model.defer="items.{{ $i }}.name" /></td>
-                                                    <td><input type="text" class="form-control" wire:model.defer="items.{{ $i }}.code" /></td>
-                                                    <td><input type="number" min="1" class="form-control" wire:model.defer="items.{{ $i }}.qty" /></td>
-                                                    <td><input type="number" class="form-control" wire:model.defer="items.{{ $i }}.unit_price_cents" /></td>
-                                                    <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" wire:click="removeItem({{ $i }})"><i class="bi bi-trash"></i></button></td>
+                                                    <td class="ps-3"><input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.name" /></td>
+                                                    <td><input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.code" /></td>
+                                                    <td class="text-center">
+                                                        <div class="input-group input-group-sm justify-content-center">
+                                                            <input type="number" min="1" class="form-control text-center" style="max-width: 60px;" wire:model.live="items.{{ $i }}.qty" />
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text bg-white px-2">{{ $currency_symbol }}</span>
+                                                            <input type="number" class="form-control text-end px-2" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end fw-bold">
+                                                        {{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}
+                                                    </td>
+                                                    <td class="text-end pe-3">
+                                                        <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeItem({{ $i }})">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
                                                 </tr>
-                                                @endif
-                                            @endforeach
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center py-4 text-muted italic small">
+                                                        <i class="bi bi-wrench-adjustable-circle fs-3 d-block mb-1 opacity-25"></i>
+                                                        {{ __('No services added yet') }}
+                                                    </td>
+                                                </tr>
+                                            @endforelse
                                         </tbody>
                                     </table>
                                 </div>
@@ -1052,38 +1085,88 @@
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table step-table">
-                                        <thead>
+                                        <thead class="bg-light">
                                             <tr>
-                                                <th>{{ __('Name') }}</th>
+                                                <th class="ps-3">{{ __('Name') }}</th>
                                                 <th style="width:120px">{{ __('Type') }}</th>
-                                                <th style="width:100px">{{ __('Qty') }}</th>
-                                                <th style="width:140px">{{ __('Price') }}</th>
-                                                <th style="width:80px"></th>
+                                                <th style="width:100px" class="text-center">{{ __('Qty') }}</th>
+                                                <th class="text-end" style="width: 140px;">{{ __('Price') }}</th>
+                                                <th class="text-end" style="width: 120px;">{{ __('Total') }}</th>
+                                                <th style="width:60px"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @php $otherItems = array_filter($items, fn($r) => !in_array($r['type'] ?? '', ['part', 'service'])); @endphp
-                                            @if (count($otherItems) === 0)
-                                                <tr><td colspan="5" class="step-empty-state"><i class="bi bi-receipt"></i><span>{{ __('No other items added yet') }}</span></td></tr>
-                                            @endif
-                                            @foreach ($items as $i => $row)
+                                            @forelse ($items as $i => $row)
                                                 @if (!in_array($row['type'] ?? '', ['part', 'service']))
                                                 <tr>
-                                                    <td><input type="text" class="form-control" wire:model.defer="items.{{ $i }}.name" /></td>
+                                                    <td class="ps-3"><input type="text" class="form-control form-control-sm" wire:model.defer="items.{{ $i }}.name" /></td>
                                                     <td>
-                                                        <select class="form-select" wire:model.defer="items.{{ $i }}.type">
+                                                        <select class="form-select form-select-sm" wire:model.defer="items.{{ $i }}.type">
+                                                            <option value="item">{{ __('Item') }}</option>
                                                             <option value="fee">{{ __('Fee') }}</option>
                                                             <option value="discount">{{ __('Discount') }}</option>
+                                                            <option value="tax">{{ __('Tax') }}</option>
+                                                            <option value="payment">{{ __('Payment') }}</option>
                                                         </select>
                                                     </td>
-                                                    <td><input type="number" min="1" class="form-control" wire:model.defer="items.{{ $i }}.qty" /></td>
-                                                    <td><input type="number" class="form-control" wire:model.defer="items.{{ $i }}.unit_price_cents" /></td>
-                                                    <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" wire:click="removeItem({{ $i }})"><i class="bi bi-trash"></i></button></td>
+                                                    <td class="text-center">
+                                                        <div class="input-group input-group-sm justify-content-center">
+                                                            <input type="number" min="1" class="form-control text-center" style="max-width: 60px;" wire:model.live="items.{{ $i }}.qty" />
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text bg-white px-2">{{ $currency_symbol }}</span>
+                                                            <input type="number" class="form-control text-end px-2" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end fw-bold">
+                                                        {{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}
+                                                    </td>
+                                                    <td class="text-end pe-3">
+                                                        <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeItem({{ $i }})">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                                 @endif
-                                            @endforeach
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center py-4 text-muted italic small">
+                                                        <i class="bi bi-receipt fs-3 d-block mb-1 opacity-25"></i>
+                                                        {{ __('No other items added yet') }}
+                                                    </td>
+                                                </tr>
+                                            @endforelse
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+
+                            <!-- Grand Total -->
+                            <div class="row justify-content-end mt-4">
+                                <div class="col-md-4">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body py-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="text-muted small">{{ __('Subtotal') }}</span>
+                                                <span class="fw-bold">
+                                                    @php 
+                                                        $totalAmount = array_reduce($items, fn($carry, $item) => $carry + (($item['unit_price_cents'] ?? 0) * ($item['qty'] ?? 1)), 0);
+                                                    @endphp
+                                                    {{ Number::currency($totalAmount, $currency_code) }}
+                                                </span>
+                                            </div>
+                                            <hr class="my-2 opacity-50" />
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="h6 mb-0">{{ __('Grand Total') }}</span>
+                                                <span class="h5 mb-0 text-primary">
+                                                    {{ Number::currency($totalAmount, $currency_code) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -38,6 +38,8 @@ class JobForm extends Component
     public $jobExtras;
 
     public bool $enablePinCodeField = false;
+    public string $currency_code = 'USD';
+    public string $currency_symbol = '$';
 
     public ?string $case_number = null;
     public ?string $title = null;
@@ -147,6 +149,17 @@ class JobForm extends Component
         $devicesBrandsSettings = is_array($settings) ? (array) data_get($settings, 'devicesBrands', []) : [];
         $this->enablePinCodeField = (bool) ($devicesBrandsSettings['enablePinCodeField'] ?? false);
 
+        $this->currency_code = $this->tenant->currency ?? 'USD';
+        try {
+            $fmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
+            $this->currency_symbol = $fmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL) ?: '$';
+            // Actually, NumberFormatter needs the currency set to get the symbol for THAT currency
+            $fmt->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $this->currency_code);
+            $this->currency_symbol = $fmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL) ?: ($this->currency_code . ' ');
+        } catch (\Exception $e) {
+            $this->currency_symbol = ($this->currency_code . ' ');
+        }
+
         $jobModel = $job instanceof RepairBuddyJob ? $job : null;
 
         $this->case_number = $jobModel?->case_number;
@@ -223,6 +236,22 @@ class JobForm extends Component
     {
         if ($this->tenant instanceof \App\Models\Tenant) {
             \App\Support\TenantContext::set($this->tenant);
+            
+            // Re-set branch context from session or default to first branch
+            $branchId = session('active_branch_id');
+            $branch = $branchId ? \App\Models\Branch::find($branchId) : $this->tenant->branches->first();
+            if ($branch) {
+                \App\Support\BranchContext::set($branch);
+            }
+
+            $this->currency_code = $this->tenant->currency ?? 'USD';
+            try {
+                $fmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
+                $fmt->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $this->currency_code);
+                $this->currency_symbol = $fmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL) ?: ($this->currency_code . ' ');
+            } catch (\Exception $e) {
+                $this->currency_symbol = ($this->currency_code . ' ');
+            }
         }
     }
 
@@ -317,7 +346,10 @@ class JobForm extends Component
             return collect();
         }
 
+        // We use withoutGlobalScopes to avoid issues with BranchScope 
+        // if the context isn't fully set during the Livewire lifecycle
         return \App\Models\RepairBuddyPart::query()
+            ->withoutGlobalScopes()
             ->where('tenant_id', $this->tenant->id)
             ->where('is_active', true)
             ->where(function ($q) use ($search) {
@@ -333,7 +365,7 @@ class JobForm extends Component
     {
         $this->selected_part_id = $id;
         $this->selected_part_name = $name;
-        $this->part_search = '';
+        $this->part_search = ''; // This will trigger the wire:model.live update and hide dropdown
     }
 
     public function addDeviceToTable(): void
@@ -487,13 +519,39 @@ class JobForm extends Component
             'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
             'device_row_index' => $this->selected_device_link_index,
             'qty' => 1,
-            'unit_price_cents' => $part->price_amount_cents,
+            'unit_price_cents' => $part->price_amount_cents / 100,
             'meta_json' => null,
         ];
 
         // Reset
         $this->selected_part_id = null;
         $this->selected_part_name = '';
+        $this->part_search = '';
+        $this->selected_device_link_index = null;
+    }
+
+    public function addCustomPart(): void
+    {
+        $this->validate([
+            'selected_device_link_index' => ['required', 'integer'],
+        ]);
+
+        $deviceRow = $this->deviceRows[$this->selected_device_link_index] ?? null;
+
+        $this->items[] = [
+            'type' => 'part',
+            'part_id' => null,
+            'name' => $this->part_search ?: __('Custom Part'),
+            'code' => null,
+            'capacity' => null,
+            'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
+            'device_row_index' => $this->selected_device_link_index,
+            'qty' => 1,
+            'unit_price_cents' => 0,
+            'meta_json' => null,
+        ];
+
+        // Reset
         $this->part_search = '';
         $this->selected_device_link_index = null;
     }
@@ -611,7 +669,7 @@ class JobForm extends Component
             'item_name' => array_map(fn ($r) => $r['name'] ?? null, $this->items),
             'item_code' => array_map(fn ($r) => $r['code'] ?? null, $this->items),
             'item_qty' => array_map(fn ($r) => $r['qty'] ?? null, $this->items),
-            'item_unit_price_cents' => array_map(fn ($r) => $r['unit_price_cents'] ?? null, $this->items),
+            'item_unit_price_cents' => array_map(fn ($r) => (int) round(($r['unit_price_cents'] ?? 0) * 100), $this->items),
             'item_meta_json' => array_map(fn ($r) => $r['meta_json'] ?? null, $this->items),
 
             'extra_item_occurred_at' => array_map(fn ($r) => $r['occurred_at'] ?? null, $this->extras),
