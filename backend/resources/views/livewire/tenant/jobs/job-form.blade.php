@@ -1280,6 +1280,7 @@
                                             @endforelse
                                         </tbody>
                                     </table>
+                                </div>
                             </div>
 
                             <hr class="step-section-divider" />
@@ -1353,7 +1354,22 @@
                             </div>
 
                             <!-- Grand Total -->
-                            <div class="row justify-content-end mt-4">
+                            <div class="row align-items-end mt-4">
+                                <div class="col-md-8">
+                                    @if($tax_enabled)
+                                        <div class="field-row mb-0">
+                                            <label class="field-label">{{ __('Tax Mode') }}</label>
+                                            <div class="field-content">
+                                                <select class="form-select form-select-sm" wire:model.defer="prices_inclu_exclu" style="max-width: 200px;">
+                                                    <option value="">{{ __('Select...') }}</option>
+                                                    <option value="inclusive">{{ __('Inclusive') }}</option>
+                                                    <option value="exclusive">{{ __('Exclusive') }}</option>
+                                                </select>
+                                                @error('prices_inclu_exclu')<div class="text-danger small">{{ $message }}</div>@enderror
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                                 <div class="col-md-4">
                                     <div class="card bg-light border-0">
                                         <div class="card-body py-3">
@@ -1393,6 +1409,63 @@
                 <div class="step-panel" :class="{ 'active': currentStep === 4 }">
                     <div class="step-card">
                         <div class="step-card-body">
+
+                            <!-- Job Financial Summary -->
+                            <div class="step-section-heading">
+                                <h6><i class="bi bi-calculator"></i>{{ __('Job Financial Summary') }}</h6>
+                            </div>
+                            <div class="card mb-4 border-0 shadow-sm overflow-hidden" style="border-radius: 12px; border: 1px solid #eef2f7 !important;">
+                                <div class="card-body p-0">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="ps-4 py-2 text-muted fw-normal small">{{ __('Category') }}</th>
+                                                <th class="py-2 text-center text-muted fw-normal small">{{ __('Total') }}</th>
+                                                <th class="pe-4 py-2 text-end text-muted fw-normal small text-nowrap">{{ __('Tax') }} ({{ $this->default_tax_rate }}%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="border-bottom">
+                                                <td class="ps-4 py-3 fw-bold">{{ __('Parts') }}</td>
+                                                <td class="py-3 text-center">{{ Number::currency($this->parts_total, $currency_code) }}</td>
+                                                <td class="pe-4 py-3 text-end text-danger">{{ Number::currency($this->parts_tax, $currency_code) }}</td>
+                                            </tr>
+                                            <tr class="border-bottom">
+                                                <td class="ps-4 py-3 fw-bold">{{ __('Services') }}</td>
+                                                <td class="py-3 text-center">{{ Number::currency($this->services_total, $currency_code) }}</td>
+                                                <td class="pe-4 py-3 text-end text-danger">{{ Number::currency($this->services_tax, $currency_code) }}</td>
+                                            </tr>
+                                            <tr class="border-bottom">
+                                                <td class="ps-4 py-3 fw-bold">{{ __('Extras') }}</td>
+                                                <td class="py-3 text-center">{{ Number::currency($this->extras_total, $currency_code) }}</td>
+                                                <td class="pe-4 py-3 text-end text-danger">{{ Number::currency($this->extras_tax, $currency_code) }}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="bg-white">
+                                            <tr>
+                                                <td colspan="2" class="ps-4 pt-4 pb-2 fw-bold text-uppercase small text-muted">{{ __('Grand Total') }}</td>
+                                                <td class="pe-4 pt-4 pb-2 text-end h4 mb-0 text-primary fw-bold">
+                                                    {{ Number::currency($this->grand_total_amount, $currency_code) }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" class="ps-4 py-2 text-muted">{{ __('Received') }} ({{ (int)$this->received }})</td>
+                                                <td class="pe-4 py-2 text-end">{{ Number::currency($this->received, $currency_code) }}</td>
+                                            </tr>
+                                            <tr class="border-top">
+                                                <td colspan="2" class="ps-4 py-3 fw-bold h5 mb-0">{{ __('Balance') }}</td>
+                                                <td class="pe-4 py-3 text-end h5 mb-0 fw-bold {{ $this->balance > 0 ? 'text-danger' : 'text-success' }}">
+                                                    {{ Number::currency($this->balance, $currency_code) }}
+                                                </td>
+                                            </tr>
+                                            <tr class="bg-light">
+                                                <td colspan="2" class="ps-4 py-2 fw-bold small">{{ __('Job Expenses') }}</td>
+                                                <td class="pe-4 py-2 text-end small">{{ Number::currency($this->job_expenses, $currency_code) }}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
 
                             <!-- Order Settings -->
                             <div class="step-section-heading">
@@ -1439,40 +1512,10 @@
                                     </div>
 
                                     <div class="field-row">
-                                        <label class="field-label">{{ __('Tax Mode') }}</label>
-                                        <div class="field-content">
-                                            <select class="form-select" wire:model.defer="prices_inclu_exclu">
-                                                <option value="">{{ __('Select...') }}</option>
-                                                <option value="inclusive">{{ __('Inclusive') }}</option>
-                                                <option value="exclusive">{{ __('Exclusive') }}</option>
-                                            </select>
-                                            @error('prices_inclu_exclu')<div class="text-danger small">{{ $message }}</div>@enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="field-row">
-                                        <label class="field-label">{{ __('Customer Review') }}</label>
-                                        <div class="field-content">
-                                            <div class="form-check form-switch pt-1">
-                                                <input class="form-check-input" type="checkbox" role="switch" id="can_review_it" wire:model.defer="can_review_it">
-                                                <label class="form-check-label" for="can_review_it">{{ __('Customer can review this job') }}</label>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="field-row">
                                         <label class="field-label">{{ __('Order Notes') }}</label>
                                         <div class="field-content">
                                             <textarea class="form-control" rows="3" wire:model.defer="wc_order_note" placeholder="{{ __('Notes visible to customer.') }}"></textarea>
                                             @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="field-row">
-                                        <label class="field-label">{{ __('File Attachment') }}</label>
-                                        <div class="field-content">
-                                            <input type="file" class="form-control" wire:model="job_file" />
-                                            @error('job_file')<div class="text-danger small">{{ $message }}</div>@enderror
                                         </div>
                                     </div>
                                 </div>

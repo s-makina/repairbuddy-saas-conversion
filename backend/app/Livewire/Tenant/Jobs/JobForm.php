@@ -12,6 +12,7 @@ use App\Models\RepairBuddyDeviceBrand;
 use App\Models\RepairBuddyDeviceFieldDefinition;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
+use App\Services\TenantSettings\TenantSettingsStore;
 
 class JobForm extends Component
 {
@@ -38,6 +39,7 @@ class JobForm extends Component
     public $jobExtras;
 
     public bool $enablePinCodeField = false;
+    public bool $tax_enabled = false;
     public string $currency_code = 'USD';
     public string $currency_symbol = '$';
 
@@ -163,6 +165,10 @@ class JobForm extends Component
         $settings = data_get($this->tenant?->setup_state ?? [], 'repairbuddy_settings');
         $devicesBrandsSettings = is_array($settings) ? (array) data_get($settings, 'devicesBrands', []) : [];
         $this->enablePinCodeField = (bool) ($devicesBrandsSettings['enablePinCodeField'] ?? false);
+
+        $store = new TenantSettingsStore($this->tenant);
+        $taxSettings = $store->get('taxes', []);
+        $this->tax_enabled = (bool) ($taxSettings['enableTaxes'] ?? false);
 
         $this->currency_code = $this->tenant->currency ?? 'USD';
         try {
@@ -924,6 +930,92 @@ class JobForm extends Component
         return \App\Models\User::where('tenant_id', $this->tenant->id)
             ->whereIn('id', $this->technician_ids)
             ->get();
+    }
+
+    public function getDefaultTaxRateProperty(): float
+    {
+        return (float) (\App\Models\RepairBuddyTax::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_active', true)
+            ->where('is_default', true)
+            ->value('rate') ?? 0);
+    }
+
+    public function getPartsTotalProperty(): float
+    {
+        return (float) collect($this->items)->where('type', 'part')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price_cents'] ?? 0));
+    }
+
+    public function getServicesTotalProperty(): float
+    {
+        return (float) collect($this->items)->where('type', 'service')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price_cents'] ?? 0));
+    }
+
+    public function getExtrasTotalProperty(): float
+    {
+        // 'fee' type in Step 3 corresponds to 'Extras' in the summary
+        return (float) collect($this->items)->where('type', 'fee')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price_cents'] ?? 0));
+    }
+
+    protected function calculateTax(float $subtotal, string $type): float
+    {
+        if (!$this->tax_enabled) {
+            return 0;
+        }
+
+        $rate = $this->default_tax_rate;
+        if ($rate <= 0) {
+            return 0;
+        }
+
+        if ($this->prices_inclu_exclu === 'inclusive') {
+            return $subtotal - ($subtotal / (1 + ($rate / 100)));
+        }
+
+        return $subtotal * ($rate / 100);
+    }
+
+    public function getPartsTaxProperty(): float
+    {
+        return $this->calculateTax($this->parts_total, 'part');
+    }
+
+    public function getServicesTaxProperty(): float
+    {
+        return $this->calculateTax($this->services_total, 'service');
+    }
+
+    public function getExtrasTaxProperty(): float
+    {
+        return $this->calculateTax($this->extras_total, 'fee');
+    }
+
+    public function getGrandTotalAmountProperty(): float
+    {
+        $subtotal = $this->parts_total + $this->services_total + $this->extras_total;
+        
+        if ($this->prices_inclu_exclu === 'inclusive' || !$this->tax_enabled) {
+            return $subtotal;
+        }
+
+        return $subtotal + $this->parts_tax + $this->services_tax + $this->extras_tax;
+    }
+
+    public function getReceivedProperty(): float
+    {
+        // Placeholder as per request "Received (0)"
+        return 0;
+    }
+
+    public function getBalanceProperty(): float
+    {
+        return $this->grand_total_amount - $this->received;
+    }
+
+    public function getJobExpensesProperty(): float
+    {
+        // Placeholder as per request "Job Expenses $0"
+        return 0;
     }
 
     public function render()
