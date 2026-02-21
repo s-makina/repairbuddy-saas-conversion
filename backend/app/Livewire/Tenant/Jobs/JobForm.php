@@ -102,6 +102,7 @@ class JobForm extends Component
         'customerCreated' => 'handleCustomerCreated',
         'technicianCreated' => 'handleTechnicianCreated',
         'partCreated' => 'handlePartCreated',
+        'serviceCreated' => 'handleServiceCreated',
     ];
 
     // Job Extra Modal & Form State
@@ -1061,5 +1062,15 @@ class JobForm extends Component
         }
 
         $this->dispatch('toast', message: __('Part created and selected.'), type: 'success');
+    }
+
+    public function handleServiceCreated($serviceId)
+    {
+        $service = \App\Models\RepairBuddyService::find($serviceId);
+        if ($service) {
+            $this->selectService($service->id, $service->name);
+        }
+
+        $this->dispatch('toast', message: __('Service created and selected.'), type: 'success');
     }
 }

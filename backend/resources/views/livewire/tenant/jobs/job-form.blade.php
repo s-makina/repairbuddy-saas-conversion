@@ -446,6 +446,7 @@
     @livewire('tenant.operations.quick-customer-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-technician-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-part-modal', ['tenant' => $tenant])
+    @livewire('tenant.operations.quick-service-modal', ['tenant' => $tenant])
     <div x-data="{ currentStep: 1 }">
     <div class="job-hero-header">
         <div class="hero-left">
@@ -1105,6 +1106,12 @@
                                                                x-model="search"
                                                                @focus="open = true"
                                                                @input="open = true" />
+                                                        <button type="button" 
+                                                                class="btn btn-gradient" 
+                                                                title="{{ __('Quick Add Service') }}"
+                                                                wire:click="$dispatch('openQuickServiceModal')">
+                                                            <i class="bi bi-plus-lg"></i>
+                                                        </button>
                                                     </div>
 
                                                     <!-- Selected Badge -->
