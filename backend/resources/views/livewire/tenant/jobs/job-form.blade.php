@@ -716,7 +716,7 @@
                                             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                                             <input type="text" 
                                                    class="form-control border-start-0" 
-                                                   placeholder="{{ __('Start typing model...') }}"
+                                                   placeholder="{{ __('Search for a device...') }}"
                                                    x-model="search"
                                                    @focus="open = true"
                                                    @input="open = true">
@@ -783,8 +783,8 @@
                                     @error('selected_device_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">{{ __('ID / IMEI / Serial') }}</label>
-                                    <input type="text" class="form-control" wire:model.defer="device_serial" placeholder="{{ __('Search or Enter Serial...') }}">
+                                    <label class="form-label small fw-bold text-muted">{{ __('ID / IMEI') }}</label>
+                                    <input type="text" class="form-control" wire:model.defer="device_serial" placeholder="{{ __('Enter Device ID/IMEI') }}">
                                     @error('device_serial') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
 
@@ -929,173 +929,92 @@
                                     <h6><i class="bi bi-cpu me-2"></i>{{ __('Parts') }}</h6>
                                 </div>
                                 
-                                <!-- Add Part Form / Search -->
-                                <div class="row g-3 align-items-start mb-4 bg-light p-3 rounded border">
-                                    
-                                    <!-- Search / Inline Toggle -->
-                                    <div class="col-12" x-data="{ isSearchMode: @entangle('isAddingNewPart').live === false }">
-                                        
-                                        <!-- Header & Toggle -->
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <label class="form-label small fw-bold text-muted mb-0">
-                                                <span x-show="isSearchMode">{{ __('Search & Add Existing Part') }}</span>
-                                                <span x-show="!isSearchMode">{{ __('Create New Part inline') }}</span>
-                                            </label>
-                                            <button type="button" class="btn btn-sm btn-link text-decoration-none shadow-none" wire:click="toggleAddNewPart">
-                                                <span x-show="isSearchMode"><i class="bi bi-plus-circle me-1"></i>{{ __('Create New Part') }}</span>
-                                                <span x-show="!isSearchMode"><i class="bi bi-search me-1"></i>{{ __('Search Existing Part') }}</span>
-                                            </button>
-                                        </div>
+                                <!-- Add Part Form -->
+                                <div class="row g-3 align-items-end mb-4 bg-light p-3 rounded border">
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-bold text-muted">{{ __('Search Part') }}</label>
+                                        <div class="position-relative" x-data="{ open: false, search: @entangle('part_search').live }" @click.away="open = false">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                                <input type="text" 
+                                                       class="form-control border-start-0" 
+                                                       placeholder="{{ __('Type part name or code...') }}"
+                                                       x-model="search"
+                                                       @focus="open = true"
+                                                       @input="open = true">
+                                                <button type="button" 
+                                                        class="btn btn-gradient" 
+                                                        title="{{ __('Quick Add Part') }}"
+                                                        wire:click="$dispatch('openQuickPartModal')">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                            </div>
 
-                                        <!-- SEARCH MODE -->
-                                        <div x-show="isSearchMode" x-transition.opacity>
-                                            <div class="row g-2 align-items-end">
-                                                <div class="col-md-5">
-                                                    <div class="position-relative" x-data="{ open: false, search: @entangle('part_search').live }" @click.away="open = false">
-                                                        <div class="input-group">
-                                                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                                            <input type="text" 
-                                                                   class="form-control border-start-0" 
-                                                                   placeholder="{{ __('Type part name or code...') }}"
-                                                                   x-model="search"
-                                                                   @focus="open = true"
-                                                                   @input="open = true">
-                                                        </div>
+                                            @if($selected_part_id)
+                                                <div class="mt-2">
+                                                    <span class="badge bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>
+                                                        {{ $selected_part_name }}
+                                                        <button type="button" class="btn btn-sm p-0 ms-2 text-white" wire:click="$set('selected_part_id', null)">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            @endif
 
-                                                        @if($selected_part_id)
-                                                            <div class="mt-2">
-                                                                <span class="badge bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center">
-                                                                    <i class="bi bi-check-circle-fill me-1"></i>
-                                                                    {{ $selected_part_name }}
-                                                                    <button type="button" class="btn btn-sm p-0 ms-2 text-white" wire:click="$set('selected_part_id', null)">
-                                                                        <i class="bi bi-x-circle"></i>
-                                                                    </button>
-                                                                </span>
-                                                            </div>
-                                                        @endif
-
-                                                        <!-- Dropdown Results -->
-                                                        <div class="dropdown-menu shadow-lg border-0 w-100 mt-1 scrollbar-thin" 
-                                                             :class="{ 'show': open && search.length >= 2 }" 
-                                                             style="max-height: 300px; overflow-y: auto; z-index: 1050;">
-                                                            
-                                                            <div wire:loading wire:target="part_search" class="p-3 text-center">
-                                                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                                                                <span class="text-muted small">{{ __('Searching...') }}</span>
-                                                            </div>
-
-                                                            <div wire:loading.remove wire:target="part_search">
-                                                                @forelse($this->filteredParts as $part)
-                                                                    <button type="button" 
-                                                                            class="dropdown-item py-2 d-flex justify-content-between align-items-center" 
-                                                                            wire:click="selectPart({{ $part->id }}, '{{ $part->name }}')"
-                                                                            @click="open = false">
-                                                                        <div>
-                                                                            <div class="fw-bold">{{ $part->name }}</div>
-                                                                            <div class="small text-muted">{{ $part->manufacturing_code ?: $part->sku }}</div>
-                                                                        </div>
-                                                                        <div class="text-primary fw-bold">
-                                                                            {{ Number::currency($part->price_amount_cents / 100, $part->price_currency ?: $currency_code) }}
-                                                                        </div>
-                                                                    </button>
-                                                                @empty
-                                                                    <div class="p-3 text-center">
-                                                                        <div class="text-muted small mb-2">{{ __('No parts found matching your search.') }}</div>
-                                                                        <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addCustomPart">
-                                                                            <i class="bi bi-plus-circle me-1"></i>{{ __('Add as Custom Part') }}
-                                                                        </button>
-                                                                    </div>
-                                                                @endforelse
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    @error('selected_part_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                            <!-- Dropdown Results -->
+                                            <div class="dropdown-menu shadow-lg border-0 w-100 mt-1 scrollbar-thin" 
+                                                 :class="{ 'show': open && search.length >= 2 }" 
+                                                 style="max-height: 300px; overflow-y: auto; z-index: 1050;">
+                                                
+                                                <div wire:loading wire:target="part_search" class="p-3 text-center">
+                                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                                    <span class="text-muted small">{{ __('Searching...') }}</span>
                                                 </div>
 
-                                                <div class="col-md-4">
-                                                    <select class="form-select text-muted" wire:model.defer="selected_device_link_index" aria-label="Associate with Device">
-                                                        <option value="">{{ __('-- Associate with Device --') }}</option>
-                                                        @foreach($deviceRows as $idx => $row)
-                                                            <option value="{{ $idx }}">{{ $row['brand_name'] }} {{ $row['device_model'] }} ({{ $row['serial'] }})</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('selected_device_link_index') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-3 text-end">
-                                                    <button type="button" class="btn btn-success w-100" wire:click="addPart" {{ !$selected_part_id ? 'disabled' : '' }}>
-                                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Part') }}
-                                                    </button>
+                                                <div wire:loading.remove wire:target="part_search">
+                                                    @forelse($this->filteredParts as $part)
+                                                        <button type="button" 
+                                                                class="dropdown-item py-2 d-flex justify-content-between align-items-center" 
+                                                                wire:click="selectPart({{ $part->id }}, '{{ $part->name }}')"
+                                                                @click="open = false">
+                                                            <div>
+                                                                <div class="fw-bold">{{ $part->name }}</div>
+                                                                <div class="small text-muted">{{ $part->manufacturing_code ?: $part->sku }}</div>
+                                                            </div>
+                                                            <div class="text-primary fw-bold">
+                                                                {{ Number::currency($part->price_amount_cents / 100, $part->price_currency ?: $currency_code) }}
+                                                            </div>
+                                                        </button>
+                                                    @empty
+                                                        <div class="p-3 text-center">
+                                                            <div class="text-muted small mb-2">{{ __('No parts found matching your search.') }}</div>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addCustomPart">
+                                                                <i class="bi bi-plus-circle me-1"></i>{{ __('Add as Custom Part') }}
+                                                            </button>
+                                                        </div>
+                                                    @endforelse
                                                 </div>
                                             </div>
                                         </div>
+                                        @error('selected_part_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
 
-                                        <!-- CREATE NEW PART MODE -->
-                                        <div x-show="!isSearchMode" x-cloak x-transition.opacity>
-                                            <div class="row g-3">
-                                                <div class="col-md-4">
-                                                    <label class="form-label small text-muted">{{ __('Part Name') }} <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control form-control-sm @error('new_part_name') is-invalid @enderror" wire:model.defer="new_part_name" required>
-                                                    @error('new_part_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">{{ __('Associate with Device') }}</label>
+                                        <select class="form-select" wire:model.defer="selected_device_link_index">
+                                            <option value="">{{ __('Select Device...') }}</option>
+                                            @foreach($deviceRows as $idx => $row)
+                                                <option value="{{ $idx }}">{{ $row['brand_name'] }} {{ $row['device_model'] }} ({{ $row['serial'] }})</option>
+                                            @endforeach
+                                        </select>
+                                        @error('selected_device_link_index') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
 
-                                                <div class="col-md-4">
-                                                    <label class="form-label small text-muted">{{ __('SKU / Serial No.') }}</label>
-                                                    <input type="text" class="form-control form-control-sm @error('new_part_sku') is-invalid @enderror" wire:model.defer="new_part_sku">
-                                                    @error('new_part_sku') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label small text-muted">{{ __('Price Amount') }} <span class="text-danger">*</span></label>
-                                                    <div class="input-group input-group-sm">
-                                                        <span class="input-group-text">{{ \App\Support\TenantContext::tenant()?->currency ?? 'USD' }}</span>
-                                                        <input type="number" step="0.01" class="form-control @error('new_part_price') is-invalid @enderror" wire:model.defer="new_part_price" required>
-                                                    </div>
-                                                    @error('new_part_price') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label small text-muted">{{ __('Part Type') }}</label>
-                                                    <select class="form-select form-select-sm @error('new_part_type_id') is-invalid @enderror" wire:model.defer="new_part_type_id">
-                                                        <option value="">{{ __('-- Select Type --') }}</option>
-                                                        @foreach($partTypes as $t)
-                                                            <option value="{{ $t->id }}">{{ $t->name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('new_part_type_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label small text-muted">{{ __('Part Brand') }}</label>
-                                                    <select class="form-select form-select-sm @error('new_part_brand_id') is-invalid @enderror" wire:model.defer="new_part_brand_id">
-                                                        <option value="">{{ __('-- Select Brand --') }}</option>
-                                                        @foreach($partBrands as $b)
-                                                            <option value="{{ $b->id }}">{{ $b->name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('new_part_brand_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label small text-muted">{{ __('Initial Stock') }}</label>
-                                                    <input type="number" step="1" min="0" class="form-control form-control-sm @error('new_part_stock') is-invalid @enderror" wire:model.defer="new_part_stock">
-                                                    @error('new_part_stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-12 text-end pt-2 border-top mt-3">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" wire:click="cancelNewPart">
-                                                        {{ __('Cancel') }}
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-primary" wire:click="saveNewPart">
-                                                        <span wire:loading.remove wire:target="saveNewPart">{{ __('Save and Add Part') }}</span>
-                                                        <span wire:loading wire:target="saveNewPart">
-                                                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                                            {{ __('Saving...') }}
-                                                        </span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div class="col-md-3 text-end">
+                                        <button type="button" class="btn btn-success w-100" wire:click="addPart" {{ !$selected_part_id ? 'disabled' : '' }}>
+                                            <i class="bi bi-plus-circle me-1"></i>{{ __('Add Part') }}
+                                        </button>
                                     </div>
                                 </div>
 
