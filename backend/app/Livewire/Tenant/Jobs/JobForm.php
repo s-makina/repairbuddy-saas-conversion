@@ -100,6 +100,7 @@ class JobForm extends Component
 
     protected $listeners = [
         'customerCreated' => 'handleCustomerCreated',
+        'technicianCreated' => 'handleTechnicianCreated',
     ];
 
     // Job Extra Modal & Form State
@@ -1040,5 +1041,14 @@ class JobForm extends Component
         }
 
         $this->dispatch('toast', message: __('Customer created and selected.'), type: 'success');
+    }
+
+    public function handleTechnicianCreated($technicianId)
+    {
+        if (!in_array($technicianId, $this->technician_ids)) {
+            $this->technician_ids[] = (int) $technicianId;
+        }
+
+        $this->dispatch('toast', message: __('Technician created and added.'), type: 'success');
     }
 }

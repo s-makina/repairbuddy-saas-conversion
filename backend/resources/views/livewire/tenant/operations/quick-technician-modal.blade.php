@@ -2,7 +2,7 @@
     <div x-data="{ show: @entangle('showModal').live }"
          x-show="show"
          x-on:keydown.escape.window="show = false"
-         @close-customer-modal.window="show = false"
+         @close-Technician-modal.window="show = false"
          class="rb-modal-backdrop"
          style="display: none;">
         
@@ -10,7 +10,7 @@
              @click.away="show = false">
             
             <div class="rb-modal-header">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-person-plus me-2"></i>{{ __('Quick Add Customer') }}</h5>
+                <h5 class="mb-0 fw-bold"><i class="bi bi-person-plus me-2"></i>{{ __('Quick Add Technician') }}</h5>
                 <button type="button" class="btn-close" @click="show = false"></button>
             </div>
 
@@ -88,7 +88,7 @@
                 <div class="rb-modal-footer">
                     <button type="button" class="btn btn-outline-secondary" @click="show = false">{{ __('Cancel') }}</button>
                     <button type="submit" class="btn btn-primary px-4">
-                        <span wire:loading.remove wire:target="save">{{ __('Save Customer') }}</span>
+                        <span wire:loading.remove wire:target="save">{{ __('Save Technician') }}</span>
                         <span wire:loading wire:target="save">
                             <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
                             {{ __('Saving...') }}

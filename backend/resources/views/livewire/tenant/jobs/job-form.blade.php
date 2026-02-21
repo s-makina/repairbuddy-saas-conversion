@@ -442,9 +442,9 @@
 </style>
 @endpush
 
-    @livewire('tenant.operations.quick-customer-modal')
-
 <div class="container-fluid px-4 py-4">
+    @livewire('tenant.operations.quick-customer-modal', ['tenant' => $tenant])
+    @livewire('tenant.operations.quick-technician-modal', ['tenant' => $tenant])
     <div x-data="{ currentStep: 1 }">
     <div class="job-hero-header">
         <div class="hero-left">
@@ -608,9 +608,12 @@
                                                            @input="open = true"
                                                            @keydown.escape="open = false" />
                                                     <div wire:loading wire:target="technician_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
-                                                    <a href="{{ route('tenant.settings.users.create', ['business' => $tenant->slug]) }}" class="btn btn-gradient" title="{{ __('Create New Technician') }}" target="_blank">
+                                                    <button type="button" 
+                                                            class="btn btn-gradient" 
+                                                            title="{{ __('Quick Add Technician') }}"
+                                                            wire:click="$dispatch('openQuickTechnicianModal')">
                                                         <i class="bi bi-plus-lg"></i>
-                                                    </a>
+                                                    </button>
                                                 </div>
                                                 
                                                 <div class="search-dropdown" x-show="open" x-cloak>

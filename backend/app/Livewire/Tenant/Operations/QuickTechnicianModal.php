@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Support\TenantContext;
 use Livewire\Component;
 
-class QuickCustomerModal extends Component
+class QuickTechnicianModal extends Component
 {
     public $showModal = false;
     public $tenant;
@@ -43,7 +43,7 @@ class QuickCustomerModal extends Component
         'currency' => 'nullable|string|size:3',
     ];
 
-    protected $listeners = ['openQuickCustomerModal' => 'open'];
+    protected $listeners = ['openQuickTechnicianModal' => 'open'];
 
     public function mount($tenant = null)
     {
@@ -83,10 +83,16 @@ class QuickCustomerModal extends Component
 
         $fullName = trim($this->first_name . ' ' . ($this->last_name ?? ''));
 
-        $customer = User::create([
+        $role_id = \App\Models\Role::query()
+            ->where('tenant_id', $tenant_id)
+            ->where('name', 'Technician')
+            ->value('id');
+
+        $technician = User::create([
             'tenant_id' => $tenant_id,
             'is_admin' => false,
-            'role' => 'customer',
+            'role' => 'technician',
+            'role_id' => $role_id,
             'status' => 'active',
             'name' => $fullName,
             'first_name' => $this->first_name,
@@ -106,13 +112,13 @@ class QuickCustomerModal extends Component
             'password' => bcrypt(str()->random(48)),
         ]);
 
-        $this->dispatch('customerCreated', customerId: $customer->id);
-        $this->dispatch('close-customer-modal'); // Explicitly tell Alpine to close it
+        $this->dispatch('technicianCreated', technicianId: $technician->id);
+        $this->dispatch('close-technician-modal'); // Explicitly tell Alpine to close it
         $this->close();
     }
 
     public function render()
     {
-        return view('livewire.tenant.operations.quick-customer-modal');
+        return view('livewire.tenant.operations.quick-technician-modal');
     }
 }

@@ -1,0 +1,52 @@
+﻿
+> [2026-02-21 10:26:14] 
+local.ERROR: Attempt to 
+read property "id" on null 
+{"userId":2,"exception":"[o
+bject] 
+(ErrorException(code: 0): 
+Attempt to read property 
+\"id\" on null at C:/xampp/
+htdocs/other/repairbuddy-sa
+as-conversion/backend/app/L
+ivewire/Tenant/Operations/Q
+uickCustomerModal.php:74)
+  [stacktrace]
+  #0 C:/xampp/htdocs/other/
+repairbuddy-saas-conversion
+/backend/vendor/laravel/fra
+mework/src/Illuminate/Found
+ation/Bootstrap/HandleExcep
+tions.php(258): Illuminate/
+Foundation/Bootstrap/Handle
+Exceptions->handleError(2, 
+'Attempt to read...', 
+'C://xampp//htdocs...', 74)
+  #1 C:/xampp/htdocs/other/
+repairbuddy-saas-conversion
+/backend/app/Livewire/Tenan
+t/Operations/QuickCustomerM
+odal.php(74): Illuminate/Fo
+undation/Bootstrap/HandleEx
+ceptions->Illuminate/Founda
+tion/Bootstrap/{closure}(2,
+ 'Attempt to read...', 
+'C://xampp//htdocs...', 74)
+  #2 C:/xampp/htdocs/other/
+repairbuddy-saas-conversion
+/backend/vendor/laravel/fra
+mework/src/Illuminate/Conta
+iner/BoundMethod.php(36): A
+pp/Livewire/Tenant/Operatio
+ns/QuickCustomerModal->save
+()
+  #3 C:/xampp/htdocs/other/
+repairbuddy-saas-conversion
+/backend/vendor/laravel/fra
+mework/src/Illuminate/Conta
+iner/Util.php(43): Illumina
+te/Container/BoundMethod::I
+lluminate/Container/{closur
+e}()
+
+
