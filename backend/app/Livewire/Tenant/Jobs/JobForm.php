@@ -98,6 +98,10 @@ class JobForm extends Component
     /** @var array<int,\Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null> */
     public array $extra_item_files = [];
 
+    protected $listeners = [
+        'customerCreated' => 'handleCustomerCreated',
+    ];
+
     // Job Extra Modal & Form State
     public bool $showExtraModal = false;
     public ?int $editingExtraIndex = null;
@@ -1021,5 +1025,20 @@ class JobForm extends Component
     public function render()
     {
         return view('livewire.tenant.jobs.job-form');
+    }
+
+    public function handleCustomerCreated($customerId)
+    {
+        $this->customer_id = $customerId;
+        
+        // Refresh the customer dropdown/list if needed
+        // Assuming the parent component or mount logic handles fetching the customer object
+        $customer = \App\Models\User::find($customerId);
+        if ($customer) {
+            $this->customer_search = $customer->name;
+            $this->dispatch('customer-selected', id: $customer->id, name: $customer->name);
+        }
+
+        $this->dispatch('toast', message: __('Customer created and selected.'), type: 'success');
     }
 }

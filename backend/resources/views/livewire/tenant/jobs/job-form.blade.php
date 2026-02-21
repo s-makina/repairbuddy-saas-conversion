@@ -97,53 +97,78 @@
     /* Stepper items + vertical connector line */
     .stepper-item {
         display: flex; align-items: flex-start;
-        padding: .85rem .75rem; margin-bottom: .35rem;
-        border-radius: 10px; cursor: pointer;
+        padding: 1rem .75rem; margin-bottom: .25rem;
+        border-radius: 12px; cursor: pointer;
         transition: all .2s ease;
         background: transparent;
-        border: 2px solid transparent;
         position: relative;
+        border: none;
     }
     .stepper-item:not(:last-child)::after {
         content: '';
         position: absolute;
         left: calc(.75rem + 19px);
-        top: calc(.85rem + 40px);
+        top: calc(1rem + 38px);
         width: 2px;
-        height: calc(100% - 40px + .35rem);
-        background: var(--rb-border-color);
+        height: calc(100% - 38px + .25rem);
+        background: #f1f5f9;
+        transition: background .3s ease;
     }
     .stepper-item:not(:last-child).completed::after {
         background: var(--rb-success);
     }
 
-    .stepper-item:hover { background: rgba(59,130,246,.04); }
+    .stepper-item:hover { background: #f8fafc; }
+    
     .stepper-item.active {
-        background: rgba(59,130,246,.06);
-        border-color: var(--rb-primary);
+        background: rgba(59, 130, 246, 0.05);
     }
-    .stepper-item.completed { background: rgba(16,185,129,.05); }
+    .stepper-item.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 20%;
+        bottom: 20%;
+        width: 4px;
+        background: var(--rb-primary);
+        border-radius: 0 4px 4px 0;
+    }
 
     .stepper-icon {
-        width: 40px; height: 40px; border-radius: 50%;
+        width: 40px; height: 40px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
-        font-weight: 600; font-size: 1rem;
-        background: #f1f5f9; border: 2px solid var(--rb-border-color);
+        font-weight: 700; font-size: 1.1rem;
+        background: #f8fafc; 
+        border: 1px solid var(--rb-card-border);
         color: var(--rb-text-secondary);
-        flex-shrink: 0; transition: all .2s;
+        flex-shrink: 0; transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        z-index: 2;
     }
+    
     .stepper-item.active .stepper-icon {
-        background: var(--rb-gradient-active);
+        background: var(--rb-primary);
         border-color: var(--rb-primary); color: #fff;
-        box-shadow: 0 4px 14px rgba(59,130,246,.25);
+        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);
+        transform: scale(1.05);
     }
+    
     .stepper-item.completed .stepper-icon {
         background: var(--rb-success); border-color: var(--rb-success); color: #fff;
     }
 
-    .stepper-info  { margin-left: .85rem; flex: 1; }
-    .stepper-title { font-weight: 600; font-size: .9rem; color: var(--rb-text-primary); margin-bottom: .1rem; }
-    .stepper-desc  { font-size: .78rem; color: var(--rb-text-muted); }
+    .stepper-info  { margin-left: 1rem; flex: 1; }
+    .stepper-title { 
+        font-weight: 700; 
+        font-size: 0.95rem; 
+        color: var(--rb-text-primary); 
+        margin-bottom: 0px;
+        line-height: 1.2;
+    }
+    .stepper-desc  { 
+        font-size: 0.8rem; 
+        color: var(--rb-text-muted); 
+    }
     .stepper-item.active  .stepper-title { color: var(--rb-primary); }
     .stepper-item.completed .stepper-title { color: var(--rb-success); }
 
@@ -360,17 +385,24 @@
         .stepper-sidebar { width: 100%; }
         .stepper-nav {
             position: relative; top: 0;
-            display: flex; flex-wrap: wrap; gap: .5rem;
+            display: flex; flex-wrap: wrap; gap: .75rem;
             padding: 1rem;
+            background: transparent;
+            box-shadow: none;
         }
         .stepper-progress { display: none; }
         .stepper-item {
-            flex: 1; min-width: 130px; padding: .65rem;
+            flex: 1; min-width: 130px; padding: .75rem .5rem;
             flex-direction: column; text-align: center; margin-bottom: 0;
+            background: var(--rb-card-bg);
+            border: 1px solid var(--rb-card-border);
+            box-shadow: var(--rb-card-shadow);
         }
+        .stepper-item.active::before { display: none; }
         .stepper-item:not(:last-child)::after { display: none; }
-        .stepper-info { margin-left: 0; margin-top: .35rem; }
-        .stepper-icon { width: 34px; height: 34px; font-size: .85rem; }
+        .stepper-info { margin-left: 0; margin-top: .5rem; }
+        .stepper-icon { width: 36px; height: 36px; font-size: 1rem; margin: 0 auto; }
+        .stepper-title { font-size: 0.85rem; }
         .stepper-desc { display: none; }
         .job-hero-header { flex-direction: column; align-items: flex-start; }
     }
@@ -409,6 +441,8 @@
     @keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 @endpush
+
+    @livewire('tenant.operations.quick-customer-modal')
 
 <div class="container-fluid px-4 py-4">
     <div x-data="{ currentStep: 1 }">
@@ -526,9 +560,12 @@
                                                                @input="open = true"
                                                                @keydown.escape="open = false" />
                                                         <div wire:loading wire:target="customer_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
-                                                        <a href="{{ route('tenant.operations.clients.create', ['business' => $tenant->slug]) }}" class="btn btn-gradient" title="{{ __('Create New Customer') }}" target="_blank">
+                                                        <button type="button" 
+                                                                class="btn btn-gradient" 
+                                                                title="{{ __('Quick Add Customer') }}"
+                                                                wire:click="$dispatch('openQuickCustomerModal')">
                                                             <i class="bi bi-plus-lg"></i>
-                                                        </a>
+                                                        </button>
                                                     </div>
                                                     
                                                     <div class="search-dropdown" x-show="open" x-cloak>
