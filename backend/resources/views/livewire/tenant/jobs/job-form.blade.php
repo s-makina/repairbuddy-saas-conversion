@@ -639,17 +639,17 @@
                         <div class="step-card-body">
                             <div class="row g-3">
                                 <!-- Grouped Device Search -->
-                                <div class="col-md-8">
+                                <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">{{ __('Select Device (Search Model or Brand)') }}</label>
                                     <div class="position-relative" x-data="{ 
                                         open: false, 
                                         search: @entangle('device_search').live 
                                     }" @click.away="open = false">
-                                        <div class="input-group shadow-sm">
+                                        <div class="input-group">
                                             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                                             <input type="text" 
                                                    class="form-control border-start-0" 
-                                                   placeholder="{{ __('Start typing model or brand...') }}"
+                                                   placeholder="{{ __('Start typing model...') }}"
                                                    x-model="search"
                                                    @focus="open = true"
                                                    @input="open = true">
@@ -663,7 +663,7 @@
                                         <!-- Selected Device Display -->
                                         @if($selected_device_name)
                                             <div class="mt-2">
-                                                <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center">
+                                                <span class="badge bg-primary px-3 py-2 rounded-pill d-inline-flex align-items-center">
                                                     @if($selected_device_image)
                                                         <img src="{{ $selected_device_image }}" class="rounded-circle me-2" style="width: 20px; height: 20px; object-fit: cover; border: 1px solid rgba(255,255,255,0.5);">
                                                     @else
@@ -695,7 +695,7 @@
                                                                 class="dropdown-item py-2 d-flex align-items-center" 
                                                                 wire:click="selectDevice({{ $device->id }}, '{{ $brandName }} {{ $device->model }}')"
                                                                 @click="open = false">
-                                                            <div class="me-2 rounded shadow-sm border overflow-hidden d-flex align-items-center justify-content-center bg-light" style="width: 32px; height: 32px;">
+                                                            <div class="me-2 rounded border overflow-hidden d-flex align-items-center justify-content-center bg-light" style="width: 32px; height: 32px;">
                                                                 @if($device->image_url)
                                                                     <img src="{{ $device->image_url }}" alt="{{ $device->model }}" class="img-fluid" style="object-fit: cover; width: 100%; height: 100%;">
                                                                 @else
@@ -717,33 +717,42 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">{{ __('ID / IMEI / Serial') }}</label>
-                                    <input type="text" class="form-control shadow-sm" wire:model.defer="device_serial" placeholder="{{ __('Search or Enter Serial...') }}">
+                                    <input type="text" class="form-control" wire:model.defer="device_serial" placeholder="{{ __('Search or Enter Serial...') }}">
                                     @error('device_serial') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
 
                                 @if($enablePinCodeField)
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted">{{ __('Pincode / Password') }}</label>
-                                        <input type="text" class="form-control shadow-sm" wire:model.defer="device_pin" placeholder="{{ __('e.g. 1234') }}">
+                                        <input type="text" class="form-control" wire:model.defer="device_pin" placeholder="{{ __('e.g. 1234') }}">
                                     </div>
                                 @endif
 
                                 @foreach($fieldDefinitions as $def)
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted">{{ __($def->label) }}</label>
-                                        <input type="text" class="form-control shadow-sm" wire:model.defer="additional_fields.{{ $def->key }}">
+                                        <input type="text" class="form-control" wire:model.defer="additional_fields.{{ $def->key }}">
                                     </div>
                                 @endforeach
 
                                 <div class="col-12">
                                     <label class="form-label small fw-bold text-muted">{{ __('Device Note') }}</label>
-                                    <textarea class="form-control shadow-sm" wire:model.defer="device_note" rows="2" placeholder="{{ __('Pre-existing damage, specific issues, etc.') }}"></textarea>
+                                    <textarea class="form-control" wire:model.defer="device_note" rows="2" placeholder="{{ __('Pre-existing damage, specific issues, etc.') }}"></textarea>
                                 </div>
 
                                 <div class="col-12 text-end">
-                                    <button type="button" class="btn btn-success px-4" wire:click="addDeviceToTable">
-                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add to Job') }}
-                                    </button>
+                                    @if($editingDeviceIndex !== null)
+                                        <button type="button" class="btn btn-outline-secondary px-4 me-2" wire:click="cancelEditDevice">
+                                            {{ __('Cancel Edit') }}
+                                        </button>
+                                        <button type="button" class="btn btn-primary px-4" wire:click="addDeviceToTable">
+                                            <i class="bi bi-check-circle me-1"></i>{{ __('Update Device') }}
+                                        </button>
+                                    @else
+                                        <button type="button" class="btn btn-success px-4" wire:click="addDeviceToTable">
+                                            <i class="bi bi-plus-circle me-1"></i>{{ __('Add to Job') }}
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -809,9 +818,14 @@
                                                 @endif
                                             </td>
                                             <td class="text-end pe-4">
-                                                <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeDevice({{ $idx }})">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm border-0" wire:click="editDevice({{ $idx }})" title="{{ __('Edit') }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeDevice({{ $idx }})" title="{{ __('Remove') }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty
@@ -843,40 +857,142 @@
                     <div class="step-card">
                         <div class="step-card-body">
                             <!-- Parts -->
-                            <div class="mb-4">
-                                <div class="step-section-heading">
-                                    <h6><i class="bi bi-cpu"></i>{{ __('Parts') }}</h6>
-                                    <button type="button" class="btn btn-success btn-sm" wire:click="addPart">
-                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Part') }}
-                                    </button>
+                            <div class="mb-5">
+                                <div class="step-section-heading mb-3">
+                                    <h6><i class="bi bi-cpu me-2"></i>{{ __('Parts') }}</h6>
                                 </div>
+                                
+                                <!-- Add Part Form -->
+                                <div class="row g-3 align-items-end mb-4 bg-light p-3 rounded border">
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-bold text-muted">{{ __('Search Part') }}</label>
+                                        <div class="position-relative" x-data="{ open: false, search: @entangle('part_search').live }" @click.away="open = false">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                                <input type="text" 
+                                                       class="form-control border-start-0" 
+                                                       placeholder="{{ __('Type part name or code...') }}"
+                                                       x-model="search"
+                                                       @focus="open = true"
+                                                       @input="open = true">
+                                            </div>
+
+                                            @if($selected_part_id)
+                                                <div class="mt-2">
+                                                    <span class="badge bg-secondary px-3 py-2 rounded-pill d-inline-flex align-items-center">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>
+                                                        {{ $selected_part_name }}
+                                                        <button type="button" class="btn btn-sm p-0 ms-2 text-white" wire:click="$set('selected_part_id', null)">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            @endif
+
+                                            <!-- Dropdown Results -->
+                                            <div class="dropdown-menu shadow-lg border-0 w-100 mt-1 scrollbar-thin" 
+                                                 :class="{ 'show': open && search.length >= 2 }" 
+                                                 style="max-height: 300px; overflow-y: auto; z-index: 1050;">
+                                                
+                                                <div wire:loading wire:target="part_search" class="p-3 text-center">
+                                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                                    <span class="text-muted small">{{ __('Searching...') }}</span>
+                                                </div>
+
+                                                <div wire:loading.remove wire:target="part_search">
+                                                    @forelse($this->filteredParts as $part)
+                                                        <button type="button" 
+                                                                class="dropdown-item py-2 d-flex justify-content-between align-items-center" 
+                                                                wire:click="selectPart({{ $part->id }}, '{{ $part->name }}')"
+                                                                @click="open = false">
+                                                            <div>
+                                                                <div class="fw-bold">{{ $part->name }}</div>
+                                                                <div class="small text-muted">{{ $part->manufacturing_code ?: $part->sku }}</div>
+                                                            </div>
+                                                            <div class="text-primary fw-bold">
+                                                                {{ Number::currency($part->price_amount_cents / 100, $part->price_currency ?: 'USD') }}
+                                                            </div>
+                                                        </button>
+                                                    @empty
+                                                        <div class="p-3 text-center text-muted small">
+                                                            {{ __('No parts found') }}
+                                                        </div>
+                                                    @endforelse
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @error('selected_part_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">{{ __('Associate with Device') }}</label>
+                                        <select class="form-select" wire:model.defer="selected_device_link_index">
+                                            <option value="">{{ __('Select Device...') }}</option>
+                                            @foreach($deviceRows as $idx => $row)
+                                                <option value="{{ $idx }}">{{ $row['brand_name'] }} {{ $row['device_model'] }} ({{ $row['serial'] }})</option>
+                                            @endforeach
+                                        </select>
+                                        @error('selected_device_link_index') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
+
+                                    <div class="col-md-3 text-end">
+                                        <button type="button" class="btn btn-success w-100" wire:click="addPart">
+                                            <i class="bi bi-plus-circle me-1"></i>{{ __('Add Part') }}
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div class="table-responsive">
-                                    <table class="table step-table">
-                                        <thead>
+                                    <table class="table align-middle border-top">
+                                        <thead class="bg-light">
                                             <tr>
-                                                <th>{{ __('Name') }}</th>
-                                                <th style="width:140px">{{ __('Code') }}</th>
+                                                <th class="ps-3">{{ __('Name') }}</th>
+                                                <th>{{ __('Code') }}</th>
+                                                <th>{{ __('Capacity') }}</th>
+                                                <th>{{ __('Device') }}</th>
                                                 <th style="width:100px">{{ __('Qty') }}</th>
-                                                <th style="width:140px">{{ __('Price') }}</th>
-                                                <th style="width:80px"></th>
+                                                <th class="text-end">{{ __('Price') }}</th>
+                                                <th class="text-end">{{ __('Total') }}</th>
+                                                <th style="width:60px"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @php $partsItems = array_filter($items, fn($r) => ($r['type'] ?? '') === 'part'); @endphp
-                                            @if (count($partsItems) === 0)
-                                                <tr><td colspan="5" class="step-empty-state"><i class="bi bi-cpu"></i><span>{{ __('No parts added yet') }}</span></td></tr>
-                                            @endif
-                                            @foreach ($items as $i => $row)
+                                            @forelse ($items as $i => $row)
                                                 @if (($row['type'] ?? '') === 'part')
                                                 <tr>
-                                                    <td><input type="text" class="form-control" wire:model.defer="items.{{ $i }}.name" /></td>
-                                                    <td><input type="text" class="form-control" wire:model.defer="items.{{ $i }}.code" /></td>
-                                                    <td><input type="number" min="1" class="form-control" wire:model.defer="items.{{ $i }}.qty" /></td>
-                                                    <td><input type="number" class="form-control" wire:model.defer="items.{{ $i }}.unit_price_cents" /></td>
-                                                    <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" wire:click="removeItem({{ $i }})"><i class="bi bi-trash"></i></button></td>
+                                                    <td class="ps-3">
+                                                        <div class="fw-bold">{{ $row['name'] }}</div>
+                                                    </td>
+                                                    <td><span class="text-muted small">{{ $row['code'] ?: '--' }}</span></td>
+                                                    <td><span class="text-muted small">{{ $row['capacity'] ?: '--' }}</span></td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border">{{ $row['device_info'] ?? '--' }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" min="1" class="form-control form-control-sm" wire:model.live="items.{{ $i }}.qty" />
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {{ Number::currency(($row['unit_price_cents'] ?? 0) / 100, 'USD') }}
+                                                    </td>
+                                                    <td class="text-end fw-bold">
+                                                        {{ Number::currency((($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1)) / 100, 'USD') }}
+                                                    </td>
+                                                    <td class="text-end pe-3">
+                                                        <button type="button" class="btn btn-outline-danger btn-sm border-0" wire:click="removeItem({{ $i }})">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                                 @endif
-                                            @endforeach
+                                            @empty
+                                                <tr>
+                                                    <td colspan="8" class="text-center py-5 text-muted italic">
+                                                        <i class="bi bi-cpu fs-2 d-block mb-2 opacity-25"></i>
+                                                        {{ __('No parts added yet') }}
+                                                    </td>
+                                                </tr>
+                                            @endforelse
                                         </tbody>
                                     </table>
                                 </div>

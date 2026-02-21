@@ -61,6 +61,12 @@ class JobForm extends Component
     /** @var array<int,int|string> */
     public array $technician_ids = [];
 
+    // Step 3 Parts properties
+    public $part_search = '';
+    public $selected_part_id = null;
+    public $selected_part_name = '';
+    public $selected_device_link_index = null;
+
     public $device_search = '';
     public $selected_device_id = null;
     public $selected_device_name = '';
@@ -74,6 +80,8 @@ class JobForm extends Component
 
     /** @var array<int,array{customer_device_id:mixed,serial:mixed,pin:mixed,notes:mixed,brand_id:mixed,device_id:mixed,brand_name:string,device_model:string,additional_fields:array}> */
     public array $deviceRows = [];
+
+    public $editingDeviceIndex = null;
 
     /** @var array<int,array{occurred_at:mixed,label:mixed,data_text:mixed,description:mixed,visibility:mixed}> */
     public array $extras = [];
@@ -302,6 +310,32 @@ class JobForm extends Component
         $this->device_search = ''; // Clear search after selection
     }
 
+    public function getFilteredPartsProperty()
+    {
+        $search = trim($this->part_search);
+        if (strlen($search) < 2) {
+            return collect();
+        }
+
+        return \App\Models\RepairBuddyPart::query()
+            ->where('tenant_id', $this->tenant->id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('manufacturing_code', 'like', "%{$search}%")
+                  ->orWhere('stock_code', 'like', "%{$search}%");
+            })
+            ->limit(20)
+            ->get();
+    }
+
+    public function selectPart($id, $name): void
+    {
+        $this->selected_part_id = $id;
+        $this->selected_part_name = $name;
+        $this->part_search = '';
+    }
+
     public function addDeviceToTable(): void
     {
         $this->validate([
@@ -313,7 +347,7 @@ class JobForm extends Component
 
         $device = \App\Models\RepairBuddyDevice::with('brand')->find($this->selected_device_id);
 
-        $this->deviceRows[] = [
+        $rowData = [
             'customer_device_id' => null,
             'brand_id' => $device?->device_brand_id,
             'device_id' => $device?->id,
@@ -326,7 +360,40 @@ class JobForm extends Component
             'additional_fields' => $this->additional_fields,
         ];
 
+        if ($this->editingDeviceIndex !== null && isset($this->deviceRows[$this->editingDeviceIndex])) {
+            $this->deviceRows[$this->editingDeviceIndex] = $rowData;
+        } else {
+            $this->deviceRows[] = $rowData;
+        }
+
         // Reset form
+        $this->cancelEditDevice();
+    }
+
+    public function editDevice(int $idx): void
+    {
+        if (! array_key_exists($idx, $this->deviceRows)) {
+            return;
+        }
+
+        $row = $this->deviceRows[$idx];
+        $this->editingDeviceIndex = $idx;
+        
+        $this->selected_device_id = $row['device_id'];
+        $this->selected_device_name = ($row['brand_name'] ?? '') . ' ' . ($row['device_model'] ?? '');
+        $this->selected_device_image = $row['image_url'] ?? null;
+        
+        $this->device_serial = $row['serial'] ?? '';
+        $this->device_pin = $row['pin'] ?? '';
+        $this->device_note = $row['notes'] ?? '';
+        $this->additional_fields = $row['additional_fields'] ?? [];
+        
+        $this->device_search = '';
+    }
+
+    public function cancelEditDevice(): void
+    {
+        $this->editingDeviceIndex = null;
         $this->selected_device_id = null;
         $this->selected_device_name = '';
         $this->selected_device_image = null;
@@ -334,6 +401,7 @@ class JobForm extends Component
         $this->device_serial = '';
         $this->device_pin = '';
         $this->device_note = '';
+        
         foreach ($this->additional_fields as $k => $v) {
             $this->additional_fields[$k] = '';
         }
@@ -400,14 +468,34 @@ class JobForm extends Component
 
     public function addPart(): void
     {
+        $this->validate([
+            'selected_part_id' => ['required', 'integer'],
+            'selected_device_link_index' => ['required', 'integer'],
+        ]);
+
+        $part = \App\Models\RepairBuddyPart::find($this->selected_part_id);
+        if (!$part) return;
+
+        $deviceRow = $this->deviceRows[$this->selected_device_link_index] ?? null;
+        
         $this->items[] = [
             'type' => 'part',
-            'name' => null,
-            'code' => null,
+            'part_id' => $part->id,
+            'name' => $part->name,
+            'code' => $part->manufacturing_code ?? $part->stock_code,
+            'capacity' => $part->capacity,
+            'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
+            'device_row_index' => $this->selected_device_link_index,
             'qty' => 1,
-            'unit_price_cents' => 0,
+            'unit_price_cents' => $part->price_amount_cents,
             'meta_json' => null,
         ];
+
+        // Reset
+        $this->selected_part_id = null;
+        $this->selected_part_name = '';
+        $this->part_search = '';
+        $this->selected_device_link_index = null;
     }
 
     public function addService(): void
