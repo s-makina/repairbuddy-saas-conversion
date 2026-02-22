@@ -1,374 +1,357 @@
-<div class="rb-status-wrapper">
+<div class="rbs-root">
 
-  {{-- Header --}}
-  <div class="rb-status-header">
-    <h1 class="rb-status-title">
-      <i class="bi bi-search me-2"></i>Check Your Job Status
-    </h1>
-    <p class="rb-status-subtitle">
-      Enter your case number to view the status of your repair and communicate with us.
-    </p>
-  </div>
-
-  {{-- Search Form --}}
-  <div class="rb-status-search-card">
-    <form wire:submit.prevent="searchCase" class="rb-status-search-form">
-      <div class="rb-status-search-input-wrapper">
-        <i class="bi bi-hash rb-status-search-icon"></i>
-        <input
-          type="text"
-          class="form-control rb-status-search-input"
-          wire:model.defer="caseNumber"
-          placeholder="Enter your case number (e.g., RB-1001)"
-          autocomplete="off"
-        >
-        @if($caseNumber !== '')
-          <button type="button" class="rb-status-search-clear" wire:click="$set('caseNumber', '')">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        @endif
+  {{-- ══════════ HERO ══════════ --}}
+  <div class="rbs-hero">
+    <div class="rbs-hero-bg"></div>
+    <div class="rbs-hero-content">
+      <div class="rbs-hero-icon">
+        <i class="bi bi-clipboard2-pulse-fill"></i>
       </div>
-      <button type="submit" class="btn rb-btn-primary rb-status-search-btn" wire:loading.attr="disabled">
-        <span wire:loading.remove wire:target="searchCase">
-          <i class="bi bi-search me-1"></i> Check Status
-        </span>
-        <span wire:loading wire:target="searchCase">
-          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          Searching...
-        </span>
-      </button>
-    </form>
-
-    {{-- Quick Links --}}
-    <div class="rb-status-quick-links">
-      <a href="{{ route('tenant.booking.show', ['business' => $business]) }}" class="rb-status-quick-link">
-        <i class="bi bi-calendar-plus me-1"></i> Book a Repair
-      </a>
+      <h1 class="rbs-hero-title">Track Your Repair</h1>
+      <p class="rbs-hero-sub">Enter your case number below to get a real-time update on your repair.</p>
     </div>
   </div>
 
-  {{-- Error Message --}}
-  @if($errorMessage)
-    <div class="alert alert-danger rb-status-alert" role="alert">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errorMessage }}
+  {{-- ══════════ SEARCH ══════════ --}}
+  <div class="rbs-search-shell">
+    <div class="rbs-search-card">
+      <form wire:submit.prevent="searchCase" class="rbs-search-form" autocomplete="off">
+        <div class="rbs-search-field">
+          <span class="rbs-search-prefix">
+            <i class="bi bi-hash"></i>
+          </span>
+          <input
+            type="text"
+            class="rbs-search-input"
+            wire:model.defer="caseNumber"
+            placeholder="e.g. RB-demo-MAIN-000001"
+            spellcheck="false"
+          >
+          @if($caseNumber !== '')
+            <button type="button" class="rbs-search-clear" wire:click="$set('caseNumber', '')" tabindex="-1">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          @endif
+        </div>
+        <button type="submit" class="rbs-search-btn" wire:loading.attr="disabled">
+          <span wire:loading.remove wire:target="searchCase">
+            <i class="bi bi-search me-2"></i>Check Status
+          </span>
+          <span wire:loading wire:target="searchCase" class="rbs-loading-label">
+            <span class="rbs-spinner"></span>Searching…
+          </span>
+        </button>
+      </form>
+
+      {{-- Error --}}
+      @if($errorMessage)
+        <div class="rbs-inline-error" role="alert">
+          <i class="bi bi-exclamation-circle-fill"></i>
+          <span>{{ $errorMessage }}</span>
+        </div>
+      @endif
+
+      <div class="rbs-search-footer">
+        <a href="{{ route('tenant.booking.show', ['business' => $business]) }}" class="rbs-footer-link">
+          <i class="bi bi-calendar-plus"></i>Book a new repair
+        </a>
+        <span class="rbs-footer-divider"></span>
+        <span class="rbs-footer-hint">
+          <i class="bi bi-lightbulb"></i>Find your case number in your confirmation email.
+        </span>
+      </div>
     </div>
-  @endif
+  </div>
 
-  {{-- Job Result --}}
+  {{-- ══════════ JOB RESULT ══════════ --}}
   @if($entityType === 'job' && $job)
-    <div class="rb-status-result">
+    <div class="rbs-result" wire:key="job-result-{{ $job['case_number'] }}">
 
-      {{-- Status Card --}}
-      <div class="rb-status-card rb-status-card-main">
-        <div class="rb-status-card-header">
-          <div class="rb-status-case-info">
-            <h2 class="rb-status-case-number">{{ $job['case_number'] }}</h2>
-            <p class="rb-status-case-title">{{ $job['title'] }}</p>
-            <p class="rb-status-case-updated">Last updated: {{ $job['updated_at'] }}</p>
+      {{-- ── Status Hero Card ── --}}
+      <div class="rbs-job-card rbs-job-card--{{ $this->getStatusClass($job['status']) }}">
+        <div class="rbs-job-accent"></div>
+        <div class="rbs-job-body">
+
+          {{-- Left: case info --}}
+          <div class="rbs-job-info">
+            <div class="rbs-job-case">{{ $job['case_number'] }}</div>
+            <div class="rbs-job-title">{{ $job['title'] }}</div>
+            <div class="rbs-job-meta">
+              <span><i class="bi bi-clock me-1"></i>Updated {{ $job['updated_at'] }}</span>
+            </div>
           </div>
-          <div class="rb-status-badges">
-            <span class="badge rb-status-badge rb-status-badge-{{ $this->getStatusClass($job['status']) }}">
-              {{ $job['status_label'] }}
-            </span>
-            @if($job['payment_status'])
-              <span class="badge rb-status-badge rb-status-badge-{{ $this->getPaymentStatusClass($job['payment_status']) }}">
-                {{ $job['payment_status_label'] }}
+
+          {{-- Right: badges + actions --}}
+          <div class="rbs-job-right">
+            <div class="rbs-badge-group">
+              <span class="rbs-badge rbs-badge--{{ $this->getStatusClass($job['status']) }}">
+                <span class="rbs-badge-dot"></span>{{ $job['status_label'] }}
               </span>
-            @endif
+              @if($job['payment_status'])
+                <span class="rbs-badge rbs-badge--{{ $this->getPaymentStatusClass($job['payment_status']) }} rbs-badge--outline">
+                  <i class="bi bi-credit-card me-1"></i>{{ $job['payment_status_label'] }}
+                </span>
+              @endif
+              @if($job['priority'] && $job['priority'] !== 'normal')
+                <span class="rbs-badge rbs-badge--priority-{{ $job['priority'] }}">
+                  <i class="bi bi-lightning-fill me-1"></i>{{ strtoupper($job['priority']) }}
+                </span>
+              @endif
+            </div>
+
+            <div class="rbs-job-actions">
+              <button type="button" class="rbs-action-btn" wire:click="refresh" title="Refresh">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span wire:loading.remove wire:target="refresh">Refresh</span>
+                <span wire:loading wire:target="refresh">…</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {{-- Quick Info --}}
-        @if($job['pickup_date'] || $job['delivery_date'] || ($job['priority'] && $job['priority'] !== 'normal'))
-          <div class="rb-status-quick-info">
+        {{-- Dates row --}}
+        @if($job['pickup_date'] || $job['delivery_date'])
+          <div class="rbs-job-dates">
             @if($job['pickup_date'])
-              <div class="rb-status-info-item">
-                <i class="bi bi-calendar-check"></i>
-                <span>Pickup: <strong>{{ $job['pickup_date'] }}</strong></span>
+              <div class="rbs-date-chip">
+                <i class="bi bi-calendar-check-fill"></i>
+                <span>Drop-off: <strong>{{ $job['pickup_date'] }}</strong></span>
               </div>
             @endif
             @if($job['delivery_date'])
-              <div class="rb-status-info-item">
+              <div class="rbs-date-chip">
                 <i class="bi bi-truck"></i>
-                <span>Expected Delivery: <strong>{{ $job['delivery_date'] }}</strong></span>
+                <span>Est. Ready: <strong>{{ $job['delivery_date'] }}</strong></span>
               </div>
-            @endif
-            @if($job['priority'] && $job['priority'] !== 'normal')
-              <span class="badge rb-priority-badge rb-priority-{{ $job['priority'] }}">
-                {{ strtoupper($job['priority']) }}
-              </span>
             @endif
           </div>
         @endif
-
-        <div class="rb-status-actions">
-          <button class="btn btn-outline-secondary btn-sm" wire:click="refresh">
-            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-          </button>
-        </div>
       </div>
 
-      {{-- Tabs --}}
-      <div class="rb-status-tabs-card">
-        <ul class="nav nav-tabs rb-status-tabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button
-              class="nav-link {{ $activeTab === 'timeline' ? 'active' : '' }}"
-              wire:click="setActiveTab('timeline')"
-              type="button"
-            >
-              <i class="bi bi-clock-history me-1"></i> Activity Timeline
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button
-              class="nav-link {{ $activeTab === 'details' ? 'active' : '' }}"
-              wire:click="setActiveTab('details')"
-              type="button"
-            >
-              <i class="bi bi-info-circle me-1"></i> Job Details
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button
-              class="nav-link {{ $activeTab === 'message' ? 'active' : '' }}"
-              wire:click="setActiveTab('message')"
-              type="button"
-            >
-              <i class="bi bi-chat-dots me-1"></i> Send Message
-            </button>
-          </li>
-        </ul>
+      {{-- ── Tabs ── --}}
+      <div class="rbs-panel">
 
-        <div class="rb-status-tab-content">
+        {{-- Tab Nav --}}
+        <div class="rbs-tab-nav">
+          <button
+            class="rbs-tab-btn {{ $activeTab === 'timeline' ? 'rbs-tab-btn--active' : '' }}"
+            wire:click="setActiveTab('timeline')"
+            type="button"
+          >
+            <i class="bi bi-activity"></i>
+            <span>Timeline</span>
+            @if(count($job['timeline']) > 0)
+              <span class="rbs-tab-count">{{ count($job['timeline']) }}</span>
+            @endif
+          </button>
+          <button
+            class="rbs-tab-btn {{ $activeTab === 'details' ? 'rbs-tab-btn--active' : '' }}"
+            wire:click="setActiveTab('details')"
+            type="button"
+          >
+            <i class="bi bi-info-circle"></i>
+            <span>Details</span>
+          </button>
+          <button
+            class="rbs-tab-btn {{ $activeTab === 'message' ? 'rbs-tab-btn--active' : '' }}"
+            wire:click="setActiveTab('message')"
+            type="button"
+          >
+            <i class="bi bi-chat-dots"></i>
+            <span>Message Us</span>
+          </button>
+        </div>
 
-          {{-- Timeline Tab --}}
+        <div class="rbs-tab-body">
+
+          {{-- ── TIMELINE TAB ── --}}
           @if($activeTab === 'timeline')
-            <div class="rb-status-timeline-wrapper">
-              @if(count($job['timeline']) > 0)
-                <div class="rb-timeline">
-                  @foreach($job['timeline'] as $index => $event)
-                    <div class="rb-timeline-item {{ $index === 0 ? 'rb-timeline-item-first' : '' }}">
-                      <div class="rb-timeline-marker">
-                        <span class="rb-timeline-icon">
-                          @switch(true)
-                            @case(str_contains($event['type'], 'message'))
-                              💬
-                              @break
-                            @case(str_contains($event['type'], 'attachment') || str_contains($event['type'], 'file'))
-                              📎
-                              @break
-                            @case(str_contains($event['type'], 'status'))
-                              🔄
-                              @break
-                            @case(str_contains($event['type'], 'created'))
-                              ✨
-                              @break
-                            @case(str_contains($event['type'], 'payment'))
-                              💳
-                              @break
-                            @case(str_contains($event['type'], 'note'))
-                              📝
-                              @break
-                            @default
-                              📌
-                          @endswitch
-                        </span>
+            @if(count($job['timeline']) > 0)
+              <div class="rbs-timeline">
+                @foreach($job['timeline'] as $index => $event)
+                  @php
+                    $evType = $event['type'] ?? '';
+                    $iconClass = match(true) {
+                      str_contains($evType, 'created')    => 'bi-plus-circle-fill rbs-ev--created',
+                      str_contains($evType, 'status')     => 'bi-arrow-repeat rbs-ev--status',
+                      str_contains($evType, 'message')    => 'bi-chat-quote-fill rbs-ev--message',
+                      str_contains($evType, 'attachment'),
+                      str_contains($evType, 'file')       => 'bi-paperclip rbs-ev--attach',
+                      str_contains($evType, 'payment')    => 'bi-credit-card-fill rbs-ev--payment',
+                      str_contains($evType, 'note')       => 'bi-pencil-fill rbs-ev--note',
+                      default                             => 'bi-dot rbs-ev--default',
+                    };
+                  @endphp
+                  <div class="rbs-tl-item {{ $index === 0 ? 'rbs-tl-item--latest' : '' }}">
+                    <div class="rbs-tl-icon"><i class="bi {{ $iconClass }}"></i></div>
+                    <div class="rbs-tl-body">
+                      <div class="rbs-tl-head">
+                        <span class="rbs-tl-title">{{ $event['title'] }}</span>
+                        <time class="rbs-tl-time" datetime="{{ $event['created_at_raw'] ?? '' }}">{{ $event['created_at'] }}</time>
                       </div>
-                      <div class="rb-timeline-content">
-                        <div class="rb-timeline-header">
-                          <span class="rb-timeline-title">{{ $event['title'] }}</span>
-                          <span class="rb-timeline-time">{{ $event['created_at'] }}</span>
-                        </div>
-                        @if($event['message'])
-                          <div class="rb-timeline-message">{{ $event['message'] }}</div>
-                        @endif
-                        @if($event['attachment'])
-                          <a href="{{ $event['attachment']['url'] }}" target="_blank" class="rb-timeline-attachment">
-                            <i class="bi bi-paperclip me-1"></i>{{ $event['attachment']['filename'] }}
-                          </a>
-                        @endif
-                      </div>
+                      @if($event['message'])
+                        <p class="rbs-tl-msg">{{ $event['message'] }}</p>
+                      @endif
+                      @if($event['attachment'])
+                        <a href="{{ $event['attachment']['url'] }}" target="_blank" rel="noopener" class="rbs-tl-file">
+                          <i class="bi bi-file-earmark-arrow-down"></i>{{ $event['attachment']['filename'] }}
+                        </a>
+                      @endif
                     </div>
-                  @endforeach
-                </div>
-              @else
-                <div class="rb-empty-state">
-                  <i class="bi bi-clock-history"></i>
-                  <p>No activity history yet.</p>
-                </div>
-              @endif
-            </div>
+                  </div>
+                @endforeach
+              </div>
+            @else
+              <div class="rbs-empty">
+                <div class="rbs-empty-icon"><i class="bi bi-hourglass"></i></div>
+                <p class="rbs-empty-msg">No activity recorded yet. Check back soon.</p>
+              </div>
+            @endif
           @endif
 
-          {{-- Details Tab --}}
+          {{-- ── DETAILS TAB ── --}}
           @if($activeTab === 'details')
-            <div class="rb-status-details-wrapper">
+            <div class="rbs-details">
 
-              {{-- Devices --}}
               @if(count($job['devices']) > 0)
-                <div class="rb-details-section">
-                  <h5 class="rb-details-section-title">
-                    <i class="bi bi-phone me-2"></i>Devices
-                  </h5>
-                  <div class="rb-devices-grid">
+                <section class="rbs-section">
+                  <h3 class="rbs-section-title"><i class="bi bi-cpu"></i>Devices</h3>
+                  <div class="rbs-devices">
                     @foreach($job['devices'] as $device)
-                      <div class="rb-device-card">
-                        <div class="rb-device-icon">
-                          <i class="bi bi-laptop"></i>
-                        </div>
-                        <div class="rb-device-info">
-                          <div class="rb-device-label">
-                            {{ $device['label'] ?: collect([$device['type_name'], $device['brand_name'], $device['device_name']])->filter()->implode(' › ') ?: 'Device' }}
+                      <div class="rbs-device">
+                        <div class="rbs-device-thumb"><i class="bi bi-laptop"></i></div>
+                        <div class="rbs-device-data">
+                          <div class="rbs-device-name">
+                            {{ $device['label'] ?: collect([$device['brand_name'], $device['device_name']])->filter()->implode(' ') ?: 'Device' }}
                           </div>
-                          @if($device['serial'])
-                            <div class="rb-device-serial">
-                              Serial: <code>{{ $device['serial'] }}</code>
-                            </div>
+                          @if($device['type_name'] || $device['brand_name'])
+                            <div class="rbs-device-sub">{{ collect([$device['type_name'], $device['brand_name']])->filter()->implode(' · ') }}</div>
                           @endif
-                          @if($device['label'] && ($device['type_name'] || $device['brand_name'] || $device['device_name']))
-                            <div class="rb-device-details">
-                              {{ collect([$device['type_name'], $device['brand_name'], $device['device_name']])->filter()->implode(' › ') }}
-                            </div>
+                          @if($device['serial'])
+                            <div class="rbs-device-serial"><i class="bi bi-upc me-1"></i><code>{{ $device['serial'] }}</code></div>
                           @endif
                         </div>
                       </div>
                     @endforeach
                   </div>
-                </div>
+                </section>
               @endif
 
-              {{-- Services & Parts --}}
               @if(count($job['items']) > 0)
-                <div class="rb-details-section">
-                  <h5 class="rb-details-section-title">
-                    <i class="bi bi-wrench me-2"></i>Services & Parts
-                  </h5>
-                  <div class="table-responsive">
-                    <table class="table rb-items-table">
-                      <thead>
-                        <tr>
-                          <th>Item</th>
-                          <th>Type</th>
-                          <th class="text-center">Qty</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @foreach($job['items'] as $item)
-                          <tr>
-                            <td>{{ $item['name'] }}</td>
-                            <td>
-                              <span class="badge bg-secondary">{{ $item['item_type'] }}</span>
-                            </td>
-                            <td class="text-center">{{ $item['qty'] }}</td>
-                          </tr>
-                        @endforeach
-                      </tbody>
-                    </table>
+                <section class="rbs-section">
+                  <h3 class="rbs-section-title"><i class="bi bi-tools"></i>Services &amp; Parts</h3>
+                  <div class="rbs-items-list">
+                    @foreach($job['items'] as $item)
+                      <div class="rbs-item-row">
+                        <div class="rbs-item-icon">
+                          <i class="bi {{ $item['item_type'] === 'part' ? 'bi-box-seam' : 'bi-wrench-adjustable' }}"></i>
+                        </div>
+                        <div class="rbs-item-name">{{ $item['name'] }}</div>
+                        <div class="rbs-item-type">{{ ucfirst($item['item_type']) }}</div>
+                        <div class="rbs-item-qty">×{{ $item['qty'] }}</div>
+                      </div>
+                    @endforeach
                   </div>
-                </div>
+                </section>
               @endif
 
-              {{-- Case Details --}}
               @if($job['case_detail'])
-                <div class="rb-details-section">
-                  <h5 class="rb-details-section-title">
-                    <i class="bi bi-file-text me-2"></i>Additional Information
-                  </h5>
-                  <div class="rb-case-detail-box">
-                    {{ $job['case_detail'] }}
-                  </div>
-                </div>
+                <section class="rbs-section">
+                  <h3 class="rbs-section-title"><i class="bi bi-file-text"></i>Notes</h3>
+                  <div class="rbs-notes">{{ $job['case_detail'] }}</div>
+                </section>
               @endif
 
               @if(count($job['devices']) === 0 && count($job['items']) === 0 && !$job['case_detail'])
-                <div class="rb-empty-state">
-                  <i class="bi bi-info-circle"></i>
-                  <p>No additional details available.</p>
+                <div class="rbs-empty">
+                  <div class="rbs-empty-icon"><i class="bi bi-inbox"></i></div>
+                  <p class="rbs-empty-msg">No detail information on file.</p>
                 </div>
               @endif
             </div>
           @endif
 
-          {{-- Message Tab --}}
+          {{-- ── MESSAGE TAB ── --}}
           @if($activeTab === 'message')
-            <div class="rb-status-message-wrapper">
-              <div class="rb-message-form-header">
-                <h5 class="rb-message-form-title">
-                  <i class="bi bi-chat-dots me-2"></i>Send a Message
-                </h5>
-                <p class="rb-message-form-desc">
-                  Have a question or need to provide additional information? Send us a message below.
-                </p>
+            <div class="rbs-msg-tab">
+
+              <div class="rbs-msg-intro">
+                <div class="rbs-msg-intro-icon"><i class="bi bi-headset"></i></div>
+                <div>
+                  <p class="rbs-msg-intro-title">Got a question? We’re here to help.</p>
+                  <p class="rbs-msg-intro-desc">Send us a message and we’ll get back to you as soon as possible.</p>
+                </div>
               </div>
 
               @if($messageSuccess)
-                <div class="alert alert-success rb-message-alert" role="alert">
-                  <i class="bi bi-check-circle-fill me-2"></i>{{ $messageSuccess }}
+                <div class="rbs-alert rbs-alert--success" role="alert">
+                  <i class="bi bi-check-circle-fill"></i><span>{{ $messageSuccess }}</span>
                 </div>
               @endif
 
               @if($messageError)
-                <div class="alert alert-danger rb-message-alert" role="alert">
-                  <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $messageError }}
+                <div class="rbs-alert rbs-alert--danger" role="alert">
+                  <i class="bi bi-exclamation-circle-fill"></i><span>{{ $messageError }}</span>
                 </div>
               @endif
 
-              <form wire:submit.prevent="sendMessage" class="rb-message-form">
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Your Message</label>
+              <form wire:submit.prevent="sendMessage" class="rbs-msg-form">
+                <div class="rbs-field">
+                  <label class="rbs-label">Your Message</label>
                   <textarea
-                    class="form-control rb-message-textarea"
+                    class="rbs-textarea"
                     wire:model.defer="messageBody"
                     rows="4"
-                    placeholder="Type your message here... (e.g., questions about your repair, additional information)"
+                    placeholder="Ask about your repair, provide extra details, or share any concerns…"
                   ></textarea>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Attach File (optional)</label>
-                  <div class="rb-file-upload-wrapper">
-                    @if($attachment)
-                      <div class="rb-file-uploaded">
-                        <i class="bi bi-file-earmark me-2"></i>
-                        <span>{{ $attachment->getClientOriginalName() }}</span>
-                        <span class="text-muted ms-2">({{ number_format($attachment->getSize() / 1024, 1) }} KB)</span>
-                        <button type="button" class="btn btn-link text-danger btn-sm" wire:click="removeAttachment">
-                          Remove
-                        </button>
+                <div class="rbs-field">
+                  <label class="rbs-label">Attach a File <span class="rbs-label-opt">(optional)</span></label>
+                  @if($attachment)
+                    <div class="rbs-file-preview">
+                      <i class="bi bi-file-earmark-check-fill"></i>
+                      <div class="rbs-file-preview-info">
+                        <span class="rbs-file-name">{{ $attachment->getClientOriginalName() }}</span>
+                        <span class="rbs-file-size">{{ number_format($attachment->getSize() / 1024, 1) }} KB</span>
                       </div>
-                    @else
+                      <button type="button" class="rbs-file-remove" wire:click="removeAttachment">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  @else
+                    <label class="rbs-dropzone" for="rbs-file-input">
+                      <i class="bi bi-cloud-arrow-up rbs-dropzone-icon"></i>
+                      <span class="rbs-dropzone-text">Click to select a file</span>
+                      <span class="rbs-dropzone-hint">Images, PDF, DOC, TXT · Max 10 MB</span>
                       <input
+                        id="rbs-file-input"
                         type="file"
-                        class="form-control"
+                        class="rbs-file-hidden"
                         wire:model="attachment"
                         accept="image/*,.pdf,.doc,.docx,.txt"
                       >
-                      <small class="text-muted">Max 10MB. Accepted: Images, PDF, DOC, TXT</small>
-                    @endif
-                    @error('attachment')
-                      <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
-                  </div>
+                    </label>
+                  @endif
+                  @error('attachment')
+                    <p class="rbs-field-error">{{ $message }}</p>
+                  @enderror
                 </div>
 
-                <div class="rb-message-form-actions">
-                  <button
-                    type="submit"
-                    class="btn rb-btn-primary"
-                    wire:loading.attr="disabled"
-                    wire:target="sendMessage"
-                    {{ ($messageBody === '' && !$attachment) ? 'disabled' : '' }}
-                  >
-                    <span wire:loading.remove wire:target="sendMessage">
-                      <i class="bi bi-send me-1"></i> Send Message
-                    </span>
-                    <span wire:loading wire:target="sendMessage">
-                      <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                      Sending...
-                    </span>
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  class="rbs-send-btn"
+                  wire:loading.attr="disabled"
+                  wire:target="sendMessage"
+                  {{ ($messageBody === '' && !$attachment) ? 'disabled' : '' }}
+                >
+                  <span wire:loading.remove wire:target="sendMessage">
+                    <i class="bi bi-send-fill me-2"></i>Send Message
+                  </span>
+                  <span wire:loading wire:target="sendMessage" class="rbs-loading-label">
+                    <span class="rbs-spinner"></span>Sending…
+                  </span>
+                </button>
               </form>
             </div>
           @endif
@@ -379,42 +362,37 @@
     </div>
   @endif
 
-  {{-- Estimate Result --}}
+  {{-- ══════════ ESTIMATE RESULT ══════════ --}}
   @if($entityType === 'estimate' && $estimate)
-    <div class="rb-status-result">
-      <div class="rb-status-card rb-status-card-estimate">
-        <div class="rb-estimate-icon">
-          <i class="bi bi-file-earmark-text"></i>
-        </div>
-        <h2 class="rb-estimate-case-number">Estimate: {{ $estimate['case_number'] }}</h2>
-        <p class="rb-estimate-title">{{ $estimate['title'] }}</p>
-        <span class="badge rb-status-badge rb-status-badge-warning">
-          {{ $estimate['status_label'] }}
-        </span>
-        <p class="rb-estimate-info mt-3">
-          This is an estimate (quote). Please check your email for approval/rejection links,
-          or log in to the customer portal to view details.
-        </p>
-        <div class="rb-estimate-actions">
-          <button class="btn btn-outline-secondary" wire:click="refresh">
-            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-          </button>
-        </div>
+    <div class="rbs-result">
+      <div class="rbs-estimate-card">
+        <div class="rbs-estimate-icon-wrap"><i class="bi bi-file-earmark-text-fill"></i></div>
+        <div class="rbs-estimate-case">{{ $estimate['case_number'] }}</div>
+        <div class="rbs-estimate-title-text">{{ $estimate['title'] }}</div>
+        <span class="rbs-badge rbs-badge--warning"><span class="rbs-badge-dot"></span>{{ $estimate['status_label'] }}</span>
+        <p class="rbs-estimate-note">This is an estimate. You can approve or reject it via the link in your email, or through the customer portal.</p>
+        <button type="button" class="rbs-action-btn mt-3" wire:click="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
       </div>
     </div>
   @endif
 
-  {{-- Empty State (no search yet) --}}
+  {{-- ══════════ EMPTY STATE ══════════ --}}
   @if(!$entityType && !$errorMessage && $caseNumber === '')
-    <div class="rb-status-empty-state">
-      <div class="rb-empty-state-icon">
-        <i class="bi bi-search"></i>
+    <div class="rbs-start-state">
+      <div class="rbs-start-grid">
+        <div class="rbs-start-step">
+          <div class="rbs-start-num">1</div>
+          <p>Check your confirmation email for the case number.</p>
+        </div>
+        <div class="rbs-start-step">
+          <div class="rbs-start-num">2</div>
+          <p>Enter it in the search box above.</p>
+        </div>
+        <div class="rbs-start-step">
+          <div class="rbs-start-num">3</div>
+          <p>View your repair status and send us messages.</p>
+        </div>
       </div>
-      <h3 class="rb-empty-state-title">Enter Your Case Number</h3>
-      <p class="rb-empty-state-desc">
-        You can find your case number in the confirmation email you received when you booked your repair,
-        or on the receipt from our shop.
-      </p>
     </div>
   @endif
 

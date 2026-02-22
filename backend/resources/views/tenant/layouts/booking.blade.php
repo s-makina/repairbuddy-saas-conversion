@@ -1,7 +1,8 @@
 @php
   /** @var \App\Models\Tenant|null $tenant */
   $siteName = ($tenant && $tenant->name) ? $tenant->name : config('app.name', 'RepairBuddy');
-  $thePageTitle = 'Book a Repair - ' . $siteName;
+  $customPageTitle = trim($__env->yieldContent('title'));
+  $thePageTitle = $customPageTitle !== '' ? $customPageTitle : ('Book a Repair - ' . $siteName);
 @endphp
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
