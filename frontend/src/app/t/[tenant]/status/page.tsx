@@ -2,43 +2,124 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { PublicPageShell } from "@/components/PublicPageShell";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { apiFetch, ApiError } from "@/lib/api";
+import { cn } from "@/lib/cn";
 
-type ApiLookupJob = {
+// Types
+type TimelineEvent = {
+  id: string;
+  title: string;
+  type: string;
+  message: string | null;
+  attachment: { filename: string; url: string } | null;
+  created_at: string;
+};
+
+type JobDevice = {
+  id: number;
+  label: string | null;
+  serial: string | null;
+  type_name: string | null;
+  brand_name: string | null;
+  device_name: string | null;
+};
+
+type JobItem = {
+  id: number;
+  item_type: string;
+  name: string;
+  qty: number;
+};
+
+type JobDetail = {
   id: number;
   case_number: string;
   title: string;
   status: string;
-  status_label?: string | null;
+  status_label: string | null;
+  payment_status: string | null;
+  payment_status_label: string | null;
+  priority: string | null;
+  case_detail: string | null;
+  pickup_date: string | null;
+  delivery_date: string | null;
+  created_at: string;
   updated_at: string;
+  devices: JobDevice[];
+  items: JobItem[];
+  timeline: TimelineEvent[];
 };
 
-type ApiLookupEstimate = {
+type EstimateDetail = {
   id: number;
   case_number: string;
   title: string;
   status: string;
-  status_label?: string | null;
+  status_label: string | null;
+  created_at: string;
   updated_at: string;
 };
+
+type LookupResult =
+  | { entity_type: "job"; job: JobDetail }
+  | { entity_type: "estimate"; estimate: EstimateDetail };
 
 function portalSessionKey(tenantSlug: string) {
   return `rb.portal.session:v1:${tenantSlug}`;
 }
 
 function statusBadgeVariant(status: string): "default" | "info" | "success" | "warning" | "danger" {
-  if (status === "delivered" || status === "completed") return "success";
-  if (status === "ready") return "warning";
-  if (status === "cancelled") return "danger";
-  if (status === "in_process") return "info";
+  const s = status.toLowerCase();
+  if (s === "delivered" || s === "completed" || s === "ready_for_pickup") return "success";
+  if (s === "ready" || s === "waiting_for_parts") return "warning";
+  if (s === "cancelled" || s === "rejected") return "danger";
+  if (s === "in_process" || s === "diagnosing" || s === "repairing") return "info";
   return "default";
+}
+
+function paymentBadgeVariant(status: string): "default" | "info" | "success" | "warning" | "danger" {
+  const s = status.toLowerCase();
+  if (s === "paid" || s === "completed") return "success";
+  if (s === "partial" || s === "pending") return "warning";
+  if (s === "unpaid" || s === "due") return "danger";
+  return "default";
+}
+
+function eventIcon(type: string) {
+  const t = type.toLowerCase();
+  if (t.includes("message")) return "💬";
+  if (t.includes("attachment") || t.includes("file")) return "📎";
+  if (t.includes("status")) return "🔄";
+  if (t.includes("created")) return "✨";
+  if (t.includes("payment")) return "💳";
+  if (t.includes("note")) return "📝";
+  return "📌";
+}
+
+function formatDate(dateStr: string, includeTime = true) {
+  const d = new Date(dateStr);
+  if (includeTime) {
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function PublicStatusPage() {

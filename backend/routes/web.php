@@ -46,6 +46,9 @@ Route::prefix('t/{business}')
     ->group(function () {
         Route::get('/book', [\App\Http\Controllers\Web\TenantBookingController::class, 'show'])
             ->name('tenant.booking.show');
+
+        Route::get('/status', [\App\Http\Controllers\Web\TenantStatusController::class, 'show'])
+            ->name('tenant.status.show');
     });
 
 Route::prefix('t/{business}')

@@ -31,7 +31,11 @@ Route::prefix('t/{business}')
 
         Route::prefix('status')->group(function () {
             Route::post('/lookup', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'lookup']);
+            Route::get('/{caseNumber}', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'detail'])
+                ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
             Route::post('/{caseNumber}/message', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'message'])
+                ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
+            Route::post('/{caseNumber}/attachment', [\App\Http\Controllers\Api\Public\RepairBuddyStatusController::class, 'uploadAttachment'])
                 ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ]);
         });
 
