@@ -17,6 +17,23 @@
   --rpn-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --rpn-shadow-lg: 0 10px 25px -3px rgba(0,0,0,.08), 0 4px 6px -2px rgba(0,0,0,.03);
   --rpn-nav-height: 64px;
+
+  /* Shared variables used by child pages (status, booking, etc.) */
+  --rb-primary: #063e70;
+  --rb-primary-light: #0a5a9e;
+  --rb-accent: #fd6742;
+  --rb-accent-hover: #e85a38;
+  --rb-bg: #f4f6fa;
+  --rb-card-bg: #ffffff;
+  --rb-border: #e2e8f0;
+  --rb-text: #1e293b;
+  --rb-text-muted: #64748b;
+  --rb-success: #10b981;
+  --rb-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --rb-shadow-md: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -1px rgba(0,0,0,.04);
+  --rb-shadow-lg: 0 10px 25px -3px rgba(0,0,0,.08), 0 4px 6px -2px rgba(0,0,0,.03);
+  --rb-radius: 12px;
+  --rb-radius-sm: 8px;
 }
 
 /* ── Whole page ── */

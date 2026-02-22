@@ -35,6 +35,7 @@
 
   {{-- Public nav styles --}}
   <link rel="stylesheet" href="{{ asset('css/public-nav.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/public-pages.css') }}">
 
   @livewireStyles
 
