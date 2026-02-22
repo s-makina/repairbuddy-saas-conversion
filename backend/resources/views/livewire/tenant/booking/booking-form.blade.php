@@ -110,11 +110,20 @@
               <div class="rb-selection-card-name">{{ $brand['name'] }}</div>
             </div>
           @empty
-            <div class="rb-empty-state">
-              <i class="bi bi-inbox"></i>
-              <p>No brands available for this device type.</p>
-            </div>
+            {{-- No brands found — if Other is allowed, show only the Other card --}}
           @endforelse
+
+          {{-- Other brand card --}}
+          @if(! $turnOffOtherDeviceBrand)
+            <div class="rb-selection-card rb-selection-card-other" wire:click="selectOtherBrand" wire:key="brand-other">
+              <div class="rb-selection-card-media">
+                <div class="rb-selection-card-icon rb-icon-other">
+                  <i class="bi bi-question-circle"></i>
+                </div>
+              </div>
+              <div class="rb-selection-card-name">Other</div>
+            </div>
+          @endif
         </div>
       </div>
     @endif
@@ -122,30 +131,68 @@
     {{-- Step 3: Device --}}
     @if($step === 3)
       <div class="rb-booking-step" wire:key="step-3">
-        <div class="rb-step-header">
-          <h2 class="rb-step-title">Select Device</h2>
-          <p class="rb-step-desc">Choose your specific device model.</p>
-        </div>
 
-        <button class="btn rb-btn-back" wire:click="goBack(2)">
-          <i class="bi bi-arrow-left me-1"></i> Back to Brands
-        </button>
+        @if($isOtherDevice)
+          {{-- Other Device: custom label input --}}
+          <div class="rb-step-header">
+            <h2 class="rb-step-title">Describe Your Device</h2>
+            <p class="rb-step-desc">Enter the name or model of your device.</p>
+          </div>
 
-        <div class="rb-selection-grid rb-selection-grid-compact">
-          @forelse($devices as $device)
-            <div class="rb-selection-card rb-selection-card-compact" wire:click="selectDeviceAndAddEntry({{ $device['id'] }})" wire:key="device-{{ $device['id'] }}">
-              <div class="rb-selection-card-icon-sm">
-                <i class="bi bi-laptop"></i>
+          <button class="btn rb-btn-back" wire:click="goBack({{ $isOtherBrand ? 2 : 3 }})">
+            <i class="bi bi-arrow-left me-1"></i> Back
+          </button>
+
+          <div class="rb-other-device-form">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Device Name <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                wire:model.defer="otherDeviceLabel"
+                placeholder="e.g. Samsung Galaxy S24, HP Pavilion Laptop..."
+                autofocus
+              >
+            </div>
+            <button class="btn rb-btn-primary" wire:click="confirmOtherDevice">
+              Continue <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        @else
+          {{-- Normal device list --}}
+          <div class="rb-step-header">
+            <h2 class="rb-step-title">Select Device</h2>
+            <p class="rb-step-desc">Choose your specific device model.</p>
+          </div>
+
+          <button class="btn rb-btn-back" wire:click="goBack(2)">
+            <i class="bi bi-arrow-left me-1"></i> Back to Brands
+          </button>
+
+          <div class="rb-selection-grid rb-selection-grid-compact">
+            @forelse($devices as $device)
+              <div class="rb-selection-card rb-selection-card-compact" wire:click="selectDeviceAndAddEntry({{ $device['id'] }})" wire:key="device-{{ $device['id'] }}">
+                <div class="rb-selection-card-icon-sm">
+                  <i class="bi bi-laptop"></i>
+                </div>
+                <div class="rb-selection-card-name">{{ $device['model'] }}</div>
               </div>
-              <div class="rb-selection-card-name">{{ $device['model'] }}</div>
-            </div>
-          @empty
-            <div class="rb-empty-state">
-              <i class="bi bi-inbox"></i>
-              <p>No devices available.</p>
-            </div>
-          @endforelse
-        </div>
+            @empty
+              {{-- No devices — if Other is allowed, the Other card below is the only option --}}
+            @endforelse
+
+            {{-- Other device card --}}
+            @if(! $turnOffOtherDeviceBrand)
+              <div class="rb-selection-card rb-selection-card-compact rb-selection-card-other" wire:click="selectOtherDevice" wire:key="device-other">
+                <div class="rb-selection-card-icon-sm rb-icon-other">
+                  <i class="bi bi-question-circle"></i>
+                </div>
+                <div class="rb-selection-card-name">Other</div>
+              </div>
+            @endif
+          </div>
+        @endif
+
       </div>
     @endif
 
@@ -167,6 +214,9 @@
               <div class="rb-device-entry-info">
                 <i class="bi bi-laptop me-2"></i>
                 <strong>{{ $entry['device_label'] }}</strong>
+                @if(! empty($entry['is_other']))
+                  <span class="badge bg-secondary ms-2" style="font-size: .7rem;">Custom</span>
+                @endif
               </div>
               <button class="btn btn-sm rb-btn-remove" wire:click="removeDeviceEntry({{ $idx }})">
                 <i class="bi bi-x-lg"></i>
@@ -282,55 +332,89 @@
         </div>
 
         <form wire:submit.prevent="submit">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">First Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" wire:model.defer="firstName" required>
-              @error('firstName') <span class="text-danger small">{{ $message }}</span> @enderror
+          {{-- Contact Info Section --}}
+          <div class="rb-form-section mb-4">
+            <h6 class="rb-form-section-title"><i class="bi bi-person me-2"></i>Contact Information</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">First Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" wire:model.defer="firstName" required>
+                @error('firstName') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" wire:model.defer="lastName" required>
+                @error('lastName') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" wire:model.defer="email" required>
+                @error('email') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Phone</label>
+                <input type="text" class="form-control" wire:model.defer="phone">
+                @error('phone') <span class="text-danger small">{{ $message }}</span> @enderror
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Company</label>
+                <input type="text" class="form-control" wire:model.defer="company">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Tax ID</label>
+                <input type="text" class="form-control" wire:model.defer="taxId">
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Last Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" wire:model.defer="lastName" required>
-              @error('lastName') <span class="text-danger small">{{ $message }}</span> @enderror
+          </div>
+
+          {{-- Address Section --}}
+          <div class="rb-form-section mb-4">
+            <h6 class="rb-form-section-title"><i class="bi bi-geo-alt me-2"></i>Address <span class="text-muted fw-normal fs-6">(Optional)</span></h6>
+            <div class="row g-3">
+              <div class="col-md-12">
+                <label class="form-label">Street Address</label>
+                <input type="text" class="form-control" wire:model.defer="addressLine1" placeholder="e.g. 123 Main St">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">City</label>
+                <input type="text" class="form-control" wire:model.defer="city">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Postal Code</label>
+                <input type="text" class="form-control" wire:model.defer="postalCode">
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Email <span class="text-danger">*</span></label>
-              <input type="email" class="form-control" wire:model.defer="email" required>
-              @error('email') <span class="text-danger small">{{ $message }}</span> @enderror
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Phone</label>
-              <input type="text" class="form-control" wire:model.defer="phone">
-              @error('phone') <span class="text-danger small">{{ $message }}</span> @enderror
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Company</label>
-              <input type="text" class="form-control" wire:model.defer="company">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Tax ID</label>
-              <input type="text" class="form-control" wire:model.defer="taxId">
-            </div>
-            <div class="col-md-12">
-              <label class="form-label">Address</label>
-              <input type="text" class="form-control" wire:model.defer="addressLine1" placeholder="Street address">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">City</label>
-              <input type="text" class="form-control" wire:model.defer="city">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Postal Code</label>
-              <input type="text" class="form-control" wire:model.defer="postalCode">
-            </div>
-            <div class="col-12">
+          </div>
+
+          {{-- Booking Details Section --}}
+          <div class="rb-form-section">
+            <h6 class="rb-form-section-title"><i class="bi bi-card-text me-2"></i>Booking Details</h6>
+            <div class="row g-3">
+              <div class="col-12">
               <label class="form-label">Job Details <span class="text-danger">*</span></label>
               <textarea class="form-control" rows="4" wire:model.defer="jobDetails" placeholder="Describe the issue or service needed..." required></textarea>
               @error('jobDetails') <span class="text-danger small">{{ $message }}</span> @enderror
             </div>
+            
+            @if($gdprLabel)
+              <div class="col-12 mt-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" wire:model.defer="gdprAccepted" id="gdprAccepted" required>
+                  <label class="form-check-label" for="gdprAccepted">
+                    {{ $gdprLabel }}
+                    @if($gdprLinkLabel && $gdprLinkUrl)
+                      <a href="{{ $gdprLinkUrl }}" target="_blank" class="text-primary text-decoration-underline ms-1">{{ $gdprLinkLabel }}</a>
+                    @endif
+                    <span class="text-danger">*</span>
+                  </label>
+                </div>
+                @error('gdprAccepted') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+              </div>
+            @endif
+            </div>
           </div>
 
-          <div class="rb-step-actions mt-4">
+          <div class="rb-step-actions mt-4 pt-4 border-top">
             <button type="submit" class="btn rb-btn-primary rb-btn-submit" wire:loading.attr="disabled">
               <span wire:loading.remove wire:target="submit">
                 <i class="bi bi-send me-1"></i> Submit Booking

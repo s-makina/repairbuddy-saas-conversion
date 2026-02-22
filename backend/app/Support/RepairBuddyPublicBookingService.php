@@ -6,12 +6,19 @@ use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyEstimateAttachment;
+use App\Models\RepairBuddyEstimateDevice;
+use App\Models\RepairBuddyEstimateItem;
 use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
+use App\Models\RepairBuddyJobAttachment;
+use App\Models\RepairBuddyJobDevice;
+use App\Models\RepairBuddyJobItem;
+use App\Models\RepairBuddyService;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Audit\PlatformAudit;
+use App\Support\RepairBuddyBookingTemplateService;
 use App\Support\RepairBuddyCaseNumberService;
 use App\Models\RepairBuddyServiceAvailabilityOverride;
 use App\Models\RepairBuddyServicePriceOverride;
@@ -80,7 +87,7 @@ class RepairBuddyPublicBookingService
             }
         }
 
-        $gdprText = is_string($general['gdprAcceptanceText'] ?? null) ? trim((string) $general['gdprAcceptanceText']) : '';
+        $gdprText = is_string($general['wc_rb_gdpr_acceptance'] ?? null) ? trim((string) $general['wc_rb_gdpr_acceptance']) : '';
         if ($gdprText !== '') {
             $accepted = array_key_exists('gdprAccepted', $validated) ? (bool) $validated['gdprAccepted'] : false;
             if (! $accepted) {

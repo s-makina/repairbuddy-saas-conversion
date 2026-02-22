@@ -19,6 +19,7 @@ use Livewire\Component;
 class BookingForm extends Component
 {
     /* ───────── Tenant context ───────── */
+    public ?Tenant $tenant = null;
     public ?int $tenantId = null;
     public string $business = '';
     public string $tenantName = '';
@@ -42,9 +43,12 @@ class BookingForm extends Component
     /* ───────── Step 2: Brand ───────── */
     public array $brands = [];
     public ?int $selectedBrandId = null;
+    public bool $isOtherBrand = false;
 
     /* ───────── Step 3: Device ───────── */
     public array $devices = [];
+    public bool $isOtherDevice = false;
+    public string $otherDeviceLabel = '';
 
     /* ───────── Step 4: Services ───────── */
     public array $services = [];
@@ -70,6 +74,12 @@ class BookingForm extends Component
     public string $submissionMessage = '';
     public string $errorMessage = '';
 
+    /* ───────── GDPR ───────── */
+    public string $gdprLabel = '';
+    public string $gdprLinkLabel = '';
+    public string $gdprLinkUrl = '';
+    public bool $gdprAccepted = false;
+
     /* ─────────── mount ─────────── */
 
     public function mount(?Tenant $tenant = null, string $business = '')
@@ -81,6 +91,7 @@ class BookingForm extends Component
         }
 
         if ($tenant instanceof Tenant) {
+            $this->tenant = $tenant;
             $this->tenantId = $tenant->id;
             $this->tenantName = (string) ($tenant->name ?? '');
         }
@@ -99,6 +110,22 @@ class BookingForm extends Component
             }
         }
     }
+
+    public function hydrate(): void
+    {
+        if ($this->tenant instanceof Tenant) {
+            TenantContext::set($this->tenant);
+            
+            $branchId = is_numeric($this->tenant->default_branch_id) ? (int) $this->tenant->default_branch_id : null;
+            if ($branchId) {
+                $branch = \App\Models\Branch::find($branchId);
+                if ($branch) {
+                    \App\Support\BranchContext::set($branch);
+                }
+            }
+        }
+    }
+
 
     /* ─────────── config ─────────── */
 
@@ -120,6 +147,12 @@ class BookingForm extends Component
         $this->defaultTypeId = (string) ($booking['defaultType'] ?? '');
         $this->defaultBrandId = (string) ($booking['defaultBrand'] ?? '');
         $this->defaultDeviceId = (string) ($booking['defaultDevice'] ?? '');
+
+        // GDPR
+        $general = is_array($settings['general'] ?? null) ? $settings['general'] : [];
+        $this->gdprLabel = (string) ($general['wc_rb_gdpr_acceptance'] ?? '');
+        $this->gdprLinkLabel = (string) ($general['wc_rb_gdpr_acceptance_link_label'] ?? '');
+        $this->gdprLinkUrl = (string) ($general['wc_rb_gdpr_acceptance_link'] ?? '');
     }
 
     /* ─────────── data loaders ─────────── */
@@ -337,6 +370,9 @@ class BookingForm extends Component
     {
         $this->selectedTypeId = $id;
         $this->selectedBrandId = null;
+        $this->isOtherBrand = false;
+        $this->isOtherDevice = false;
+        $this->otherDeviceLabel = '';
         $this->brands = [];
         $this->devices = [];
         $this->services = [];
@@ -347,10 +383,71 @@ class BookingForm extends Component
     public function selectBrand(int $id): void
     {
         $this->selectedBrandId = $id;
+        $this->isOtherBrand = false;
+        $this->isOtherDevice = false;
+        $this->otherDeviceLabel = '';
         $this->devices = [];
         $this->services = [];
         $this->loadDevices();
         $this->step = 3;
+    }
+
+    /**
+     * "Other" brand selected — skip device step, show custom device label input.
+     * Matches plugin: dt_brand_id="brand_other" → load_other_device
+     */
+    public function selectOtherBrand(): void
+    {
+        $this->selectedBrandId = null;
+        $this->isOtherBrand = true;
+        $this->isOtherDevice = true;
+        $this->otherDeviceLabel = '';
+        $this->devices = [];
+        $this->services = [];
+        // Skip device step (step 3), go straight to "other device" input (step 3 with isOtherDevice=true)
+        $this->step = 3;
+    }
+
+    /**
+     * "Other" device selected from the device list.
+     * Matches plugin: dt_device_id="load_other_device"
+     */
+    public function selectOtherDevice(): void
+    {
+        $this->isOtherDevice = true;
+        $this->otherDeviceLabel = '';
+    }
+
+    /**
+     * Confirm custom device label and add entry with all services (no device-specific filtering).
+     */
+    public function confirmOtherDevice(): void
+    {
+        $label = trim($this->otherDeviceLabel);
+        if ($label === '') {
+            $this->errorMessage = 'Please enter a device name.';
+            return;
+        }
+
+        $this->errorMessage = '';
+        $services = $this->loadAllServices();
+
+        $this->deviceEntries[] = [
+            'device_id' => null,
+            'device_label' => $label,
+            'is_other' => true,
+            'serial' => '',
+            'pin' => '',
+            'notes' => '',
+            'selectedServiceId' => null,
+            'otherService' => '',
+            'services' => $services,
+        ];
+
+        $this->isOtherDevice = false;
+        $this->isOtherBrand = false;
+        $this->otherDeviceLabel = '';
+        $this->step = 4;
     }
 
     public function selectDeviceAndAddEntry(int $deviceId): void
@@ -372,6 +469,7 @@ class BookingForm extends Component
         $this->deviceEntries[] = [
             'device_id' => $deviceId,
             'device_label' => $device['model'],
+            'is_other' => false,
             'serial' => '',
             'pin' => '',
             'notes' => '',
@@ -400,6 +498,44 @@ class BookingForm extends Component
         $this->step = 1;
     }
 
+    /**
+     * Load all active services without device-specific availability filtering.
+     * Used for "Other" devices where no specific device is selected.
+     */
+    protected function loadAllServices(): array
+    {
+        $services = RepairBuddyService::query()
+            ->where('is_active', true)
+            ->with(['type'])
+            ->orderBy('name')
+            ->limit(500)
+            ->get();
+
+        $out = [];
+        foreach ($services as $s) {
+            $priceDisplay = null;
+            if (! $this->turnOffServicePrice) {
+                $cents = is_numeric($s->base_price_amount_cents) ? (int) $s->base_price_amount_cents : null;
+                $currency = is_string($s->base_price_currency) && $s->base_price_currency !== '' ? $s->base_price_currency : null;
+                if ($cents !== null && $currency !== null) {
+                    $priceDisplay = $currency . ' ' . number_format($cents / 100, 2);
+                }
+            }
+
+            $serviceType = $s->type;
+
+            $out[] = [
+                'id' => $s->id,
+                'name' => $s->name,
+                'description' => $s->description,
+                'price_display' => $priceDisplay,
+                'service_type_name' => $serviceType instanceof RepairBuddyServiceType ? $serviceType->name : null,
+            ];
+        }
+
+        return $out;
+    }
+
     public function goToCustomerStep(): void
     {
         $this->errorMessage = '';
@@ -422,6 +558,16 @@ class BookingForm extends Component
     public function goBack(int $toStep): void
     {
         if ($toStep >= 1 && $toStep <= 5) {
+            // Reset Other state when navigating backward
+            if ($toStep <= 2) {
+                $this->isOtherDevice = false;
+                $this->isOtherBrand = false;
+                $this->otherDeviceLabel = '';
+            }
+            if ($toStep <= 3 && ! $this->isOtherBrand) {
+                $this->isOtherDevice = false;
+                $this->otherDeviceLabel = '';
+            }
             $this->step = $toStep;
         }
     }
@@ -432,13 +578,22 @@ class BookingForm extends Component
     {
         $this->errorMessage = '';
 
-        $this->validate([
+        $rules = [
             'firstName' => ['required', 'string', 'max:255'],
             'lastName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:64'],
             'jobDetails' => ['required', 'string', 'max:5000'],
-        ]);
+        ];
+
+        $messages = [];
+
+        if ($this->gdprLabel) {
+            $rules['gdprAccepted'] = ['accepted'];
+            $messages['gdprAccepted.accepted'] = 'You must accept the privacy policy / terms to continue.';
+        }
+
+        $this->validate($rules, $messages);
 
         if (count($this->deviceEntries) === 0) {
             $this->errorMessage = 'Please add at least one device.';
@@ -457,7 +612,7 @@ class BookingForm extends Component
             }
 
             $devicesPayload[] = [
-                'device_id' => (int) $entry['device_id'],
+                'device_id' => ! empty($entry['device_id']) ? (int) $entry['device_id'] : null,
                 'device_label' => (string) ($entry['device_label'] ?? ''),
                 'serial' => trim((string) ($entry['serial'] ?? '')),
                 'pin' => trim((string) ($entry['pin'] ?? '')),
@@ -469,6 +624,7 @@ class BookingForm extends Component
 
         $validated = [
             'jobDetails' => $this->jobDetails,
+            'gdprAccepted' => $this->gdprAccepted,
             'customer' => [
                 'firstName' => $this->firstName,
                 'lastName' => $this->lastName,

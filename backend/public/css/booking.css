@@ -168,6 +168,7 @@
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -554,7 +555,52 @@
   border-top: 1px dashed var(--rb-border);
 }
 
+/* ─ "Other" selection card ─ */
+.rb-selection-card-other {
+  border-style: dashed;
+  border-color: #d4a574;
+  background: #fffbf7;
+}
+
+.rb-selection-card-other:hover {
+  border-color: #b8863e;
+  background: #fff6eb;
+}
+
+.rb-icon-other {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  color: #b45309 !important;
+}
+
+/* ─ Other device form ─ */
+.rb-other-device-form {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--rb-card-bg);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  padding: 1.5rem;
+  box-shadow: var(--rb-shadow);
+}
+
 /* ─ Form overrides ─ */
+.rb-form-section {
+  background: #fff;
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.rb-form-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--rb-primary);
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
 .rb-booking-step .form-control {
   border-color: var(--rb-border);
   border-radius: var(--rb-radius-sm);
