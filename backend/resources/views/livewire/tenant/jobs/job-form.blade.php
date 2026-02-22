@@ -212,9 +212,10 @@
     .form-label { font-weight: 500; color: #374151; margin-bottom: .4rem; font-size: .9rem; }
     .form-control, .form-select {
         background-color: #f8fafc;
-        border-radius: 8px; border: 1.5px solid var(--rb-border-color);
-        padding: .7rem .95rem; transition: all .2s;
-        color: var(--rb-text-primary); font-size: .9rem;
+        border-radius: 10px; border: 1.5px solid var(--rb-border-color);
+        padding: .85rem 1rem; transition: all .2s;
+        color: var(--rb-text-primary); font-size: .95rem;
+        height: auto;
     }
     .form-control:focus, .form-select:focus {
         background-color: #fff;
@@ -283,20 +284,29 @@
     .field-row {
         display: flex;
         align-items: flex-start;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
         gap: 2rem;
+    }
+    .field-row.vertical {
+        flex-direction: column;
+        gap: 0.5rem;
     }
     .field-label {
         width: 180px;
         flex-shrink: 0;
-        padding-top: calc(0.6rem + 1px); /* Align with input padding */
+        padding-top: calc(0.35rem + 1px); /* Adjusted for new padding */
         font-weight: 600;
         color: var(--rb-text-primary);
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+    }
+    .field-row.vertical .field-label {
+        width: 100%;
+        padding-top: 0;
     }
     .field-content {
         flex: 1;
         min-width: 0;
+        width: 100%;
     }
 
     /* ── Searchable Select (Custom) ── */
@@ -1466,127 +1476,185 @@
 
             <!-- Step 4: Settings & Review -->
                 <div class="step-panel" :class="{ 'active': currentStep === 4 }">
-                    <div class="step-card">
-                        <div class="step-card-body">
+                    <div class="row g-4">
+                        <!-- Left Column: Configuration & Notes -->
+                        <div class="col-lg-7">
+                            <div class="step-card h-100 mb-0">
+                                <div class="step-card-body">
+                                    <div class="step-section-heading mb-4">
+                                        <h6><i class="bi bi-gear-wide-connected me-2"></i>{{ __('Order Configuration') }}</h6>
+                                    </div>
 
-                            <!-- Job Financial Summary -->
-                            <div class="step-section-heading">
-                                <h6><i class="bi bi-calculator"></i>{{ __('Job Financial Summary') }}</h6>
-                            </div>
-                            <div class="card mb-4 border-0 shadow-sm overflow-hidden" style="border-radius: 12px; border: 1px solid #eef2f7 !important;">
-                                <div class="card-body p-0">
-                                    <table class="table table-sm table-borderless mb-0">
-                                        <thead class="bg-light">
-                                            <tr>
-                                                <th class="ps-4 py-2 text-muted fw-normal small">{{ __('Category') }}</th>
-                                                <th class="py-2 text-center text-muted fw-normal small">{{ __('Total') }}</th>
-                                                <th class="pe-4 py-2 text-end text-muted fw-normal small text-nowrap">{{ __('Tax') }} ({{ $this->default_tax_rate }}%)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr class="border-bottom">
-                                                <td class="ps-4 py-3 fw-bold">{{ __('Parts') }}</td>
-                                                <td class="py-3 text-center">{{ Number::currency($this->parts_total, $currency_code) }}</td>
-                                                <td class="pe-4 py-3 text-end text-danger">{{ Number::currency($this->parts_tax, $currency_code) }}</td>
-                                            </tr>
-                                            <tr class="border-bottom">
-                                                <td class="ps-4 py-3 fw-bold">{{ __('Services') }}</td>
-                                                <td class="py-3 text-center">{{ Number::currency($this->services_total, $currency_code) }}</td>
-                                                <td class="pe-4 py-3 text-end text-danger">{{ Number::currency($this->services_tax, $currency_code) }}</td>
-                                            </tr>
-                                            <tr class="border-bottom">
-                                                <td class="ps-4 py-3 fw-bold">{{ __('Extras') }}</td>
-                                                <td class="py-3 text-center">{{ Number::currency($this->extras_total, $currency_code) }}</td>
-                                                <td class="pe-4 py-3 text-end text-danger">{{ Number::currency($this->extras_tax, $currency_code) }}</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot class="bg-white">
-                                            <tr>
-                                                <td colspan="2" class="ps-4 pt-4 pb-2 fw-bold text-uppercase small text-muted">{{ __('Grand Total') }}</td>
-                                                <td class="pe-4 pt-4 pb-2 text-end h4 mb-0 text-primary fw-bold">
-                                                    {{ Number::currency($this->grand_total_amount, $currency_code) }}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="2" class="ps-4 py-2 text-muted">{{ __('Received') }} ({{ (int)$this->received }})</td>
-                                                <td class="pe-4 py-2 text-end">{{ Number::currency($this->received, $currency_code) }}</td>
-                                            </tr>
-                                            <tr class="border-top">
-                                                <td colspan="2" class="ps-4 py-3 fw-bold h5 mb-0">{{ __('Balance') }}</td>
-                                                <td class="pe-4 py-3 text-end h5 mb-0 fw-bold {{ $this->balance > 0 ? 'text-danger' : 'text-success' }}">
-                                                    {{ Number::currency($this->balance, $currency_code) }}
-                                                </td>
-                                            </tr>
-                                            <tr class="bg-light">
-                                                <td colspan="2" class="ps-4 py-2 fw-bold small">{{ __('Job Expenses') }}</td>
-                                                <td class="pe-4 py-2 text-end small">{{ Number::currency($this->job_expenses, $currency_code) }}</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- Order Settings -->
-                            <div class="step-section-heading">
-                                <h6><i class="bi bi-gear"></i>{{ __('Order Settings') }}</h6>
-                            </div>
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="field-row">
-                                        <label class="field-label">{{ __('Order Status') }}</label>
-                                        <div class="field-content">
-                                            <select class="form-select" wire:model.defer="status_slug">
-                                                <option value="">{{ __('Select...') }}</option>
-                                                @foreach ($jobStatuses ?? [] as $st)
-                                                    <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <div class="field-row vertical">
+                                                <label class="field-label">{{ __('Order Status') }}</label>
+                                                <div class="field-content">
+                                                    <select class="form-select" wire:model.defer="status_slug">
+                                                        <option value="">{{ __('Select Status...') }}</option>
+                                                        @foreach ($jobStatuses ?? [] as $st)
+                                                            <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('status_slug')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="field-row vertical">
+                                                <label class="field-label">{{ __('Payment Status') }}</label>
+                                                <div class="field-content">
+                                                    <select class="form-select" wire:model.defer="payment_status_slug">
+                                                        <option value="">{{ __('Select Status...') }}</option>
+                                                        @foreach ($paymentStatuses ?? [] as $st)
+                                                            <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('payment_status_slug')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="field-row vertical">
+                                                <label class="field-label">{{ __('Priority Level') }}</label>
+                                                <div class="field-content">
+                                                    <select class="form-select" wire:model.defer="priority">
+                                                        <option value="normal">{{ __('Normal') }}</option>
+                                                        <option value="high">{{ __('High') }}</option>
+                                                        <option value="urgent">{{ __('Urgent') }}</option>
+                                                    </select>
+                                                    @error('priority')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div class="field-row">
-                                        <label class="field-label">{{ __('Payment Status') }}</label>
-                                        <div class="field-content">
-                                            <select class="form-select" wire:model.defer="payment_status_slug">
-                                                <option value="">{{ __('Select...') }}</option>
-                                                @foreach ($paymentStatuses ?? [] as $st)
-                                                    <option value="{{ $st->code }}">{{ $st->label ?? $st->code }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('payment_status_slug')<div class="text-danger small">{{ $message }}</div>@enderror
-                                        </div>
+                                    <hr class="opacity-10 my-4" />
+
+                                    <div class="mb-4">
+                                        <label class="field-label fw-bold mb-2">{{ __('Job Notes (Internal / Customer)') }}</label>
+                                        <textarea class="form-control" rows="4" 
+                                                  wire:model.defer="wc_order_note" 
+                                                  placeholder="{{ __('Provide any special instructions or notes for this job...') }}"></textarea>
+                                        @error('wc_order_note')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                                     </div>
 
-                                    <div class="field-row">
-                                        <label class="field-label">{{ __('Priority') }}</label>
-                                        <div class="field-content">
-                                            <select class="form-select" wire:model.defer="priority">
-                                                <option value="normal">{{ __('Normal') }}</option>
-                                                <option value="high">{{ __('High') }}</option>
-                                                <option value="urgent">{{ __('Urgent') }}</option>
-                                            </select>
-                                            @error('priority')<div class="text-danger small">{{ $message }}</div>@enderror
+                                    <!-- Added Staff/Technicians -->
+                                    <div class="staff-assignment bg-light p-3 rounded border-start border-primary border-4">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-people-fill text-primary me-2"></i>
+                                            <span class="small fw-bold text-muted text-uppercase">{{ __('Assigned Technicians') }}</span>
                                         </div>
-                                    </div>
-
-                                    <div class="field-row">
-                                        <label class="field-label">{{ __('Order Notes') }}</label>
-                                        <div class="field-content">
-                                            <textarea class="form-control" rows="3" wire:model.defer="wc_order_note" placeholder="{{ __('Notes visible to customer.') }}"></textarea>
-                                            @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @forelse($this->technicians as $tech)
+                                                <span class="badge bg-white text-dark border px-3 py-2 fw-medium shadow-sm">
+                                                    <i class="bi bi-person me-1 text-primary"></i>{{ $tech->name }}
+                                                </span>
+                                            @empty
+                                                <span class="text-muted small italic">{{ __('No technicians assigned to this job.') }}</span>
+                                            @endforelse
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="step-navigation">
-                            <button type="button" class="btn btn-outline-secondary btn-step" @click="currentStep = 3">
-                                <i class="bi bi-arrow-left"></i> {{ __('Back') }}
-                            </button>
-                            <button type="submit" class="btn btn-success btn-step">
-                                <i class="bi bi-check2-circle"></i> {{ $jobId ? __('Update Job') : __('Create Job') }}
-                            </button>
+
+                        <!-- Right Column: Financial Receipt -->
+                        <div class="col-lg-5">
+                            <div class="card border-0 shadow-sm h-100 overflow-hidden" style="border-radius: 16px; border: 1px solid #eef2f7 !important;">
+                                <div class="bg-primary p-4 text-white text-center">
+                                    <div class="small opacity-75 text-uppercase fw-bold mb-1">{{ __('Current Balance') }}</div>
+                                    <h2 class="mb-0 fw-bold">{{ Number::currency($this->balance, $currency_code) }}</h2>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                                            <span>{{ __('Cost Breakdown') }}</span>
+                                            <span class="badge bg-light text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.7rem;">{{ __('Preview') }}</span>
+                                        </h6>
+                                        <div class="list-group list-group-flush">
+                                            <div class="list-group-item px-0 py-2 border-light d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-light rounded p-2 me-3" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-cpu text-muted"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="small fw-bold">{{ __('Replacement Parts') }}</div>
+                                                        <div class="text-muted" style="font-size: 0.7rem;">{{ $this->parts_tax > 0 ? __('Taxable') : __('No Tax') }}</div>
+                                                    </div>
+                                                </div>
+                                                <span class="fw-bold small">{{ Number::currency($this->parts_total, $currency_code) }}</span>
+                                            </div>
+
+                                            <div class="list-group-item px-0 py-2 border-light d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-light rounded p-2 me-3" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-wrench-adjustable text-muted"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="small fw-bold">{{ __('Labor & Services') }}</div>
+                                                        <div class="text-muted" style="font-size: 0.7rem;">{{ $this->services_tax > 0 ? __('Taxable') : __('No Tax') }}</div>
+                                                    </div>
+                                                </div>
+                                                <span class="fw-bold small">{{ Number::currency($this->services_total, $currency_code) }}</span>
+                                            </div>
+
+                                            <div class="list-group-item px-0 py-2 border-light d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-light rounded p-2 me-3" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-receipt text-muted"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="small fw-bold">{{ __('Other Items') }}</div>
+                                                        <div class="text-muted" style="font-size: 0.7rem;">{{ $this->extras_tax > 0 ? __('Taxable') : __('No Tax') }}</div>
+                                                    </div>
+                                                </div>
+                                                <span class="fw-bold small">{{ Number::currency($this->extras_total, $currency_code) }}</span>
+                                            </div>
+
+                                            @if($this->tax_enabled)
+                                                <div class="list-group-item px-0 py-2 border-light d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="bg-light rounded p-2 me-3" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="bi bi-percent text-muted"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="small fw-bold">{{ __('Estimated Tax') }} ({{ $this->default_tax_rate }}%)</div>
+                                                        </div>
+                                                    </div>
+                                                    <span class="text-danger fw-bold small">+ {{ Number::currency($this->parts_tax + $this->services_tax + $this->extras_tax, $currency_code) }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-light rounded-3 p-3 mb-4 border">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-muted small">{{ __('Grand Total') }}</span>
+                                            <span class="fw-bold">{{ Number::currency($this->grand_total_amount, $currency_code) }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-muted small">{{ __('Payments Received') }}</span>
+                                            <span class="text-success fw-bold small">- {{ Number::currency($this->received, $currency_code) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg py-3 rounded-3 shadow-sm fw-bold">
+                                            <i class="bi bi-check2-circle me-2"></i>{{ $jobId ? __('Update Job') : __('Create Job') }}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm py-2 rounded-3 border-0" @click="currentStep = 3">
+                                            <i class="bi bi-arrow-left me-1"></i>{{ __('Back to Items') }}
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mt-3 text-center">
+                                        <div class="text-muted" style="font-size: 0.7rem;">
+                                            <i class="bi bi-shield-check me-1 text-success"></i>{{ __('All data reviewed and ready to save') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
