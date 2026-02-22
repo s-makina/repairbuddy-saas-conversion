@@ -1,0 +1,607 @@
+/* ─── Booking Page ─── */
+
+:root {
+  --rb-primary: #063e70;
+  --rb-primary-light: #0a5a9e;
+  --rb-accent: #fd6742;
+  --rb-accent-hover: #e85a38;
+  --rb-bg: #f4f6fa;
+  --rb-card-bg: #ffffff;
+  --rb-border: #e2e8f0;
+  --rb-text: #1e293b;
+  --rb-text-muted: #64748b;
+  --rb-success: #10b981;
+  --rb-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --rb-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --rb-shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --rb-radius: 12px;
+  --rb-radius-sm: 8px;
+}
+
+/* ─ Body ─ */
+.rb-booking-body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--rb-bg);
+  color: var(--rb-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─ Header ─ */
+.rb-booking-header {
+  background: linear-gradient(135deg, var(--rb-primary) 0%, var(--rb-primary-light) 100%);
+  padding: 1rem 0;
+  box-shadow: 0 2px 8px rgba(6, 62, 112, 0.15);
+}
+
+.rb-booking-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rb-booking-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rb-booking-logo {
+  height: 40px;
+  width: auto;
+  border-radius: 6px;
+}
+
+.rb-booking-brand-name {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ─ Main ─ */
+.rb-booking-main {
+  flex: 1;
+  padding: 2rem 0 3rem;
+}
+
+/* ─ Footer ─ */
+.rb-booking-footer {
+  background: var(--rb-primary);
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  padding: 1.25rem 0;
+  font-size: 0.85rem;
+  margin-top: auto;
+}
+
+/* ─ Wizard Wrapper ─ */
+.rb-booking-wizard-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* ─ Progress Bar ─ */
+.rb-booking-progress {
+  margin-bottom: 2rem;
+}
+
+.rb-progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.rb-progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+}
+
+.rb-progress-step-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: var(--rb-text-muted);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.rb-progress-step.active .rb-progress-step-circle {
+  background: var(--rb-primary);
+  color: #fff;
+}
+
+.rb-progress-step.current .rb-progress-step-circle {
+  background: var(--rb-accent);
+  color: #fff;
+  border-color: rgba(253, 103, 66, 0.3);
+  box-shadow: 0 0 0 4px rgba(253, 103, 66, 0.15);
+}
+
+.rb-progress-step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--rb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.rb-progress-step.active .rb-progress-step-label {
+  color: var(--rb-primary);
+}
+
+.rb-progress-step.current .rb-progress-step-label {
+  color: var(--rb-accent);
+}
+
+.rb-progress-connector {
+  width: 40px;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 6px;
+  margin-bottom: 1.2rem;
+  transition: background 0.3s ease;
+}
+
+.rb-progress-connector.active {
+  background: var(--rb-primary);
+}
+
+/* ─ Step Section ─ */
+.rb-booking-step {
+  animation: rbSlideIn 0.35s ease;
+}
+
+@keyframes rbSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rb-step-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.rb-step-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--rb-text);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.rb-step-desc {
+  color: var(--rb-text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* ─ Selection Grid ─ */
+.rb-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.rb-selection-grid-compact {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+
+.rb-selection-card {
+  background: var(--rb-card-bg);
+  border: 2px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  padding: 1.25rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--rb-shadow);
+}
+
+.rb-selection-card:hover {
+  border-color: var(--rb-primary);
+  box-shadow: var(--rb-shadow-md);
+  transform: translateY(-2px);
+}
+
+.rb-selection-card-compact {
+  padding: 1rem 0.75rem;
+}
+
+.rb-selection-card-media {
+  margin-bottom: 0.75rem;
+}
+
+.rb-selection-card-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.rb-selection-card-icon,
+.rb-selection-card-icon-sm {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0edff 0%, #f0f5ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rb-primary);
+  font-size: 1.25rem;
+}
+
+.rb-selection-card-icon-sm {
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.rb-selection-card-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--rb-text);
+  line-height: 1.3;
+}
+
+/* ─ Empty state ─ */
+.rb-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--rb-text-muted);
+}
+
+.rb-empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* ─ Device Entry Card ─ */
+.rb-device-entry {
+  background: var(--rb-card-bg);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  margin-bottom: 1rem;
+  box-shadow: var(--rb-shadow);
+  overflow: hidden;
+}
+
+.rb-device-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #f0f5ff 0%, #fafcff 100%);
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-device-entry-info {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  color: var(--rb-primary);
+}
+
+.rb-device-entry-body {
+  padding: 1rem;
+}
+
+/* ─ Service List ─ */
+.rb-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rb-service-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+}
+
+.rb-service-item:hover {
+  border-color: var(--rb-primary-light);
+  background: #f8faff;
+}
+
+.rb-service-item.selected {
+  border-color: var(--rb-accent);
+  background: #fff7f5;
+  box-shadow: 0 0 0 2px rgba(253, 103, 66, 0.12);
+}
+
+.rb-service-radio {
+  accent-color: var(--rb-accent);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.rb-service-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.rb-service-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--rb-text);
+}
+
+.rb-service-type {
+  font-size: 0.75rem;
+  color: var(--rb-accent);
+  font-weight: 500;
+}
+
+.rb-service-desc {
+  font-size: 0.78rem;
+  color: var(--rb-text-muted);
+}
+
+.rb-service-price {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--rb-primary);
+  white-space: nowrap;
+}
+
+/* ─ Booking Summary (Step 5) ─ */
+.rb-booking-summary {
+  background: #f8faff;
+  border: 1px solid #e0edff;
+  border-radius: var(--rb-radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.rb-summary-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--rb-primary);
+  margin-bottom: 0.75rem;
+}
+
+.rb-summary-item {
+  padding: 0.35rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.rb-summary-device {
+  font-weight: 600;
+  color: var(--rb-text);
+}
+
+.rb-summary-service {
+  font-size: 0.82rem;
+}
+
+/* ─ Alert ─ */
+.rb-booking-alert {
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ─ Buttons ─ */
+.rb-btn-primary {
+  background: linear-gradient(135deg, var(--rb-accent) 0%, var(--rb-accent-hover) 100%);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.65rem 1.5rem;
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(253, 103, 66, 0.25);
+}
+
+.rb-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(253, 103, 66, 0.3);
+  color: #fff;
+}
+
+.rb-btn-secondary {
+  background: transparent;
+  border: 2px solid var(--rb-border);
+  color: var(--rb-text);
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.rb-btn-secondary:hover {
+  border-color: var(--rb-primary);
+  color: var(--rb-primary);
+}
+
+.rb-btn-back {
+  color: var(--rb-text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 1rem;
+  background: none;
+  border: none;
+  transition: color 0.2s ease;
+}
+
+.rb-btn-back:hover {
+  color: var(--rb-primary);
+}
+
+.rb-btn-remove {
+  color: var(--rb-text-muted);
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.rb-btn-remove:hover {
+  color: #ef4444;
+}
+
+.rb-btn-submit {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+}
+
+.rb-step-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rb-border);
+}
+
+/* ─ Success State ─ */
+.rb-booking-success {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--rb-card-bg);
+  border-radius: var(--rb-radius);
+  box-shadow: var(--rb-shadow-lg);
+  animation: rbSlideIn 0.5s ease;
+}
+
+.rb-booking-success-icon {
+  margin-bottom: 1.5rem;
+}
+
+.rb-booking-success-icon i {
+  font-size: 4rem;
+  color: var(--rb-success);
+  filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.3));
+}
+
+.rb-booking-success h2 {
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: var(--rb-text);
+  margin-bottom: 0.5rem;
+}
+
+.rb-booking-case-number {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--rb-radius-sm);
+  padding: 0.75rem 1.5rem;
+  margin-top: 1rem;
+}
+
+.rb-case-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rb-text-muted);
+}
+
+.rb-case-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--rb-text);
+  letter-spacing: 0.02em;
+}
+
+/* ─ Other service input ─ */
+.rb-other-service {
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--rb-border);
+}
+
+/* ─ Form overrides ─ */
+.rb-booking-step .form-control {
+  border-color: var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.9rem;
+}
+
+.rb-booking-step .form-control:focus {
+  border-color: var(--rb-primary-light);
+  box-shadow: 0 0 0 3px rgba(10, 90, 158, 0.1);
+}
+
+.rb-booking-step .form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--rb-text);
+}
+
+/* ─ Responsive ─ */
+@media (max-width: 576px) {
+  .rb-selection-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .rb-progress-step-label {
+    font-size: 0.62rem;
+  }
+
+  .rb-progress-step-circle {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
+  }
+
+  .rb-progress-connector {
+    width: 20px;
+  }
+
+  .rb-step-title {
+    font-size: 1.2rem;
+  }
+
+  .rb-step-actions {
+    flex-direction: column;
+  }
+
+  .rb-step-actions .btn {
+    width: 100%;
+  }
+}
