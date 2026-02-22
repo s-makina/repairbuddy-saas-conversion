@@ -1,4 +1,4 @@
-@extends('tenant.layouts.booking', ['tenant' => $tenant ?? null])
+@extends('tenant.layouts.public', ['tenant' => $tenant ?? null, 'business' => $business ?? ''])
 
 @section('title', 'Repair Status - ' . (($tenant->name ?? null) ?: config('app.name', 'RepairBuddy')))
 

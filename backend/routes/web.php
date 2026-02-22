@@ -39,7 +39,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
     return redirect()->away($frontendUrl.'/verify-email?verified=1');
 })->middleware(['signed'])->name('verification.verify');
 
-// Public booking page (no auth required)
+// Public pages (no auth required)
 Route::prefix('t/{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['web', 'tenant', 'branch.public'])
@@ -49,6 +49,18 @@ Route::prefix('t/{business}')
 
         Route::get('/status', [\App\Http\Controllers\Web\TenantStatusController::class, 'show'])
             ->name('tenant.status.show');
+
+        Route::get('/my-account', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'myaccount'])
+            ->name('tenant.myaccount');
+
+        Route::get('/services', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'services'])
+            ->name('tenant.services');
+
+        Route::get('/parts', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'parts'])
+            ->name('tenant.parts');
+
+        Route::get('/review', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'review'])
+            ->name('tenant.review');
     });
 
 Route::prefix('t/{business}')
