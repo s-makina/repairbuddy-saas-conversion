@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Tenant\Booking;
 
+use App\Models\RepairBuddyAppointmentSetting;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyDeviceBrand;
+use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyService;
 use App\Models\RepairBuddyServiceAvailabilityOverride;
@@ -29,9 +31,13 @@ class BookingForm extends Component
     public bool $turnOffOtherService = false;
     public bool $turnOffServicePrice = false;
     public bool $turnOffIdImeiBooking = false;
+    public bool $enablePinCodeField = false;
     public string $defaultTypeId = '';
     public string $defaultBrandId = '';
     public string $defaultDeviceId = '';
+
+    /* ───────── Dynamic field definitions ───────── */
+    public array $bookingFieldDefinitions = [];
 
     /* ───────── Wizard state ───────── */
     public int $step = 1;
@@ -49,9 +55,16 @@ class BookingForm extends Component
     public array $devices = [];
     public bool $isOtherDevice = false;
     public string $otherDeviceLabel = '';
+    public string $deviceSearch = '';
 
     /* ───────── Step 4: Services ───────── */
     public array $services = [];
+
+    /* ───────── Appointment Booking ───────── */
+    public array $appointmentOptions = [];
+    public ?int $selectedAppointmentId = null;
+    public string $selectedAppointmentDate = '';
+    public string $selectedTimeSlot = '';
 
     /* ───────── Device Entries ───────── */
     public array $deviceEntries = [];
@@ -139,11 +152,13 @@ class BookingForm extends Component
         $settings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');
         $settings = is_array($settings) ? $settings : [];
         $booking = is_array($settings['booking'] ?? null) ? $settings['booking'] : [];
+        $devicesBrands = is_array($settings['devicesBrands'] ?? null) ? $settings['devicesBrands'] : [];
 
         $this->turnOffOtherDeviceBrand = (bool) ($booking['turnOffOtherDeviceBrand'] ?? false);
         $this->turnOffOtherService = (bool) ($booking['turnOffOtherService'] ?? false);
         $this->turnOffServicePrice = (bool) ($booking['turnOffServicePrice'] ?? false);
         $this->turnOffIdImeiBooking = (bool) ($booking['turnOffIdImeiInBooking'] ?? false);
+        $this->enablePinCodeField = (bool) ($devicesBrands['enablePinCodeField'] ?? false);
         $this->defaultTypeId = (string) ($booking['defaultType'] ?? '');
         $this->defaultBrandId = (string) ($booking['defaultBrand'] ?? '');
         $this->defaultDeviceId = (string) ($booking['defaultDevice'] ?? '');
@@ -153,6 +168,37 @@ class BookingForm extends Component
         $this->gdprLabel = (string) ($general['wc_rb_gdpr_acceptance'] ?? '');
         $this->gdprLinkLabel = (string) ($general['wc_rb_gdpr_acceptance_link_label'] ?? '');
         $this->gdprLinkUrl = (string) ($general['wc_rb_gdpr_acceptance_link'] ?? '');
+
+        // Dynamic field definitions for booking
+        $this->bookingFieldDefinitions = RepairBuddyDeviceFieldDefinition::query()
+            ->where('is_active', true)
+            ->where('show_in_booking', true)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (RepairBuddyDeviceFieldDefinition $d) => [
+                'id' => $d->id,
+                'key' => $d->key,
+                'label' => $d->label,
+                'type' => $d->type,
+            ])
+            ->toArray();
+
+        // Load appointment options
+        $this->appointmentOptions = RepairBuddyAppointmentSetting::query()
+            ->where('is_enabled', true)
+            ->orderBy('title')
+            ->limit(50)
+            ->get()
+            ->map(fn (RepairBuddyAppointmentSetting $a) => [
+                'id' => $a->id,
+                'title' => $a->title,
+                'description' => $a->description,
+                'slot_duration_minutes' => $a->slot_duration_minutes,
+                'buffer_minutes' => $a->buffer_minutes,
+                'max_appointments_per_day' => $a->max_appointments_per_day,
+                'time_slots' => is_array($a->time_slots) ? $a->time_slots : [],
+            ])
+            ->toArray();
     }
 
     /* ─────────── data loaders ─────────── */
@@ -231,6 +277,12 @@ class BookingForm extends Component
             $query->where('is_other', false);
         }
 
+        // Apply search filter
+        $search = trim($this->deviceSearch);
+        if ($search !== '') {
+            $query->where('model', 'LIKE', '%' . $search . '%');
+        }
+
         $devices = $query->limit(1000)->get();
 
         $this->devices = $devices->map(fn (RepairBuddyDevice $d) => [
@@ -238,6 +290,14 @@ class BookingForm extends Component
             'model' => $d->model,
             'is_other' => (bool) $d->is_other,
         ])->toArray();
+    }
+
+    /**
+     * Re-filter devices when search query changes.
+     */
+    public function updatedDeviceSearch(): void
+    {
+        $this->loadDevices();
     }
 
     protected function loadServicesForDevice(int $deviceId): array
@@ -420,6 +480,7 @@ class BookingForm extends Component
 
     /**
      * Confirm custom device label and add entry with all services (no device-specific filtering).
+     * Stays on step 3 so user can add more devices.
      */
     public function confirmOtherDevice(): void
     {
@@ -432,6 +493,16 @@ class BookingForm extends Component
         $this->errorMessage = '';
         $services = $this->loadAllServices();
 
+        // Build empty extra_fields from booking field definitions
+        $extraFields = [];
+        foreach ($this->bookingFieldDefinitions as $def) {
+            $extraFields[] = [
+                'key' => $def['key'],
+                'label' => $def['label'],
+                'value_text' => '',
+            ];
+        }
+
         $this->deviceEntries[] = [
             'device_id' => null,
             'device_label' => $label,
@@ -439,7 +510,8 @@ class BookingForm extends Component
             'serial' => '',
             'pin' => '',
             'notes' => '',
-            'selectedServiceId' => null,
+            'extra_fields' => $extraFields,
+            'selectedServiceIds' => [],
             'otherService' => '',
             'services' => $services,
         ];
@@ -447,7 +519,7 @@ class BookingForm extends Component
         $this->isOtherDevice = false;
         $this->isOtherBrand = false;
         $this->otherDeviceLabel = '';
-        $this->step = 4;
+        // Stay on step 3 so user can add more devices
     }
 
     public function selectDeviceAndAddEntry(int $deviceId): void
@@ -466,6 +538,16 @@ class BookingForm extends Component
 
         $services = $this->loadServicesForDevice($deviceId);
 
+        // Build empty extra_fields from booking field definitions
+        $extraFields = [];
+        foreach ($this->bookingFieldDefinitions as $def) {
+            $extraFields[] = [
+                'key' => $def['key'],
+                'label' => $def['label'],
+                'value_text' => '',
+            ];
+        }
+
         $this->deviceEntries[] = [
             'device_id' => $deviceId,
             'device_label' => $device['model'],
@@ -473,12 +555,14 @@ class BookingForm extends Component
             'serial' => '',
             'pin' => '',
             'notes' => '',
-            'selectedServiceId' => null,
+            'extra_fields' => $extraFields,
+            'selectedServiceIds' => [],
             'otherService' => '',
             'services' => $services,
         ];
 
-        $this->step = 4;
+        // Stay on step 3 so user can add more devices
+        $this->deviceSearch = '';
     }
 
     public function removeDeviceEntry(int $idx): void
@@ -496,6 +580,44 @@ class BookingForm extends Component
     public function addAnotherDevice(): void
     {
         $this->step = 1;
+    }
+
+    /**
+     * Toggle a service selection for a device entry (multi-select).
+     */
+    public function toggleService(int $deviceIdx, int $serviceId): void
+    {
+        if (! isset($this->deviceEntries[$deviceIdx])) {
+            return;
+        }
+
+        $ids = $this->deviceEntries[$deviceIdx]['selectedServiceIds'] ?? [];
+        if (! is_array($ids)) {
+            $ids = [];
+        }
+
+        if (in_array($serviceId, $ids)) {
+            $ids = array_values(array_filter($ids, fn ($id) => $id !== $serviceId));
+        } else {
+            $ids[] = $serviceId;
+        }
+
+        $this->deviceEntries[$deviceIdx]['selectedServiceIds'] = $ids;
+    }
+
+    /**
+     * Validate selected devices and proceed to service selection (step 4).
+     */
+    public function proceedToServices(): void
+    {
+        $this->errorMessage = '';
+
+        if (count($this->deviceEntries) === 0) {
+            $this->errorMessage = 'Please add at least one device.';
+            return;
+        }
+
+        $this->step = 4;
     }
 
     /**
@@ -541,7 +663,8 @@ class BookingForm extends Component
         $this->errorMessage = '';
 
         foreach ($this->deviceEntries as $idx => $entry) {
-            if (empty($entry['selectedServiceId']) && trim($entry['otherService'] ?? '') === '') {
+            $hasServices = ! empty($entry['selectedServiceIds']) && is_array($entry['selectedServiceIds']) && count($entry['selectedServiceIds']) > 0;
+            if (! $hasServices && trim($entry['otherService'] ?? '') === '') {
                 $this->errorMessage = 'Please select a service for each device.';
                 return;
             }
@@ -604,11 +727,29 @@ class BookingForm extends Component
         $devicesPayload = [];
         foreach ($this->deviceEntries as $entry) {
             $svc = [];
-            if (! empty($entry['selectedServiceId'])) {
-                $svc[] = [
-                    'service_id' => (int) $entry['selectedServiceId'],
-                    'qty' => 1,
-                ];
+            $selectedIds = is_array($entry['selectedServiceIds'] ?? null) ? $entry['selectedServiceIds'] : [];
+            foreach ($selectedIds as $sid) {
+                if (is_numeric($sid) && (int) $sid > 0) {
+                    $svc[] = [
+                        'service_id' => (int) $sid,
+                        'qty' => 1,
+                    ];
+                }
+            }
+
+            // Build extra_fields payload
+            $extraFields = [];
+            if (is_array($entry['extra_fields'] ?? null)) {
+                foreach ($entry['extra_fields'] as $ef) {
+                    $val = is_string($ef['value_text'] ?? null) ? trim((string) $ef['value_text']) : '';
+                    if ($val !== '') {
+                        $extraFields[] = [
+                            'key' => (string) ($ef['key'] ?? ''),
+                            'label' => (string) ($ef['label'] ?? ''),
+                            'value_text' => $val,
+                        ];
+                    }
+                }
             }
 
             $devicesPayload[] = [
@@ -617,8 +758,9 @@ class BookingForm extends Component
                 'serial' => trim((string) ($entry['serial'] ?? '')),
                 'pin' => trim((string) ($entry['pin'] ?? '')),
                 'notes' => trim((string) ($entry['notes'] ?? '')),
+                'extra_fields' => $extraFields,
                 'services' => $svc,
-                'other_service' => empty($entry['selectedServiceId']) ? trim((string) ($entry['otherService'] ?? '')) : '',
+                'other_service' => empty($selectedIds) ? trim((string) ($entry['otherService'] ?? '')) : '',
             ];
         }
 
@@ -637,6 +779,11 @@ class BookingForm extends Component
                 'postalCode' => $this->postalCode,
             ],
             'devices' => $devicesPayload,
+            'appointment' => [
+                'appointment_setting_id' => $this->selectedAppointmentId,
+                'date' => $this->selectedAppointmentDate,
+                'time_slot' => $this->selectedTimeSlot,
+            ],
         ];
 
         try {

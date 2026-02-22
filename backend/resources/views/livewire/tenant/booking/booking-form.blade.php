@@ -155,19 +155,38 @@
               >
             </div>
             <button class="btn rb-btn-primary" wire:click="confirmOtherDevice">
-              Continue <i class="bi bi-arrow-right ms-1"></i>
+              <i class="bi bi-plus-circle me-1"></i> Add Device
             </button>
           </div>
         @else
-          {{-- Normal device list --}}
+          {{-- Normal device list with search --}}
           <div class="rb-step-header">
-            <h2 class="rb-step-title">Select Device</h2>
-            <p class="rb-step-desc">Choose your specific device model.</p>
+            <h2 class="rb-step-title">Select Devices</h2>
+            <p class="rb-step-desc">Search and select the devices that need repair. You can add multiple devices.</p>
           </div>
 
           <button class="btn rb-btn-back" wire:click="goBack(2)">
             <i class="bi bi-arrow-left me-1"></i> Back to Brands
           </button>
+
+          {{-- Search input --}}
+          <div class="rb-device-search-wrapper">
+            <div class="rb-device-search">
+              <i class="bi bi-search rb-device-search-icon"></i>
+              <input
+                type="text"
+                class="form-control rb-device-search-input"
+                wire:model.live.debounce.300ms="deviceSearch"
+                placeholder="Search devices..."
+                autocomplete="off"
+              >
+              @if($deviceSearch !== '')
+                <button class="rb-device-search-clear" wire:click="$set('deviceSearch', '')" type="button">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              @endif
+            </div>
+          </div>
 
           <div class="rb-selection-grid rb-selection-grid-compact">
             @forelse($devices as $device)
@@ -178,7 +197,10 @@
                 <div class="rb-selection-card-name">{{ $device['model'] }}</div>
               </div>
             @empty
-              {{-- No devices — if Other is allowed, the Other card below is the only option --}}
+              <div class="rb-empty-state">
+                <i class="bi bi-search"></i>
+                <p>No devices found{{ $deviceSearch !== '' ? ' for "' . $deviceSearch . '"' : '' }}.</p>
+              </div>
             @endforelse
 
             {{-- Other device card --}}
@@ -193,6 +215,98 @@
           </div>
         @endif
 
+        {{-- Selected Devices Section --}}
+        @if(count($deviceEntries) > 0)
+          <div class="rb-selected-devices">
+            <h6 class="rb-selected-devices-title">
+              <i class="bi bi-check2-circle me-2"></i>Selected Devices
+              <span class="rb-selected-devices-count">{{ count($deviceEntries) }}</span>
+            </h6>
+
+            @foreach($deviceEntries as $idx => $entry)
+              <div class="rb-selected-device-card" wire:key="selected-device-{{ $idx }}" x-data="{ open: true }">
+                <div class="rb-selected-device-header" @click="open = !open" style="cursor:pointer;">
+                  <div class="rb-selected-device-name">
+                    <i class="bi bi-laptop me-2"></i>
+                    <strong>{{ $entry['device_label'] }}</strong>
+                    @if(! empty($entry['is_other']))
+                      <span class="badge bg-secondary ms-2" style="font-size: .7rem;">Custom</span>
+                    @endif
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi rb-collapse-icon" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                    <button class="btn btn-sm rb-btn-remove" wire:click.stop="removeDeviceEntry({{ $idx }})" title="Remove device">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="rb-selected-device-collapse" x-show="open" x-transition.duration.200ms>
+                  <div class="rb-selected-device-fields">
+                    {{-- Serial / IMEI --}}
+                    @if(! $turnOffIdImeiBooking)
+                      <div class="rb-selected-device-field">
+                        <label class="form-label small fw-semibold">Serial / IMEI</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-sm"
+                          wire:model.defer="deviceEntries.{{ $idx }}.serial"
+                          placeholder="Enter device ID or IMEI"
+                        >
+                      </div>
+                    @endif
+
+                    {{-- Pin Code --}}
+                    @if($enablePinCodeField)
+                      <div class="rb-selected-device-field">
+                        <label class="form-label small fw-semibold">Pin Code / Password</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-sm"
+                          wire:model.defer="deviceEntries.{{ $idx }}.pin"
+                          placeholder="Enter pin code"
+                        >
+                      </div>
+                    @endif
+
+                    {{-- Dynamic fields --}}
+                    @foreach($entry['extra_fields'] ?? [] as $efIdx => $ef)
+                      <div class="rb-selected-device-field">
+                        <label class="form-label small fw-semibold">{{ $ef['label'] }}</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-sm"
+                          wire:model.defer="deviceEntries.{{ $idx }}.extra_fields.{{ $efIdx }}.value_text"
+                          placeholder="Enter {{ strtolower($ef['label']) }}"
+                        >
+                      </div>
+                    @endforeach
+
+                    {{-- Device Notes --}}
+                    <div class="rb-selected-device-field rb-selected-device-field-full">
+                      <label class="form-label small fw-semibold">Device Notes</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-sm"
+                        wire:model.defer="deviceEntries.{{ $idx }}.notes"
+                        placeholder="Any additional notes about this device"
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            @endforeach
+          </div>
+
+          {{-- Continue to Services button --}}
+          <div class="rb-step-actions">
+            <div></div>
+            <button class="btn rb-btn-primary" wire:click="proceedToServices">
+              Continue to Services <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        @endif
+
       </div>
     @endif
 
@@ -201,7 +315,7 @@
       <div class="rb-booking-step" wire:key="step-4">
         <div class="rb-step-header">
           <h2 class="rb-step-title">Select Services</h2>
-          <p class="rb-step-desc">Choose a service for each device.</p>
+          <p class="rb-step-desc">Choose one or more services for each device.</p>
         </div>
 
         <button class="btn rb-btn-back" wire:click="goBack(3)">
@@ -209,78 +323,179 @@
         </button>
 
         @foreach($deviceEntries as $idx => $entry)
-          <div class="rb-device-entry" wire:key="device-entry-{{ $idx }}">
-            <div class="rb-device-entry-header">
+          <div class="rb-device-entry" wire:key="device-entry-{{ $idx }}" x-data="{ open: true }">
+            <div class="rb-device-entry-header" @click="open = !open" style="cursor:pointer;">
               <div class="rb-device-entry-info">
                 <i class="bi bi-laptop me-2"></i>
                 <strong>{{ $entry['device_label'] }}</strong>
                 @if(! empty($entry['is_other']))
                   <span class="badge bg-secondary ms-2" style="font-size: .7rem;">Custom</span>
                 @endif
-              </div>
-              <button class="btn btn-sm rb-btn-remove" wire:click="removeDeviceEntry({{ $idx }})">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-
-            <div class="rb-device-entry-body">
-              {{-- Service list --}}
-              <div class="rb-service-list">
-                @forelse($entry['services'] ?? [] as $svc)
-                  <label class="rb-service-item {{ ($entry['selectedServiceId'] ?? null) == $svc['id'] ? 'selected' : '' }}" wire:key="svc-{{ $idx }}-{{ $svc['id'] }}">
-                    <input
-                      type="radio"
-                      name="service_{{ $idx }}"
-                      value="{{ $svc['id'] }}"
-                      wire:model.live="deviceEntries.{{ $idx }}.selectedServiceId"
-                      class="rb-service-radio"
-                    >
-                    <div class="rb-service-info">
-                      <span class="rb-service-name">{{ $svc['name'] }}</span>
-                      @if($svc['service_type_name'])
-                        <span class="rb-service-type">{{ $svc['service_type_name'] }}</span>
-                      @endif
-                      @if($svc['description'])
-                        <span class="rb-service-desc">{{ Str::limit($svc['description'], 80) }}</span>
-                      @endif
-                    </div>
-                    @if($svc['price_display'])
-                      <span class="rb-service-price">{{ $svc['price_display'] }}</span>
-                    @endif
-                  </label>
-                @empty
-                  <p class="text-muted small">No services available for this device.</p>
-                @endforelse
-
-                @if(! $turnOffOtherService)
-                  <div class="rb-other-service mt-3">
-                    <label class="form-label small fw-semibold">Or describe the service needed:</label>
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      placeholder="e.g. Screen replacement..."
-                      wire:model.live="deviceEntries.{{ $idx }}.otherService"
-                    >
-                  </div>
+                @php
+                  $selectedCount = is_array($entry['selectedServiceIds'] ?? null) ? count($entry['selectedServiceIds']) : 0;
+                @endphp
+                @if($selectedCount > 0)
+                  <span class="badge bg-success ms-2" style="font-size: .7rem;">{{ $selectedCount }} selected</span>
                 @endif
               </div>
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi rb-collapse-icon" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                <button class="btn btn-sm rb-btn-remove" wire:click.stop="removeDeviceEntry({{ $idx }})">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
 
-              {{-- Serial / IMEI (optional) --}}
-              @if(! $turnOffIdImeiBooking)
-                <div class="row mt-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-semibold">Serial / IMEI</label>
-                    <input type="text" class="form-control form-control-sm" wire:model.defer="deviceEntries.{{ $idx }}.serial" placeholder="Optional">
+            <div class="rb-device-entry-body" x-show="open" x-transition.duration.200ms>
+              @php
+                // Group services by category
+                $servicesByCategory = collect($entry['services'] ?? [])->groupBy(fn ($s) => $s['service_type_name'] ?? 'Other Services');
+                $selectedIds = is_array($entry['selectedServiceIds'] ?? null) ? $entry['selectedServiceIds'] : [];
+              @endphp
+
+              @forelse($servicesByCategory as $categoryName => $categorySvcs)
+                <div class="rb-service-category">
+                  <h6 class="rb-service-category-title">
+                    <i class="bi bi-tag-fill me-1"></i> {{ $categoryName }}
+                    <span class="rb-service-category-count">{{ count($categorySvcs) }}</span>
+                  </h6>
+
+                  <div class="rb-service-grid">
+                    @foreach($categorySvcs as $svc)
+                      @php $isSelected = in_array($svc['id'], $selectedIds); @endphp
+                      <div
+                        class="rb-service-card {{ $isSelected ? 'rb-service-card-selected' : '' }}"
+                        wire:click="toggleService({{ $idx }}, {{ $svc['id'] }})"
+                        wire:key="svc-{{ $idx }}-{{ $svc['id'] }}"
+                      >
+                        <div class="rb-service-card-check">
+                          <i class="bi {{ $isSelected ? 'bi-check-circle-fill' : 'bi-circle' }}"></i>
+                        </div>
+                        <div class="rb-service-card-body">
+                          <div class="rb-service-card-name">{{ $svc['name'] }}</div>
+                          @if($svc['description'])
+                            <div class="rb-service-card-desc">{{ Str::limit($svc['description'], 60) }}</div>
+                          @endif
+                        </div>
+                        @if($svc['price_display'])
+                          <div class="rb-service-card-price">{{ $svc['price_display'] }}</div>
+                        @endif
+                      </div>
+                    @endforeach
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-semibold">Device Notes</label>
-                    <input type="text" class="form-control form-control-sm" wire:model.defer="deviceEntries.{{ $idx }}.notes" placeholder="Optional">
-                  </div>
+                </div>
+              @empty
+                <p class="text-muted small px-3 py-2">No services available for this device.</p>
+              @endforelse
+
+              @if(! $turnOffOtherService)
+                <div class="rb-other-service px-3 pb-3">
+                  <label class="form-label small fw-semibold">Or describe the service needed:</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    placeholder="e.g. Screen replacement..."
+                    wire:model.live="deviceEntries.{{ $idx }}.otherService"
+                  >
                 </div>
               @endif
             </div>
           </div>
         @endforeach
+
+        {{-- Appointment Scheduling (optional) --}}
+        @if(count($appointmentOptions) > 0)
+          <div class="rb-appointment-section">
+            <h5 class="rb-appointment-title">
+              <i class="bi bi-calendar-check me-2"></i>Schedule an Appointment
+              <span class="badge bg-info bg-opacity-10 text-info ms-2" style="font-size:.7rem;">Optional</span>
+            </h5>
+            <p class="rb-appointment-desc text-muted small">Select an appointment type, date, and preferred time slot.</p>
+
+            {{-- Appointment option cards --}}
+            <div class="rb-appointment-options">
+              @foreach($appointmentOptions as $opt)
+                <div
+                  class="rb-appointment-option-card {{ $selectedAppointmentId === $opt['id'] ? 'rb-appointment-option-selected' : '' }}"
+                  wire:click="$set('selectedAppointmentId', {{ $opt['id'] }})"
+                  wire:key="appt-{{ $opt['id'] }}"
+                >
+                  <div class="rb-appointment-option-check">
+                    <i class="bi {{ $selectedAppointmentId === $opt['id'] ? 'bi-check-circle-fill' : 'bi-circle' }}"></i>
+                  </div>
+                  <div class="rb-appointment-option-body">
+                    <div class="fw-semibold">{{ $opt['title'] }}</div>
+                    @if($opt['description'])
+                      <div class="text-muted small">{{ $opt['description'] }}</div>
+                    @endif
+                    <div class="text-muted small mt-1">
+                      <i class="bi bi-clock me-1"></i>{{ $opt['slot_duration_minutes'] }} min
+                    </div>
+                  </div>
+                </div>
+              @endforeach
+            </div>
+
+            {{-- Date + Time picker (shown when an option is selected) --}}
+            @if($selectedAppointmentId)
+              <div class="rb-appointment-datetime mt-3">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Preferred Date</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      wire:model.live="selectedAppointmentDate"
+                      min="{{ date('Y-m-d') }}"
+                    >
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Preferred Time</label>
+                    @php
+                      $activeOption = collect($appointmentOptions)->firstWhere('id', $selectedAppointmentId);
+                      $enabledSlots = $activeOption ? collect($activeOption['time_slots'] ?? [])->where('enabled', true) : collect();
+                      $dayOfWeek = $selectedAppointmentDate ? strtolower(date('l', strtotime($selectedAppointmentDate))) : null;
+                      $todaySlot = $dayOfWeek ? $enabledSlots->firstWhere('day', $dayOfWeek) : null;
+                    @endphp
+
+                    @if($selectedAppointmentDate && $todaySlot)
+                      @php
+                        $duration = $activeOption['slot_duration_minutes'] ?? 30;
+                        $buffer = $activeOption['buffer_minutes'] ?? 0;
+                        $startMinutes = intval(substr($todaySlot['start'], 0, 2)) * 60 + intval(substr($todaySlot['start'], 3, 2));
+                        $endMinutes = intval(substr($todaySlot['end'], 0, 2)) * 60 + intval(substr($todaySlot['end'], 3, 2));
+                        $slots = [];
+                        $current = $startMinutes;
+                        while ($current + $duration <= $endMinutes) {
+                          $h = str_pad((string) intdiv($current, 60), 2, '0', STR_PAD_LEFT);
+                          $m = str_pad((string) ($current % 60), 2, '0', STR_PAD_LEFT);
+                          $slots[] = "{$h}:{$m}";
+                          $current += $duration + $buffer;
+                        }
+                      @endphp
+
+                      <div class="rb-time-slot-grid">
+                        @foreach($slots as $slot)
+                          <button
+                            type="button"
+                            class="rb-time-slot {{ $selectedTimeSlot === $slot ? 'rb-time-slot-selected' : '' }}"
+                            wire:click="$set('selectedTimeSlot', '{{ $slot }}')"
+                          >
+                            {{ $slot }}
+                          </button>
+                        @endforeach
+                      </div>
+                    @elseif($selectedAppointmentDate && ! $todaySlot)
+                      <p class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i>No appointments available on this day. Please select a different date.</p>
+                    @else
+                      <p class="text-muted small mt-2">Select a date to see available times.</p>
+                    @endif
+                  </div>
+                </div>
+              </div>
+            @endif
+          </div>
+        @endif
 
         <div class="rb-step-actions">
           <button class="btn rb-btn-secondary" wire:click="addAnotherDevice">

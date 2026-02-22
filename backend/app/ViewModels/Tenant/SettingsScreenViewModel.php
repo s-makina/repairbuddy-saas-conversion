@@ -5,6 +5,7 @@ namespace App\ViewModels\Tenant;
 use App\Models\RepairBuddyDeviceBrand;
 use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyEstimate;
+use App\Models\RepairBuddyAppointmentSetting;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyTax;
 use App\Models\Role;
@@ -630,6 +631,7 @@ class SettingsScreenViewModel
                 ['id' => 'wcrb_reviews_tab', 'label' => __('Job Reviews'), 'view' => 'tenant.settings.sections.reviews'],
                 ['id' => 'wc_rb_manage_account', 'label' => __('My Account Settings'), 'view' => 'tenant.settings.sections.account'],
                 ['id' => 'wcrb_signature_workflow', 'label' => __('Signature Workflow'), 'view' => 'tenant.settings.sections.signature'],
+                ['id' => 'wcrb_appointments_tab', 'label' => __('Appointments'), 'view' => 'tenant.settings.sections.appointments'],
             ],
             'deviceBrands' => $deviceBrands,
             'devicesBrandsUi' => $devicesBrandsUi,
@@ -763,6 +765,10 @@ class SettingsScreenViewModel
             'delivery_date_label_none' => 'delivery_date',
             'nextservice_date_label_none' => 'nextservice_date',
             'pagesSetupValues' => $pagesSetupValues,
+            'appointmentSettings' => RepairBuddyAppointmentSetting::query()
+                ->orderByDesc('id')
+                ->limit(100)
+                ->get(),
         ];
     }
 }

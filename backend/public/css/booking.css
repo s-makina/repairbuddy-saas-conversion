@@ -310,6 +310,360 @@
   padding: 1rem;
 }
 
+/* ─ Device Search ─ */
+.rb-device-search-wrapper {
+  margin-bottom: 1rem;
+}
+
+.rb-device-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rb-device-search-icon {
+  position: absolute;
+  left: 0.875rem;
+  color: var(--rb-text-muted);
+  font-size: 0.95rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.rb-device-search-input {
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+  border-radius: var(--rb-radius) !important;
+  border-color: var(--rb-border) !important;
+  font-size: 0.9rem !important;
+  height: 44px;
+  background: var(--rb-card-bg);
+  box-shadow: var(--rb-shadow);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rb-device-search-input:focus {
+  border-color: var(--rb-primary-light) !important;
+  box-shadow: 0 0 0 3px rgba(10, 90, 158, 0.1) !important;
+}
+
+.rb-device-search-clear {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--rb-text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.rb-device-search-clear:hover {
+  color: #ef4444;
+}
+
+/* ─ Selected Devices Section ─ */
+.rb-selected-devices {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--rb-border);
+}
+
+.rb-selected-devices-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--rb-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.rb-selected-devices-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--rb-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+}
+
+/* ─ Selected Device Card ─ */
+.rb-selected-device-card {
+  background: var(--rb-card-bg);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  margin-bottom: 0.75rem;
+  box-shadow: var(--rb-shadow);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.rb-selected-device-card:hover {
+  border-color: var(--rb-primary-light);
+}
+
+.rb-selected-device-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, #f0f5ff 0%, #fafcff 100%);
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-selected-device-name {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--rb-primary);
+}
+
+.rb-selected-device-fields {
+  padding: 0.875rem 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.rb-selected-device-field-full {
+  grid-column: 1 / -1;
+}
+
+/* ─ Collapsible cards ─ */
+.rb-selected-device-collapse {
+  overflow: hidden;
+}
+
+.rb-collapse-icon {
+  font-size: 0.8rem;
+  color: var(--rb-text-muted);
+  transition: transform 0.2s ease;
+}
+
+/* ─ Service Category ─ */
+.rb-service-category {
+  padding: 0.75rem 1rem;
+}
+
+.rb-service-category+.rb-service-category {
+  border-top: 1px solid var(--rb-border);
+}
+
+.rb-service-category-title {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--rb-primary);
+  margin-bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rb-service-category-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--rb-bg);
+  color: var(--rb-text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+/* ─ Service Card Grid ─ */
+.rb-service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.6rem;
+}
+
+.rb-service-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.875rem;
+  border: 2px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  background: var(--rb-card-bg);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.rb-service-card:hover {
+  border-color: var(--rb-primary-light);
+  box-shadow: var(--rb-shadow-md);
+}
+
+.rb-service-card-selected {
+  border-color: var(--rb-accent);
+  background: #fff8f6;
+  box-shadow: 0 0 0 1px var(--rb-accent), var(--rb-shadow);
+}
+
+.rb-service-card-selected:hover {
+  border-color: var(--rb-accent-hover);
+}
+
+.rb-service-card-check {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 1.1rem;
+  color: var(--rb-border);
+  transition: color 0.2s ease;
+}
+
+.rb-service-card-selected .rb-service-card-check {
+  color: var(--rb-accent);
+}
+
+.rb-service-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.rb-service-card-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--rb-text);
+  line-height: 1.3;
+}
+
+.rb-service-card-desc {
+  font-size: 0.75rem;
+  color: var(--rb-text-muted);
+  margin-top: 0.2rem;
+  line-height: 1.3;
+}
+
+.rb-service-card-price {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--rb-primary);
+  white-space: nowrap;
+  padding: 0.2rem 0.5rem;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
+  border-radius: 4px;
+}
+
+/* ─ Appointment Booking ─ */
+.rb-appointment-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+}
+
+.rb-appointment-title {
+  font-weight: 700;
+  color: var(--rb-text);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.rb-appointment-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.rb-appointment-option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 2px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  background: var(--rb-card-bg);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rb-appointment-option-card:hover {
+  border-color: var(--rb-primary-light);
+  box-shadow: var(--rb-shadow);
+}
+
+.rb-appointment-option-selected {
+  border-color: var(--rb-accent);
+  background: #fff8f6;
+  box-shadow: 0 0 0 1px var(--rb-accent);
+}
+
+.rb-appointment-option-check {
+  font-size: 1.1rem;
+  color: var(--rb-border);
+  flex-shrink: 0;
+}
+
+.rb-appointment-option-selected .rb-appointment-option-check {
+  color: var(--rb-accent);
+}
+
+.rb-appointment-option-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.rb-appointment-datetime {
+  background: var(--rb-card-bg);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  padding: 1rem;
+}
+
+.rb-time-slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.rb-time-slot {
+  padding: 0.4rem 0.75rem;
+  border: 1.5px solid var(--rb-border);
+  border-radius: 6px;
+  background: var(--rb-card-bg);
+  color: var(--rb-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rb-time-slot:hover {
+  border-color: var(--rb-primary-light);
+  background: #f0f5ff;
+}
+
+.rb-time-slot-selected {
+  border-color: var(--rb-accent);
+  background: var(--rb-accent);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(253, 103, 66, 0.25);
+}
+
+.rb-time-slot-selected:hover {
+  background: var(--rb-accent-hover);
+  border-color: var(--rb-accent-hover);
+}
+
 /* ─ Service List ─ */
 .rb-service-list {
   display: flex;

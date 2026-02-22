@@ -63,6 +63,7 @@ class TenantSettingsController extends Controller
             'reviews' => 'tenant.settings.sections.reviews',
             'account' => 'tenant.settings.sections.account',
             'signature' => 'tenant.settings.sections.signature',
+            'appointments' => 'tenant.settings.sections.appointments',
         ]);
 
         if (! $allowed->has($section)) {

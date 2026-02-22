@@ -632,6 +632,21 @@ Route::prefix('t/{business}')
         Route::post('/settings/signature', [\App\Http\Controllers\Tenant\Settings\SignatureSettingsController::class, 'update'])
             ->name('tenant.settings.signature.update');
 
+        Route::post('/settings/appointments', [\App\Http\Controllers\Tenant\Settings\AppointmentSettingsController::class, 'store'])
+            ->name('tenant.settings.appointments.store');
+
+        Route::post('/settings/appointments/{setting}/update', [\App\Http\Controllers\Tenant\Settings\AppointmentSettingsController::class, 'update'])
+            ->where(['setting' => '[0-9]+' ])
+            ->name('tenant.settings.appointments.update');
+
+        Route::post('/settings/appointments/{setting}/toggle', [\App\Http\Controllers\Tenant\Settings\AppointmentSettingsController::class, 'toggle'])
+            ->where(['setting' => '[0-9]+' ])
+            ->name('tenant.settings.appointments.toggle');
+
+        Route::post('/settings/appointments/{setting}/delete', [\App\Http\Controllers\Tenant\Settings\AppointmentSettingsController::class, 'delete'])
+            ->where(['setting' => '[0-9]+' ])
+            ->name('tenant.settings.appointments.delete');
+
         Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
             ->name('tenant.jobs.create');
 
