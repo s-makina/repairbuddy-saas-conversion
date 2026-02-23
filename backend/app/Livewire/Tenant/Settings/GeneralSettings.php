@@ -34,8 +34,7 @@ class GeneralSettings extends Component
     public string $gdpr_link_label = 'Privacy policy';
     public string $gdpr_link_url = '';
 
-    /* ─── Select Options ─────────────────────────── */
-    public array $countries = [];
+    /* ─── Select Options (passed via render, not serialized in Livewire state) ── */
 
     protected function rules(): array
     {
@@ -64,7 +63,7 @@ class GeneralSettings extends Component
     {
         if ($this->tenant instanceof Tenant && is_int($this->tenant->id)) {
             TenantContext::set($this->tenant);
-            $branch = $this->tenant->branches()->where('is_default', true)->first();
+            $branch = $this->tenant->defaultBranch;
             if ($branch) {
                 BranchContext::set($branch);
             }
@@ -97,9 +96,6 @@ class GeneralSettings extends Component
         $this->gdpr_acceptance = (string) ($general['wc_rb_gdpr_acceptance'] ?? 'I understand that I will be contacted by a representative regarding this request and I agree to the privacy policy.');
         $this->gdpr_link_label = (string) ($general['wc_rb_gdpr_acceptance_link_label'] ?? 'Privacy policy');
         $this->gdpr_link_url = (string) ($general['wc_rb_gdpr_acceptance_link'] ?? '');
-
-        // Load country options
-        $this->countries = $this->getCountryOptions();
     }
 
     public function save(): void
@@ -165,6 +161,8 @@ class GeneralSettings extends Component
 
     public function render()
     {
-        return view('livewire.tenant.settings.sections.general-settings');
+        return view('livewire.tenant.settings.sections.general-settings', [
+            'countries' => $this->getCountryOptions(),
+        ]);
     }
 }

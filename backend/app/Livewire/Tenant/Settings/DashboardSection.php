@@ -14,9 +14,38 @@ class DashboardSection extends Component
 {
     public $tenant;
 
+    /** Lazy-loaded stats */
+    public bool $statsLoaded = false;
+    public array $jobStatusList = [];
+    public array $estimateCountList = ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+
     public function mount(Tenant $tenant): void
     {
         $this->tenant = $tenant;
+    }
+
+    public function hydrate(): void
+    {
+        if ($this->tenant instanceof Tenant && is_int($this->tenant->id)) {
+            TenantContext::set($this->tenant);
+            $branch = $this->tenant->defaultBranch;
+            if ($branch) {
+                BranchContext::set($branch);
+            }
+        }
+    }
+
+    /**
+     * Called via wire:init — runs after the page is rendered so the UI is interactive immediately.
+     */
+    public function loadStats(): void
+    {
+        if ($this->statsLoaded) {
+            return;
+        }
+        $this->jobStatusList = $this->buildJobStatuses();
+        $this->estimateCountList = $this->buildEstimateCounts();
+        $this->statsLoaded = true;
     }
 
     /**
@@ -61,7 +90,7 @@ class DashboardSection extends Component
     /**
      * Job status list with counts for the current branch.
      */
-    public function getJobStatusesProperty(): array
+    private function buildJobStatuses(): array
     {
         $tenant = TenantContext::tenant();
         $branch = BranchContext::branch();
@@ -105,7 +134,7 @@ class DashboardSection extends Component
     /**
      * Estimate status counts for the current branch.
      */
-    public function getEstimateCountsProperty(): array
+    private function buildEstimateCounts(): array
     {
         $tenant = TenantContext::tenant();
         $branch = BranchContext::branch();

@@ -70,7 +70,7 @@ class MaintenanceReminderSettings extends Component
     {
         if ($this->tenant instanceof Tenant && is_int($this->tenant->id)) {
             TenantContext::set($this->tenant);
-            $branch = $this->tenant->branches()->where('is_default', true)->first();
+            $branch = $this->tenant->defaultBranch;
             if ($branch) {
                 BranchContext::set($branch);
             }

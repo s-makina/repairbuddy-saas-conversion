@@ -15,20 +15,8 @@ class SettingsPage extends Component
     public string $activeNav = 'settings';
     public string $pageTitle = 'Settings';
 
-    /* ─── Navigation ─────────────────────────────── */
+    /* ─── Navigation (only used for initial render, Alpine owns this after) ── */
     public string $activeSection = 'dashboard';
-
-    /* ─── Section Registry ───────────────────────── */
-    public array $sections = [];
-
-    /* ─── Flash messages ─────────────────────────── */
-    public string $flashMessage = '';
-    public string $flashType = 'success';
-
-    protected $listeners = [
-        'settings-saved' => 'handleSettingsSaved',
-        'navigate-section' => 'switchSection',
-    ];
 
     public function mount(): void
     {
@@ -39,53 +27,57 @@ class SettingsPage extends Component
             abort(400, 'Tenant is missing.');
         }
 
-        $this->sections = $this->buildSectionRegistry();
-
-        // Restore section from URL hash or query
+        // Restore section from URL query
         $requestedSection = request()->query('section', '');
-        if ($requestedSection && array_key_exists($requestedSection, $this->sections)) {
+        if ($requestedSection && array_key_exists($requestedSection, $this->buildSectionRegistry())) {
             $this->activeSection = $requestedSection;
         }
     }
 
     public function hydrate(): void
     {
-        // Re-set tenant context on subsequent Livewire requests
         if ($this->tenant instanceof Tenant && is_int($this->tenant->id)) {
             TenantContext::set($this->tenant);
-            $branch = $this->tenant->branches()->where('is_default', true)->first();
+            $branch = $this->tenant->defaultBranch;
             if ($branch) {
                 BranchContext::set($branch);
             }
         }
     }
 
-    public function switchSection(string $section): void
+    public function getSectionGroupsProperty(): array
     {
-        if (array_key_exists($section, $this->sections)) {
-            $this->activeSection = $section;
-            $this->flashMessage = '';
-        }
-    }
+        $sections = $this->buildSectionRegistry();
+        $groups = [
+            'dashboard' => ['label' => '', 'sections' => []],
+            'core' => ['label' => 'Core', 'sections' => []],
+            'workflow' => ['label' => 'Jobs & Workflow', 'sections' => []],
+            'communication' => ['label' => 'Communication', 'sections' => []],
+            'catalog' => ['label' => 'Catalog', 'sections' => []],
+            'scheduling' => ['label' => 'Scheduling', 'sections' => []],
+            'appearance' => ['label' => 'Appearance', 'sections' => []],
+            'account' => ['label' => 'Account & Security', 'sections' => []],
+        ];
 
-    public function handleSettingsSaved(string $message = 'Settings saved successfully.'): void
-    {
-        $this->flashMessage = $message;
-        $this->flashType = 'success';
+        foreach ($sections as $key => $section) {
+            $group = $section['group'] ?? 'core';
+            if (isset($groups[$group])) {
+                $groups[$group]['sections'][$key] = $section;
+            }
+        }
+
+        return array_filter($groups, fn ($g) => ! empty($g['sections']));
     }
 
     private function buildSectionRegistry(): array
     {
         return [
-            // ── Dashboard ──
             'dashboard' => [
                 'label' => 'Dashboard',
                 'icon' => 'home',
                 'group' => 'dashboard',
                 'component' => 'tenant.settings.dashboard-section',
             ],
-
-            // ── Core ──
             'general' => [
                 'label' => 'General Settings',
                 'icon' => 'cog-6-tooth',
@@ -104,8 +96,6 @@ class SettingsPage extends Component
                 'group' => 'core',
                 'component' => 'tenant.settings.invoice-settings',
             ],
-
-            // ── Jobs & Workflow ──
             'job-status' => [
                 'label' => 'Job Status',
                 'icon' => 'clipboard-document-list',
@@ -130,8 +120,6 @@ class SettingsPage extends Component
                 'group' => 'workflow',
                 'component' => 'tenant.settings.signature-settings',
             ],
-
-            // ── Communication ──
             'sms' => [
                 'label' => 'SMS',
                 'icon' => 'chat-bubble-left-right',
@@ -144,8 +132,6 @@ class SettingsPage extends Component
                 'group' => 'communication',
                 'component' => 'tenant.settings.review-settings',
             ],
-
-            // ── Catalog ──
             'devices-brands' => [
                 'label' => 'Devices & Brands',
                 'icon' => 'device-phone-mobile',
@@ -164,8 +150,6 @@ class SettingsPage extends Component
                 'group' => 'catalog',
                 'component' => 'tenant.settings.tax-settings',
             ],
-
-            // ── Scheduling ──
             'bookings' => [
                 'label' => 'Booking Settings',
                 'icon' => 'calendar',
@@ -184,8 +168,6 @@ class SettingsPage extends Component
                 'group' => 'scheduling',
                 'component' => 'tenant.settings.maintenance-reminder-settings',
             ],
-
-            // ── Appearance ──
             'styling' => [
                 'label' => 'Styling & Labels',
                 'icon' => 'paint-brush',
@@ -198,8 +180,6 @@ class SettingsPage extends Component
                 'group' => 'appearance',
                 'component' => 'tenant.settings.time-log-settings',
             ],
-
-            // ── Account & Security ──
             'account' => [
                 'label' => 'My Account Settings',
                 'icon' => 'user-circle',
@@ -209,31 +189,10 @@ class SettingsPage extends Component
         ];
     }
 
-    public function getSectionGroupsProperty(): array
-    {
-        $groups = [
-            'dashboard' => ['label' => '', 'sections' => []],
-            'core' => ['label' => 'Core', 'sections' => []],
-            'workflow' => ['label' => 'Jobs & Workflow', 'sections' => []],
-            'communication' => ['label' => 'Communication', 'sections' => []],
-            'catalog' => ['label' => 'Catalog', 'sections' => []],
-            'scheduling' => ['label' => 'Scheduling', 'sections' => []],
-            'appearance' => ['label' => 'Appearance', 'sections' => []],
-            'account' => ['label' => 'Account & Security', 'sections' => []],
-        ];
-
-        foreach ($this->sections as $key => $section) {
-            $group = $section['group'] ?? 'core';
-            if (isset($groups[$group])) {
-                $groups[$group]['sections'][$key] = $section;
-            }
-        }
-
-        return array_filter($groups, fn ($g) => ! empty($g['sections']));
-    }
-
     public function render()
     {
-        return view('livewire.tenant.settings.settings-page');
+        return view('livewire.tenant.settings.settings-page', [
+            'sections' => $this->buildSectionRegistry(),
+        ]);
     }
 }

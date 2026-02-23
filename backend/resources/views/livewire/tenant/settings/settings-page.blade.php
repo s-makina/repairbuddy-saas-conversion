@@ -31,6 +31,22 @@
 
 [x-cloak] { display: none !important; }
 
+/* Hide wire:loading elements before Livewire JS initializes (prevents spinner flash on load) */
+[wire\:loading] { display: none; }
+
+/* Livewire error dialog: override the body>* hide rule so it's visible and dismissable */
+dialog#livewire-error {
+    display: block !important;
+    position: fixed !important;
+    z-index: 2147483647 !important;
+    pointer-events: all !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+}
+
+
+
 /* ── Page Container ── */
 .st-page {
     background: linear-gradient(160deg, #e8f4fd 0%, #f4f8fb 30%, #edf1f5 100%);
@@ -362,11 +378,12 @@
 .st-btn-save:hover { background: var(--st-brand-dark); box-shadow: 0 2px 8px rgba(14,165,233,.3); }
 .st-btn-save:disabled { opacity: .6; cursor: not-allowed; }
 .st-btn-save .st-spinner {
-    display: inline-block; width: 14px; height: 14px;
+    width: 14px; height: 14px;
     border: 2px solid rgba(255,255,255,.3);
     border-top-color: #fff;
     border-radius: 50%;
     animation: stSpin .6s linear infinite;
+    /* display is controlled by wire:loading — do not set here */
 }
 @keyframes stSpin { to { transform: rotate(360deg); } }
 
@@ -585,11 +602,21 @@
 
 <div class="st-page"
      x-data="{
-        activeSection: @entangle('activeSection'),
-        flash: @entangle('flashMessage'),
-        flashType: @entangle('flashType'),
-        mobileMenuOpen: false
+        activeSection: '{{ $activeSection }}',
+        flash: '',
+        flashType: 'success',
+        mobileMenuOpen: false,
+        showSection(key) {
+            this.activeSection = key;
+            this.mobileMenuOpen = false;
+            window.history.replaceState(null, '', '?section=' + key);
+        }
      }"
+     @settings-saved.window="
+        flash = ($event.detail?.message || 'Settings saved successfully.');
+        flashType = 'success';
+        setTimeout(() => { flash = ''; }, 5000);
+     "
      x-cloak>
 
     {{-- ═══ Top Bar ═══ --}}
@@ -627,8 +654,7 @@
                         @foreach ($group['sections'] as $sectionKey => $section)
                             <li class="st-sidebar-item"
                                 :class="{ 'active': activeSection === '{{ $sectionKey }}' }"
-                                wire:click="switchSection('{{ $sectionKey }}')"
-                                @click="activeSection = '{{ $sectionKey }}'; mobileMenuOpen = false; window.history.replaceState(null, '', '?section={{ $sectionKey }}')">
+                                @click="showSection('{{ $sectionKey }}')">
                                 @include('livewire.tenant.settings.partials.nav-icon', ['icon' => $section['icon']])
                                 <span>{{ $section['label'] }}</span>
                                 @if ($section['component'] === null)
@@ -645,7 +671,7 @@
         <main class="st-content">
 
             {{-- Flash message --}}
-            <template x-if="flash && flash.length > 0">
+            <template x-if="flash.length > 0">
                 <div class="st-flash"
                      :class="flashType === 'success' ? 'st-flash-success' : 'st-flash-error'">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -656,7 +682,7 @@
                 </div>
             </template>
 
-            {{-- Section content --}}
+            {{-- Section content — x-show for instant switching, all components in live DOM --}}
             @foreach ($sections as $sectionKey => $section)
                 <div x-show="activeSection === '{{ $sectionKey }}'" x-cloak>
                     @if ($section['component'])
