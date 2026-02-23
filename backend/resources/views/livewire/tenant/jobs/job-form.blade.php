@@ -741,6 +741,24 @@
         appearance: auto;
     }
     .jf-tax-select:focus { border-color: #d97706; }
+    .jf-tax-rate-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        font-size: .74rem;
+        font-weight: 600;
+        padding: .2rem .6rem;
+        border-radius: 999px;
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #6ee7b7;
+        white-space: nowrap;
+    }
+    .jf-tax-rate-pill--none {
+        background: #fef2f2;
+        color: #991b1b;
+        border-color: #fca5a5;
+    }
     .jf-tax-error { font-size: .74rem; color: var(--rb-danger); }
 
     .jf-subtotal-bar {
@@ -1387,6 +1405,17 @@
                                     <option value="inclusive">{{ __('Inclusive — tax included in price') }}</option>
                                     <option value="exclusive">{{ __('Exclusive — tax added on top') }}</option>
                                 </select>
+                                @if($this->default_tax_info)
+                                    <span class="jf-tax-rate-pill">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        {{ $this->default_tax_info['name'] }} &mdash; {{ number_format($this->default_tax_info['rate'], 2) }}%
+                                    </span>
+                                @else
+                                    <span class="jf-tax-rate-pill jf-tax-rate-pill--none">
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ __('No default tax rate configured') }}
+                                    </span>
+                                @endif
                                 @error('prices_inclu_exclu')<span class="jf-tax-error">{{ $message }}</span>@enderror
                             </div>
                         </div>

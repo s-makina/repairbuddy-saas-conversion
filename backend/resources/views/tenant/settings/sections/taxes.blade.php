@@ -166,7 +166,13 @@
 											@endphp
 											<td>{{ $rateUi }}%</td>
 											<td>{{ $t->is_active ? __('Active') : __('Inactive') }}</td>
-											<td>{{ $t->is_default ? __('Yes') : __('No') }}</td>
+											<td>
+												@if($t->is_default)
+													<span class="badge text-bg-success">{{ __('Default') }}</span>
+												@else
+													<span class="text-muted small">—</span>
+												@endif
+											</td>
 											<td class="text-end">
 												<button
 													type="button"
@@ -181,6 +187,14 @@
 												>
 													{{ __('Edit') }}
 												</button>
+												@unless($t->is_default)
+													<form method="post" action="{{ route('tenant.settings.taxes.default', ['business' => $tenant->slug, 'tax' => $t->id]) }}" class="d-inline ms-1">
+														@csrf
+														<button type="submit" class="btn btn-sm btn-outline-secondary" title="{{ __('Set as default tax') }}">
+															{{ __('Set Default') }}
+														</button>
+													</form>
+												@endunless
 											</td>
 										</tr>
 									@endforeach

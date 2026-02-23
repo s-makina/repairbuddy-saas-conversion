@@ -45,6 +45,14 @@ class TaxSettingsController extends Controller
         $taxSettings['defaultTaxId'] = is_int($defaultTaxId) ? (string) $defaultTaxId : null;
         $taxSettings['invoiceAmounts'] = $validated['wc_prices_inclu_exclu'];
 
+        // Sync is_default on the model so both sources stay consistent
+        if (is_int($defaultTaxId)) {
+            RepairBuddyTax::query()->where('is_default', true)->update(['is_default' => false]);
+            RepairBuddyTax::query()->whereKey($defaultTaxId)->update(['is_default' => true]);
+        } elseif ($defaultTaxId === null) {
+            RepairBuddyTax::query()->where('is_default', true)->update(['is_default' => false]);
+        }
+
         $store->set('taxes', $taxSettings);
         $tenant->save();
 

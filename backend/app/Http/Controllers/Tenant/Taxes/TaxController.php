@@ -90,7 +90,7 @@ class TaxController extends Controller
             ->withInput();
     }
 
-    public function setActive(SetTaxActiveRequest $request, int $tax): RedirectResponse
+    public function setActive(SetTaxActiveRequest $request, string $tax): RedirectResponse
     {
         $tenant = TenantContext::tenant();
 
@@ -100,19 +100,17 @@ class TaxController extends Controller
 
         $validated = $request->validated();
 
-        $taxModel = RepairBuddyTax::query()->whereKey($tax)->firstOrFail();
+        $taxModel = RepairBuddyTax::query()->whereKey((int) $tax)->firstOrFail();
         $taxModel->forceFill([
             'is_active' => (bool) $validated['is_active'],
         ])->save();
 
         return redirect()
-            ->to(route('tenant.dashboard', ['business' => $tenant->slug]).'?screen=settings')
-            ->withFragment('wc_rb_manage_taxes')
-            ->with('status', 'Tax updated.')
-            ->withInput();
+            ->to(route('tenant.settings', ['business' => $tenant->slug]).'#wc_rb_manage_taxes')
+            ->with('status', 'Tax updated.');
     }
 
-    public function setDefault(int $tax): RedirectResponse
+    public function setDefault(\Illuminate\Http\Request $request, string $tax): RedirectResponse
     {
         $tenant = TenantContext::tenant();
 
@@ -120,7 +118,7 @@ class TaxController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
-        $taxModel = RepairBuddyTax::query()->whereKey($tax)->firstOrFail();
+        $taxModel = RepairBuddyTax::query()->whereKey((int) $tax)->firstOrFail();
 
         DB::transaction(function () use ($taxModel) {
             RepairBuddyTax::query()->where('is_default', true)->update(['is_default' => false]);
@@ -140,9 +138,7 @@ class TaxController extends Controller
         $tenant->save();
 
         return redirect()
-            ->to(route('tenant.dashboard', ['business' => $tenant->slug]).'?screen=settings')
-            ->withFragment('wc_rb_manage_taxes')
-            ->with('status', 'Default tax updated.')
-            ->withInput();
+            ->to(route('tenant.settings', ['business' => $tenant->slug]).'#wc_rb_manage_taxes')
+            ->with('status', 'Default tax updated.');
     }
 }

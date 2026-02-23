@@ -40,6 +40,8 @@ class JobForm extends Component
 
     public bool $enablePinCodeField = false;
     public bool $tax_enabled = false;
+    public ?string $default_tax_mode = null;
+    public ?int $default_tax_id = null;
     public string $currency_code = 'USD';
     public string $currency_symbol = '$';
 
@@ -176,6 +178,11 @@ class JobForm extends Component
         $store = new TenantSettingsStore($this->tenant);
         $taxSettings = $store->get('taxes', []);
         $this->tax_enabled = (bool) ($taxSettings['enableTaxes'] ?? false);
+        $this->default_tax_mode = is_string($taxSettings['invoiceAmounts'] ?? null)
+            ? (string) $taxSettings['invoiceAmounts']
+            : null;
+        $rawDefaultTaxId = $taxSettings['defaultTaxId'] ?? null;
+        $this->default_tax_id = is_numeric($rawDefaultTaxId) ? (int) $rawDefaultTaxId : null;
 
         $this->currency_code = $this->tenant->currency ?? 'USD';
         try {
@@ -194,7 +201,9 @@ class JobForm extends Component
         $this->title = $jobModel?->title;
         $this->status_slug = is_string($jobModel?->status_slug) ? (string) $jobModel?->status_slug : null;
         $this->payment_status_slug = is_string($jobModel?->payment_status_slug) ? (string) $jobModel?->payment_status_slug : null;
-        $this->prices_inclu_exclu = is_string($jobModel?->prices_inclu_exclu) ? (string) $jobModel?->prices_inclu_exclu : null;
+        $this->prices_inclu_exclu = is_string($jobModel?->prices_inclu_exclu)
+            ? (string) $jobModel->prices_inclu_exclu
+            : $this->default_tax_mode;
         $this->priority = is_string($jobModel?->priority) ? (string) $jobModel?->priority : null;
         $this->can_review_it = $jobModel ? (bool) $jobModel->can_review_it : true;
         $this->customer_id = $jobModel?->customer_id;
@@ -941,11 +950,30 @@ class JobForm extends Component
 
     public function getDefaultTaxRateProperty(): float
     {
+        if (!$this->default_tax_id) {
+            return 0;
+        }
+
         return (float) (\App\Models\RepairBuddyTax::query()
             ->where('tenant_id', (int) $this->tenant->id)
             ->where('is_active', true)
-            ->where('is_default', true)
+            ->whereKey($this->default_tax_id)
             ->value('rate') ?? 0);
+    }
+
+    public function getDefaultTaxInfoProperty(): ?array
+    {
+        if (!$this->default_tax_id) {
+            return null;
+        }
+
+        $tax = \App\Models\RepairBuddyTax::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_active', true)
+            ->whereKey($this->default_tax_id)
+            ->first(['name', 'rate']);
+
+        return $tax ? ['name' => $tax->name, 'rate' => (float) $tax->rate] : null;
     }
 
     public function getPartsTotalProperty(): float

@@ -33,6 +33,26 @@ class TenantSettingsController extends Controller
         return view('tenant.settings.index', $vm->toArray());
     }
 
+    public function showV2(Request $request)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $request->user()) {
+            return redirect()->route('web.login');
+        }
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        return view('tenant.settings.index-v2', [
+            'tenant' => $tenant,
+            'user' => $request->user(),
+            'activeNav' => 'settings',
+            'pageTitle' => 'Settings',
+        ]);
+    }
+
     public function section(Request $request, string $business, string $section)
     {
         $tenant = TenantContext::tenant();

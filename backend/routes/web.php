@@ -73,6 +73,9 @@ Route::prefix('t/{business}')
         Route::get('/settings', [\App\Http\Controllers\Web\TenantSettingsController::class, 'show'])
             ->name('tenant.settings');
 
+        Route::get('/settings/v2', [\App\Http\Controllers\Web\TenantSettingsController::class, 'showV2'])
+            ->name('tenant.settings.v2');
+
         Route::get('/settings/users', [\App\Http\Controllers\Web\Settings\UsersController::class, 'index'])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.index');
