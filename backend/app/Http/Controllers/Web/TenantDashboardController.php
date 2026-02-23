@@ -460,41 +460,8 @@ HTML;
         }
 
         if ($screen === 'estimates' || $screen === 'estimates_card') {
-            $current_view = $screen === 'estimates_card' ? 'card' : 'table';
-            $_page = $screen === 'estimates_card' ? 'estimates_card' : 'estimates';
-
-            $view_label = $current_view === 'card' ? 'Table View' : 'Card View';
-
-            $view_url = $tenant?->slug
-                ? route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=' . ($current_view === 'card' ? 'estimates' : 'estimates_card')
-                : '#';
-
-            $baseDashboardUrl = $tenant?->slug
-                ? route('tenant.dashboard', ['business' => $tenant->slug])
-                : '#';
-
-            return view('tenant.estimates', [
-                'tenant' => $tenant,
-                'user' => $user,
-                'activeNav' => 'estimates',
-                'pageTitle' => 'Estimates',
-                'role' => is_string($user?->role) ? (string) $user->role : null,
-                'current_view' => $current_view,
-                '_page' => $_page,
-                'view_label' => $view_label,
-                'view_url' => $view_url,
-                'license_state' => true,
-                'use_store_select' => false,
-                'clear_filters_url' => $baseDashboardUrl !== '#'
-                    ? ($baseDashboardUrl . '?screen=' . $_page)
-                    : '#',
-                'export_buttons_html' => '',
-                'duplicate_job_front_box_html' => '',
-                'jobs_list' => [
-                    'rows' => '',
-                    'pagination' => '',
-                ],
-            ]);
+            // Redirect to standalone estimates page
+            return redirect()->route('tenant.estimates.index', ['business' => $tenant->slug]);
         }
 
         if ($screen === 'calendar') {

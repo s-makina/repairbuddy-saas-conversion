@@ -111,7 +111,7 @@
       'id' => 'estimates',
       'title' => 'Estimates',
       'icon' => 'bi bi-file-earmark-text',
-      'url' => $screenUrl('estimates'),
+      'url' => $tenantSlug ? route('tenant.estimates.index', ['business' => $tenantSlug]) : '#',
       'access' => ['all'],
     ],
     [

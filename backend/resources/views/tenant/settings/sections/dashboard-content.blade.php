@@ -88,8 +88,8 @@
 				$key = (string) ($w['key'] ?? '');
 				$label = (string) ($w['label'] ?? $key);
 				$count = (int) ($estimateCounts[$key] ?? 0);
-				$link = $dashboardBaseUrl !== '#'
-					? ($dashboardBaseUrl . '?screen=estimates&estimate_status=' . urlencode($key))
+				$link = isset($tenantSlug) && $tenantSlug
+					? route('tenant.estimates.index', ['business' => $tenantSlug]) . '?status=' . urlencode($key)
 					: '#';
 				$icon = asset('repairbuddy/plugin/assets/admin/images/icons/estimate.png');
 			@endphp

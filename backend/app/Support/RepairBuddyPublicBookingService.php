@@ -97,7 +97,7 @@ class RepairBuddyPublicBookingService
             }
         }
 
-        $sendToJobs = (bool) ($booking['sendBookingQuoteToJobs'] ?? ($estimates['bookingQuoteSendToJobs'] ?? true));
+        $sendToJobs = (bool) ($booking['sendBookingQuoteToJobs'] ?? ($estimates['bookingQuoteSendToJobs'] ?? false));
         $disableEstimates = (bool) ($estimates['disableEstimates'] ?? false);
 
         if ($disableEstimates) {

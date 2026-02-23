@@ -82,4 +82,9 @@ class RepairBuddyEstimate extends Model
     {
         return $this->hasMany(RepairBuddyEstimateToken::class, 'estimate_id');
     }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(RepairBuddyEstimateAttachment::class, 'estimate_id');
+    }
 }

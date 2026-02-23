@@ -683,6 +683,53 @@ Route::prefix('t/{business}')
         Route::get('/jobs/datatable', [\App\Http\Controllers\Web\TenantJobController::class, 'datatable'])
             ->name('tenant.jobs.datatable');
 
+        /* ------------------------------------------------------------ */
+        /*  ESTIMATES – standalone pages                                 */
+        /* ------------------------------------------------------------ */
+        Route::get('/estimates', [\App\Http\Controllers\Web\TenantEstimateController::class, 'index'])
+            ->name('tenant.estimates.index');
+
+        Route::get('/estimates/new', [\App\Http\Controllers\Web\TenantEstimateController::class, 'create'])
+            ->name('tenant.estimates.create');
+
+        Route::get('/estimates/datatable', [\App\Http\Controllers\Web\TenantEstimateController::class, 'datatable'])
+            ->name('tenant.estimates.datatable');
+
+        Route::get('/estimates/{estimateId}', [\App\Http\Controllers\Web\TenantEstimateController::class, 'show'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.show');
+
+        Route::get('/estimates/{estimateId}/edit', [\App\Http\Controllers\Web\TenantEstimateController::class, 'edit'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.edit');
+
+        Route::post('/estimates', [\App\Http\Controllers\Web\TenantEstimateController::class, 'store'])
+            ->name('tenant.estimates.store');
+
+        Route::put('/estimates/{estimateId}', [\App\Http\Controllers\Web\TenantEstimateController::class, 'update'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.update');
+
+        Route::post('/estimates/{estimateId}/approve', [\App\Http\Controllers\Web\TenantEstimateController::class, 'approve'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.approve');
+
+        Route::post('/estimates/{estimateId}/reject', [\App\Http\Controllers\Web\TenantEstimateController::class, 'reject'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.reject');
+
+        Route::post('/estimates/{estimateId}/convert', [\App\Http\Controllers\Web\TenantEstimateController::class, 'convert'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.convert');
+
+        Route::post('/estimates/{estimateId}/send', [\App\Http\Controllers\Web\TenantEstimateController::class, 'send'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.send');
+
+        Route::delete('/estimates/{estimateId}', [\App\Http\Controllers\Web\TenantEstimateController::class, 'destroy'])
+            ->where(['estimateId' => '[0-9]+' ])
+            ->name('tenant.estimates.destroy');
+
         Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
             ->name('tenant.calendar.events');
 
