@@ -43,7 +43,7 @@
 
     /* ── Page background override ── */
     .container-fluid.jf-page {
-        background: var(--rb-bg);
+        background: linear-gradient(160deg, #e8f4fd 0%, #f4f8fb 30%, #edf1f5 100%);
         min-height: 100vh;
         margin: -1rem -1rem 0 -1rem;
         padding: 0;
@@ -57,35 +57,112 @@
 
     /* ── Sticky Top Bar ── */
     .jf-top-bar {
-        background: var(--rb-card);
+        background: rgba(255,255,255,.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--rb-border);
-        padding: .75rem 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
         position: sticky;
         top: 0;
         z-index: 100;
-        box-shadow: 0 1px 4px rgba(0,0,0,.03);
+        box-shadow: 0 1px 0 var(--rb-border), 0 2px 8px rgba(14,165,233,.04);
     }
-    .jf-top-bar .jf-left { display: flex; align-items: center; gap: 1rem; }
-    .jf-top-bar .jf-left h1 {
-        font-size: 1.15rem;
+    .jf-top-bar-inner {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: .65rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .jf-top-bar-inner .jf-left { display: flex; align-items: center; gap: 1rem; }
+
+    /* Back button */
+    .jf-back-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid var(--rb-border);
+        background: #fff;
+        color: var(--rb-text-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        flex-shrink: 0;
+        font-size: .88rem;
+        transition: all .15s;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .jf-back-btn:hover {
+        background: var(--rb-bg);
+        color: var(--rb-brand);
+        border-color: var(--rb-brand);
+    }
+
+    /* Page title block */
+    .jf-title-block { line-height: 1.2; }
+    .jf-title-block .jf-page-title {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        font-size: 1rem;
         font-weight: 800;
         color: var(--rb-text);
-        margin: 0;
+        margin: 0 0 .15rem 0;
     }
-    .jf-top-bar .jf-left h1 i { color: var(--rb-brand); }
-    .jf-top-bar .jf-breadcrumb {
-        font-size: .78rem;
+    .jf-title-block .jf-page-title i { color: var(--rb-brand); font-size: .9rem; }
+    .jf-title-block .jf-mode-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        font-size: .65rem;
+        font-weight: 700;
+        padding: .15rem .55rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+    .jf-mode-badge.mode-create {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+    .jf-mode-badge.mode-edit {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+
+    /* Breadcrumb */
+    .jf-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: .2rem;
+        font-size: .72rem;
         color: var(--rb-text-3);
         margin: 0;
+        list-style: none;
+        padding: 0;
     }
-    .jf-top-bar .jf-breadcrumb a {
-        color: var(--rb-brand);
+    .jf-breadcrumb a {
+        color: var(--rb-text-3);
         text-decoration: none;
+        transition: color .12s;
     }
-    .jf-top-bar .jf-right { display: flex; gap: .5rem; }
+    .jf-breadcrumb a:hover { color: var(--rb-brand); }
+    .jf-breadcrumb .jf-bc-sep {
+        font-size: .6rem;
+        opacity: .4;
+        margin: 0 .05rem;
+    }
+    .jf-breadcrumb .jf-bc-current {
+        color: var(--rb-text-2);
+        font-weight: 600;
+    }
+
+    .jf-top-bar-inner .jf-right { display: flex; gap: .5rem; }
 
     .jf-btn {
         padding: .5rem 1.25rem;
@@ -794,24 +871,40 @@
 
     {{-- ════════ STICKY TOP BAR ════════ --}}
     <header class="jf-top-bar">
-        <div class="jf-left">
-            <div>
-                <h1><i class="bi bi-tools"></i> {{ $jobId ? __('Edit Job') : __('Create New Job') }}</h1>
-                <p class="jf-breadcrumb">
-                    <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) }}">{{ __('Dashboard') }}</a>
-                    /
-                    <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}">{{ __('Jobs') }}</a>
-                    / {{ $jobId ? __('Edit') : __('New') }}
-                </p>
+        <div class="jf-top-bar-inner">
+            <div class="jf-left">
+                {{-- Back button --}}
+                <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}"
+                   class="jf-back-btn" title="{{ __('Back to Jobs') }}">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                {{-- Title + breadcrumb --}}
+                <div class="jf-title-block">
+                    <h1 class="jf-page-title">
+                        <i class="bi bi-tools"></i>
+                        {{ $jobId ? __('Edit Job') : __('Create New Job') }}
+                        <span class="jf-mode-badge {{ $jobId ? 'mode-edit' : 'mode-create' }}">
+                            <i class="bi {{ $jobId ? 'bi-pencil' : 'bi-plus-lg' }}"></i>
+                            {{ $jobId ? __('Edit') : __('New') }}
+                        </span>
+                    </h1>
+                    <ol class="jf-breadcrumb">
+                        <li><a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) }}">{{ __('Dashboard') }}</a></li>
+                        <li><i class="bi bi-chevron-right jf-bc-sep"></i></li>
+                        <li><a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}">{{ __('Jobs') }}</a></li>
+                        <li><i class="bi bi-chevron-right jf-bc-sep"></i></li>
+                        <li><span class="jf-bc-current">{{ $jobId ? __('Edit') : __('New Repair Job') }}</span></li>
+                    </ol>
+                </div>
             </div>
-        </div>
-        <div class="jf-right">
-            <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}" class="jf-btn jf-btn-cancel">
-                <i class="bi bi-x-lg"></i> {{ __('Cancel') }}
-            </a>
-            <button type="submit" form="job-form" class="jf-btn jf-btn-save">
-                <i class="bi bi-check-lg"></i> {{ $jobId ? __('Update Job') : __('Create Job') }}
-            </button>
+            <div class="jf-right">
+                <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}" class="jf-btn jf-btn-cancel">
+                    <i class="bi bi-x-lg"></i> {{ __('Cancel') }}
+                </a>
+                <button type="submit" form="job-form" class="jf-btn jf-btn-save">
+                    <i class="bi bi-check-lg"></i> {{ $jobId ? __('Update Job') : __('Create Job') }}
+                </button>
+            </div>
         </div>
     </header>
 
