@@ -146,6 +146,149 @@
 
     /* ── Line-total in item rows ── */
     .ef-line-total { font-size: .82rem; font-weight: 700; color: var(--ef-primary); white-space: nowrap; }
+
+    /* ═══════════ TAB BAR ═══════════ */
+    .ef-tab-bar {
+        display: flex; gap: .25rem; padding: 0 0 .75rem; border-bottom: 2px solid var(--ef-border);
+        margin-bottom: 1rem; overflow-x: auto;
+    }
+    .ef-tab-btn {
+        display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .875rem;
+        font-size: .82rem; font-weight: 600; color: var(--ef-text-muted); background: none;
+        border: none; border-bottom: 2px solid transparent; margin-bottom: -2px;
+        cursor: pointer; transition: all .15s; white-space: nowrap; border-radius: 6px 6px 0 0;
+    }
+    .ef-tab-btn:hover { color: var(--ef-primary); background: var(--ef-primary-light); }
+    .ef-tab-btn.active { color: var(--ef-primary); border-bottom-color: var(--ef-primary); background: var(--ef-primary-light); }
+    .ef-tab-badge {
+        display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+        border-radius: 999px; font-size: .68rem; font-weight: 700; padding: 0 .35rem;
+        background: var(--ef-border); color: var(--ef-text-muted);
+    }
+    .ef-tab-btn.active .ef-tab-badge { background: var(--ef-primary); color: #fff; }
+
+    /* ═══════════ TAB PANELS ═══════════ */
+    .ef-tab-panel { display: none; }
+    .ef-tab-panel.active { display: block; }
+
+    /* ═══════════ SEARCH BAR ═══════════ */
+    .ef-search-bar {
+        display: flex; align-items: center; gap: .5rem; padding: .625rem 0; margin-bottom: .5rem;
+    }
+    .ef-search-wrap {
+        flex: 1; position: relative; display: flex; align-items: center;
+        border: 1px solid var(--ef-border); border-radius: var(--ef-radius-sm);
+        background: var(--ef-bg-subtle); transition: border-color .15s, box-shadow .15s;
+    }
+    .ef-search-wrap:focus-within { border-color: var(--ef-primary); box-shadow: 0 0 0 3px rgba(79,70,229,.1); background: #fff; }
+    .ef-search-wrap .search-icon { padding: 0 .75rem; color: var(--ef-text-light); font-size: .9rem; flex-shrink: 0; }
+    .ef-search-wrap input {
+        flex: 1; border: none; background: transparent; padding: .45rem .5rem .45rem 0;
+        font-size: .84rem; color: var(--ef-text); outline: none;
+    }
+    .ef-search-wrap input::placeholder { color: var(--ef-text-light); }
+
+    /* ── Autocomplete dropdown ── */
+    .ef-ac-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; z-index: 1060;
+        background: #fff; border: 1px solid var(--ef-border); border-radius: var(--ef-radius-sm);
+        box-shadow: var(--ef-shadow-md); max-height: 260px; overflow-y: auto;
+        display: none; margin-top: 4px;
+    }
+    .ef-ac-dropdown.open { display: block; }
+    .ef-ac-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: .55rem .875rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background .1s;
+    }
+    .ef-ac-item:last-child { border-bottom: none; }
+    .ef-ac-item:hover { background: var(--ef-primary-light); }
+    .ef-ac-item .ac-name { font-weight: 500; font-size: .84rem; color: var(--ef-text); }
+    .ef-ac-item .ac-code { font-size: .72rem; color: var(--ef-text-muted); }
+    .ef-ac-item .ac-price { font-weight: 700; font-size: .82rem; color: var(--ef-primary); white-space: nowrap; }
+    .ef-ac-empty { padding: .875rem; text-align: center; color: var(--ef-text-light); font-size: .82rem; }
+
+    /* ═══════════ ITEM CARDS ═══════════ */
+    .ef-item-card {
+        display: flex; align-items: center; gap: .75rem;
+        padding: .75rem 1rem; border: 1px solid var(--ef-border); border-radius: var(--ef-radius-sm);
+        background: #fff; margin-bottom: .5rem; transition: border-color .15s, box-shadow .15s;
+    }
+    .ef-item-card:hover { border-color: var(--ef-border-hover); box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+
+    .ef-item-icon {
+        width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+        justify-content: center; font-size: 1rem; flex-shrink: 0;
+    }
+    .ef-item-icon.ic-part { background: #ede9fe; color: #6d28d9; }
+    .ef-item-icon.ic-service { background: #fef3c7; color: #92400e; }
+    .ef-item-icon.ic-product { background: #dbeafe; color: #1e40af; }
+    .ef-item-icon.ic-other { background: #f1f5f9; color: #475569; }
+
+    .ef-item-body { flex: 1; min-width: 0; }
+    .ef-item-name { font-weight: 600; font-size: .88rem; color: var(--ef-text); }
+    .ef-item-code { font-size: .72rem; color: var(--ef-text-muted); }
+
+    .ef-item-controls {
+        display: flex; align-items: center; gap: .5rem; flex-shrink: 0;
+    }
+    .ef-item-controls .qty-inp {
+        width: 52px; text-align: center; border: 1px solid var(--ef-border); border-radius: 6px;
+        padding: .3rem; font-size: .82rem; font-weight: 600; color: var(--ef-text);
+    }
+    .ef-item-controls .qty-inp:focus { border-color: var(--ef-primary); outline: none; box-shadow: 0 0 0 2px rgba(79,70,229,.12); }
+    .ef-item-controls .price-grp {
+        display: flex; align-items: center; border: 1px solid var(--ef-border); border-radius: 6px;
+        overflow: hidden; background: #fff;
+    }
+    .ef-item-controls .price-grp:focus-within { border-color: var(--ef-primary); box-shadow: 0 0 0 2px rgba(79,70,229,.12); }
+    .ef-item-controls .price-grp .cur { padding: .3rem .4rem; background: var(--ef-bg-subtle); font-size: .72rem; color: var(--ef-text-muted); font-weight: 600; border-right: 1px solid var(--ef-border); }
+    .ef-item-controls .price-grp input {
+        width: 80px; border: none; padding: .3rem .4rem; font-size: .82rem; text-align: right;
+        color: var(--ef-text); outline: none; background: transparent;
+    }
+
+    .ef-item-total {
+        min-width: 70px; text-align: right; font-weight: 700; font-size: .88rem;
+        color: var(--ef-primary); white-space: nowrap;
+    }
+
+    .ef-item-remove {
+        border: none; background: none; color: var(--ef-text-light); cursor: pointer;
+        width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; transition: all .15s;
+    }
+    .ef-item-remove:hover { background: #fef2f2; color: #dc2626; }
+
+    /* ── Section subtotal ── */
+    .ef-subtotal-bar {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: .625rem 1rem; background: var(--ef-bg-subtle); border-radius: var(--ef-radius-sm);
+        border: 1px solid var(--ef-border); margin-top: .25rem; margin-bottom: .5rem;
+    }
+    .ef-subtotal-bar .lbl { font-size: .82rem; font-weight: 600; color: var(--ef-text-muted); }
+    .ef-subtotal-bar .amt { font-size: .95rem; font-weight: 800; color: var(--ef-primary); }
+
+    /* ── Improved device card ── */
+    .ef-device-card {
+        border: 1px solid var(--ef-border); border-radius: var(--ef-radius-sm);
+        padding: .875rem 1rem; margin-bottom: .5rem; background: #fff; position: relative;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .ef-device-card:hover { border-color: var(--ef-primary-border); box-shadow: 0 2px 8px rgba(79,70,229,.06); }
+    .ef-device-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .625rem; }
+    .ef-device-icon { width: 32px; height: 32px; border-radius: 8px; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+    .ef-device-title { font-weight: 600; font-size: .85rem; color: var(--ef-text); }
+    .ef-device-num { font-size: .72rem; font-weight: 700; color: var(--ef-text-light); }
+
+    /* ── Responsive overrides ── */
+    @media (max-width: 767.98px) {
+        .ef-tab-bar { gap: .125rem; }
+        .ef-tab-btn { padding: .4rem .5rem; font-size: .75rem; }
+        .ef-search-bar { flex-wrap: wrap; }
+        .ef-item-card { flex-wrap: wrap; gap: .5rem; }
+        .ef-item-controls { width: 100%; justify-content: flex-start; }
+        .ef-item-total { min-width: auto; }
+    }
 </style>
 @endpush
 
@@ -319,7 +462,7 @@
                 </div>
             </div>
 
-            {{-- ── Section 4: Line Items ── --}}
+            {{-- ── Section 4: Line Items (Tabbed) ── --}}
             <div class="ef-section" id="section-items">
                 <div class="ef-section-header active" onclick="toggleSection('items')">
                     <span class="ef-section-num" id="num-items">4</span>
@@ -328,27 +471,116 @@
                     <i class="bi bi-chevron-down ef-section-chevron"></i>
                 </div>
                 <div class="ef-section-body show" id="body-items">
-                    <div id="itemsContainer">
-                        {{-- Rows injected by JS --}}
-                    </div>
-                    <div id="itemsEmpty" class="ef-empty">
-                        <i class="bi bi-receipt"></i>
-                        <p>{{ __('No line items yet. Add products, parts, services, or extras below.') }}</p>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                        <button type="button" class="ef-btn-add" onclick="addItemRow('product')">
-                            <i class="bi bi-box"></i>{{ __('Product') }}
+                    {{-- Tab Bar --}}
+                    <div class="ef-tab-bar">
+                        <button type="button" class="ef-tab-btn active" data-tab="part" onclick="switchItemTab('part')">
+                            <i class="bi bi-cpu"></i> {{ __('Parts') }}
+                            <span class="ef-tab-badge" id="tab-count-part">0</span>
                         </button>
-                        <button type="button" class="ef-btn-add" onclick="addItemRow('part')">
-                            <i class="bi bi-cpu"></i>{{ __('Part') }}
+                        <button type="button" class="ef-tab-btn" data-tab="service" onclick="switchItemTab('service')">
+                            <i class="bi bi-wrench"></i> {{ __('Services') }}
+                            <span class="ef-tab-badge" id="tab-count-service">0</span>
                         </button>
-                        <button type="button" class="ef-btn-add" onclick="addItemRow('service')">
-                            <i class="bi bi-wrench"></i>{{ __('Service') }}
+                        <button type="button" class="ef-tab-btn" data-tab="product" onclick="switchItemTab('product')">
+                            <i class="bi bi-box"></i> {{ __('Products') }}
+                            <span class="ef-tab-badge" id="tab-count-product">0</span>
                         </button>
-                        <button type="button" class="ef-btn-add" onclick="addItemRow('other')">
-                            <i class="bi bi-plus-circle"></i>{{ __('Extra') }}
+                        <button type="button" class="ef-tab-btn" data-tab="other" onclick="switchItemTab('other')">
+                            <i class="bi bi-plus-circle"></i> {{ __('Other') }}
+                            <span class="ef-tab-badge" id="tab-count-other">0</span>
                         </button>
                     </div>
+
+                    {{-- ── Parts Tab ── --}}
+                    <div class="ef-tab-panel active" id="panel-part">
+                        <div class="ef-search-bar">
+                            <div class="ef-search-wrap">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" id="partSearchInput" placeholder="{{ __('Search part by name or SKU…') }}" autocomplete="off" />
+                                <div class="ef-ac-dropdown" id="partAcDropdown"></div>
+                            </div>
+                            <button type="button" class="btn btn-sm px-3" style="background:var(--ef-primary);color:#fff;font-weight:600;border-radius:var(--ef-radius-sm);" onclick="addItemRow('part')">
+                                <i class="bi bi-plus-lg me-1"></i>{{ __('Add Part') }}
+                            </button>
+                        </div>
+                        <div id="container-part"></div>
+                        <div class="ef-empty" id="empty-part">
+                            <i class="bi bi-cpu"></i>
+                            <p>{{ __('No parts added yet. Search above or click "Add Part".') }}</p>
+                        </div>
+                        <div class="ef-subtotal-bar" id="subtotal-part" style="display:none;">
+                            <span class="lbl">{{ __('Parts Subtotal') }}</span>
+                            <span class="amt" id="subtotal-val-part">$0.00</span>
+                        </div>
+                    </div>
+
+                    {{-- ── Services Tab ── --}}
+                    <div class="ef-tab-panel" id="panel-service">
+                        <div class="ef-search-bar">
+                            <div class="ef-search-wrap">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" id="serviceSearchInput" placeholder="{{ __('Search service by name or code…') }}" autocomplete="off" />
+                                <div class="ef-ac-dropdown" id="serviceAcDropdown"></div>
+                            </div>
+                            <button type="button" class="btn btn-sm px-3" style="background:var(--ef-primary);color:#fff;font-weight:600;border-radius:var(--ef-radius-sm);" onclick="addItemRow('service')">
+                                <i class="bi bi-plus-lg me-1"></i>{{ __('Add Service') }}
+                            </button>
+                        </div>
+                        <div id="container-service"></div>
+                        <div class="ef-empty" id="empty-service">
+                            <i class="bi bi-wrench"></i>
+                            <p>{{ __('No services added yet. Search above or click "Add Service".') }}</p>
+                        </div>
+                        <div class="ef-subtotal-bar" id="subtotal-service" style="display:none;">
+                            <span class="lbl">{{ __('Services Subtotal') }}</span>
+                            <span class="amt" id="subtotal-val-service">$0.00</span>
+                        </div>
+                    </div>
+
+                    {{-- ── Products Tab ── --}}
+                    <div class="ef-tab-panel" id="panel-product">
+                        <div class="ef-search-bar">
+                            <div class="ef-search-wrap" style="opacity:.5;pointer-events:none;">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" placeholder="{{ __('Manual entry — add below') }}" disabled />
+                            </div>
+                            <button type="button" class="btn btn-sm px-3" style="background:var(--ef-primary);color:#fff;font-weight:600;border-radius:var(--ef-radius-sm);" onclick="addItemRow('product')">
+                                <i class="bi bi-plus-lg me-1"></i>{{ __('Add Product') }}
+                            </button>
+                        </div>
+                        <div id="container-product"></div>
+                        <div class="ef-empty" id="empty-product">
+                            <i class="bi bi-box"></i>
+                            <p>{{ __('No products added yet. Click "Add Product" to create a line item.') }}</p>
+                        </div>
+                        <div class="ef-subtotal-bar" id="subtotal-product" style="display:none;">
+                            <span class="lbl">{{ __('Products Subtotal') }}</span>
+                            <span class="amt" id="subtotal-val-product">$0.00</span>
+                        </div>
+                    </div>
+
+                    {{-- ── Other Tab ── --}}
+                    <div class="ef-tab-panel" id="panel-other">
+                        <div class="ef-search-bar">
+                            <div class="ef-search-wrap" style="opacity:.5;pointer-events:none;">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" placeholder="{{ __('Manual entry — add below') }}" disabled />
+                            </div>
+                            <button type="button" class="btn btn-sm px-3" style="background:var(--ef-primary);color:#fff;font-weight:600;border-radius:var(--ef-radius-sm);" onclick="addItemRow('other')">
+                                <i class="bi bi-plus-lg me-1"></i>{{ __('Add Extra') }}
+                            </button>
+                        </div>
+                        <div id="container-other"></div>
+                        <div class="ef-empty" id="empty-other">
+                            <i class="bi bi-plus-circle"></i>
+                            <p>{{ __('No extras added yet. Click "Add Extra" for a miscellaneous charge.') }}</p>
+                        </div>
+                        <div class="ef-subtotal-bar" id="subtotal-other" style="display:none;">
+                            <span class="lbl">{{ __('Other Subtotal') }}</span>
+                            <span class="amt" id="subtotal-val-other">$0.00</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -400,17 +632,24 @@
 </form>
 
 @push('page-scripts')
+@php
+    $jsDeviceOptions = $customerDevices->map(fn($d) => ['id' => $d->id, 'label' => $d->label ?? 'Device #'.$d->id])->values();
+    $jsPartOptions = $parts->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku ?? '', 'price' => round(($p->price_amount_cents ?? 0) / 100, 2)])->values();
+    $jsServiceOptions = $services->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'code' => $s->service_code ?? '', 'price' => round(($s->base_price_amount_cents ?? 0) / 100, 2)])->values();
+@endphp
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ── Data from PHP ──
     const existingDevices = @json($existingDevices);
-    const customerDeviceOptions = @json($customerDevices->map(fn($d) => ['id' => $d->id, 'label' => $d->label ?? 'Device #'.$d->id])->values());
+    const customerDeviceOptions = @json($jsDeviceOptions);
     const existingItems = @json($existingItems);
-    const partOptions = @json($parts->map(fn($p) => ['id' => $p->id, 'name' => $p->name])->values());
-    const serviceOptions = @json($services->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values());
+    const partOptions = @json($jsPartOptions);
+    const serviceOptions = @json($jsServiceOptions);
 
     let deviceIdx = 0;
     let itemIdx = 0;
+    const itemTypes = ['part', 'service', 'product', 'other'];
+    let activeTab = 'part';
 
     // ── Section toggle ──
     window.toggleSection = function(sectionId) {
@@ -421,57 +660,83 @@ document.addEventListener('DOMContentLoaded', function() {
         body.classList.toggle('show');
     };
 
+    // ── Tab switching ──
+    window.switchItemTab = function(tab) {
+        activeTab = tab;
+        document.querySelectorAll('.ef-tab-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        document.querySelectorAll('.ef-tab-panel').forEach(function(panel) {
+            panel.classList.toggle('active', panel.id === 'panel-' + tab);
+        });
+    };
+
     // ── Helpers ──
     function escHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
     function escAttr(str) { return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function fmtMoney(n) { return '$' + (parseFloat(n) || 0).toFixed(2); }
 
     function updateCounts() {
-        const dc = document.querySelectorAll('#devicesContainer .ef-repeater-row').length;
-        const ic = document.querySelectorAll('#itemsContainer .ef-repeater-row').length;
+        const dc = document.querySelectorAll('#devicesContainer .ef-device-card').length;
         document.getElementById('deviceCount').textContent = dc;
-        document.getElementById('itemCount').textContent = ic;
         document.getElementById('devicesEmpty').style.display = dc > 0 ? 'none' : 'block';
-        document.getElementById('itemsEmpty').style.display = ic > 0 ? 'none' : 'block';
-
-        // Update section number badges
         const numDevices = document.getElementById('num-devices');
-        const numItems = document.getElementById('num-items');
         if (dc > 0) numDevices.classList.add('completed'); else numDevices.classList.remove('completed');
-        if (ic > 0) numItems.classList.add('completed'); else numItems.classList.remove('completed');
+
+        let totalItems = 0;
+        itemTypes.forEach(function(type) {
+            const count = document.querySelectorAll('#container-' + type + ' .ef-item-card').length;
+            totalItems += count;
+            document.getElementById('tab-count-' + type).textContent = count;
+            document.getElementById('empty-' + type).style.display = count > 0 ? 'none' : 'block';
+        });
+        document.getElementById('itemCount').textContent = totalItems;
+        const numItems = document.getElementById('num-items');
+        if (totalItems > 0) numItems.classList.add('completed'); else numItems.classList.remove('completed');
     }
 
-    function updateSidebar() {
-        const rows = document.querySelectorAll('#itemsContainer .ef-repeater-row');
+    function updateSubtotals() {
         let grandTotal = 0;
         const summaryRows = document.getElementById('summaryRows');
         const summaryEmpty = document.getElementById('summaryEmpty');
         const grandTotalEl = document.getElementById('summaryGrandTotal');
-
         summaryRows.innerHTML = '';
 
-        rows.forEach(function(row) {
-            const nameEl = row.querySelector('input[type="text"][name*="[name]"]');
-            const qtyEl = row.querySelector('input[name*="[qty]"]');
-            const priceEl = row.querySelector('.item-price');
-            if (!nameEl || !qtyEl || !priceEl) return;
+        itemTypes.forEach(function(type) {
+            const cards = document.querySelectorAll('#container-' + type + ' .ef-item-card');
+            let sub = 0;
+            cards.forEach(function(card) {
+                const q = parseInt(card.querySelector('.qty-inp').value) || 0;
+                const p = parseFloat(card.querySelector('.price-inp').value) || 0;
+                const lineTotal = q * p;
+                sub += lineTotal;
+                const totalEl = card.querySelector('.ef-item-total');
+                if (totalEl) totalEl.textContent = fmtMoney(lineTotal);
+            });
 
-            const name = nameEl.value.trim() || 'Unnamed';
-            const q = parseInt(qtyEl.value) || 0;
-            const p = parseFloat(priceEl.value) || 0;
-            const lineTotal = q * p;
-            grandTotal += lineTotal;
+            const subtotalBar = document.getElementById('subtotal-' + type);
+            const subtotalVal = document.getElementById('subtotal-val-' + type);
+            if (cards.length > 0) {
+                subtotalBar.style.display = 'flex';
+                subtotalVal.textContent = fmtMoney(sub);
 
-            const div = document.createElement('div');
-            div.className = 'ef-total-row';
-            div.innerHTML = '<span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escHtml(name) + ' ×' + q + '</span><span>$' + lineTotal.toFixed(2) + '</span>';
-            summaryRows.appendChild(div);
+                // Sidebar row per type
+                const typeLabels = { part: 'Parts', service: 'Services', product: 'Products', other: 'Other' };
+                const div = document.createElement('div');
+                div.className = 'ef-total-row';
+                div.innerHTML = '<span>' + typeLabels[type] + ' (' + cards.length + ')</span><span>' + fmtMoney(sub) + '</span>';
+                summaryRows.appendChild(div);
+            } else {
+                subtotalBar.style.display = 'none';
+            }
+            grandTotal += sub;
         });
 
-        if (rows.length > 0) {
+        if (grandTotal > 0 || summaryRows.children.length > 0) {
             summaryEmpty.style.display = 'none';
             summaryRows.style.display = 'block';
             grandTotalEl.style.display = 'flex';
-            document.getElementById('grandTotalValue').textContent = '$' + grandTotal.toFixed(2);
+            document.getElementById('grandTotalValue').textContent = fmtMoney(grandTotal);
         } else {
             summaryEmpty.style.display = 'block';
             summaryRows.style.display = 'none';
@@ -479,13 +744,66 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ── Device Row ──
+    // ── Autocomplete ──
+    function setupAutocomplete(inputId, dropdownId, options, nameKey, codeKey, onSelect) {
+        const input = document.getElementById(inputId);
+        const dropdown = document.getElementById(dropdownId);
+        if (!input || !dropdown) return;
+
+        input.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            if (q.length < 1) { dropdown.classList.remove('open'); return; }
+            const matches = options.filter(function(o) {
+                return (o[nameKey] || '').toLowerCase().includes(q) || (o[codeKey] || '').toLowerCase().includes(q);
+            }).slice(0, 10);
+
+            dropdown.innerHTML = '';
+            if (matches.length === 0) {
+                dropdown.innerHTML = '<div class="ef-ac-empty">{{ __("No matches found") }}</div>';
+            } else {
+                matches.forEach(function(o) {
+                    const item = document.createElement('div');
+                    item.className = 'ef-ac-item';
+                    item.innerHTML = '<div><div class="ac-name">' + escHtml(o[nameKey]) + '</div><div class="ac-code">' + escHtml(o[codeKey] || '') + '</div></div><span class="ac-price">' + fmtMoney(o.price) + '</span>';
+                    item.addEventListener('click', function() {
+                        onSelect(o);
+                        input.value = '';
+                        dropdown.classList.remove('open');
+                    });
+                    dropdown.appendChild(item);
+                });
+            }
+            dropdown.classList.add('open');
+        });
+
+        input.addEventListener('focus', function() {
+            if (this.value.trim().length >= 1) input.dispatchEvent(new Event('input'));
+        });
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.remove('open');
+        });
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') dropdown.classList.remove('open');
+        });
+    }
+
+    // Parts autocomplete
+    setupAutocomplete('partSearchInput', 'partAcDropdown', partOptions, 'name', 'sku', function(part) {
+        addItemRow('part', { name: part.name, qty: 1, unit_price_cents: part.price * 100 });
+    });
+
+    // Services autocomplete
+    setupAutocomplete('serviceSearchInput', 'serviceAcDropdown', serviceOptions, 'name', 'code', function(service) {
+        addItemRow('service', { name: service.name, qty: 1, unit_price_cents: service.price * 100 });
+    });
+
+    // ── Device Row (improved) ──
     window.addDeviceRow = function(data) {
         data = data || {};
         const idx = deviceIdx++;
         const container = document.getElementById('devicesContainer');
         const div = document.createElement('div');
-        div.className = 'ef-repeater-row';
+        div.className = 'ef-device-card';
         div.id = 'device-row-' + idx;
 
         let deviceOpts = '<option value="">' + '{{ __("Select device…") }}' + '</option>';
@@ -494,64 +812,76 @@ document.addEventListener('DOMContentLoaded', function() {
             deviceOpts += '<option value="' + d.id + '" ' + sel + '>' + escHtml(d.label) + '</option>';
         });
 
-        div.innerHTML = '<button type="button" class="ef-btn-remove" onclick="removeRow(\'device-row-' + idx + '\')"><i class="bi bi-x-lg"></i></button>'
+        div.innerHTML = ''
+            + '<button type="button" class="ef-btn-remove" onclick="removeRow(\'device-row-' + idx + '\')"><i class="bi bi-x-lg"></i></button>'
+            + '<div class="ef-device-header">'
+            + '  <div class="ef-device-icon"><i class="bi bi-phone"></i></div>'
+            + '  <span class="ef-device-title">{{ __("Device") }}</span>'
+            + '  <span class="ef-device-num">#' + (idx + 1) + '</span>'
+            + '</div>'
             + '<div class="row g-2">'
-            + '<div class="col-md-6"><label class="ef-label">{{ __("Device") }}</label><select class="form-select form-select-sm" name="devices[' + idx + '][customer_device_id]">' + deviceOpts + '</select></div>'
-            + '<div class="col-md-6"><label class="ef-label">{{ __("Serial / IMEI") }}</label><input type="text" class="form-control form-control-sm" name="devices[' + idx + '][serial]" value="' + escAttr(data.serial || '') + '" placeholder="e.g. 35420911…"></div>'
-            + '<div class="col-md-4"><label class="ef-label">{{ __("PIN") }}</label><input type="text" class="form-control form-control-sm" name="devices[' + idx + '][pin]" value="' + escAttr(data.pin || '') + '" placeholder="Optional"></div>'
-            + '<div class="col-md-8"><label class="ef-label">{{ __("Notes") }}</label><input type="text" class="form-control form-control-sm" name="devices[' + idx + '][notes]" value="' + escAttr(data.notes || '') + '" placeholder="e.g. Cracked screen, water damage…"></div>'
+            + '  <div class="col-md-6"><label class="ef-label">{{ __("Existing Device") }}</label><select class="form-select form-select-sm" name="devices[' + idx + '][customer_device_id]">' + deviceOpts + '</select></div>'
+            + '  <div class="col-md-6"><label class="ef-label">{{ __("Serial / IMEI") }}</label><input type="text" class="form-control form-control-sm" name="devices[' + idx + '][serial]" value="' + escAttr(data.serial || '') + '" placeholder="e.g. 35420911…"></div>'
+            + '  <div class="col-md-4"><label class="ef-label">{{ __("PIN / Passcode") }}</label><input type="text" class="form-control form-control-sm" name="devices[' + idx + '][pin]" value="' + escAttr(data.pin || '') + '" placeholder="{{ __("Optional") }}"></div>'
+            + '  <div class="col-md-8"><label class="ef-label">{{ __("Notes") }}</label><input type="text" class="form-control form-control-sm" name="devices[' + idx + '][notes]" value="' + escAttr(data.notes || '') + '" placeholder="{{ __("e.g. Cracked screen, water damage…") }}"></div>'
             + '</div>';
         container.appendChild(div);
         updateCounts();
     };
 
-    // ── Item Row ──
+    // ── Item Row (card-based) ──
     window.addItemRow = function(type, data) {
         data = data || {};
         if (typeof type === 'object') { data = type; type = data.type || 'other'; }
         const idx = itemIdx++;
-        const container = document.getElementById('itemsContainer');
-        const div = document.createElement('div');
-        div.className = 'ef-repeater-row';
-        div.id = 'item-row-' + idx;
+        const container = document.getElementById('container-' + type);
+        if (!container) return;
 
-        const typeLabels = { product: '{{ __("Product") }}', part: '{{ __("Part") }}', service: '{{ __("Service") }}', other: '{{ __("Extra") }}' };
-        const typeCssClass = { product: 'ef-type-product', part: 'ef-type-part', service: 'ef-type-service', other: 'ef-type-other' };
-        const typeLabel = typeLabels[type] || typeLabels.other;
-        const typeCls = typeCssClass[type] || typeCssClass.other;
-
+        const icons = { part: 'bi-cpu', service: 'bi-wrench', product: 'bi-box', other: 'bi-plus-circle' };
+        const iconCls = { part: 'ic-part', service: 'ic-service', product: 'ic-product', other: 'ic-other' };
         const priceDollars = data.unit_price_cents ? (parseInt(data.unit_price_cents) / 100).toFixed(2) : '';
+        const qty = data.qty || 1;
+        const lineTotal = (parseFloat(priceDollars) || 0) * qty;
 
-        div.innerHTML = '<button type="button" class="ef-btn-remove" onclick="removeRow(\'item-row-' + idx + '\')"><i class="bi bi-x-lg"></i></button>'
-            + '<div class="d-flex align-items-center gap-2 mb-2"><span class="ef-type-badge ' + typeCls + '">' + typeLabel + '</span><span class="ef-line-total" id="lt-' + idx + '">$0.00</span></div>'
+        const card = document.createElement('div');
+        card.className = 'ef-item-card';
+        card.id = 'item-row-' + idx;
+        card.innerHTML = ''
             + '<input type="hidden" name="items[' + idx + '][type]" value="' + type + '">'
-            + '<div class="row g-2 align-items-end">'
-            + '<div class="col-md-5"><label class="ef-label">{{ __("Name") }}</label><input type="text" class="form-control form-control-sm" name="items[' + idx + '][name]" value="' + escAttr(data.name || '') + '" placeholder="Item name" required></div>'
-            + '<div class="col-md-2"><label class="ef-label">{{ __("Qty") }}</label><input type="number" class="form-control form-control-sm" name="items[' + idx + '][qty]" value="' + (data.qty || 1) + '" min="1" required></div>'
-            + '<div class="col-md-3"><label class="ef-label">{{ __("Unit Price") }}</label><div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.78rem;">$</span><input type="number" class="form-control form-control-sm item-price" name="items[' + idx + '][unit_price_dollars]" value="' + priceDollars + '" step="0.01" min="0" placeholder="0.00" required></div></div>'
-            + '</div>';
-        container.appendChild(div);
+            + '<div class="ef-item-icon ' + (iconCls[type] || iconCls.other) + '"><i class="bi ' + (icons[type] || icons.other) + '"></i></div>'
+            + '<div class="ef-item-body">'
+            + '  <input type="text" class="form-control form-control-sm item-name" name="items[' + idx + '][name]" value="' + escAttr(data.name || '') + '" placeholder="{{ __("Item name") }}" required style="font-weight:600;border:none;padding:0;font-size:.88rem;background:transparent;">'
+            + '</div>'
+            + '<div class="ef-item-controls">'
+            + '  <input type="number" class="qty-inp" name="items[' + idx + '][qty]" value="' + qty + '" min="1" required>'
+            + '  <div class="price-grp">'
+            + '    <span class="cur">$</span>'
+            + '    <input type="number" class="price-inp" name="items[' + idx + '][unit_price_dollars]" value="' + priceDollars + '" step="0.01" min="0" placeholder="0.00" required>'
+            + '  </div>'
+            + '</div>'
+            + '<div class="ef-item-total">' + fmtMoney(lineTotal) + '</div>'
+            + '<button type="button" class="ef-item-remove" onclick="removeRow(\'item-row-' + idx + '\')"><i class="bi bi-trash"></i></button>';
 
-        // Live line total + sidebar update
-        const qtyInput = div.querySelector('input[name="items[' + idx + '][qty]"]');
-        const priceInput = div.querySelector('.item-price');
-        const nameInput = div.querySelector('input[name="items[' + idx + '][name]"]');
-        const totalSpan = document.getElementById('lt-' + idx);
+        container.appendChild(card);
 
-        function updateLineTotal() {
-            const q = parseInt(qtyInput.value) || 0;
-            const p = parseFloat(priceInput.value) || 0;
-            totalSpan.textContent = '$' + (q * p).toFixed(2);
-            updateSidebar();
-        }
-        qtyInput.addEventListener('input', updateLineTotal);
-        priceInput.addEventListener('input', updateLineTotal);
-        nameInput.addEventListener('input', updateSidebar);
-        updateLineTotal();
+        // Live calculation
+        const qtyInp = card.querySelector('.qty-inp');
+        const priceInp = card.querySelector('.price-inp');
+        function recalc() { updateSubtotals(); }
+        qtyInp.addEventListener('input', recalc);
+        priceInp.addEventListener('input', recalc);
+
+        // Switch to this tab
+        switchItemTab(type);
         updateCounts();
+        updateSubtotals();
+
+        // Focus the name field if empty
+        const nameInput = card.querySelector('.item-name');
+        if (!data.name) setTimeout(function() { nameInput.focus(); }, 50);
     };
 
-    // ── Remove row ──
+    // ── Remove row (with animation) ──
     window.removeRow = function(id) {
         const el = document.getElementById(id);
         if (el) {
@@ -561,7 +891,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 el.remove();
                 updateCounts();
-                updateSidebar();
+                updateSubtotals();
             }, 200);
         }
     };
@@ -594,7 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial counts
     updateCounts();
-    updateSidebar();
+    updateSubtotals();
 });
 </script>
 @endpush

@@ -428,7 +428,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'sku']);
+            ->get(['id', 'name', 'sku', 'price_amount_cents', 'price_currency']);
 
         $services = RepairBuddyService::query()
             ->where('tenant_id', (int) $tenant->id)
@@ -436,7 +436,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'service_code']);
+            ->get(['id', 'name', 'service_code', 'base_price_amount_cents', 'base_price_currency']);
 
         return view('tenant.estimates.create', [
             'tenant'          => $tenant,
@@ -517,7 +517,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'sku']);
+            ->get(['id', 'name', 'sku', 'price_amount_cents', 'price_currency']);
 
         $services = RepairBuddyService::query()
             ->where('tenant_id', (int) $tenant->id)
@@ -525,7 +525,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'service_code']);
+            ->get(['id', 'name', 'service_code', 'base_price_amount_cents', 'base_price_currency']);
 
         return view('tenant.estimates.create', [
             'tenant'          => $tenant,

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design E — Centered Dialog Card</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/* ───────────────────────────────────────────────
+   Design E — Centered Dialog / Focused Card
+   A single, centered, narrow card (modal-like).
+   Scrollable sections inside. Minimal, focused.
+   Overlay-style background. App-like feel.
+   ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --brand: #ec4899;
+    --brand-soft: #fdf2f8;
+    --brand-dark: #db2777;
+    --green: #16a34a; --green-soft: #dcfce7;
+    --red: #dc2626; --red-soft: #fef2f2;
+    --amber: #d97706; --amber-soft: #fef3c7;
+    --bg: #f1f5f9;
+    --overlay-bg: #e2e8f0;
+    --card: #ffffff; --border: #e2e8f0; --border-h: #cbd5e1;
+    --text: #0f172a; --text-2: #475569; --text-3: #94a3b8;
+    --r: 16px; --r-sm: 10px;
+    --sh: 0 4px 24px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+}
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--overlay-bg); color: var(--text); line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+
+/* ── Main dialog card ── */
+.dialog {
+    width: 100%; max-width: 680px; background: var(--card);
+    border-radius: var(--r); box-shadow: var(--sh);
+    overflow: hidden;
+}
+
+/* ── Dialog header ── */
+.dlg-head {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    color: #fff; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: .75rem;
+}
+.dlg-head .icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.dlg-head .info { flex: 1; }
+.dlg-head .info h1 { font-size: 1.1rem; font-weight: 800; }
+.dlg-head .info p { font-size: .75rem; opacity: .75; margin-top: .1rem; }
+.dlg-head .close-btn { width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,.1); border: none; color: #fff; font-size: .9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.dlg-head .close-btn:hover { background: rgba(255,255,255,.2); }
+
+/* ── Progress dots ── */
+.progress-bar {
+    display: flex; align-items: center; justify-content: center; padding: .75rem 1.5rem;
+    background: var(--brand-soft); gap: .375rem;
+}
+.pdot {
+    width: 8px; height: 8px; border-radius: 50%; background: #f9a8d4; cursor: pointer;
+    transition: all .2s;
+}
+.pdot.active { width: 28px; border-radius: 4px; background: var(--brand); }
+.pdot.done { background: var(--brand); }
+
+/* ── Section ── */
+.section { border-bottom: 1px solid var(--border); }
+.section:last-of-type { border-bottom: none; }
+.sec-head {
+    display: flex; align-items: center; gap: .5rem; padding: .875rem 1.5rem;
+    cursor: pointer; user-select: none;
+}
+.sec-head:hover { background: #fafbfc; }
+.sec-head .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sec-head h3 { font-size: .88rem; font-weight: 700; flex: 1; }
+.sec-head .cnt { font-size: .72rem; font-weight: 600; color: var(--text-3); background: var(--bg); padding: .15rem .45rem; border-radius: 999px; }
+.sec-head .chev { color: var(--text-3); font-size: .7rem; transition: transform .2s; }
+.sec-head.open .chev { transform: rotate(180deg); }
+.sec-body { padding: 0 1.5rem 1rem; display: none; }
+.sec-head.open + .sec-body { display: block; }
+
+/* ── Fields ── */
+.f { margin-bottom: .75rem; }
+.f:last-child { margin-bottom: 0; }
+.f label { display: block; font-size: .7rem; font-weight: 600; color: var(--text-2); margin-bottom: .2rem; text-transform: uppercase; letter-spacing: .03em; }
+.f input, .f select, .f textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm);
+    padding: .5rem .7rem; font-size: .84rem; color: var(--text); outline: none;
+    transition: border-color .15s, box-shadow .15s; background: #fff;
+}
+.f input:focus, .f select:focus, .f textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(236,72,153,.1); }
+.row { display: flex; gap: .625rem; }
+.c2 { flex: 1; }
+
+/* ── Customer inline ── */
+.cust-inline {
+    display: flex; align-items: center; gap: .625rem; padding: .5rem .625rem;
+    background: var(--brand-soft); border: 1px solid #fbcfe8; border-radius: var(--r-sm);
+}
+.cust-inline .av { width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .72rem; flex-shrink: 0; }
+.cust-inline .meta { flex: 1; }
+.cust-inline .meta strong { font-size: .82rem; }
+.cust-inline .meta span { font-size: .68rem; color: var(--text-2); display: block; }
+.cust-inline .act { font-size: .72rem; color: var(--brand); font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+/* ── Compact device card ── */
+.mini-dev {
+    display: flex; align-items: center; gap: .5rem; padding: .5rem .625rem;
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
+    margin-bottom: .375rem;
+}
+.mini-dev:last-of-type { margin-bottom: 0; }
+.mini-dev .ico { font-size: 1rem; color: var(--text-2); flex-shrink: 0; }
+.mini-dev .info { flex: 1; min-width: 0; }
+.mini-dev .info .nm { font-size: .82rem; font-weight: 600; }
+.mini-dev .info .det { font-size: .68rem; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-dev .rm { font-size: .72rem; color: var(--text-3); cursor: pointer; }
+.mini-dev .rm:hover { color: var(--red); }
+.add-dev {
+    display: flex; align-items: center; justify-content: center; gap: .25rem;
+    padding: .45rem; border: 2px dashed var(--border); border-radius: var(--r-sm);
+    font-size: .78rem; font-weight: 600; color: var(--text-3); cursor: pointer;
+    margin-top: .375rem;
+}
+.add-dev:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+
+/* ── Inline items ── */
+.item-line {
+    display: flex; align-items: center; gap: .5rem; padding: .5rem 0;
+    border-bottom: 1px solid #f8fafc;
+}
+.item-line:last-of-type { border-bottom: none; }
+.il-type { font-size: .6rem; font-weight: 800; text-transform: uppercase; padding: .15rem .35rem; border-radius: 4px; flex-shrink: 0; }
+.il-type.part { background: #ede9fe; color: #7c3aed; }
+.il-type.svc { background: #fef3c7; color: #d97706; }
+.il-name { flex: 1; font-size: .82rem; font-weight: 500; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.il-qty { font-size: .78rem; color: var(--text-3); }
+.il-price { font-size: .82rem; font-weight: 700; color: var(--brand-dark); min-width: 55px; text-align: right; }
+.il-rm { font-size: .72rem; color: var(--text-3); cursor: pointer; }
+.il-rm:hover { color: var(--red); }
+.add-item-inline {
+    display: flex; gap: .5rem; margin-top: .5rem;
+}
+.add-item-inline input {
+    flex: 1; border: 1px solid var(--border); border-radius: var(--r-sm);
+    padding: .45rem .625rem; font-size: .82rem; outline: none;
+}
+.add-item-inline input:focus { border-color: var(--brand); }
+.add-item-inline button {
+    padding: .45rem .75rem; background: var(--brand); color: #fff; border: none;
+    border-radius: var(--r-sm); font-size: .78rem; font-weight: 600; cursor: pointer;
+}
+
+/* ── Subtotal inline ── */
+.subtotal-row {
+    display: flex; justify-content: space-between; padding: .5rem .625rem;
+    background: var(--brand-soft); border-radius: var(--r-sm); margin-top: .375rem;
+}
+.subtotal-row .k { font-size: .78rem; font-weight: 600; color: var(--text-2); }
+.subtotal-row .v { font-size: .88rem; font-weight: 800; color: var(--brand-dark); }
+
+/* ── Settings row ── */
+.settings-compact {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+}
+.settings-compact .f select { font-size: .78rem; padding: .4rem .55rem; }
+
+/* ── Footer ── */
+.dlg-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem; background: #fefefe; border-top: 1px solid var(--border);
+}
+.dlg-foot .total-area { }
+.dlg-foot .total-area .lbl { font-size: .68rem; font-weight: 600; color: var(--text-3); text-transform: uppercase; }
+.dlg-foot .total-area .val { font-size: 1.5rem; font-weight: 900; color: var(--brand-dark); }
+.dlg-foot .actions { display: flex; gap: .5rem; }
+.fbtn { padding: .6rem 1.25rem; border: none; border-radius: var(--r-sm); font-size: .84rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; }
+.fbtn-ghost { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); }
+.fbtn-draft { background: var(--amber-soft); color: var(--amber); }
+.fbtn-save { background: var(--brand); color: #fff; }
+.fbtn-save:hover { background: var(--brand-dark); }
+
+/* ── Responsive ── */
+@media (max-width: 720px) {
+    body { padding: .5rem; }
+    .dialog { border-radius: 12px; }
+    .row { flex-direction: column; }
+    .settings-compact { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="dialog">
+    <!-- ── Header ── -->
+    <div class="dlg-head">
+        <div class="icon"><i class="bi bi-tools"></i></div>
+        <div class="info">
+            <h1>New Repair Job</h1>
+            <p>Fill in each section below, then create the job.</p>
+        </div>
+        <button class="close-btn"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <!-- ── Progress dots ── -->
+    <div class="progress-bar">
+        <div class="pdot done" onclick="goSec(0)"></div>
+        <div class="pdot done" onclick="goSec(1)"></div>
+        <div class="pdot active" onclick="goSec(2)"></div>
+        <div class="pdot" onclick="goSec(3)"></div>
+        <div class="pdot" onclick="goSec(4)"></div>
+    </div>
+
+    <!-- ═══ Section 1: Customer ═══ -->
+    <div class="section">
+        <div class="sec-head open" onclick="toggleSec(this)">
+            <span class="dot" style="background:var(--brand);"></span>
+            <h3>Customer</h3>
+            <span class="cnt">Selected</span>
+            <i class="bi bi-chevron-down chev"></i>
+        </div>
+        <div class="sec-body">
+            <div class="f">
+                <label>Search Customer</label>
+                <input type="text" placeholder="Name, email, or phone…">
+            </div>
+            <div class="cust-inline">
+                <div class="av">JC</div>
+                <div class="meta">
+                    <strong>Jane Cooper</strong>
+                    <span>jane@example.com · (555) 012-3456</span>
+                </div>
+                <span class="act">Change</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Section 2: Job Details ═══ -->
+    <div class="section">
+        <div class="sec-head open" onclick="toggleSec(this)">
+            <span class="dot" style="background:#2563eb;"></span>
+            <h3>Job Details</h3>
+            <i class="bi bi-chevron-down chev"></i>
+        </div>
+        <div class="sec-body">
+            <div class="row">
+                <div class="c2"><div class="f"><label>Case Number</label><input placeholder="Auto"></div></div>
+                <div class="c2"><div class="f"><label>Title</label><input placeholder="e.g. Screen Repair"></div></div>
+            </div>
+            <div class="row">
+                <div class="c2"><div class="f"><label>Pickup</label><input type="date" value="2026-02-23"></div></div>
+                <div class="c2"><div class="f"><label>Delivery</label><input type="date"></div></div>
+            </div>
+            <div class="f"><label>Description</label><textarea rows="2" placeholder="Describe the issue…"></textarea></div>
+        </div>
+    </div>
+
+    <!-- ═══ Section 3: Devices ═══ -->
+    <div class="section">
+        <div class="sec-head open" onclick="toggleSec(this)">
+            <span class="dot" style="background:#d97706;"></span>
+            <h3>Devices</h3>
+            <span class="cnt">2</span>
+            <i class="bi bi-chevron-down chev"></i>
+        </div>
+        <div class="sec-body">
+            <div class="mini-dev">
+                <i class="bi bi-phone ico"></i>
+                <div class="info">
+                    <div class="nm">Apple iPhone 14 Pro Max</div>
+                    <div class="det">SN: 354209…8821 · PIN: 1234 · Cracked screen</div>
+                </div>
+                <span class="rm"><i class="bi bi-x-lg"></i></span>
+            </div>
+            <div class="mini-dev">
+                <i class="bi bi-laptop ico"></i>
+                <div class="info">
+                    <div class="nm">Samsung Galaxy Book3 Pro</div>
+                    <div class="det">SN: RZ14…004K · Won't power on</div>
+                </div>
+                <span class="rm"><i class="bi bi-x-lg"></i></span>
+            </div>
+            <div class="add-dev"><i class="bi bi-plus-lg"></i> Add Device</div>
+        </div>
+    </div>
+
+    <!-- ═══ Section 4: Line Items ═══ -->
+    <div class="section">
+        <div class="sec-head open" onclick="toggleSec(this)">
+            <span class="dot" style="background:#7c3aed;"></span>
+            <h3>Line Items</h3>
+            <span class="cnt">3 items</span>
+            <i class="bi bi-chevron-down chev"></i>
+        </div>
+        <div class="sec-body">
+            <div class="item-line">
+                <span class="il-type part">Part</span>
+                <span class="il-name">iPhone 14 PM Screen Assembly (OLED)</span>
+                <span class="il-qty">×1</span>
+                <span class="il-price">$65.00</span>
+                <span class="il-rm"><i class="bi bi-x-lg"></i></span>
+            </div>
+            <div class="item-line">
+                <span class="il-type part">Part</span>
+                <span class="il-name">Adhesive Frame Kit (iPhone 14 PM)</span>
+                <span class="il-qty">×1</span>
+                <span class="il-price">$20.00</span>
+                <span class="il-rm"><i class="bi bi-x-lg"></i></span>
+            </div>
+            <div class="item-line">
+                <span class="il-type svc">Service</span>
+                <span class="il-name">Screen Replacement Labor</span>
+                <span class="il-qty">×1</span>
+                <span class="il-price">$45.00</span>
+                <span class="il-rm"><i class="bi bi-x-lg"></i></span>
+            </div>
+            <div class="add-item-inline">
+                <input type="text" placeholder="Search parts, services…">
+                <button><i class="bi bi-plus-lg"></i> Add</button>
+            </div>
+            <div class="subtotal-row">
+                <span class="k">Subtotal (3 items)</span>
+                <span class="v">$130.00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Section 5: Settings ═══ -->
+    <div class="section">
+        <div class="sec-head" onclick="toggleSec(this)">
+            <span class="dot" style="background:#16a34a;"></span>
+            <h3>Settings & Notes</h3>
+            <i class="bi bi-chevron-down chev"></i>
+        </div>
+        <div class="sec-body">
+            <div class="settings-compact">
+                <div class="f"><label>Status</label><select><option>Pending</option><option>In Progress</option></select></div>
+                <div class="f"><label>Payment</label><select><option>Unpaid</option><option>Partial</option><option>Paid</option></select></div>
+                <div class="f"><label>Priority</label><select><option>Normal</option><option>Low</option><option>High</option><option>Urgent</option></select></div>
+                <div class="f"><label>Technician</label><select><option>John Smith</option><option>Mike R.</option></select></div>
+                <div class="f"><label>Branch</label><select><option>Main Store</option><option>Downtown</option></select></div>
+            </div>
+            <div class="f" style="margin-top:.75rem;"><label>Internal Notes</label><textarea rows="2" placeholder="Staff only…"></textarea></div>
+            <div class="f"><label>Customer Notes</label><textarea rows="2" placeholder="Visible to customer…"></textarea></div>
+        </div>
+    </div>
+
+    <!-- ── Footer ── -->
+    <div class="dlg-foot">
+        <div class="total-area">
+            <div class="lbl">Grand Total</div>
+            <div class="val">$130.00</div>
+        </div>
+        <div class="actions">
+            <button class="fbtn fbtn-ghost"><i class="bi bi-x-lg"></i> Cancel</button>
+            <button class="fbtn fbtn-draft"><i class="bi bi-floppy"></i> Draft</button>
+            <button class="fbtn fbtn-save"><i class="bi bi-check-lg"></i> Create Job</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleSec(el) {
+    el.classList.toggle('open');
+}
+function goSec(n) {
+    const heads = document.querySelectorAll('.sec-head');
+    if (heads[n]) { heads[n].classList.add('open'); heads[n].scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+</script>
+
+</body>
+</html>

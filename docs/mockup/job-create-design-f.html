@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design F — Horizontal Swim Lanes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/* ───────────────────────────────────────────────
+   Design F — Horizontal Swim Lanes (Kanban-Style)
+   Each section is a fixed-width column that scrolls
+   horizontally. Trello/Kanban-inspired. Good for
+   widescreen monitors. Unique, app-like feel.
+   ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --brand: #059669;
+    --brand-soft: #ecfdf5;
+    --brand-dark: #047857;
+    --violet: #7c3aed; --violet-soft: #ede9fe;
+    --blue: #2563eb; --blue-soft: #dbeafe;
+    --amber: #d97706; --amber-soft: #fef3c7;
+    --red: #dc2626; --red-soft: #fef2f2;
+    --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+    --text: #0f172a; --text-2: #475569; --text-3: #94a3b8;
+    --r: 14px; --r-sm: 8px;
+    --sh: 0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.03);
+    --lane-w: 340px;
+}
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── Top action bar ── */
+.topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: .75rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+    flex-shrink: 0; z-index: 50;
+}
+.topbar .back { width: 34px; height: 34px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-2); cursor: pointer; text-decoration: none; }
+.topbar h1 { font-size: 1rem; font-weight: 800; flex: 1; }
+.topbar .total-pill {
+    display: flex; align-items: center; gap: .5rem; padding: .45rem .875rem;
+    background: var(--brand-soft); border: 1px solid #a7f3d0; border-radius: 999px;
+}
+.topbar .total-pill .lbl { font-size: .68rem; font-weight: 600; color: var(--text-2); text-transform: uppercase; }
+.topbar .total-pill .val { font-size: 1rem; font-weight: 900; color: var(--brand); }
+.topbar .actions { display: flex; gap: .4rem; }
+.tbtn { padding: .5rem 1rem; border: none; border-radius: var(--r-sm); font-size: .82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .3rem; }
+.tbtn-ghost { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); }
+.tbtn-ghost:hover { background: #e2e8f0; }
+.tbtn-save { background: var(--brand); color: #fff; }
+.tbtn-save:hover { background: var(--brand-dark); }
+
+/* ── Lanes container (horizontal scroll) ── */
+.lanes {
+    flex: 1; display: flex; gap: 1rem; padding: 1rem 1.5rem;
+    overflow-x: auto; overflow-y: hidden; align-items: flex-start;
+    scroll-snap-type: x proximity;
+}
+.lanes::-webkit-scrollbar { height: 6px; }
+.lanes::-webkit-scrollbar-track { background: transparent; }
+.lanes::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Lane ── */
+.lane {
+    width: var(--lane-w); min-width: var(--lane-w); flex-shrink: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+    box-shadow: var(--sh); display: flex; flex-direction: column;
+    max-height: calc(100vh - 80px); scroll-snap-align: start;
+}
+.lane-head {
+    padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: .5rem; flex-shrink: 0;
+}
+.lane-head .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.lane-head h3 { font-size: .85rem; font-weight: 700; flex: 1; }
+.lane-head .badge { font-size: .65rem; font-weight: 700; padding: .15rem .4rem; border-radius: 999px; }
+.lane-body {
+    flex: 1; overflow-y: auto; padding: .75rem;
+}
+.lane-body::-webkit-scrollbar { width: 4px; }
+.lane-body::-webkit-scrollbar-track { background: transparent; }
+.lane-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Fields ── */
+.f { margin-bottom: .625rem; }
+.f:last-child { margin-bottom: 0; }
+.f label { display: block; font-size: .68rem; font-weight: 600; color: var(--text-2); margin-bottom: .2rem; text-transform: uppercase; letter-spacing: .03em; }
+.f input, .f select, .f textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm);
+    padding: .45rem .65rem; font-size: .82rem; color: var(--text); outline: none;
+    transition: border-color .15s;
+}
+.f input:focus, .f select:focus, .f textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(5,150,105,.1); }
+
+/* ── Customer card ── */
+.cust-card {
+    display: flex; align-items: center; gap: .5rem; padding: .625rem;
+    background: var(--brand-soft); border: 1px solid #a7f3d0; border-radius: var(--r-sm);
+    margin-bottom: .625rem;
+}
+.cust-card .av { width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .78rem; flex-shrink: 0; }
+.cust-card .meta { flex: 1; }
+.cust-card .meta strong { font-size: .84rem; display: block; }
+.cust-card .meta span { font-size: .7rem; color: var(--text-2); }
+.cust-card .act { font-size: .72rem; color: var(--brand-dark); font-weight: 600; cursor: pointer; }
+
+/* ── Device mini ── */
+.dev-mini {
+    padding: .5rem; background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--r-sm); margin-bottom: .375rem;
+}
+.dev-mini:last-of-type { margin-bottom: .375rem; }
+.dev-mini .top { display: flex; align-items: center; gap: .35rem; margin-bottom: .35rem; }
+.dev-mini .top i { font-size: .9rem; color: var(--text-2); }
+.dev-mini .top strong { font-size: .82rem; flex: 1; }
+.dev-mini .top .rm { font-size: .7rem; color: var(--text-3); cursor: pointer; }
+.dev-mini .top .rm:hover { color: var(--red); }
+.dev-mini .fields { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+.dev-mini .fields .df label { font-size: .6rem; }
+.dev-mini .fields .df input { padding: .3rem .5rem; font-size: .75rem; }
+.add-btn {
+    width: 100%; padding: .45rem; border: 2px dashed var(--border); border-radius: var(--r-sm);
+    background: none; font-size: .78rem; font-weight: 600; color: var(--text-3); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: .25rem;
+}
+.add-btn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+
+/* ── Item compact row ── */
+.itm {
+    display: flex; align-items: center; gap: .4rem; padding: .45rem .5rem;
+    background: var(--bg); border-radius: var(--r-sm); margin-bottom: .35rem;
+}
+.itm .ico { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: .72rem; flex-shrink: 0; }
+.itm .ico.part { background: var(--violet-soft); color: var(--violet); }
+.itm .ico.svc { background: var(--amber-soft); color: var(--amber); }
+.itm .ico.other { background: #f1f5f9; color: var(--text-3); }
+.itm .info { flex: 1; min-width: 0; }
+.itm .info .nm { font-size: .78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itm .info .cd { font-size: .62rem; color: var(--text-3); }
+.itm .qty { font-size: .72rem; color: var(--text-3); }
+.itm .prc { font-size: .78rem; font-weight: 700; color: var(--brand-dark); }
+.itm .rm { font-size: .65rem; color: var(--text-3); cursor: pointer; }
+.itm .rm:hover { color: var(--red); }
+
+.cat-label {
+    font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-3); padding: .35rem 0 .2rem; border-bottom: 1px solid var(--border);
+    margin-bottom: .35rem; display: flex; align-items: center; gap: .3rem;
+}
+.cat-label i { font-size: .75rem; }
+
+.search-inline {
+    display: flex; align-items: center; border: 1px solid var(--border);
+    border-radius: var(--r-sm); background: #fff; padding: 0 .5rem;
+    margin-bottom: .5rem;
+}
+.search-inline:focus-within { border-color: var(--brand); }
+.search-inline i { color: var(--text-3); margin-right: .3rem; font-size: .8rem; }
+.search-inline input { border: none; background: transparent; padding: .4rem 0; font-size: .78rem; flex: 1; outline: none; }
+
+.subtot {
+    display: flex; justify-content: space-between; padding: .45rem .5rem;
+    background: var(--brand-soft); border-radius: var(--r-sm); margin-top: .25rem;
+    font-size: .78rem;
+}
+.subtot .k { font-weight: 600; color: var(--text-2); }
+.subtot .v { font-weight: 800; color: var(--brand); }
+
+/* ── Notes lane ── */
+.note-block { margin-bottom: .625rem; }
+.note-block label { display: block; font-size: .68rem; font-weight: 600; color: var(--text-2); margin-bottom: .2rem; text-transform: uppercase; }
+.note-block textarea { width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm); padding: .45rem .65rem; font-size: .82rem; outline: none; resize: vertical; }
+.note-block textarea:focus { border-color: var(--brand); }
+
+.drop-zone {
+    border: 2px dashed var(--border); border-radius: var(--r-sm); padding: 1rem;
+    text-align: center; color: var(--text-3); font-size: .78rem; cursor: pointer;
+}
+.drop-zone:hover { border-color: var(--brand); background: var(--brand-soft); }
+.drop-zone i { display: block; font-size: 1.2rem; margin-bottom: .2rem; opacity: .4; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .lanes { padding: .75rem; gap: .75rem; }
+    .lane { width: 300px; min-width: 300px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Top Bar ── -->
+<header class="topbar">
+    <a href="#" class="back"><i class="bi bi-arrow-left"></i></a>
+    <h1><i class="bi bi-plus-circle" style="opacity:.4;margin-right:.3rem;"></i> New Repair Job</h1>
+    <div class="total-pill">
+        <span class="lbl">Total</span>
+        <span class="val">$130.00</span>
+    </div>
+    <div class="actions">
+        <button class="tbtn tbtn-ghost"><i class="bi bi-x-lg"></i> Cancel</button>
+        <button class="tbtn tbtn-ghost"><i class="bi bi-floppy"></i> Draft</button>
+        <button class="tbtn tbtn-save"><i class="bi bi-check-lg"></i> Create Job</button>
+    </div>
+</header>
+
+<!-- ═══════════ HORIZONTAL SWIM LANES ═══════════ -->
+<div class="lanes">
+
+    <!-- ── Lane 1: Customer & Info ── -->
+    <div class="lane">
+        <div class="lane-head">
+            <span class="dot" style="background:var(--brand);"></span>
+            <h3>Customer & Info</h3>
+        </div>
+        <div class="lane-body">
+            <div class="cust-card">
+                <div class="av">JC</div>
+                <div class="meta">
+                    <strong>Jane Cooper</strong>
+                    <span>jane@example.com</span>
+                </div>
+                <span class="act">Change</span>
+            </div>
+            <div class="f"><label>Case Number</label><input placeholder="Auto-generate"></div>
+            <div class="f"><label>Title</label><input placeholder="e.g. iPhone 14 Screen Repair"></div>
+            <div class="f"><label>Pickup Date</label><input type="date" value="2026-02-23"></div>
+            <div class="f"><label>Delivery Date</label><input type="date"></div>
+            <div class="f"><label>Description</label><textarea rows="3" placeholder="Describe issue…"></textarea></div>
+        </div>
+    </div>
+
+    <!-- ── Lane 2: Devices ── -->
+    <div class="lane">
+        <div class="lane-head">
+            <span class="dot" style="background:var(--blue);"></span>
+            <h3>Devices</h3>
+            <span class="badge" style="background:var(--blue-soft);color:var(--blue);">2</span>
+        </div>
+        <div class="lane-body">
+            <div class="dev-mini">
+                <div class="top">
+                    <i class="bi bi-phone"></i>
+                    <strong>iPhone 14 Pro Max</strong>
+                    <span class="rm"><i class="bi bi-x-lg"></i></span>
+                </div>
+                <div class="fields">
+                    <div class="df"><label>Brand</label><input value="Apple"></div>
+                    <div class="df"><label>Serial</label><input value="354209…8821"></div>
+                    <div class="df"><label>PIN</label><input value="1234"></div>
+                    <div class="df"><label>Notes</label><input value="Cracked screen"></div>
+                </div>
+            </div>
+            <div class="dev-mini">
+                <div class="top">
+                    <i class="bi bi-laptop"></i>
+                    <strong>Galaxy Book3 Pro</strong>
+                    <span class="rm"><i class="bi bi-x-lg"></i></span>
+                </div>
+                <div class="fields">
+                    <div class="df"><label>Brand</label><input value="Samsung"></div>
+                    <div class="df"><label>Serial</label><input value="RZ14…004K"></div>
+                    <div class="df"><label>PIN</label><input placeholder="–"></div>
+                    <div class="df"><label>Notes</label><input value="Won't power on"></div>
+                </div>
+            </div>
+            <button class="add-btn"><i class="bi bi-plus-lg"></i> Add Device</button>
+        </div>
+    </div>
+
+    <!-- ── Lane 3: Line Items ── -->
+    <div class="lane">
+        <div class="lane-head">
+            <span class="dot" style="background:var(--violet);"></span>
+            <h3>Line Items</h3>
+            <span class="badge" style="background:var(--violet-soft);color:var(--violet);">3</span>
+        </div>
+        <div class="lane-body">
+            <div class="search-inline">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search catalog…">
+            </div>
+
+            <div class="cat-label"><i class="bi bi-cpu"></i> Parts</div>
+            <div class="itm">
+                <div class="ico part"><i class="bi bi-cpu"></i></div>
+                <div class="info">
+                    <div class="nm">iPhone 14 PM Screen (OLED)</div>
+                    <div class="cd">IPH14PM-SCR-OLED</div>
+                </div>
+                <span class="qty">×1</span>
+                <span class="prc">$65</span>
+                <span class="rm"><i class="bi bi-x"></i></span>
+            </div>
+            <div class="itm">
+                <div class="ico part"><i class="bi bi-cpu"></i></div>
+                <div class="info">
+                    <div class="nm">Adhesive Frame Kit</div>
+                    <div class="cd">IPH14-ADH</div>
+                </div>
+                <span class="qty">×1</span>
+                <span class="prc">$20</span>
+                <span class="rm"><i class="bi bi-x"></i></span>
+            </div>
+
+            <div class="cat-label"><i class="bi bi-wrench"></i> Services</div>
+            <div class="itm">
+                <div class="ico svc"><i class="bi bi-wrench"></i></div>
+                <div class="info">
+                    <div class="nm">Screen Replacement Labor</div>
+                    <div class="cd">SRV-001</div>
+                </div>
+                <span class="qty">×1</span>
+                <span class="prc">$45</span>
+                <span class="rm"><i class="bi bi-x"></i></span>
+            </div>
+
+            <button class="add-btn" style="margin-top:.5rem;"><i class="bi bi-plus-lg"></i> Add Item</button>
+
+            <div class="subtot">
+                <span class="k">Total (3 items)</span>
+                <span class="v">$130.00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Lane 4: Settings ── -->
+    <div class="lane">
+        <div class="lane-head">
+            <span class="dot" style="background:var(--amber);"></span>
+            <h3>Settings</h3>
+        </div>
+        <div class="lane-body">
+            <div class="f"><label><i class="bi bi-person-gear"></i> Technician</label><select><option>John Smith</option><option>Mike R.</option></select></div>
+            <div class="f"><label><i class="bi bi-building"></i> Branch</label><select><option>Main Store</option><option>Downtown</option></select></div>
+            <div class="f"><label><i class="bi bi-flag"></i> Status</label><select><option>Pending</option><option>In Progress</option><option>Completed</option></select></div>
+            <div class="f"><label><i class="bi bi-credit-card"></i> Payment</label><select><option>Unpaid</option><option>Partial</option><option>Paid</option></select></div>
+            <div class="f"><label><i class="bi bi-exclamation-diamond"></i> Priority</label><select><option>Normal</option><option>Low</option><option>High</option><option>Urgent</option></select></div>
+            <div class="f"><label><i class="bi bi-calendar-event"></i> Next Service</label><input type="date"></div>
+        </div>
+    </div>
+
+    <!-- ── Lane 5: Notes & Files ── -->
+    <div class="lane">
+        <div class="lane-head">
+            <span class="dot" style="background:#64748b;"></span>
+            <h3>Notes & Files</h3>
+        </div>
+        <div class="lane-body">
+            <div class="note-block">
+                <label>Internal Notes</label>
+                <textarea rows="4" placeholder="Private staff notes…"></textarea>
+            </div>
+            <div class="note-block">
+                <label>Customer Notes</label>
+                <textarea rows="3" placeholder="Visible to customer…"></textarea>
+            </div>
+            <div class="note-block">
+                <label>Attachments</label>
+                <div class="drop-zone">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    Drop files here
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

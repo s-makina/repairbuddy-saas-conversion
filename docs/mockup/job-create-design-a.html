@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design A — Sidebar Stepper Wizard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/* ───────────────────────────────────────────────
+   Design A — Sidebar Stepper Wizard
+   A persistent left sidebar shows step progress
+   while the right panel slides between forms.
+   Concept: clinical, spacious, professional.
+   ─────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --brand: #4f46e5;
+    --brand-light: #eef2ff;
+    --brand-dark: #3730a3;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --text: #0f172a;
+    --text-2: #475569;
+    --text-3: #94a3b8;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,.08);
+    --transition: .2s ease;
+}
+
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+/* ── Page shell ── */
+.page-shell {
+    display: flex;
+    min-height: 100vh;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    gap: 1.5rem;
+}
+
+/* ═══════════ LEFT SIDEBAR ═══════════ */
+.sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 2rem;
+    align-self: flex-start;
+}
+.sidebar-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+.sidebar-header {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    padding: 1.5rem;
+    color: #fff;
+}
+.sidebar-header h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: .25rem; }
+.sidebar-header p { font-size: .78rem; opacity: .75; }
+
+/* Stepper */
+.stepper { padding: 1.25rem; }
+.step-item {
+    display: flex; align-items: flex-start; gap: .75rem; position: relative;
+    padding-bottom: 1.5rem; cursor: pointer; user-select: none;
+}
+.step-item:last-child { padding-bottom: 0; }
+.step-item::before {
+    content: ''; position: absolute; left: 17px; top: 38px; bottom: 0;
+    width: 2px; background: var(--border);
+}
+.step-item:last-child::before { display: none; }
+.step-item.completed::before { background: var(--success); }
+
+.step-dot {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .78rem; font-weight: 700; border: 2px solid var(--border);
+    background: var(--card); color: var(--text-3); transition: all var(--transition);
+    z-index: 1;
+}
+.step-item.active .step-dot { border-color: var(--brand); background: var(--brand); color: #fff; box-shadow: 0 0 0 4px rgba(79,70,229,.15); }
+.step-item.completed .step-dot { border-color: var(--success); background: var(--success); color: #fff; }
+
+.step-info h6 { font-size: .85rem; font-weight: 600; color: var(--text-2); margin-bottom: .1rem; transition: color var(--transition); }
+.step-item.active .step-info h6 { color: var(--brand); }
+.step-item.completed .step-info h6 { color: var(--success); }
+.step-info span { font-size: .72rem; color: var(--text-3); }
+
+/* Sidebar summary */
+.sidebar-summary {
+    padding: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+.summary-row { display: flex; justify-content: space-between; padding: .3rem 0; font-size: .82rem; color: var(--text-2); }
+.summary-row.total { font-weight: 800; font-size: 1rem; color: var(--text); border-top: 2px solid var(--text); margin-top: .5rem; padding-top: .6rem; }
+
+/* ═══════════ MAIN PANEL ═══════════ */
+.main-panel { flex: 1; min-width: 0; }
+
+/* Breadcrumb */
+.breadcrumb-bar { font-size: .78rem; color: var(--text-3); margin-bottom: .75rem; }
+.breadcrumb-bar a { color: var(--brand); text-decoration: none; }
+
+/* Step panels */
+.form-panel { display: none; }
+.form-panel.active { display: block; animation: fadeSlide .3s ease; }
+@keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Section card */
+.section-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+.section-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: .75rem;
+}
+.section-header .sec-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    background: var(--brand-light); color: var(--brand);
+}
+.section-header h3 { font-size: 1rem; font-weight: 700; }
+.section-header p { font-size: .78rem; color: var(--text-3); margin-top: .1rem; }
+.section-body { padding: 1.5rem; }
+
+/* Form fields */
+.field { margin-bottom: 1rem; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+    display: block; font-size: .75rem; font-weight: 600; color: var(--text-2);
+    margin-bottom: .35rem; text-transform: uppercase; letter-spacing: .04em;
+}
+.field input, .field select, .field textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .88rem; color: var(--text);
+    background: #fff; transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+}
+.field .hint { font-size: .72rem; color: var(--text-3); margin-top: .25rem; }
+
+.row { display: flex; gap: 1rem; }
+.col-6 { flex: 1; }
+.col-4 { flex: 0 0 calc(33.333% - .667rem); }
+.col-8 { flex: 0 0 calc(66.667% - .333rem); }
+
+/* Customer search */
+.search-select { position: relative; }
+.search-select input { padding-left: 2.25rem; }
+.search-select .icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--text-3); }
+
+/* ── Device cards ── */
+.device-card {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: .875rem 1rem; margin-bottom: .5rem; background: #fff;
+    display: flex; align-items: flex-start; gap: .75rem;
+    position: relative; transition: border-color var(--transition);
+}
+.device-card:hover { border-color: var(--brand); }
+.device-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #dbeafe; color: #2563eb; font-size: 1.1rem;
+}
+.device-body { flex: 1; min-width: 0; }
+.device-name { font-weight: 600; font-size: .88rem; color: var(--text); }
+.device-meta { font-size: .75rem; color: var(--text-3); display: flex; gap: .75rem; margin-top: .15rem; }
+.device-remove {
+    position: absolute; top: .5rem; right: .5rem;
+    width: 24px; height: 24px; border-radius: 50%; border: none;
+    background: #fef2f2; color: var(--danger); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: .7rem;
+}
+
+/* ── Item line cards ── */
+.item-tabs { display: flex; gap: .25rem; border-bottom: 2px solid var(--border); margin-bottom: 1rem; }
+.item-tab {
+    padding: .55rem 1rem; font-size: .82rem; font-weight: 600;
+    border: none; background: none; color: var(--text-3); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    display: inline-flex; align-items: center; gap: .4rem; transition: all var(--transition);
+}
+.item-tab:hover { color: var(--brand); background: var(--brand-light); border-radius: 6px 6px 0 0; }
+.item-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+.item-tab .badge { background: var(--border); color: var(--text-3); border-radius: 999px; padding: .1rem .45rem; font-size: .68rem; font-weight: 700; }
+.item-tab.active .badge { background: var(--brand); color: #fff; }
+
+.item-search-bar {
+    display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem;
+}
+.item-search-bar .search-wrap {
+    flex: 1; display: flex; align-items: center; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg); padding: 0 .75rem;
+    transition: all var(--transition);
+}
+.item-search-bar .search-wrap:focus-within { border-color: var(--brand); background: #fff; box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+.item-search-bar .search-wrap i { color: var(--text-3); margin-right: .5rem; }
+.item-search-bar .search-wrap input { border: none; background: transparent; padding: .5rem 0; font-size: .84rem; flex: 1; outline: none; }
+.item-search-bar .btn-add {
+    padding: .5rem 1rem; border: none; border-radius: var(--radius-sm);
+    background: var(--brand); color: #fff; font-weight: 600; font-size: .82rem;
+    cursor: pointer; white-space: nowrap; transition: background var(--transition);
+}
+.item-search-bar .btn-add:hover { background: var(--brand-dark); }
+
+.item-line {
+    display: flex; align-items: center; gap: .75rem; padding: .625rem .875rem;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    margin-bottom: .375rem; transition: all var(--transition);
+}
+.item-line:hover { border-color: var(--border-hover); box-shadow: 0 1px 4px rgba(0,0,0,.03); }
+.item-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.item-dot.part { background: #a78bfa; }
+.item-dot.service { background: #fbbf24; }
+.item-dot.other { background: #94a3b8; }
+.item-body { flex: 1; }
+.item-name { font-weight: 600; font-size: .85rem; color: var(--text); }
+.item-code { font-size: .72rem; color: var(--text-3); }
+.item-qty {
+    width: 48px; text-align: center; border: 1px solid var(--border);
+    border-radius: 6px; padding: .3rem; font-size: .82rem; font-weight: 600;
+}
+.item-price-group {
+    display: flex; align-items: center; border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+}
+.item-price-group .cur { padding: .3rem .4rem; background: var(--bg); font-size: .7rem; color: var(--text-3); font-weight: 600; border-right: 1px solid var(--border); }
+.item-price-group input { width: 72px; border: none; padding: .3rem .4rem; font-size: .82rem; text-align: right; outline: none; }
+.item-total { min-width: 70px; text-align: right; font-weight: 700; font-size: .85rem; color: var(--brand); }
+.item-remove { width: 26px; height: 26px; border-radius: 50%; border: none; background: none; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.item-remove:hover { background: #fef2f2; color: var(--danger); }
+
+.subtotal-bar {
+    display: flex; justify-content: space-between; padding: .5rem .875rem;
+    background: var(--bg); border-radius: var(--radius-sm);
+    border: 1px solid var(--border); margin-top: .5rem;
+}
+.subtotal-bar .lbl { font-size: .82rem; font-weight: 600; color: var(--text-2); }
+.subtotal-bar .amt { font-size: .95rem; font-weight: 800; color: var(--brand); }
+
+/* Empty state */
+.empty { text-align: center; padding: 2rem 1rem; color: var(--text-3); }
+.empty i { font-size: 2rem; display: block; margin-bottom: .5rem; opacity: .4; }
+.empty p { font-size: .82rem; }
+
+/* ── Settings ── */
+.setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .75rem 0; border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-weight: 600; font-size: .85rem; color: var(--text); display: flex; align-items: center; gap: .5rem; }
+.setting-label i { color: var(--brand); }
+.setting-value select, .setting-value input { min-width: 180px; }
+
+/* ── Navigation buttons ── */
+.nav-buttons { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+.btn { padding: .6rem 1.5rem; border-radius: var(--radius-sm); font-size: .88rem; font-weight: 600; cursor: pointer; transition: all var(--transition); border: none; display: inline-flex; align-items: center; gap: .5rem; }
+.btn-outline { background: var(--card); color: var(--text-2); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:hover { background: var(--brand-dark); }
+.btn-success { background: var(--success); color: #fff; }
+
+/* ── Review summary ── */
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.review-item { padding: .75rem; background: var(--bg); border-radius: var(--radius-sm); }
+.review-item label { display: block; font-size: .7rem; font-weight: 600; color: var(--text-3); text-transform: uppercase; margin-bottom: .2rem; }
+.review-item span { font-size: .88rem; font-weight: 600; color: var(--text); }
+
+/* ── Responsive ── */
+@media (max-width: 991px) {
+    .page-shell { flex-direction: column; padding: 1rem; }
+    .sidebar { width: 100%; position: static; }
+    .stepper { display: flex; overflow-x: auto; gap: .5rem; padding: .75rem; }
+    .step-item { padding-bottom: 0; flex-direction: column; align-items: center; text-align: center; min-width: 80px; }
+    .step-item::before { display: none; }
+    .step-info span { display: none; }
+    .row { flex-direction: column; gap: .75rem; }
+    .col-6, .col-4, .col-8 { flex: 1 1 100%; }
+    .review-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-shell">
+    <!-- ═══════════ SIDEBAR ═══════════ -->
+    <aside class="sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-header">
+                <h2><i class="bi bi-tools me-1"></i> New Repair Job</h2>
+                <p>Fill in each section to create a job</p>
+            </div>
+
+            <div class="stepper">
+                <div class="step-item active" onclick="goStep(1)">
+                    <div class="step-dot">1</div>
+                    <div class="step-info">
+                        <h6>Job Details</h6>
+                        <span>Customer, dates, description</span>
+                    </div>
+                </div>
+                <div class="step-item" onclick="goStep(2)">
+                    <div class="step-dot">2</div>
+                    <div class="step-info">
+                        <h6>Devices</h6>
+                        <span>Add customer devices</span>
+                    </div>
+                </div>
+                <div class="step-item" onclick="goStep(3)">
+                    <div class="step-dot">3</div>
+                    <div class="step-info">
+                        <h6>Parts & Services</h6>
+                        <span>Line items & pricing</span>
+                    </div>
+                </div>
+                <div class="step-item" onclick="goStep(4)">
+                    <div class="step-dot">4</div>
+                    <div class="step-info">
+                        <h6>Settings & Review</h6>
+                        <span>Assign, review, submit</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-summary">
+                <div style="font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.5rem;">
+                    <i class="bi bi-calculator" style="color:var(--brand)"></i> Estimate
+                </div>
+                <div class="summary-row"><span>Parts (2)</span><span>$85.00</span></div>
+                <div class="summary-row"><span>Services (1)</span><span>$45.00</span></div>
+                <div class="summary-row total"><span>Total</span><span>$130.00</span></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════ MAIN CONTENT ═══════════ -->
+    <main class="main-panel">
+        <div class="breadcrumb-bar">
+            <a href="#">Dashboard</a> / <a href="#">Jobs</a> / <span>New Job</span>
+        </div>
+
+        <!-- ── STEP 1: Job Details ── -->
+        <div class="form-panel active" id="step-1">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="sec-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    <div>
+                        <h3>Job Details</h3>
+                        <p>Basic information about this repair</p>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="field">
+                                <label>Case Number</label>
+                                <input type="text" placeholder="Auto-generated if left blank">
+                                <div class="hint">Leave empty to auto-assign</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="field">
+                                <label>Job Title</label>
+                                <input type="text" placeholder="e.g. iPhone 14 Screen Repair">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field" style="margin-top:1rem">
+                        <label><i class="bi bi-person"></i> Customer</label>
+                        <div class="search-select">
+                            <i class="bi bi-search icon"></i>
+                            <input type="text" placeholder="Search by name, email, or phone…" style="padding-left:2.25rem;">
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:1rem">
+                        <div class="col-4">
+                            <div class="field">
+                                <label><i class="bi bi-calendar-event"></i> Pickup Date</label>
+                                <input type="date" value="2026-02-23">
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="field">
+                                <label><i class="bi bi-calendar-check"></i> Delivery Date</label>
+                                <input type="date">
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="field">
+                                <label><i class="bi bi-arrow-repeat"></i> Next Service</label>
+                                <input type="date">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field" style="margin-top:1rem">
+                        <label>Description</label>
+                        <textarea rows="3" placeholder="Describe the repair issue, customer notes, or any relevant details…"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-buttons">
+                <span></span>
+                <button class="btn btn-primary" onclick="goStep(2)">Continue <i class="bi bi-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- ── STEP 2: Devices ── -->
+        <div class="form-panel" id="step-2">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="sec-icon"><i class="bi bi-phone"></i></div>
+                    <div>
+                        <h3>Devices</h3>
+                        <p>Add devices this repair job involves</p>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <!-- Sample devices -->
+                    <div class="device-card">
+                        <div class="device-icon"><i class="bi bi-phone"></i></div>
+                        <div class="device-body">
+                            <div class="device-name">Apple — iPhone 14 Pro Max</div>
+                            <div class="device-meta">
+                                <span><i class="bi bi-upc-scan"></i> IMEI: 354209…8821</span>
+                                <span><i class="bi bi-lock"></i> PIN: 1234</span>
+                            </div>
+                            <div style="font-size:.75rem;color:var(--text-3);margin-top:.25rem;">
+                                <i class="bi bi-chat-left-text"></i> Cracked screen, minor scratches on back panel
+                            </div>
+                        </div>
+                        <button class="device-remove"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="device-card">
+                        <div class="device-icon" style="background:#fef3c7;color:#92400e;"><i class="bi bi-laptop"></i></div>
+                        <div class="device-body">
+                            <div class="device-name">Samsung — Galaxy Book3 Pro</div>
+                            <div class="device-meta">
+                                <span><i class="bi bi-upc-scan"></i> S/N: RZ14…004K</span>
+                            </div>
+                            <div style="font-size:.75rem;color:var(--text-3);margin-top:.25rem;">
+                                <i class="bi bi-chat-left-text"></i> Won't power on, possible motherboard issue
+                            </div>
+                        </div>
+                        <button class="device-remove"><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div style="margin-top:.75rem;">
+                        <button class="btn btn-outline" style="border-style:dashed;"><i class="bi bi-plus-lg"></i> Add Device</button>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn btn-outline" onclick="goStep(1)"><i class="bi bi-arrow-left"></i> Back</button>
+                <button class="btn btn-primary" onclick="goStep(3)">Continue <i class="bi bi-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- ── STEP 3: Parts & Services ── -->
+        <div class="form-panel" id="step-3">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="sec-icon"><i class="bi bi-box-seam"></i></div>
+                    <div>
+                        <h3>Parts & Services</h3>
+                        <p>Add billable items to this job</p>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <div class="item-tabs">
+                        <button class="item-tab active" onclick="switchTab(this,'parts-panel')"><i class="bi bi-cpu"></i> Parts <span class="badge">2</span></button>
+                        <button class="item-tab" onclick="switchTab(this,'services-panel')"><i class="bi bi-wrench-adjustable-circle"></i> Services <span class="badge">1</span></button>
+                        <button class="item-tab" onclick="switchTab(this,'other-panel')"><i class="bi bi-receipt"></i> Other <span class="badge">0</span></button>
+                    </div>
+
+                    <!-- Parts panel -->
+                    <div id="parts-panel">
+                        <div class="item-search-bar">
+                            <div class="search-wrap">
+                                <i class="bi bi-search"></i>
+                                <input type="text" placeholder="Search part by name or code…">
+                            </div>
+                            <button class="btn-add"><i class="bi bi-plus-lg"></i> Add Part</button>
+                        </div>
+
+                        <div class="item-line">
+                            <div class="item-dot part"></div>
+                            <div class="item-body">
+                                <div class="item-name">iPhone 14 Pro Max Screen Assembly (OLED)</div>
+                                <div class="item-code">SKU: IPH14PM-SCR-OLED</div>
+                            </div>
+                            <input type="number" class="item-qty" value="1" min="1">
+                            <div class="item-price-group">
+                                <span class="cur">$</span>
+                                <input type="number" value="65.00" step="0.01">
+                            </div>
+                            <div class="item-total">$65.00</div>
+                            <button class="item-remove"><i class="bi bi-trash"></i></button>
+                        </div>
+                        <div class="item-line">
+                            <div class="item-dot part"></div>
+                            <div class="item-body">
+                                <div class="item-name">Adhesive Frame Kit (iPhone 14 PM)</div>
+                                <div class="item-code">SKU: IPH14-ADH</div>
+                            </div>
+                            <input type="number" class="item-qty" value="1" min="1">
+                            <div class="item-price-group">
+                                <span class="cur">$</span>
+                                <input type="number" value="20.00" step="0.01">
+                            </div>
+                            <div class="item-total">$20.00</div>
+                            <button class="item-remove"><i class="bi bi-trash"></i></button>
+                        </div>
+
+                        <div class="subtotal-bar">
+                            <span class="lbl">Parts Subtotal</span>
+                            <span class="amt">$85.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Services panel (hidden by default) -->
+                    <div id="services-panel" style="display:none;">
+                        <div class="item-search-bar">
+                            <div class="search-wrap">
+                                <i class="bi bi-search"></i>
+                                <input type="text" placeholder="Search service by name or code…">
+                            </div>
+                            <button class="btn-add"><i class="bi bi-plus-lg"></i> Add Service</button>
+                        </div>
+                        <div class="item-line">
+                            <div class="item-dot service"></div>
+                            <div class="item-body">
+                                <div class="item-name">Screen Replacement Labor</div>
+                                <div class="item-code">SRV-001</div>
+                            </div>
+                            <input type="number" class="item-qty" value="1" min="1">
+                            <div class="item-price-group">
+                                <span class="cur">$</span>
+                                <input type="number" value="45.00" step="0.01">
+                            </div>
+                            <div class="item-total">$45.00</div>
+                            <button class="item-remove"><i class="bi bi-trash"></i></button>
+                        </div>
+                        <div class="subtotal-bar">
+                            <span class="lbl">Services Subtotal</span>
+                            <span class="amt">$45.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Other panel (hidden by default) -->
+                    <div id="other-panel" style="display:none;">
+                        <div class="empty">
+                            <i class="bi bi-receipt"></i>
+                            <p>No other items yet. Click "Add Item" to add extras.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn btn-outline" onclick="goStep(2)"><i class="bi bi-arrow-left"></i> Back</button>
+                <button class="btn btn-primary" onclick="goStep(4)">Continue <i class="bi bi-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- ── STEP 4: Settings & Review ── -->
+        <div class="form-panel" id="step-4">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="sec-icon"><i class="bi bi-gear"></i></div>
+                    <div>
+                        <h3>Settings</h3>
+                        <p>Assign technicians, set status, priority</p>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <div class="setting-row">
+                        <div class="setting-label"><i class="bi bi-person-gear"></i> Technician</div>
+                        <div class="setting-value">
+                            <select><option>John Smith</option><option>Mike Repair</option></select>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label"><i class="bi bi-flag"></i> Job Status</div>
+                        <div class="setting-value">
+                            <select><option>Pending</option><option>In Progress</option><option>Completed</option></select>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label"><i class="bi bi-credit-card"></i> Payment Status</div>
+                        <div class="setting-value">
+                            <select><option>Unpaid</option><option>Partial</option><option>Paid</option></select>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label"><i class="bi bi-exclamation-diamond"></i> Priority</div>
+                        <div class="setting-value">
+                            <select><option>Normal</option><option>Low</option><option>High</option><option>Urgent</option></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="sec-icon" style="background:#f0fdf4;color:#16a34a;"><i class="bi bi-clipboard-check"></i></div>
+                    <div>
+                        <h3>Review Summary</h3>
+                        <p>Confirm everything before creating</p>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <div class="review-grid">
+                        <div class="review-item"><label>Title</label><span>iPhone 14 Screen Repair</span></div>
+                        <div class="review-item"><label>Customer</label><span>Jane Cooper</span></div>
+                        <div class="review-item"><label>Pickup Date</label><span>Feb 23, 2026</span></div>
+                        <div class="review-item"><label>Devices</label><span>2 devices</span></div>
+                        <div class="review-item"><label>Parts</label><span>2 items — $85.00</span></div>
+                        <div class="review-item"><label>Services</label><span>1 item — $45.00</span></div>
+                        <div class="review-item"><label>Technician</label><span>John Smith</span></div>
+                        <div class="review-item"><label>Priority</label><span>Normal</span></div>
+                    </div>
+
+                    <div style="margin-top:1.25rem; padding:1rem; background:var(--brand-light); border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; font-size:1.1rem;"><i class="bi bi-receipt" style="color:var(--brand)"></i> Grand Total</span>
+                        <span style="font-weight:800; font-size:1.3rem; color:var(--brand);">$130.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn btn-outline" onclick="goStep(3)"><i class="bi bi-arrow-left"></i> Back</button>
+                <button class="btn btn-success"><i class="bi bi-check-lg"></i> Create Job</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let currentStep = 1;
+function goStep(n) {
+    document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+    document.querySelectorAll('.step-item').forEach((s, i) => {
+        s.classList.remove('active', 'completed');
+        if (i + 1 === n) s.classList.add('active');
+        else if (i + 1 < n) s.classList.add('completed');
+    });
+    currentStep = n;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function switchTab(btn, panelId) {
+    btn.closest('.section-body').querySelectorAll('.item-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    ['parts-panel','services-panel','other-panel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === panelId ? 'block' : 'none';
+    });
+}
+</script>
+
+</body>
+</html>
