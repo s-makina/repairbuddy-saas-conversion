@@ -41,6 +41,20 @@
 
     [x-cloak] { display: none !important; }
 
+    /* ── Page background override ── */
+    .container-fluid.jf-page {
+        background: var(--rb-bg);
+        min-height: 100vh;
+        margin: -1rem -1rem 0 -1rem;
+        padding: 0;
+        width: calc(100% + 2rem);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        color: var(--rb-text);
+    }
+
     /* ── Sticky Top Bar ── */
     .jf-top-bar {
         background: var(--rb-card);
@@ -170,18 +184,20 @@
     .jf-fg:last-child { margin-bottom: 0; }
     .jf-fg > label {
         display: block;
-        font-size: .78rem;
+        font-size: .72rem;
         font-weight: 600;
         color: var(--rb-text-2);
         margin-bottom: .3rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
     }
     .jf-fg .form-control,
     .jf-fg .form-select {
         width: 100%;
-        border: 1.5px solid var(--rb-border);
+        border: 1px solid var(--rb-border);
         border-radius: var(--rb-radius-sm);
-        padding: .55rem .75rem;
-        font-size: .88rem;
+        padding: .5rem .75rem;
+        font-size: .86rem;
         color: var(--rb-text);
         background: #fff;
         outline: none;
@@ -246,7 +262,7 @@
 
     .jf-selected-box {
         background: var(--rb-brand-soft);
-        border: 1.5px solid #bae6fd;
+        border: 1px solid #bae6fd;
         border-radius: var(--rb-radius-sm);
         padding: .5rem .75rem;
         display: flex;
@@ -379,7 +395,7 @@
         gap: .5rem;
         padding: .5rem 0;
         margin-bottom: .5rem;
-        border-bottom: 2px solid var(--rb-border);
+        border-bottom: 1px solid var(--rb-border);
     }
     .jf-cat-dot {
         width: 8px;
@@ -390,13 +406,13 @@
     .jf-cat-dot.service { background: #fbbf24; }
     .jf-cat-dot.other { background: #94a3b8; }
     .jf-cat-strip h5 {
-        font-size: .85rem;
+        font-size: .82rem;
         font-weight: 700;
         flex: 1;
         margin: 0;
     }
     .jf-cat-strip .jf-cat-total {
-        font-size: .85rem;
+        font-size: .82rem;
         font-weight: 700;
         color: var(--rb-brand);
     }
@@ -411,7 +427,7 @@
         flex: 1;
         display: flex;
         align-items: center;
-        border: 1.5px solid var(--rb-border);
+        border: 1px solid var(--rb-border);
         border-radius: var(--rb-radius-sm);
         padding: 0 .625rem;
         background: var(--rb-bg);
@@ -429,8 +445,8 @@
     .jf-cat-search .jf-inp-wrap input {
         border: none;
         background: transparent;
-        padding: .5rem 0;
-        font-size: .84rem;
+        padding: .45rem 0;
+        font-size: .82rem;
         flex: 1;
         outline: none;
         color: var(--rb-text);
@@ -510,7 +526,7 @@
         text-align: center;
         padding: .3rem .2rem;
         border-radius: 6px;
-        border: 1.5px solid var(--rb-border);
+        border: 1px solid var(--rb-border);
         font-weight: 600;
         font-size: .82rem;
         outline: none;
@@ -519,7 +535,7 @@
     .jf-il-controls .price-group {
         display: flex;
         align-items: center;
-        border: 1.5px solid var(--rb-border);
+        border: 1px solid var(--rb-border);
         border-radius: 6px;
         overflow: hidden;
         background: #fff;
@@ -609,8 +625,8 @@
         padding: 1.5rem 1rem;
         color: var(--rb-text-3);
     }
-    .jf-empty i { font-size: 1.5rem; display: block; margin-bottom: .3rem; opacity: .35; }
-    .jf-empty p { font-size: .82rem; margin: 0; }
+    .jf-empty i { font-size: 1.5rem; display: block; margin-bottom: .375rem; opacity: .4; }
+    .jf-empty p { font-size: .78rem; margin: 0; }
     .jf-empty .jf-empty-sub { font-size: .72rem; opacity: .6; margin-top: .15rem; }
 
     /* ── Extras Table ── */
@@ -634,18 +650,17 @@
     }
     .jf-extras-table tbody tr:hover { background: rgba(14,165,233,.02); }
 
-    /* ── Sidebar: Grand Total Hero ── */
+    /* ── Grand Total Hero (mockup: no extra shadow on hero) ── */
     .jf-gt-hero {
         background: linear-gradient(135deg, var(--rb-brand) 0%, var(--rb-brand-dark) 100%);
         padding: 1.25rem;
         border-radius: var(--rb-radius);
         color: #fff;
         margin-bottom: 1rem;
-        box-shadow: 0 4px 16px rgba(14,165,233,.2);
     }
     .jf-gt-hero .jf-gt-label { font-size: .78rem; opacity: .7; font-weight: 600; }
-    .jf-gt-hero .jf-gt-amount { font-size: 1.75rem; font-weight: 800; margin-top: .1rem; }
-    .jf-gt-hero .jf-gt-items { font-size: .72rem; opacity: .6; margin-top: .2rem; }
+    .jf-gt-hero .jf-gt-amount { font-size: 1.75rem; font-weight: 800; margin-top: .15rem; }
+    .jf-gt-hero .jf-gt-items { font-size: .72rem; opacity: .65; margin-top: .25rem; }
 
     /* ── Sidebar Cards ── */
     .jf-sc {
@@ -670,7 +685,7 @@
     .jf-sc-row {
         display: flex;
         justify-content: space-between;
-        padding: .3rem 0;
+        padding: .25rem 0;
         font-size: .82rem;
     }
     .jf-sc-row .jf-val { font-weight: 600; }
@@ -689,7 +704,7 @@
     .jf-ss select,
     .jf-ss input {
         width: 100%;
-        border: 1.5px solid var(--rb-border);
+        border: 1px solid var(--rb-border);
         border-radius: 6px;
         padding: .4rem .625rem;
         font-size: .82rem;
@@ -761,7 +776,7 @@
 </style>
 @endpush
 
-<div class="container-fluid px-0">
+<div class="container-fluid px-0 jf-page">
     @livewire('tenant.operations.quick-customer-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-technician-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-part-modal', ['tenant' => $tenant])
