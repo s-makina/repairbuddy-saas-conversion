@@ -103,16 +103,6 @@
 
     /* Page title block */
     .jf-title-block { line-height: 1.2; }
-    .jf-title-block .jf-page-title {
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-        font-size: 1rem;
-        font-weight: 800;
-        color: var(--rb-text);
-        margin: 0 0 .15rem 0;
-    }
-    .jf-title-block .jf-page-title i { color: var(--rb-brand); font-size: .9rem; }
     .jf-title-block .jf-mode-badge {
         display: inline-flex;
         align-items: center;
@@ -123,7 +113,18 @@
         border-radius: 999px;
         text-transform: uppercase;
         letter-spacing: .04em;
+        margin-bottom: .3rem;
     }
+    .jf-title-block .jf-page-title {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--rb-text);
+        margin: 0 0 .15rem 0;
+    }
+    .jf-title-block .jf-page-title i { color: var(--rb-brand); font-size: .9rem; }
     .jf-mode-badge.mode-create {
         background: #dcfce7;
         color: #15803d;
@@ -535,16 +536,25 @@
         color: var(--rb-text);
     }
     .jf-cat-search .jf-device-link {
-        width: 200px;
-        flex-shrink: 0;
+        flex: 0 0 175px;
+        border: 1px solid var(--rb-border);
+        border-radius: var(--rb-radius-sm);
+        padding: .45rem .65rem;
+        font-size: .82rem;
+        color: var(--rb-text);
+        background: var(--rb-bg);
+        outline: none;
+        transition: border-color .15s;
+        appearance: auto;
     }
+    .jf-cat-search .jf-device-link:focus { border-color: var(--rb-brand); background: #fff; }
     .jf-cat-search .jf-add-btn {
-        padding: .45rem .75rem;
+        padding: .45rem .85rem;
         background: var(--rb-success);
         color: #fff;
         border: none;
         border-radius: var(--rb-radius-sm);
-        font-size: .78rem;
+        font-size: .82rem;
         font-weight: 600;
         cursor: pointer;
         white-space: nowrap;
@@ -556,11 +566,17 @@
     .jf-cat-search .jf-add-btn:disabled { opacity: .5; cursor: not-allowed; }
     .jf-cat-search .jf-create-btn {
         padding: .45rem .65rem;
-        border: none;
+        border: 1px solid var(--rb-brand);
         border-radius: var(--rb-radius-sm);
-        font-size: .82rem;
+        font-size: .86rem;
+        background: var(--rb-brand-soft);
+        color: var(--rb-brand);
         cursor: pointer;
+        transition: background .15s, color .15s, border-color .15s;
+        display: inline-flex;
+        align-items: center;
     }
+    .jf-cat-search .jf-create-btn:hover { background: var(--rb-brand); color: #fff; border-color: var(--rb-brand); }
 
     .jf-il {
         display: flex;
@@ -596,6 +612,28 @@
         gap: .6rem;
         flex-wrap: wrap;
         margin-top: .1rem;
+    }
+
+    .jf-il-inline-input {
+        display: block;
+        max-width: 280px;
+        border: 1px solid var(--rb-border);
+        border-radius: var(--rb-radius-sm);
+        padding: .35rem .6rem;
+        font-size: .84rem;
+        color: var(--rb-text);
+        background: var(--rb-bg);
+        outline: none;
+        transition: border-color .15s;
+        margin-bottom: .25rem;
+        width: 100%;
+    }
+    .jf-il-inline-input:focus { border-color: var(--rb-brand); background: #fff; }
+    .jf-il-inline-input--sm {
+        max-width: 155px;
+        font-size: .75rem;
+        padding: .2rem .5rem;
+        margin-bottom: 0;
     }
 
     .jf-il-controls {
@@ -663,6 +701,47 @@
         font-size: .72rem;
     }
     .jf-il-rm:hover { background: var(--rb-danger-soft); color: var(--rb-danger); }
+
+    /* Tax Mode bar — top of Line Items section */
+    .jf-tax-mode-bar {
+        display: flex;
+        align-items: center;
+        background: #fefce8;
+        border: 1px solid #fde68a;
+        border-radius: var(--rb-radius-sm);
+        padding: .55rem .85rem;
+        margin-bottom: .85rem;
+    }
+    .jf-tax-mode-inner {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .jf-tax-icon { color: #d97706; font-size: .9rem; flex-shrink: 0; }
+    .jf-tax-label {
+        font-size: .78rem;
+        font-weight: 700;
+        color: #92400e;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
+    }
+    .jf-tax-select {
+        border: 1px solid #fcd34d;
+        border-radius: var(--rb-radius-sm);
+        padding: .3rem .65rem;
+        font-size: .82rem;
+        color: var(--rb-text);
+        background: #fff;
+        outline: none;
+        min-width: 220px;
+        transition: border-color .15s;
+        appearance: auto;
+    }
+    .jf-tax-select:focus { border-color: #d97706; }
+    .jf-tax-error { font-size: .74rem; color: var(--rb-danger); }
 
     .jf-subtotal-bar {
         display: flex;
@@ -880,13 +959,13 @@
                 </a>
                 {{-- Title + breadcrumb --}}
                 <div class="jf-title-block">
+                    <span class="jf-mode-badge {{ $jobId ? 'mode-edit' : 'mode-create' }}">
+                        <i class="bi {{ $jobId ? 'bi-pencil' : 'bi-plus-lg' }}"></i>
+                        {{ $jobId ? __('Edit') : __('New') }}
+                    </span>
                     <h1 class="jf-page-title">
                         <i class="bi bi-tools"></i>
                         {{ $jobId ? __('Edit Job') : __('Create New Job') }}
-                        <span class="jf-mode-badge {{ $jobId ? 'mode-edit' : 'mode-create' }}">
-                            <i class="bi {{ $jobId ? 'bi-pencil' : 'bi-plus-lg' }}"></i>
-                            {{ $jobId ? __('Edit') : __('New') }}
-                        </span>
                     </h1>
                     <ol class="jf-breadcrumb">
                         <li><a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) }}">{{ __('Dashboard') }}</a></li>
@@ -1092,57 +1171,77 @@
                 <div class="jf-section-body" x-show="sections.devices" x-collapse>
                     {{-- Add Device Form --}}
                     <div class="jf-dev-form-card">
-                        <h6><i class="bi bi-plus-square me-1 text-primary"></i> {{ $editingDeviceIndex !== null ? __('Edit Device') : __('Add Device') }}</h6>
-                        <div class="row g-3">
+                        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.875rem;">
+                            <div style="width:24px;height:24px;border-radius:6px;background:var(--rb-brand-soft);color:var(--rb-brand);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;">
+                                <i class="{{ $editingDeviceIndex !== null ? 'bi bi-pencil' : 'bi bi-plus-lg' }}"></i>
+                            </div>
+                            <span style="font-size:.82rem;font-weight:700;color:var(--rb-text);">
+                                {{ $editingDeviceIndex !== null ? __('Edit Device') : __('Add Device') }}
+                            </span>
+                        </div>
+
+                        {{-- Row 1: Device search + IMEI + PIN --}}
+                        <div class="jf-dates-grid">
                             {{-- Device Search --}}
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold text-muted">{{ __('Device (Search)') }}</label>
+                            <div class="jf-fg" style="margin-bottom:0;">
+                                <label><i class="bi bi-search"></i> {{ __('Device') }}</label>
                                 <div class="position-relative" x-data="{ open: false, search: @entangle('device_search').live }" @click.away="open = false">
                                     <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                        <input type="text" class="form-control border-start-0" placeholder="{{ __('Search for a device...') }}"
+                                        <span class="input-group-text" style="background:#fff;border:1px solid var(--rb-border);border-right:none;border-radius:var(--rb-radius-sm) 0 0 var(--rb-radius-sm);color:var(--rb-text-3);font-size:.82rem;">
+                                            <i class="bi bi-phone"></i>
+                                        </span>
+                                        <input type="text"
+                                               class="form-control"
+                                               style="border-left:none;border-radius:0 var(--rb-radius-sm) var(--rb-radius-sm) 0;"
+                                               placeholder="{{ __('Search model...') }}"
                                                x-model="search"
                                                @focus="open = true"
                                                @input="open = true">
                                         @if($selected_device_id)
-                                            <button type="button" class="btn btn-outline-secondary border-start-0" wire:click="$set('selected_device_id', null); $set('selected_device_name', '')">
-                                                <i class="bi bi-x-lg"></i>
+                                            <button type="button"
+                                                    class="btn"
+                                                    style="border:1px solid var(--rb-border);border-left:none;border-radius:0 var(--rb-radius-sm) var(--rb-radius-sm) 0;background:#fff;color:var(--rb-text-3);padding:.3rem .6rem;"
+                                                    wire:click="$set('selected_device_id', null); $set('selected_device_name', '')">
+                                                <i class="bi bi-x-lg" style="font-size:.75rem;"></i>
                                             </button>
                                         @endif
                                     </div>
                                     @if($selected_device_name)
-                                        <div class="mt-2">
-                                            <span class="badge bg-primary px-3 py-2 rounded-pill d-inline-flex align-items-center">
+                                        <div class="mt-1">
+                                            <span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--rb-brand-soft);color:var(--rb-brand-dark);border:1px solid #bae6fd;padding:.2rem .65rem;border-radius:999px;font-size:.75rem;font-weight:600;">
                                                 @if($selected_device_image)
-                                                    <img src="{{ $selected_device_image }}" class="rounded-circle me-2" style="width:20px;height:20px;object-fit:cover;border:1px solid rgba(255,255,255,0.5);">
+                                                    <img src="{{ $selected_device_image }}" style="width:16px;height:16px;object-fit:cover;border-radius:50%;">
                                                 @else
-                                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                                    <i class="bi bi-check-circle-fill"></i>
                                                 @endif
                                                 {{ $selected_device_name }}
                                             </span>
                                         </div>
                                     @endif
-                                    <div class="dropdown-menu shadow-lg border-0 w-100 mt-1" :class="{ 'show': open && search.length >= 2 }" style="max-height:400px;overflow-y:auto;z-index:1050;">
-                                        <div wire:loading wire:target="device_search" class="p-4 text-center">
+                                    <div class="jf-search-dropdown" :class="{ 'd-block': open && search.length >= 2 }" x-show="open && search.length >= 2" x-cloak>
+                                        <div wire:loading wire:target="device_search" class="p-3 text-center">
                                             <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                                            <span class="text-muted small">{{ __('Searching devices...') }}</span>
+                                            <span class="text-muted small">{{ __('Searching...') }}</span>
                                         </div>
                                         <div wire:loading.remove wire:target="device_search">
                                             @forelse($this->filteredDevices as $brandName => $groupDevices)
-                                                <div class="dropdown-header bg-light py-2 text-uppercase fw-bold small text-primary sticky-top">{{ $brandName }}</div>
+                                                <div style="padding:.4rem .75rem .2rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--rb-brand);background:var(--rb-bg);position:sticky;top:0;">{{ $brandName }}</div>
                                                 @foreach($groupDevices as $device)
-                                                    <button type="button" class="dropdown-item py-2 d-flex align-items-center"
-                                                            wire:click="selectDevice({{ $device->id }}, '{{ $brandName }} {{ $device->model }}')"
-                                                            @click="open = false">
-                                                        <div class="me-2 rounded border overflow-hidden d-flex align-items-center justify-content-center bg-light" style="width:32px;height:32px;">
-                                                            @if($device->image_url)
-                                                                <img src="{{ $device->image_url }}" class="img-fluid" style="object-fit:cover;width:100%;height:100%;">
-                                                            @else
-                                                                <i class="bi bi-phone text-muted small"></i>
-                                                            @endif
+                                                    <div class="jf-search-item"
+                                                         wire:click="selectDevice({{ $device->id }}, '{{ $brandName }} {{ $device->model }}')"
+                                                         @click="open = false">
+                                                        <div style="display:flex;align-items:center;gap:.5rem;">
+                                                            <div style="width:28px;height:28px;border-radius:6px;border:1px solid var(--rb-border);overflow:hidden;background:var(--rb-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                                                @if($device->image_url)
+                                                                    <img src="{{ $device->image_url }}" style="object-fit:cover;width:100%;height:100%;">
+                                                                @else
+                                                                    <i class="bi bi-phone" style="font-size:.75rem;color:var(--rb-text-3);"></i>
+                                                                @endif
+                                                            </div>
+                                                            <span class="jf-item-title">{{ $device->model }}</span>
                                                         </div>
-                                                        <span>{{ $device->model }}</span>
-                                                    </button>
+                                                        <i class="bi bi-plus" style="color:var(--rb-brand);"></i>
+                                                    </div>
                                                 @endforeach
                                             @empty
                                                 <div class="p-3 text-center text-muted small">{{ __('No matching devices found') }}</div>
@@ -1150,45 +1249,59 @@
                                         </div>
                                     </div>
                                 </div>
-                                @error('selected_device_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                @error('selected_device_id')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold text-muted">{{ __('ID / IMEI') }}</label>
+                            {{-- IMEI / Serial --}}
+                            <div class="jf-fg" style="margin-bottom:0;">
+                                <label><i class="bi bi-upc-scan"></i> {{ __('ID / IMEI') }}</label>
                                 <input type="text" class="form-control" wire:model.defer="device_serial" placeholder="{{ __('Enter Device ID/IMEI') }}">
-                                @error('device_serial')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                @error('device_serial')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
 
+                            {{-- PIN --}}
                             @if($enablePinCodeField)
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">{{ __('Pincode / Password') }}</label>
+                                <div class="jf-fg" style="margin-bottom:0;">
+                                    <label><i class="bi bi-lock"></i> {{ __('Pincode / Password') }}</label>
                                     <input type="text" class="form-control" wire:model.defer="device_pin" placeholder="{{ __('e.g. 1234') }}">
                                 </div>
+                            @else
+                                <div></div>{{-- keep grid symmetry --}}
                             @endif
+                        </div>
 
-                            @foreach($fieldDefinitions as $def)
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">{{ __($def->label) }}</label>
-                                    <input type="text" class="form-control" wire:model.defer="additional_fields.{{ $def->key }}">
-                                </div>
-                            @endforeach
+                        {{-- Additional custom fields --}}
+                        @if(count($fieldDefinitions) > 0)
+                            <div class="jf-dates-grid" style="margin-top:.75rem;">
+                                @foreach($fieldDefinitions as $def)
+                                    <div class="jf-fg" style="margin-bottom:0;">
+                                        <label>{{ __($def->label) }}</label>
+                                        <input type="text" class="form-control" wire:model.defer="additional_fields.{{ $def->key }}">
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
 
-                            <div class="col-12">
-                                <label class="form-label small fw-bold text-muted">{{ __('Device Note') }}</label>
-                                <textarea class="form-control" wire:model.defer="device_note" rows="2" placeholder="{{ __('Pre-existing damage, specific issues, etc.') }}"></textarea>
-                            </div>
-                            <div class="col-12 text-end">
-                                @if($editingDeviceIndex !== null)
-                                    <button type="button" class="btn btn-outline-secondary px-4 me-2" wire:click="cancelEditDevice">{{ __('Cancel') }}</button>
-                                    <button type="button" class="btn btn-primary px-4" wire:click="addDeviceToTable">
-                                        <i class="bi bi-check-circle me-1"></i>{{ __('Update Device') }}
-                                    </button>
-                                @else
-                                    <button type="button" class="btn btn-success px-4" wire:click="addDeviceToTable">
-                                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add to Job') }}
-                                    </button>
-                                @endif
-                            </div>
+                        {{-- Device Note --}}
+                        <div class="jf-fg" style="margin-top:.75rem;margin-bottom:.875rem;">
+                            <label><i class="bi bi-chat-text"></i> {{ __('Device Note') }}</label>
+                            <textarea class="form-control" wire:model.defer="device_note" rows="2" placeholder="{{ __('Pre-existing damage, specific issues, etc.') }}"></textarea>
+                        </div>
+
+                        {{-- Action buttons --}}
+                        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+                            @if($editingDeviceIndex !== null)
+                                <button type="button" class="jf-btn jf-btn-cancel" wire:click="cancelEditDevice">
+                                    {{ __('Cancel') }}
+                                </button>
+                                <button type="button" class="jf-btn jf-btn-save" wire:click="addDeviceToTable">
+                                    <i class="bi bi-check-lg"></i> {{ __('Update Device') }}
+                                </button>
+                            @else
+                                <button type="button" class="jf-btn jf-btn-save" wire:click="addDeviceToTable">
+                                    <i class="bi bi-plus-lg"></i> {{ __('Add to Job') }}
+                                </button>
+                            @endif
                         </div>
                     </div>
 
@@ -1263,6 +1376,22 @@
                 </div>
                 <div class="jf-section-body" x-show="sections.items" x-collapse>
 
+                    {{-- ═══ Tax Mode (select before adding items) ═══ --}}
+                    @if($tax_enabled)
+                        <div class="jf-tax-mode-bar">
+                            <div class="jf-tax-mode-inner">
+                                <i class="bi bi-percent jf-tax-icon"></i>
+                                <span class="jf-tax-label">{{ __('Tax Mode') }}</span>
+                                <select class="jf-tax-select" wire:model.live="prices_inclu_exclu">
+                                    <option value="">{{ __('Select tax mode...') }}</option>
+                                    <option value="inclusive">{{ __('Inclusive — tax included in price') }}</option>
+                                    <option value="exclusive">{{ __('Exclusive — tax added on top') }}</option>
+                                </select>
+                                @error('prices_inclu_exclu')<span class="jf-tax-error">{{ $message }}</span>@enderror
+                            </div>
+                        </div>
+                    @endif
+
                     {{-- ═══ PARTS ═══ --}}
                     <div class="jf-cat-strip">
                         <div class="jf-cat-dot part"></div>
@@ -1301,7 +1430,7 @@
                                 </div>
                             </div>
                         </div>
-                        <select class="form-select jf-device-link" wire:model.defer="selected_device_link_index">
+                        <select class="jf-device-link" wire:model.defer="selected_device_link_index">
                             <option value="">{{ __('Link to device...') }}</option>
                             @foreach($deviceRows as $idx => $row)
                                 <option value="{{ $idx }}">{{ $row['brand_name'] }} {{ $row['device_model'] }}</option>
@@ -1310,7 +1439,7 @@
                         <button type="button" class="jf-add-btn" wire:click="addPart" {{ !$selected_part_id ? 'disabled' : '' }}>
                             <i class="bi bi-plus-lg"></i> {{ __('Add') }}
                         </button>
-                        <button type="button" class="btn btn-gradient jf-create-btn" title="{{ __('Create New Part') }}" wire:click="$dispatch('openQuickPartModal')">
+                        <button type="button" class="jf-create-btn" title="{{ __('Create New Part') }}" wire:click="$dispatch('openQuickPartModal')">
                             <i class="bi bi-plus-lg"></i>
                         </button>
                     </div>
@@ -1402,7 +1531,7 @@
                                 </div>
                             </div>
                         </div>
-                        <select class="form-select jf-device-link" wire:model.defer="selected_device_link_index">
+                        <select class="jf-device-link" wire:model.defer="selected_device_link_index">
                             <option value="">{{ __('Link to device...') }}</option>
                             @foreach($deviceRows as $idx => $device)
                                 <option value="{{ $idx }}">{{ $device['brand_name'] }} {{ $device['device_model'] }}</option>
@@ -1411,7 +1540,7 @@
                         <button type="button" class="jf-add-btn" wire:click="addService" {{ !$selected_service_id && strlen($service_search) < 2 ? 'disabled' : '' }}>
                             <i class="bi bi-plus-lg"></i> {{ __('Add') }}
                         </button>
-                        <button type="button" class="btn btn-gradient jf-create-btn" title="{{ __('Create New Service') }}" wire:click="$dispatch('openQuickServiceModal')">
+                        <button type="button" class="jf-create-btn" title="{{ __('Create New Service') }}" wire:click="$dispatch('openQuickServiceModal')">
                             <i class="bi bi-plus-lg"></i>
                         </button>
                     </div>
@@ -1472,7 +1601,7 @@
                             <i class="bi bi-search"></i>
                             <input type="text" placeholder="{{ __('Custom items — click Add') }}" disabled />
                         </div>
-                        <select class="form-select jf-device-link" wire:model.defer="selected_device_link_index">
+                        <select class="jf-device-link" wire:model.defer="selected_device_link_index">
                             <option value="">{{ __('Link to device...') }}</option>
                             @foreach($deviceRows as $idx => $device)
                                 <option value="{{ $idx }}">{{ $device['brand_name'] }} {{ $device['device_model'] }}</option>
@@ -1487,10 +1616,10 @@
                         <div class="jf-il" wire:key="item-line-{{ $i }}">
                             <div class="jf-il-icon other"><i class="bi bi-receipt"></i></div>
                             <div class="jf-il-body">
-                                <input type="text" class="form-control form-control-sm mb-1" style="max-width:280px;" wire:model.defer="items.{{ $i }}.name" placeholder="{{ __('Item name...') }}" />
+                                <input type="text" class="jf-il-inline-input" wire:model.defer="items.{{ $i }}.name" placeholder="{{ __('Item name...') }}" />
                                 <div class="jf-il-meta">
                                     <span>
-                                        <input type="text" class="form-control form-control-sm d-inline-block" style="max-width:150px;padding:.2rem .5rem;font-size:.75rem;" wire:model.defer="items.{{ $i }}.code" placeholder="{{ __('Code (optional)') }}" />
+                                        <input type="text" class="jf-il-inline-input jf-il-inline-input--sm" wire:model.defer="items.{{ $i }}.code" placeholder="{{ __('Code (optional)') }}" />
                                     </span>
                                     @if(!empty($row['device_info']))<span><i class="bi bi-phone me-1"></i>{{ $row['device_info'] }}</span>@endif
                                 </div>
@@ -1519,24 +1648,6 @@
                         </div>
                     @endif
 
-                    {{-- Grand Total (inline) --}}
-                    <div style="margin-top:1rem;">
-                        <div class="jf-row" style="align-items:flex-end;">
-                            <div class="jf-c2">
-                                @if($tax_enabled)
-                                    <div class="jf-fg" style="max-width:200px;">
-                                        <label>{{ __('Tax Mode') }}</label>
-                                        <select class="form-select" wire:model.defer="prices_inclu_exclu">
-                                            <option value="">{{ __('Select...') }}</option>
-                                            <option value="inclusive">{{ __('Inclusive') }}</option>
-                                            <option value="exclusive">{{ __('Exclusive') }}</option>
-                                        </select>
-                                        @error('prices_inclu_exclu')<div class="text-danger small">{{ $message }}</div>@enderror
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
