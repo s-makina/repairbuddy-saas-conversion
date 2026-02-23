@@ -112,6 +112,8 @@
 </style>
 @endpush
 
+<main class="dashboard-content container-fluid py-2">
+
 {{-- ======================== HERO ======================== --}}
 <div class="est-hero">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -614,5 +616,7 @@ Thank you,
     </div>
 </div>
 @endif
+
+</main>
 
 @endsection
