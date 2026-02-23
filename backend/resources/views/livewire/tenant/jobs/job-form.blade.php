@@ -204,6 +204,12 @@
         transition: border-color .15s, box-shadow .15s;
         height: auto;
     }
+    /* Don't force width:100% on inputs inside Bootstrap input-groups */
+    .jf-fg .input-group .form-control,
+    .jf-fg .input-group .form-select {
+        width: auto;
+        flex: 1 1 auto;
+    }
     .jf-fg .form-control:focus,
     .jf-fg .form-select:focus {
         border-color: var(--rb-brand);
