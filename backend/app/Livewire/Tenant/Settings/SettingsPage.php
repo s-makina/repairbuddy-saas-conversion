@@ -102,7 +102,7 @@ class SettingsPage extends Component
                 'label' => 'Reports & Invoices',
                 'icon' => 'document-text',
                 'group' => 'core',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.invoice-settings',
             ],
 
             // ── Jobs & Workflow ──
@@ -110,25 +110,25 @@ class SettingsPage extends Component
                 'label' => 'Job Status',
                 'icon' => 'clipboard-document-list',
                 'group' => 'workflow',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.job-status-settings',
             ],
             'payment-status' => [
                 'label' => 'Payment Status',
                 'icon' => 'credit-card',
                 'group' => 'workflow',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.payment-status-settings',
             ],
             'estimates' => [
                 'label' => 'Estimates',
                 'icon' => 'calculator',
                 'group' => 'workflow',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.estimate-settings',
             ],
             'signature' => [
                 'label' => 'Signature Workflow',
                 'icon' => 'pencil-square',
                 'group' => 'workflow',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.signature-settings',
             ],
 
             // ── Communication ──
@@ -136,13 +136,13 @@ class SettingsPage extends Component
                 'label' => 'SMS',
                 'icon' => 'chat-bubble-left-right',
                 'group' => 'communication',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.sms-settings',
             ],
             'reviews' => [
                 'label' => 'Job Reviews',
                 'icon' => 'star',
                 'group' => 'communication',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.review-settings',
             ],
 
             // ── Catalog ──
@@ -150,19 +150,19 @@ class SettingsPage extends Component
                 'label' => 'Devices & Brands',
                 'icon' => 'device-phone-mobile',
                 'group' => 'catalog',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.devices-brands-settings',
             ],
             'services' => [
                 'label' => 'Service Settings',
                 'icon' => 'wrench-screwdriver',
                 'group' => 'catalog',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.service-settings',
             ],
             'taxes' => [
                 'label' => 'Manage Taxes',
                 'icon' => 'receipt-percent',
                 'group' => 'catalog',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.tax-settings',
             ],
 
             // ── Scheduling ──
@@ -170,19 +170,19 @@ class SettingsPage extends Component
                 'label' => 'Booking Settings',
                 'icon' => 'calendar',
                 'group' => 'scheduling',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.booking-settings',
             ],
             'appointments' => [
                 'label' => 'Appointments',
                 'icon' => 'clock',
                 'group' => 'scheduling',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.appointment-settings',
             ],
             'maintenance-reminders' => [
                 'label' => 'Maintenance Reminders',
                 'icon' => 'bell-alert',
                 'group' => 'scheduling',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.maintenance-reminder-settings',
             ],
 
             // ── Appearance ──
@@ -190,13 +190,13 @@ class SettingsPage extends Component
                 'label' => 'Styling & Labels',
                 'icon' => 'paint-brush',
                 'group' => 'appearance',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.styling-settings',
             ],
             'timelog' => [
                 'label' => 'Time Log Settings',
                 'icon' => 'clock',
                 'group' => 'appearance',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.time-log-settings',
             ],
 
             // ── Account & Security ──
@@ -204,7 +204,7 @@ class SettingsPage extends Component
                 'label' => 'My Account Settings',
                 'icon' => 'user-circle',
                 'group' => 'account',
-                'component' => null, // placeholder
+                'component' => 'tenant.settings.account-settings',
             ],
         ];
     }
