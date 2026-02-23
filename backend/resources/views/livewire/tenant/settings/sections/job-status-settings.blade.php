@@ -43,10 +43,15 @@
                                         {{ ($status['is_active'] ?? true) ? 'Active' : 'Inactive' }}
                                     </span>
                                 </td>
-                                <td style="padding: .55rem .75rem;">
+                                <td style="padding: .55rem .75rem; white-space: nowrap;">
                                     <button type="button" wire:click="openEditModal({{ $status['id'] ?? 0 }})"
                                         style="background: none; border: 1px solid var(--st-border); border-radius: 6px; padding: .3rem .6rem; font-size: .75rem; color: var(--st-brand); cursor: pointer;">
                                         Edit
+                                    </button>
+                                    <button type="button" wire:click="deleteStatus({{ $status['id'] ?? 0 }})"
+                                        wire:confirm="Are you sure you want to delete this status?"
+                                        style="background: none; border: 1px solid var(--st-danger-soft, #fee2e2); border-radius: 6px; padding: .3rem .6rem; font-size: .75rem; color: #dc2626; cursor: pointer; margin-left: .35rem;">
+                                        Delete
                                     </button>
                                 </td>
                             </tr>

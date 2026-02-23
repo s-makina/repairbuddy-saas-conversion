@@ -171,8 +171,18 @@
                         <div class="st-fg" style="flex: 2; margin-bottom: 0;">
                             <label>Field Label</label>
                             <input type="text" wire:model.defer="additional_fields.{{ $index }}.label" placeholder="Field label" />
+                            @error('additional_fields.'.$index.'.label') <span class="st-error">{{ $message }}</span> @enderror
                         </div>
                         <div class="st-fg" style="flex: 1; margin-bottom: 0;">
+                            <label>Field Type</label>
+                            <select wire:model.defer="additional_fields.{{ $index }}.type">
+                                <option value="text">Text</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="textarea">Textarea</option>
+                                <option value="select">Select</option>
+                            </select>
+                        </div>
                             <label>Booking Form</label>
                             <select wire:model.defer="additional_fields.{{ $index }}.show_in_booking">
                                 <option value="1">Display</option>

@@ -109,6 +109,7 @@
                 <div class="st-fg">
                     <label for="modal_name">Reminder Name <span style="color:#ef4444;">*</span></label>
                     <input type="text" id="modal_name" wire:model.defer="modal_name" placeholder="e.g. 30-Day Service Follow-up" />
+                    @error('modal_name') <span class="st-error">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="st-grid st-grid-2">
@@ -119,6 +120,7 @@
                                 <option value="{{ $val }}">{{ $label }}</option>
                             @endforeach
                         </select>
+                        @error('modal_interval_days') <span class="st-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="st-fg">
                         <label for="modal_description">Description</label>

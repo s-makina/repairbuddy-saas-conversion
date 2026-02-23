@@ -51,10 +51,15 @@
                                         </button>
                                     @endif
                                 </td>
-                                <td style="padding: .55rem .75rem;">
+                                <td style="padding: .55rem .75rem; white-space: nowrap;">
                                     <button type="button" wire:click="openEditModal({{ $tax['id'] ?? 0 }})"
                                         style="background: none; border: 1px solid var(--st-border); border-radius: 6px; padding: .3rem .6rem; font-size: .75rem; color: var(--st-brand); cursor: pointer;">
                                         Edit
+                                    </button>
+                                    <button type="button" wire:click="deleteTax({{ $tax['id'] ?? 0 }})"
+                                        wire:confirm="Are you sure you want to delete this tax?"
+                                        style="background: none; border: 1px solid var(--st-danger-soft, #fee2e2); border-radius: 6px; padding: .3rem .6rem; font-size: .75rem; color: #dc2626; cursor: pointer; margin-left: .35rem;">
+                                        Delete
                                     </button>
                                 </td>
                             </tr>
@@ -140,6 +145,7 @@
                 <div class="st-fg">
                     <label for="modal_tax_name">Tax Name</label>
                     <input type="text" id="modal_tax_name" wire:model.defer="modal_tax_name" placeholder="e.g. VAT" />
+                    @error('modal_tax_name') <span class="st-error">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="st-fg">
@@ -152,6 +158,7 @@
                         <label for="modal_tax_rate">Rate (%)</label>
                         <input type="number" id="modal_tax_rate" wire:model.defer="modal_tax_rate"
                                min="0" max="100" step="0.001" placeholder="0" />
+                        @error('modal_tax_rate') <span class="st-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="st-fg">
                         <label for="modal_tax_status">Status</label>

@@ -41,6 +41,7 @@
                     <label for="estimate_valid_days">Estimate Valid Days</label>
                     <input type="number" id="estimate_valid_days" wire:model.defer="estimate_valid_days"
                            min="1" max="365" />
+                    @error('estimate_valid_days') <span class="st-error">{{ $message }}</span> @enderror
                     <p class="st-help">Number of days an estimate remains valid</p>
                 </div>
             </div>

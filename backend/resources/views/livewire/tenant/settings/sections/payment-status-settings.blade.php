@@ -43,6 +43,11 @@
                                         style="background: none; border: 1px solid var(--st-border); border-radius: 6px; padding: .3rem .6rem; font-size: .75rem; color: var(--st-brand); cursor: pointer;">
                                         Edit
                                     </button>
+                                    <button type="button" wire:click="deletePaymentStatus({{ $ps['id'] ?? 0 }})"
+                                        wire:confirm="Are you sure you want to delete this payment status?"
+                                        style="background: none; border: 1px solid var(--st-danger-soft, #fee2e2); border-radius: 6px; padding: .3rem .6rem; font-size: .75rem; color: #dc2626; cursor: pointer; margin-left: .35rem;">
+                                        Delete
+                                    </button>
                                 </td>
                             </tr>
                         @empty
@@ -131,6 +136,12 @@
                 <div class="st-fg">
                     <label for="modal_name">Status Name</label>
                     <input type="text" id="modal_name" wire:model.defer="modal_name" placeholder="e.g. Paid" />
+                    @error('modal_name') <p class="st-field-error">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="st-fg">
+                    <label for="modal_description">Description</label>
+                    <input type="text" id="modal_description" wire:model.defer="modal_description" placeholder="Optional description" />
                 </div>
 
                 <div class="st-fg">

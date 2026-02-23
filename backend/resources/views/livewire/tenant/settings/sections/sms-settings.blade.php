@@ -91,16 +91,16 @@
                 <svg class="st-section-chevron" :class="{ 'open': open }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
             </div>
             <div class="st-section-body" x-show="open" x-collapse>
-                @forelse ($available_statuses as $statusSlug => $statusLabel)
+                @forelse ($available_statuses as $status)
                     <div class="st-option-card">
                         <div class="st-option-control">
                             <label class="st-toggle">
-                                <input type="checkbox" value="{{ $statusSlug }}" wire:model.defer="included_statuses" />
+                                <input type="checkbox" value="{{ $status['key'] }}" wire:model.defer="included_statuses" />
                                 <span class="st-toggle-track"></span>
                             </label>
                         </div>
                         <div class="st-option-body">
-                            <label class="st-option-title">{{ $statusLabel }}</label>
+                            <label class="st-option-title">{{ $status['label'] }}</label>
                         </div>
                     </div>
                 @empty

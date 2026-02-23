@@ -50,10 +50,12 @@
                     <div class="st-fg">
                         <label for="business_hours_start">Business Hours Start</label>
                         <input type="time" id="business_hours_start" wire:model.defer="business_hours_start" />
+                        @error('business_hours_start') <span class="st-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="st-fg">
                         <label for="business_hours_end">Business Hours End</label>
                         <input type="time" id="business_hours_end" wire:model.defer="business_hours_end" />
+                        @error('business_hours_end') <span class="st-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
@@ -61,6 +63,7 @@
                     <label for="buffer_time">Buffer Time (minutes)</label>
                     <input type="number" id="buffer_time" wire:model.defer="buffer_time"
                            min="0" max="120" step="5" />
+                    @error('buffer_time') <span class="st-error">{{ $message }}</span> @enderror
                     <p class="st-help">Time between consecutive appointments</p>
                 </div>
             </div>
@@ -104,6 +107,7 @@
                     <label for="reminder_hours_before">Hours Before Appointment</label>
                     <input type="number" id="reminder_hours_before" wire:model.defer="reminder_hours_before"
                            min="1" max="168" />
+                    @error('reminder_hours_before') <span class="st-error">{{ $message }}</span> @enderror
                     <p class="st-help">Send reminder this many hours before</p>
                 </div>
                 <div class="st-fg">
