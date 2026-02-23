@@ -533,6 +533,13 @@
             <!-- Step 1: Job Details -->
                 <div class="step-panel" :class="{ 'active': currentStep === 1 }">
                     <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-header-icon"><i class="bi bi-clipboard-data"></i></div>
+                            <div>
+                                <h4>{{ __('Job Details') }}</h4>
+                                <p>{{ __('Enter the basic information for this repair job.') }}</p>
+                            </div>
+                        </div>
                         <div class="step-card-body">
                             <div class="row">
                                 <div class="col-12">
@@ -545,6 +552,13 @@
                                         </div>
                                     </div>
 
+                                    <div class="field-row">
+                                        <label class="field-label">{{ __('Title') }}</label>
+                                        <div class="field-content">
+                                            <input type="text" class="form-control" wire:model.defer="title" placeholder="{{ __('e.g., iPhone 14 Screen Repair') }}" />
+                                            @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
 
                                     <!-- Customer Selection -->
                                     <div class="field-row">
@@ -1293,7 +1307,6 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                                 <div class="table-responsive">
                                     <table class="table step-table">
                                         <thead class="bg-light">
@@ -1351,6 +1364,7 @@
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
 
                             <hr class="step-section-divider" />
 
@@ -1539,6 +1553,18 @@
                                         @error('wc_order_note')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                                     </div>
 
+                                    <div class="mb-4">
+                                        <label class="field-label fw-bold mb-2">{{ __('File Attachment') }}</label>
+                                        <input type="file" class="form-control" wire:model="job_file" />
+                                        <div wire:loading wire:target="job_file" class="mt-1 small text-primary">
+                                            <div class="spinner-border spinner-border-sm me-1"></div> {{ __('Uploading...') }}
+                                        </div>
+                                        @if($job_file)
+                                            <div class="mt-1 small text-success"><i class="bi bi-paperclip me-1"></i>{{ __('File ready to save') }}</div>
+                                        @endif
+                                        @error('job_file')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                    </div>
+
                                     <!-- Added Staff/Technicians -->
                                     <div class="staff-assignment bg-light p-3 rounded border-start border-primary border-4">
                                         <div class="d-flex align-items-center mb-2">
@@ -1546,7 +1572,7 @@
                                             <span class="small fw-bold text-muted text-uppercase">{{ __('Assigned Technicians') }}</span>
                                         </div>
                                         <div class="d-flex flex-wrap gap-2">
-                                            @forelse($this->technicians as $tech)
+                                            @forelse($this->selected_technicians as $tech)
                                                 <span class="badge bg-white text-dark border px-3 py-2 fw-medium shadow-sm">
                                                     <i class="bi bi-person me-1 text-primary"></i>{{ $tech->name }}
                                                 </span>
