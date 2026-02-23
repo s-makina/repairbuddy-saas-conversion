@@ -16,7 +16,7 @@ class SettingsPage extends Component
     public string $pageTitle = 'Settings';
 
     /* ─── Navigation ─────────────────────────────── */
-    public string $activeSection = 'general';
+    public string $activeSection = 'dashboard';
 
     /* ─── Section Registry ───────────────────────── */
     public array $sections = [];
@@ -77,6 +77,14 @@ class SettingsPage extends Component
     private function buildSectionRegistry(): array
     {
         return [
+            // ── Dashboard ──
+            'dashboard' => [
+                'label' => 'Dashboard',
+                'icon' => 'home',
+                'group' => 'dashboard',
+                'component' => 'tenant.settings.dashboard-section',
+            ],
+
             // ── Core ──
             'general' => [
                 'label' => 'General Settings',
@@ -204,6 +212,7 @@ class SettingsPage extends Component
     public function getSectionGroupsProperty(): array
     {
         $groups = [
+            'dashboard' => ['label' => '', 'sections' => []],
             'core' => ['label' => 'Core', 'sections' => []],
             'workflow' => ['label' => 'Jobs & Workflow', 'sections' => []],
             'communication' => ['label' => 'Communication', 'sections' => []],

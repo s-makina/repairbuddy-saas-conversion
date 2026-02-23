@@ -93,36 +93,49 @@
 
 /* ── Sidebar ── */
 .st-sidebar {
-    width: 260px;
+    width: 240px;
     flex-shrink: 0;
-    background: rgba(255,255,255,.7);
-    backdrop-filter: blur(8px);
-    border-right: 1px solid var(--st-border);
-    padding: 1.25rem 0;
+    background: #063e70;
+    border-right: none;
+    padding: 0 0 1.5rem 0;
     overflow-y: auto;
     position: sticky;
     top: 53px;
     height: calc(100vh - 53px);
 }
-.st-sidebar-group { margin-bottom: .75rem; }
+/* Sidebar logo / brand bar at top */
+.st-sidebar-top {
+    background: rgba(0,0,0,.2);
+    padding: .85rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin-bottom: .5rem;
+}
+.st-sidebar-brand {
+    font-size: .78rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.6);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.st-sidebar-group { margin-bottom: .25rem; }
 .st-sidebar-group-label {
-    padding: 0 1.25rem;
-    font-size: .65rem;
+    padding: .6rem 1.25rem .25rem;
+    font-size: .6rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--st-text-3);
-    margin-bottom: .35rem;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,.38);
+    margin-bottom: 0;
 }
 .st-sidebar-items { list-style: none; margin: 0; padding: 0; }
 .st-sidebar-item {
     display: flex;
     align-items: center;
     gap: .6rem;
-    padding: .5rem 1.25rem;
-    font-size: .82rem;
+    padding: .48rem 1.25rem;
+    font-size: .81rem;
     font-weight: 500;
-    color: var(--st-text-2);
+    color: rgba(255,255,255,.72);
     cursor: pointer;
     transition: all .15s;
     text-decoration: none;
@@ -130,29 +143,30 @@
     user-select: none;
 }
 .st-sidebar-item:hover {
-    background: rgba(14,165,233,.04);
-    color: var(--st-brand);
+    background: rgba(255,255,255,.08);
+    color: #fff;
 }
 .st-sidebar-item.active {
-    background: var(--st-brand-soft);
-    color: var(--st-brand-dark);
-    border-left-color: var(--st-brand);
+    background: rgba(255,255,255,.13);
+    color: #fff;
+    border-left-color: #fd6742;
     font-weight: 600;
 }
 .st-sidebar-item .st-nav-icon {
-    width: 18px; height: 18px;
+    width: 16px; height: 16px;
     flex-shrink: 0;
-    opacity: .65;
+    color: rgba(255,255,255,.55);
 }
-.st-sidebar-item.active .st-nav-icon { opacity: 1; }
+.st-sidebar-item:hover .st-nav-icon { color: rgba(255,255,255,.85); }
+.st-sidebar-item.active .st-nav-icon { color: #fd6742; }
 .st-sidebar-item .st-nav-badge {
     margin-left: auto;
-    font-size: .65rem;
+    font-size: .6rem;
     font-weight: 600;
-    padding: .1rem .45rem;
+    padding: .1rem .4rem;
     border-radius: 999px;
-    background: var(--st-warning-soft);
-    color: #b45309;
+    background: rgba(253,103,66,.25);
+    color: #fda98b;
 }
 
 /* ── Content Area ── */
@@ -378,6 +392,158 @@
     margin: 0 auto;
 }
 
+/* ── Dashboard Nav Cards ── */
+.st-dash-section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--st-text);
+    margin: 0 0 1.25rem;
+}
+.st-dash-nav-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 2rem;
+}
+.st-dash-nav-card {
+    width: 115px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--st-border);
+    overflow: hidden;
+    text-decoration: none;
+    display: block;
+    transition: box-shadow .15s, transform .12s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.st-dash-nav-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+.st-dash-nav-card-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 10px 12px;
+    background: #fafafa;
+}
+.st-dash-nav-card-img img {
+    max-width: 52px;
+    max-height: 52px;
+    object-fit: contain;
+}
+.st-dash-nav-card-label {
+    margin: 0;
+    padding: 7px 6px;
+    text-align: center;
+    font-size: .72rem;
+    font-weight: 600;
+    background: #fd6742;
+    color: #fff;
+    line-height: 1.3;
+    transition: background .15s;
+}
+.st-dash-nav-card:hover .st-dash-nav-card-label {
+    background: #063e70;
+}
+
+/* ── Dashboard Stats ── */
+.st-dash-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.st-dash-stat-card {
+    background: #fff;
+    border: 1px solid var(--st-border);
+    border-radius: var(--st-radius);
+    padding: 1rem 1.25rem;
+    box-shadow: var(--st-shadow);
+}
+.st-dash-stat-label {
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--st-text-3);
+    margin-bottom: .3rem;
+}
+.st-dash-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #063e70;
+    line-height: 1;
+}
+.st-dash-stat-sub {
+    font-size: .7rem;
+    color: var(--st-text-3);
+    margin-top: .25rem;
+}
+
+/* ── Job / Estimate Summary Widgets (mirrors original wcrb_widget style) ── */
+.st-widget-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    column-gap: 14px;
+    row-gap: 0;
+    margin-bottom: 1.1rem;
+}
+.st-widget {
+    background: #fff;
+    border-radius: 0;
+    border: none;
+    margin-top: 7px;
+    margin-bottom: 7px;
+    box-shadow: 0 1px 15px 1px rgb(52 40 104 / 8%);
+}
+.st-widget > a {
+    text-decoration: none;
+    display: block;
+    color: inherit;
+}
+.st-widget > a:hover .st-widget-body {
+    background-color: #ededed;
+}
+.st-widget-body {
+    padding: 11px;
+    position: relative;
+    overflow: hidden;
+}
+.st-widget-media {
+    display: flex;
+    align-items: flex-start;
+}
+.st-widget-icon {
+    flex-shrink: 0;
+    margin-left: 1.1rem;
+    margin-right: 1.1rem;
+    align-self: center;
+}
+.st-widget-icon img {
+    height: 4rem;
+    width: auto;
+}
+.st-widget-info {
+    flex: 1;
+    min-width: 0;
+    align-self: center;
+}
+.st-widget-title {
+    color: #2c304d;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    font-weight: 600;
+    margin: 0;
+}
+.st-widget-number {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--st-text-2);
+}
+
 /* ── Error Display ── */
 .st-field-error {
     font-size: .7rem;
@@ -387,24 +553,30 @@
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
-    .st-sidebar { width: 220px; }
+    .st-sidebar { width: 210px; }
     .st-content { padding: 1.25rem 1.25rem 2rem; }
 }
 @media (max-width: 768px) {
     .st-layout { flex-direction: column; }
     .st-sidebar {
         width: 100%; position: static; height: auto;
-        border-right: none; border-bottom: 1px solid var(--st-border);
-        padding: .75rem 0;
+        border-right: none; border-bottom: 2px solid rgba(255,255,255,.12);
+        padding: .5rem 0;
     }
+    .st-sidebar-top { display: none; }
     .st-sidebar-group { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: .5rem; }
-    .st-sidebar-group-label { width: 100%; padding: 0 1rem; margin-bottom: .25rem; }
+    .st-sidebar-group-label { width: 100%; padding: .4rem 1rem .15rem; margin-bottom: 0; }
     .st-sidebar-items { display: flex; flex-wrap: wrap; gap: .25rem; padding: 0 .75rem; }
     .st-sidebar-item {
-        border-left: none; border-radius: var(--st-radius-sm);
+        border-left: none; border-bottom: 2px solid transparent;
+        border-radius: var(--st-radius-sm);
         padding: .35rem .65rem; font-size: .75rem;
     }
-    .st-sidebar-item.active { border-left-color: transparent; }
+    .st-sidebar-item.active {
+        border-left-color: transparent;
+        border-bottom-color: #fd6742;
+        background: rgba(255,255,255,.15);
+    }
     .st-grid-2, .st-grid-3 { grid-template-columns: 1fr; }
     .st-top-bar-inner { padding: .5rem 1rem; }
 }
@@ -443,9 +615,14 @@
 
         {{-- ─── Sidebar ─── --}}
         <aside class="st-sidebar">
+            <div class="st-sidebar-top">
+                <div class="st-sidebar-brand">RepairBuddy</div>
+            </div>
             @foreach ($this->sectionGroups as $groupKey => $group)
                 <div class="st-sidebar-group">
-                    <div class="st-sidebar-group-label">{{ $group['label'] }}</div>
+                    @if ($group['label'])
+                        <div class="st-sidebar-group-label">{{ $group['label'] }}</div>
+                    @endif
                     <ul class="st-sidebar-items">
                         @foreach ($group['sections'] as $sectionKey => $section)
                             <li class="st-sidebar-item {{ $activeSection === $sectionKey ? 'active' : '' }}"
