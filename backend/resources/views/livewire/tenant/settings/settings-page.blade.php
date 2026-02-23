@@ -625,10 +625,10 @@
                     @endif
                     <ul class="st-sidebar-items">
                         @foreach ($group['sections'] as $sectionKey => $section)
-                            <li class="st-sidebar-item {{ $activeSection === $sectionKey ? 'active' : '' }}"
+                            <li class="st-sidebar-item"
+                                :class="{ 'active': activeSection === '{{ $sectionKey }}' }"
                                 wire:click="switchSection('{{ $sectionKey }}')"
-                                @click="mobileMenuOpen = false"
-                                x-on:click="window.history.replaceState(null, '', '?section={{ $sectionKey }}')">
+                                @click="activeSection = '{{ $sectionKey }}'; mobileMenuOpen = false; window.history.replaceState(null, '', '?section={{ $sectionKey }}')">
                                 @include('livewire.tenant.settings.partials.nav-icon', ['icon' => $section['icon']])
                                 <span>{{ $section['label'] }}</span>
                                 @if ($section['component'] === null)
