@@ -862,9 +862,11 @@
                             </a>
                         @endif
 
-                        <a href="javascript:window.print()" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
-                            <i class="bi bi-printer"></i> {{ __('Print') }}
-                        </a>
+                        <button type="button"
+                            onclick="Livewire.dispatch('openDocumentPreview', { type: '{{ $isEstimate ? 'estimate' : 'job' }}', id: {{ $record?->id ?? 0 }} })"
+                            class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
+                            <i class="bi bi-printer"></i> {{ __('Preview / Print') }}
+                        </button>
                         <a href="{{ $listUrl }}" class="ja-btn ja-btn-primary" style="justify-content:center; width:100%;">
                             <i class="bi bi-arrow-left"></i> {{ __('Back to List') }}
                         </a>
