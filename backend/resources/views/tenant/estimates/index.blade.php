@@ -255,6 +255,12 @@
                         <td class="text-center"><span class="est-badge {{ $statusClass }}">{{ ucfirst($est->status ?? 'pending') }}</span></td>
                         <td class="text-end" onclick="event.stopPropagation()">
                             <a href="{{ $showUrl }}" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" title="{{ __('View') }}"><i class="bi bi-eye"></i></a>
+                            <button type="button"
+                                class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0"
+                                title="{{ __('Preview / Print') }}"
+                                onclick="Livewire.dispatch('openDocumentPreview', { type: 'estimate', id: {{ $est->id }} })">
+                                <i class="bi bi-printer"></i>
+                            </button>
                             @if (($est->status ?? 'pending') === 'pending')
                                 <a href="{{ route('tenant.estimates.edit', ['business' => $tenantSlug, 'estimateId' => $est->id]) }}"
                                    class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" title="{{ __('Edit') }}"><i class="bi bi-pencil"></i></a>
@@ -321,5 +327,8 @@
         {{ $estimates->withQueryString()->links() }}
     </div>
 @endif
+
+{{-- ── Document Preview Modal ── --}}
+@livewire('tenant.operations.document-preview-modal', ['tenant' => $tenant ?? null])
 
 @endsection

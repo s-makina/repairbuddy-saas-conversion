@@ -136,8 +136,10 @@ class TenantJobController extends Controller
                 if (! $tenant?->slug) {
                     return '';
                 }
-                $url = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]);
-                return '<a class="btn btn-outline-primary btn-sm" href="' . e($url) . '" title="' . e(__('View')) . '" aria-label="' . e(__('View')) . '"><i class="bi bi-eye"></i></a>';
+                $url      = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]);
+                $viewBtn  = '<a class="btn btn-outline-primary btn-sm" href="' . e($url) . '" title="' . e(__('View')) . '" aria-label="' . e(__('View')) . '"><i class="bi bi-eye"></i></a>';
+                $printBtn = '<button type="button" class="btn btn-outline-secondary btn-sm ms-1" title="' . e(__('Preview / Print')) . '" onclick="openDocPreview(\'job\',' . (int) $job->id . ')"><i class="bi bi-printer"></i></button>';
+                return $viewBtn . $printBtn;
             })
             ->filter(function ($query) use ($request) {
                 $search = $request->input('search.value');

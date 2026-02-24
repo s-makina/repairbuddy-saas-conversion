@@ -395,7 +395,10 @@
                 </div>
             </div>
             <div class="ja-topbar-right">
-                <a href="javascript:window.print()" class="ja-btn ja-btn-outline"><i class="bi bi-printer"></i>{{ __('Print') }}</a>
+                <button type="button" class="ja-btn ja-btn-outline"
+                    onclick="Livewire.dispatch('openDocumentPreview', { type: '{{ $isEstimate ? 'estimate' : 'job' }}', id: {{ $record?->id ?? 0 }} })">
+                    <i class="bi bi-printer"></i>{{ __('Preview / Print') }}
+                </button>
                 @if ($isEstimate)
                     @if ($customer && $customer->email)
                     <button type="button" class="ja-btn ja-btn-outline" data-bs-toggle="modal" data-bs-target="#sendEstimateModal">
@@ -922,5 +925,8 @@
     </div>
 </div>
 @endif
+
+{{-- ── Document Preview Modal (wired for job + estimate show pages) ── --}}
+@livewire('tenant.operations.document-preview-modal', ['tenant' => $tenant ?? null])
 
 @endsection

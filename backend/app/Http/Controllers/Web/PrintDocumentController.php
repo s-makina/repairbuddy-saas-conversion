@@ -74,7 +74,7 @@ class PrintDocumentController extends Controller
         $backUrl = route('tenant.jobs.show', ['business' => $business, 'jobId' => $job->id]);
         $pdfUrl  = route('tenant.jobs.pdf',  ['business' => $business, 'jobId' => $job->id]);
 
-        return view('print.document', compact(
+        return view('print.document-a4', compact(
             'job', 'items', 'devices', 'customer', 'technician',
             'statusLabel', 'paymentLabel', 'docNumber',
             'shopName', 'shopAddress', 'shopPhone', 'shopEmail', 'currencyCode',
@@ -141,7 +141,7 @@ class PrintDocumentController extends Controller
         $backUrl = route('tenant.jobs.show', ['business' => $business, 'jobId' => $job->id]);
         $pdfUrl  = '#';
 
-        $pdf = Pdf::loadView('print.document', compact(
+        $pdf = Pdf::loadView('print.document-a4', compact(
             'job', 'items', 'devices', 'customer', 'technician',
             'statusLabel', 'paymentLabel', 'docNumber',
             'shopName', 'shopAddress', 'shopPhone', 'shopEmail', 'currencyCode',
@@ -149,7 +149,7 @@ class PrintDocumentController extends Controller
         ) + [
             'doc'     => $job,
             'docType' => 'job',
-        ])->setPaper('a5', 'portrait');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->download('job-' . $docNumber . '.pdf');
     }
@@ -210,7 +210,7 @@ class PrintDocumentController extends Controller
         $backUrl = route('tenant.estimates.show', ['business' => $business, 'estimateId' => $estimate->id]);
         $pdfUrl  = route('tenant.estimates.pdf',  ['business' => $business, 'estimateId' => $estimate->id]);
 
-        return view('print.document', compact(
+        return view('print.document-a4', compact(
             'estimate', 'items', 'devices', 'customer', 'technician',
             'statusLabel', 'docNumber',
             'shopName', 'shopAddress', 'shopPhone', 'shopEmail', 'currencyCode',
@@ -277,7 +277,7 @@ class PrintDocumentController extends Controller
         $backUrl = '#';
         $pdfUrl  = '#';
 
-        $pdf = Pdf::loadView('print.document', compact(
+        $pdf = Pdf::loadView('print.document-a4', compact(
             'estimate', 'items', 'devices', 'customer', 'technician',
             'statusLabel', 'docNumber',
             'shopName', 'shopAddress', 'shopPhone', 'shopEmail', 'currencyCode',
@@ -286,7 +286,7 @@ class PrintDocumentController extends Controller
             'doc'          => $estimate,
             'docType'      => 'estimate',
             'paymentLabel' => '',
-        ])->setPaper('a5', 'portrait');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->download('estimate-' . $docNumber . '.pdf');
     }

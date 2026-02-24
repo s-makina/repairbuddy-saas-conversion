@@ -5,6 +5,14 @@
 @endpush
 
 @push('page-scripts')
+<script>
+  /* ── openDocPreview: opens DocumentPreviewModal via Livewire dispatch ── */
+  function openDocPreview(type, id) {
+    if (window.Livewire) {
+      window.Livewire.dispatch('openDocumentPreview', { type: type, id: id });
+    }
+  }
+</script>
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
@@ -288,6 +296,9 @@
         {!! $jobs_list['pagination'] ?? '' !!}
     </div>
 </main>
+
+{{-- ── Document Preview Modal ── --}}
+@livewire('tenant.operations.document-preview-modal', ['tenant' => $tenant ?? null])
 
 {!! $duplicate_job_front_box_html ?? '' !!}
 

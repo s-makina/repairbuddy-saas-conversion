@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estimate / Quote — EST-2024-0042 — FixIt Pro Repair Shop</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/*
+ * estimate-quote.html
+ * Printable Estimate / Quote — A4, clean & light.
+ * Follows system design: --rb-blue, --rb-orange, --rb-text, --rb-border, --rb-surface-muted.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --rb-blue:    #063e70;
+    --rb-orange:  #fd6742;
+    --rb-text:    #2c304d;
+    --rb-text-2:  #5f6380;
+    --rb-text-3:  #9496ad;
+    --rb-border:  #ededed;
+    --rb-muted:   #f7f7f7;
+    --rb-surface: #ffffff;
+    --rb-radius:  5px;
+    --rb-green:   #16a34a;
+}
+
+body {
+    background: #f0f1f3;
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--rb-text); font-size: 12px; line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    padding: 2rem 1rem 3rem;
+}
+
+/* ── Action bar ── */
+.bar {
+    position: fixed; inset: 0 0 auto 0; z-index: 100;
+    background: rgba(6,62,112,.95); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .5rem 1.4rem; gap: 1rem;
+}
+.bar-title { color: #e2e8f0; font-size: .8rem; font-weight: 600; display: flex; align-items: center; gap: .4rem; }
+.bar-title i { color: var(--rb-orange); }
+.bar-actions { display: flex; gap: .35rem; }
+.btn {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .73rem; font-weight: 600; border-radius: var(--rb-radius);
+    border: 1px solid transparent; padding: .32rem .7rem;
+    cursor: pointer; transition: all .12s; line-height: 1.4; text-decoration: none;
+}
+.btn-ghost { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); color: #d1d5db; }
+.btn-ghost:hover { background: rgba(255,255,255,.14); }
+.btn-primary { background: var(--rb-orange); border-color: var(--rb-orange); color: #fff; }
+.btn-primary:hover { opacity: .9; }
+.btn-approve { background: var(--rb-green); border-color: var(--rb-green); color: #fff; }
+.btn-reject  { background: transparent; border-color: #ef4444; color: #fca5a5; }
+
+/* ── Paper ── */
+.paper {
+    max-width: 760px;
+    margin: 3rem auto 0;
+    background: var(--rb-surface);
+    border-radius: 8px;
+    box-shadow: 0 1px 15px 1px rgba(52,40,104,.08);
+    overflow: hidden;
+}
+
+/* ── Header ── */
+.hd {
+    padding: .75rem 1.5rem;
+    border-bottom: 1px solid var(--rb-border);
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+}
+.shop-name { font-size: .85rem; font-weight: 800; color: var(--rb-text); }
+.shop-meta { font-size: .65rem; color: var(--rb-text-3); line-height: 1.55; margin-top: .05rem; }
+.doc-right { text-align: right; flex-shrink: 0; }
+.doc-type  { font-size: .54rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--rb-text-3); }
+.doc-num   { font-size: 1.05rem; font-weight: 900; color: var(--rb-blue); line-height: 1.1; }
+.doc-dates { font-size: .65rem; color: var(--rb-text-3); line-height: 1.55; margin-top: .05rem; }
+.badge {
+    display: inline-flex; align-items: center; gap: .2rem;
+    margin-top: .2rem; font-size: .56rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; padding: .12rem .4rem; border-radius: var(--rb-radius);
+}
+.badge-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge-approved { background: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
+
+/* ── Info strip ── */
+.info-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid var(--rb-border); }
+.is-cell { padding: .4rem .8rem; border-right: 1px solid var(--rb-border); }
+.is-cell:last-child { border-right: none; }
+.is-lbl { font-size: .54rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--rb-text-3); margin-bottom: .08rem; }
+.is-val { font-size: .75rem; color: var(--rb-text-2); line-height: 1.45; }
+.is-val strong { color: var(--rb-text); font-weight: 700; display: block; font-size: .78rem; }
+
+/* ── Body ── */
+.bd { padding: .75rem 1.5rem; }
+.sec { margin-bottom: .65rem; }
+.sec-lbl {
+    font-size: .54rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--rb-text-3); margin-bottom: .25rem;
+    padding-bottom: .15rem; border-bottom: 1px solid var(--rb-border);
+}
+
+/* Devices */
+.chips { display: flex; flex-wrap: wrap; gap: .25rem; }
+.chip {
+    display: inline-flex; align-items: center; gap: .25rem;
+    font-size: .68rem; font-weight: 600; padding: .12rem .45rem;
+    border: 1px solid var(--rb-border); border-radius: var(--rb-radius);
+    color: var(--rb-text-2); background: var(--rb-muted);
+}
+.chip i { color: var(--rb-text-3); font-size: .62rem; }
+
+/* Diagnostic note */
+.diag-note {
+    font-size: .72rem; color: var(--rb-text-2); line-height: 1.5;
+    padding: .35rem .65rem; background: var(--rb-muted); border-radius: var(--rb-radius);
+}
+.diag-note ul { margin: .15rem 0 0 .85rem; }
+
+/* Items table */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+    font-size: .54rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--rb-text-3); padding: .25rem .4rem;
+    border-bottom: 1.5px solid var(--rb-text); text-align: left;
+}
+.tbl thead th.r { text-align: right; }
+.tbl thead th.c { text-align: center; }
+.tbl tbody td {
+    padding: .3rem .4rem; border-bottom: 1px solid var(--rb-border);
+    font-size: .75rem; vertical-align: top;
+}
+.tbl tbody tr:last-child td { border-bottom: none; }
+.it-name { font-weight: 600; color: var(--rb-text); }
+.it-sub  { font-size: .62rem; color: var(--rb-text-3); margin-top: .02rem; }
+.tag {
+    display: inline-block; font-size: .5rem; font-weight: 700; padding: .02rem .3rem;
+    border: 1px solid var(--rb-border); border-radius: 3px;
+    color: var(--rb-text-3); margin-top: .04rem; text-transform: uppercase; letter-spacing: .03em;
+}
+.tbl td.r { text-align: right; font-weight: 600; }
+.tbl td.c { text-align: center; color: var(--rb-text-3); }
+
+/* Totals */
+.totals-wrap { display: flex; justify-content: flex-end; margin-top: .35rem; }
+.totals { width: 210px; }
+.tr { display: flex; justify-content: space-between; padding: .1rem 0; font-size: .72rem; color: var(--rb-text-2); }
+.tr span:last-child { font-weight: 600; color: var(--rb-text); }
+.tr.disc span:last-child { color: var(--rb-green); }
+.tdiv { border: none; border-top: 1px solid var(--rb-border); margin: .15rem 0; }
+.tgrand {
+    display: flex; justify-content: space-between; padding: .2rem 0;
+    border-top: 1.5px solid var(--rb-text); margin-top: .05rem;
+}
+.tgrand span:first-child { font-size: .78rem; font-weight: 800; }
+.tgrand span:last-child  { font-size: .95rem; font-weight: 900; color: var(--rb-blue); }
+
+/* Deposit row */
+.deposit-row {
+    margin-top: .3rem; padding: .3rem .6rem;
+    background: var(--rb-muted); border-radius: var(--rb-radius);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .72rem; color: var(--rb-text-2);
+}
+.deposit-row strong { color: var(--rb-text); }
+
+/* Terms */
+.terms {
+    font-size: .62rem; color: var(--rb-text-3); line-height: 1.5;
+    padding-top: .4rem; border-top: 1px solid var(--rb-border);
+}
+.terms ol { margin: 0; padding-left: .85rem; }
+.terms li { margin-bottom: 0; }
+
+/* Signature */
+.sig-row {
+    margin-top: .6rem; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1.2rem; padding: .45rem .55rem; border: 1px solid var(--rb-border); border-radius: var(--rb-radius);
+}
+.sig-lbl { font-size: .54rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--rb-text-3); margin-bottom: .3rem; }
+.sig-line { border-bottom: 1px solid var(--rb-text-3); height: 22px; margin-bottom: .15rem; }
+.sig-sub { font-size: .58rem; color: var(--rb-text-3); }
+
+/* Footer */
+.foot {
+    padding: .4rem 1.5rem; border-top: 1px solid var(--rb-border);
+    display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+}
+.foot-text { font-size: .58rem; color: var(--rb-text-3); line-height: 1.45; max-width: 480px; }
+.qr {
+    width: 36px; height: 36px; background: var(--rb-muted); border-radius: var(--rb-radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .48rem; color: var(--rb-text-3); text-align: center; flex-shrink: 0;
+}
+
+/* ── Print ── */
+@media print {
+    @page { size: A4; margin: 12mm 14mm; }
+    *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    body { background: #fff; padding: 0; font-size: 11px; margin: 0; }
+    .bar { display: none !important; }
+    .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; border: none; overflow: visible; }
+    .hd { padding: .5rem 1.2rem; }
+    .is-cell { padding: .3rem .7rem; }
+    .bd { padding: .6rem 1.2rem; }
+    .foot { padding: .3rem 1.2rem; }
+    .sec { margin-bottom: .5rem; }
+    .sig-row { break-inside: avoid; }
+}
+
+@media (max-width: 640px) {
+    .info-strip { grid-template-columns: 1fr; }
+    .is-cell { border-right: none; border-bottom: 1px solid var(--rb-border); }
+    .is-cell:last-child { border-bottom: none; }
+    .sig-row { grid-template-columns: 1fr; }
+    .hd { flex-direction: column; }
+    .doc-right { text-align: left; }
+    .totals { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Action Bar -->
+<div class="bar">
+  <div class="bar-title"><i class="bi bi-file-earmark-text-fill"></i> Estimate EST-2024-0042</div>
+  <div class="bar-actions">
+    <a href="#" class="btn btn-ghost"><i class="bi bi-envelope"></i> Email</a>
+    <a href="#" class="btn btn-ghost"><i class="bi bi-download"></i> PDF</a>
+    <button class="btn btn-reject"><i class="bi bi-x-circle"></i> Reject</button>
+    <button class="btn btn-approve"><i class="bi bi-check-circle-fill"></i> Approve</button>
+    <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer-fill"></i> Print</button>
+  </div>
+</div>
+
+<!-- Paper -->
+<div class="paper">
+
+  <!-- Header -->
+  <div class="hd">
+    <div>
+      <div class="shop-name">FixIt Pro Repair Shop</div>
+      <div class="shop-meta">123 Main Street, Sydney NSW 2000 · (02) 9000 1234<br>hello@fixitpro.com.au · ABN 12 345 678 901</div>
+    </div>
+    <div class="doc-right">
+      <div class="doc-type">Estimate / Quote</div>
+      <div class="doc-num">EST-2024-0042</div>
+      <div class="doc-dates">Issued: Feb 24, 2026<br>Valid until: Mar 10, 2026</div>
+      <span class="badge badge-pending">Pending Approval</span>
+    </div>
+  </div>
+
+  <!-- Info strip -->
+  <div class="info-strip">
+    <div class="is-cell">
+      <div class="is-lbl">Prepared For</div>
+      <div class="is-val"><strong>John Doe</strong>john.doe@email.com · +1 555-0101</div>
+    </div>
+    <div class="is-cell">
+      <div class="is-lbl">Job Reference</div>
+      <div class="is-val"><strong>#ORD-2024-0087</strong>Case: CASE-0189 · Priority: High</div>
+    </div>
+    <div class="is-cell">
+      <div class="is-lbl">Prepared By</div>
+      <div class="is-val"><strong>Alice Martinez</strong>Senior Technician</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="bd">
+
+    <!-- Devices -->
+    <div class="sec">
+      <div class="sec-lbl">Devices</div>
+      <div class="chips">
+        <span class="chip"><i class="bi bi-laptop"></i> Dell XPS 15 9520 · S/N DX15-9920K</span>
+        <span class="chip"><i class="bi bi-phone"></i> iPhone 14 Pro 256GB · IMEI 358971082347605</span>
+      </div>
+    </div>
+
+    <!-- Diagnostic -->
+    <div class="sec">
+      <div class="sec-lbl">Diagnostic Summary</div>
+      <div class="diag-note">
+        <ul>
+          <li><strong>Dell XPS 15</strong> — Cracked LCD panel (top-right impact); battery at 42% capacity.</li>
+          <li><strong>iPhone 14 Pro</strong> — Liquid residue on connectors; ultrasonic cleaning recommended.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="sec">
+      <div class="sec-lbl">Estimated Items</div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:44%">Description</th>
+            <th class="c" style="width:7%">Qty</th>
+            <th class="r" style="width:15%">Unit</th>
+            <th class="r" style="width:10%">Tax</th>
+            <th class="r" style="width:24%">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="it-name">Screen Replacement (OEM)</div><div class="it-sub">Dell XPS 15 9520 FHD+ panel</div><span class="tag">Part</span></td>
+            <td class="c">1</td><td class="r">$95.00</td><td class="c">10%</td><td class="r">$95.00</td>
+          </tr>
+          <tr>
+            <td><div class="it-name">Battery Replacement (OEM)</div><div class="it-sub">69Wh 6-cell battery</div><span class="tag">Part</span></td>
+            <td class="c">1</td><td class="r">$45.00</td><td class="c">10%</td><td class="r">$45.00</td>
+          </tr>
+          <tr>
+            <td><div class="it-name">Screen &amp; Battery Labour</div><div class="it-sub">~1.5 hrs incl. diagnostic</div><span class="tag">Service</span></td>
+            <td class="c">1</td><td class="r">$40.00</td><td class="c">10%</td><td class="r">$40.00</td>
+          </tr>
+          <tr>
+            <td><div class="it-name">iPhone Liquid Damage Clean</div><div class="it-sub">Ultrasonic cleaning of board</div><span class="tag">Service</span></td>
+            <td class="c">1</td><td class="r">$60.00</td><td class="c">10%</td><td class="r">$60.00</td>
+          </tr>
+          <tr>
+            <td><div class="it-name">Data Backup &amp; Restore</div><span class="tag">Add-on</span></td>
+            <td class="c">1</td><td class="r">$25.00</td><td class="c">10%</td><td class="r">$25.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="totals-wrap">
+        <div class="totals">
+          <div class="tr"><span>Subtotal (ex GST)</span><span>$265.00</span></div>
+          <div class="tr"><span>GST (10%)</span><span>$26.50</span></div>
+          <div class="tr disc"><span>Loyalty Discount (5%)</span><span>−$13.25</span></div>
+          <hr class="tdiv">
+          <div class="tgrand"><span>Total (inc GST)</span><span>$278.25</span></div>
+        </div>
+      </div>
+
+      <div class="deposit-row">
+        <span>50% deposit required to proceed</span>
+        <strong>$139.13 AUD</strong>
+      </div>
+    </div>
+
+    <!-- Terms -->
+    <div class="sec terms">
+      <div class="sec-lbl">Terms &amp; Conditions</div>
+      <ol>
+        <li>Valid <strong>14 days</strong> from issue. Prices may change after expiry.</li>
+        <li>Part substitutions will be communicated before proceeding.</li>
+        <li><strong>50% deposit</strong> required before parts are ordered.</li>
+        <li>Additional issues found during repair require approval; extra charges may apply.</li>
+        <li>Parts warranty: 90 days. Labour warranty: 30 days.</li>
+        <li>Uncollected devices may incur storage fees after 30 days.</li>
+        <li>We are not liable for data loss — backup before drop-off.</li>
+      </ol>
+    </div>
+
+    <!-- Signatures -->
+    <div class="sig-row">
+      <div>
+        <div class="sig-lbl">Customer Approval</div>
+        <div class="sig-line"></div>
+        <div class="sig-sub">Signature &amp; date — authorises work</div>
+      </div>
+      <div>
+        <div class="sig-lbl">Authorised — FixIt Pro</div>
+        <div class="sig-line"></div>
+        <div class="sig-sub">Alice Martinez · Senior Technician</div>
+      </div>
+    </div>
+
+  </div><!-- /bd -->
+
+  <!-- Footer -->
+  <div class="foot">
+    <div class="foot-text">This is an estimate only — not a tax invoice. Final pricing may differ. Tax invoice issued on completion. ABN 12 345 678 901.</div>
+    <div class="qr">QR<br>Code</div>
+  </div>
+
+</div><!-- /paper -->
+</body>
+</html>
