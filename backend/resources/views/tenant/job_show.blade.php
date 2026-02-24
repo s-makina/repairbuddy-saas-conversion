@@ -1,12 +1,3 @@
-{{--
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  MOCKUP 2 — Accordion / Collapsible Sections Layout             │
-  │  Matches job-create theming exactly (Design B variables).        │
-  │  Top bar → Status bar → Left main (accordion sections)           │
-  │  + Right sticky sidebar. Dense, power-user friendly.             │
-  │  Reusable for Estimate Detail by swapping data/titles.           │
-  └──────────────────────────────────────────────────────────────────┘
---}}
 @extends('tenant.layouts.myaccount', ['title' => $pageTitle ?? 'Job Details'])
 
 @section('content')
@@ -22,16 +13,28 @@
     $currency = is_string($totals['currency'] ?? null) ? (string) $totals['currency'] : 'USD';
 
     $customer    = $record?->customer;
-    $technicians = $isEstimate ? collect([$record?->assignedTechnician])->filter() : ($record?->technicians ?? collect());
+    $technicians = $isEstimate
+        ? collect([$record?->assignedTechnician])->filter()
+        : ($record?->technicians ?? collect());
 
-    $jobItems       = is_iterable($jobItems ?? null) ? $jobItems : [];
-    $jobDevices     = is_iterable($jobDevices ?? null) ? $jobDevices : [];
-    $jobEvents      = is_iterable($jobEvents ?? null) ? $jobEvents : [];
-    $jobAttachments = is_iterable($jobAttachments ?? null) ? $jobAttachments : [];
+    // Items — estimates pass categorised arrays; jobs pass a flat collection
+    $jobItems       = is_iterable($jobItems ?? null) ? collect($jobItems) : collect();
+    $jobDevices     = is_iterable($jobDevices ?? null) ? $jobDevices : ($isEstimate ? ($devices ?? []) : []);
+    $jobEvents      = is_iterable($jobEvents ?? null) ? $jobEvents : ($isEstimate ? ($events ?? []) : []);
+    $jobAttachments = is_iterable($jobAttachments ?? null) ? $jobAttachments : ($isEstimate ? ($attachments ?? []) : []);
     $jobTimelogs    = is_iterable($jobTimelogs ?? null) ? $jobTimelogs : [];
     $jobPayments    = is_iterable($jobPayments ?? null) ? $jobPayments : [];
     $jobExpenses    = is_iterable($jobExpenses ?? null) ? $jobExpenses : [];
     $jobFeedback    = is_iterable($jobFeedback ?? null) ? $jobFeedback : [];
+
+    // For estimates: merge categorised items if flat jobItems is empty
+    if ($isEstimate && $jobItems->isEmpty()) {
+        $flatItems = collect($productItems ?? [])
+            ->concat($partItems ?? [])
+            ->concat($serviceItems ?? [])
+            ->concat($extraItems ?? []);
+        $jobItems = $flatItems;
+    }
 
     $tenantSlug = is_string($tenant?->slug) ? (string) $tenant->slug : '';
     $listUrl    = $isEstimate
@@ -42,6 +45,16 @@
             ? route('tenant.estimates.edit', ['business' => $tenantSlug, 'estimateId' => $record->id])
             : route('tenant.jobs.edit', ['business' => $tenantSlug, 'jobId' => $record->id]))
         : '#';
+
+    // Estimate-specific state
+    $estStatus    = $isEstimate ? ($record?->status ?? 'pending') : null;
+    $estIsPending  = $estStatus === 'pending';
+    $estIsApproved = $estStatus === 'approved';
+    $estIsRejected = $estStatus === 'rejected';
+    $convertedJobUrl = null;
+    if ($isEstimate && $record?->converted_job_id && $tenantSlug) {
+        $convertedJobUrl = route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $record->converted_job_id]);
+    }
 
     $formatMoney = function ($cents) {
         if ($cents === null) return '—';
@@ -309,6 +322,47 @@
 
 {{-- ═══════════════ STICKY TOP BAR ═══════════════ --}}
 <div class="ja-page">
+
+    {{-- Flash messages --}}
+    @if (session('success') || session('error'))
+    <div style="max-width:1440px; margin:0 auto; padding:.75rem 2rem 0;">
+        @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show mb-2" role="alert" style="border-radius:var(--rb-radius);">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        @endif
+        @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert" style="border-radius:var(--rb-radius);">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- Estimate status banners --}}
+    @if ($isEstimate)
+    <div style="max-width:1440px; margin:0 auto; padding:.5rem 2rem 0;">
+        @if ($estIsApproved && $convertedJobUrl)
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; border-radius:var(--rb-radius); padding:.8rem 1.2rem; margin-bottom:.5rem; display:flex; align-items:center; gap:.75rem; font-size:.88rem;">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>{{ __('This estimate was approved and converted to a repair job.') }}
+                <a href="{{ $convertedJobUrl }}" style="font-weight:700; color:#166534;">{{ __('View Repair Job →') }}</a>
+            </div>
+        </div>
+        @endif
+        @if ($estIsRejected)
+        <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:var(--rb-radius); padding:.8rem 1.2rem; margin-bottom:.5rem; display:flex; align-items:center; gap:.75rem; font-size:.88rem;">
+            <i class="bi bi-x-circle-fill fs-5"></i>
+            <div>{{ __('This estimate was rejected') }}
+                @if ($record?->rejected_at) {{ __('on') }} {{ $record->rejected_at->format('M d, Y \a\t H:i') }} @endif
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
     <div class="ja-topbar">
         <div class="ja-topbar-inner">
             <div class="ja-topbar-left">
@@ -342,7 +396,18 @@
             </div>
             <div class="ja-topbar-right">
                 <a href="javascript:window.print()" class="ja-btn ja-btn-outline"><i class="bi bi-printer"></i>{{ __('Print') }}</a>
-                <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline"><i class="bi bi-pencil-square"></i>{{ __('Edit') }}</a>
+                @if ($isEstimate)
+                    @if ($customer && $customer->email)
+                    <button type="button" class="ja-btn ja-btn-outline" data-bs-toggle="modal" data-bs-target="#sendEstimateModal">
+                        <i class="bi bi-envelope"></i>{{ __('Send') }}
+                    </button>
+                    @endif
+                    @if ($estIsPending)
+                    <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline"><i class="bi bi-pencil-square"></i>{{ __('Edit') }}</a>
+                    @endif
+                @else
+                    <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline"><i class="bi bi-pencil-square"></i>{{ __('Edit') }}</a>
+                @endif
                 <a href="{{ $listUrl }}" class="ja-btn ja-btn-primary"><i class="bi bi-arrow-left"></i>{{ __('Back to List') }}</a>
             </div>
         </div>
@@ -367,7 +432,31 @@
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Title') }}</div><div class="ja-kv-value">{{ $record?->title ?? '—' }}</div></div>
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Pickup') }}</div><div class="ja-kv-value">{{ $record?->pickup_date ?? '—' }}</div></div>
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Delivery') }}</div><div class="ja-kv-value">{{ $record?->delivery_date ?? '—' }}</div></div>
+                    @if (!$isEstimate)
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Payment') }}</div><div class="ja-kv-value">{{ strtoupper(str_replace('_', ' ', $record?->payment_status_slug ?? '—')) }}</div></div>
+                    @endif
+                    @if ($isEstimate)
+                    <div class="ja-kv">
+                        <div class="ja-kv-label">{{ __('Status') }}</div>
+                        <div class="ja-kv-value">
+                            @php
+                                $estBadgeClass = match ($estStatus) {
+                                    'approved' => 'ja-sp-done',
+                                    'rejected' => 'ja-sp-danger',
+                                    default    => 'ja-sp-open',
+                                };
+                            @endphp
+                            <span class="ja-status-pill {{ $estBadgeClass }}">{{ strtoupper($estStatus ?? 'pending') }}</span>
+                        </div>
+                    </div>
+                    @if ($record?->sent_at)
+                    <div class="ja-kv"><div class="ja-kv-label">{{ __('Sent') }}</div><div class="ja-kv-value">{{ $record->sent_at->format('M d, Y H:i') }}</div></div>
+                    @endif
+                    @if ($record?->rejected_at)
+                    <div class="ja-kv"><div class="ja-kv-label">{{ __('Rejected At') }}</div><div class="ja-kv-value" style="color:var(--rb-danger);">{{ $record->rejected_at->format('M d, Y H:i') }}</div></div>
+                    @endif
+                    @endif
+                    <div class="ja-kv"><div class="ja-kv-label">{{ __('Created') }}</div><div class="ja-kv-value">{{ $record?->created_at?->format('M d, Y H:i') ?? '—' }}</div></div>
                     @if ($record?->case_detail)
                     <div class="ja-kv" style="flex-direction:column; gap:.25rem;">
                         <div class="ja-kv-label" style="width:auto">{{ __('Internal Notes') }}</div>
@@ -384,6 +473,7 @@
                                 <div>
                                     <div class="ja-person-name">{{ $customer->name }}</div>
                                     <div class="ja-person-meta">{{ $customer->email ?? '' }}{{ $customer->phone ? ' · ' . $customer->phone : '' }}</div>
+                                    @if (!empty($customer->company ?? null))<div class="ja-person-meta">{{ $customer->company }}</div>@endif
                                 </div>
                             </div>
                         @else
@@ -406,10 +496,18 @@
                         <div class="ja-dev-row">
                             <div class="ja-dev-icon"><i class="bi bi-laptop"></i></div>
                             <div class="ja-dev-info">
+                                @if ($isEstimate)
                                 <strong>{{ $d->label_snapshot ?? __('Device') }}</strong>
-                                <span>{{ __('SN') }}: {{ $d->serial_snapshot ?? '—' }} &middot; {{ __('PIN') }}: {{ $d->pin_snapshot ?? '—' }}</span>
-                                @if ($d->notes_snapshot)
+                                <span>{{ __('SN') }}: {{ $d->serial_snapshot ?? '—' }}{{ ($d->pin_snapshot ?? null) ? ' · ' . __('PIN') . ': ' . $d->pin_snapshot : '' }}</span>
+                                @if ($d->notes_snapshot ?? null)
                                     <span style="color:var(--rb-text-2);">{{ $d->notes_snapshot }}</span>
+                                @endif
+                                @else
+                                <strong>{{ $d->label_snapshot ?? ($d->customerDevice?->device?->brand?->name . ' ' . $d->customerDevice?->device?->name ?? __('Device')) }}</strong>
+                                <span>{{ __('SN') }}: {{ $d->serial_snapshot ?? '—' }} &middot; {{ __('PIN') }}: {{ $d->pin_snapshot ?? '—' }}</span>
+                                @if ($d->notes_snapshot ?? null)
+                                    <span style="color:var(--rb-text-2);">{{ $d->notes_snapshot }}</span>
+                                @endif
                                 @endif
                             </div>
                         </div>
@@ -419,7 +517,8 @@
                 </div>
             </div>
 
-            {{-- §3 — Technicians & Time Logs --}}
+            {{-- §3 — Technicians & Time Logs (job only) --}}
+            @if (!$isEstimate)
             <div class="ja-section">
                 <div class="ja-section-head" @click="open.techs = !open.techs">
                     <div class="ja-section-icon ja-icon-green"><i class="bi bi-people-fill"></i></div>
@@ -474,8 +573,10 @@
                     @endif
                 </div>
             </div>
+            @endif
 
-            {{-- §4 — Payments --}}
+            {{-- §4 — Payments (job only) --}}
+            @if (!$isEstimate)
             <div class="ja-section">
                 <div class="ja-section-head" @click="open.payments = !open.payments">
                     <div class="ja-section-icon ja-icon-green"><i class="bi bi-credit-card-2-front"></i></div>
@@ -512,8 +613,10 @@
                     @endif
                 </div>
             </div>
+            @endif
 
-            {{-- §5 — Expenses --}}
+            {{-- §5 — Expenses (job only) --}}
+            @if (!$isEstimate)
             <div class="ja-section">
                 <div class="ja-section-head" @click="open.expenses = !open.expenses">
                     <div class="ja-section-icon ja-icon-yellow"><i class="bi bi-receipt-cutoff"></i></div>
@@ -550,12 +653,13 @@
                     @endif
                 </div>
             </div>
+            @endif
 
             {{-- §6 — History --}}
             <div class="ja-section">
                 <div class="ja-section-head" @click="open.history = !open.history">
                     <div class="ja-section-icon ja-icon-gray"><i class="bi bi-clock-history"></i></div>
-                    <h3>{{ __('Job History') }}</h3>
+                    <h3>{{ $isEstimate ? __('Estimate History') : __('Job History') }}</h3>
                     <span class="ja-tag ja-tag-gray">{{ count($jobEvents) }}</span>
                     <i class="bi ja-chevron" :class="open.history ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 </div>
@@ -623,16 +727,36 @@
                 <div class="ja-sidebar-card">
                     <div class="ja-sidebar-head"><i class="bi bi-calculator"></i> {{ __('Financial Summary') }}</div>
                     <div class="ja-sidebar-body">
+                        @if ($isEstimate)
+                        {{-- Estimate: use categorised totals from controller --}}
                         @php
-                            $items = collect($jobItems);
-                            $serviceTotal = $items->where('item_type', 'service')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
-                            $partTotal    = $items->where('item_type', 'part')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
+                            $pt = $totals['products'] ?? ['subtotal' => 0]; $pa = $totals['parts'] ?? ['subtotal' => 0];
+                            $sv = $totals['services'] ?? ['subtotal' => 0]; $ex = $totals['extras']   ?? ['subtotal' => 0];
+                        @endphp
+                        @if ($pt['subtotal'] > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Products') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($pt['subtotal']) }}</span></div>
+                        @endif
+                        @if ($pa['subtotal'] > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Parts') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($pa['subtotal']) }}</span></div>
+                        @endif
+                        @if ($sv['subtotal'] > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Services') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($sv['subtotal']) }}</span></div>
+                        @endif
+                        @if ($ex['subtotal'] > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Extras') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($ex['subtotal']) }}</span></div>
+                        @endif
+                        @else
+                        {{-- Job: derive from flat items list --}}
+                        @php
+                            $serviceTotal = $jobItems->where('item_type', 'service')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
+                            $partTotal    = $jobItems->where('item_type', 'part')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
                         @endphp
                         @if ($serviceTotal > 0)
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Services') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($serviceTotal) }}</span></div>
                         @endif
                         @if ($partTotal > 0)
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Parts') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($partTotal) }}</span></div>
+                        @endif
                         @endif
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Subtotal') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['subtotal_cents'] ?? null) }}</span></div>
                         @if (($totals['tax_cents'] ?? 0) > 0)
@@ -679,9 +803,62 @@
                 <div class="ja-sidebar-card">
                     <div class="ja-sidebar-head"><i class="bi bi-lightning"></i> {{ __('Actions') }}</div>
                     <div class="ja-sidebar-body" style="display:grid; gap:.4rem;">
-                        <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
-                            <i class="bi bi-pencil-square"></i> {{ __('Edit') }} {{ $entityLabel }}
-                        </a>
+                        @if ($isEstimate)
+                            {{-- Estimate-specific actions --}}
+                            @if ($estIsPending)
+                            <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
+                                <i class="bi bi-pencil-square"></i> {{ __('Edit Estimate') }}
+                            </a>
+                            @endif
+
+                            @if ($convertedJobUrl)
+                            <a href="{{ $convertedJobUrl }}" class="ja-btn" style="justify-content:center; width:100%; background:var(--rb-success-soft); color:#16a34a; border:1px solid #bbf7d0;">
+                                <i class="bi bi-box-arrow-up-right"></i> {{ __('View Repair Job') }}
+                            </a>
+                            @elseif ($estIsPending)
+                            <form method="POST" action="{{ route('tenant.estimates.convert', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}" onsubmit="return confirm('{{ __('Convert this estimate to a repair job?') }}')">
+                                @csrf
+                                <button type="submit" class="ja-btn" style="justify-content:center; width:100%; background:var(--rb-success-soft); color:#16a34a; border:1px solid #bbf7d0;">
+                                    <i class="bi bi-arrow-right-circle"></i> {{ __('Convert to Repair Job') }}
+                                </button>
+                            </form>
+                            @endif
+
+                            @if ($customer && $customer->email)
+                            <button type="button" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;" data-bs-toggle="modal" data-bs-target="#sendEstimateModal">
+                                <i class="bi bi-envelope"></i> {{ __('Send Estimate Email') }}
+                            </button>
+                            @endif
+
+                            @if ($estIsPending)
+                            <form method="POST" action="{{ route('tenant.estimates.approve', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}" onsubmit="return confirm('{{ __('Approve this estimate?') }}')">
+                                @csrf
+                                <button type="submit" class="ja-btn" style="justify-content:center; width:100%; background:var(--rb-success-soft); color:#16a34a; border:1px solid #bbf7d0;">
+                                    <i class="bi bi-check-circle"></i> {{ __('Approve Estimate') }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('tenant.estimates.reject', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}" onsubmit="return confirm('{{ __('Reject this estimate?') }}')">
+                                @csrf
+                                <button type="submit" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%; color:var(--rb-warning); border-color:#fde68a;">
+                                    <i class="bi bi-x-circle"></i> {{ __('Reject Estimate') }}
+                                </button>
+                            </form>
+                            @endif
+
+                            <form method="POST" action="{{ route('tenant.estimates.destroy', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}" onsubmit="return confirm('{{ __('Delete this estimate permanently?') }}')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%; color:var(--rb-danger); border-color:#fecaca;">
+                                    <i class="bi bi-trash3"></i> {{ __('Delete Estimate') }}
+                                </button>
+                            </form>
+                        @else
+                            {{-- Job actions --}}
+                            <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
+                                <i class="bi bi-pencil-square"></i> {{ __('Edit Job') }}
+                            </a>
+                        @endif
+
                         <a href="javascript:window.print()" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
                             <i class="bi bi-printer"></i> {{ __('Print') }}
                         </a>
@@ -696,4 +873,54 @@
 
     </div>
 </div>
+
+{{-- Send Estimate Email Modal --}}
+@if ($isEstimate && $customer && $customer->email && $record)
+<div class="modal fade" id="sendEstimateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ route('tenant.estimates.send', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}">
+            @csrf
+            <div class="modal-content" style="border-radius:14px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-envelope me-2"></i>{{ __('Send Estimate to Customer') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        {{ __('The customer will receive an email with approve/reject buttons. Clicking approve will automatically convert this estimate into a repair job.') }}
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{{ __('To') }}</label>
+                        <input type="text" class="form-control form-control-sm" value="{{ $customer->name }} <{{ $customer->email }}>" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{{ __('Subject') }}</label>
+                        <input type="text" class="form-control form-control-sm" name="email_subject"
+                               value="{{ __('Estimate') }} {{ $record->case_number }} {{ __('from') }} {{ $tenant->name ?? 'RepairBuddy' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{{ __('Message Body') }}</label>
+                        <textarea class="form-control form-control-sm" name="email_body" rows="8">{{ __('Hello') }} {{ $customer->name }},
+
+{{ __('Please find your estimate') }} {{ $record->case_number }} {{ __('below.') }}
+
+{{ __('You can approve or reject this estimate using the buttons in the email.') }}
+
+{{ __('Thank you,') }}
+{{ $tenant->name ?? 'RepairBuddy' }}</textarea>
+                        <div class="form-text">{{ __('Approve and reject buttons will be added automatically.') }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+                        <i class="bi bi-send me-1"></i>{{ __('Send Email') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
 @endsection

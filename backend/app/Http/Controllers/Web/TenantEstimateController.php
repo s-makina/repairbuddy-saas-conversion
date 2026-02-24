@@ -361,20 +361,28 @@ class TenantEstimateController extends Controller
             'extras'   => $extraTotals,
         ];
 
-        return view('tenant.estimates.show', [
+        return view('tenant.job_show', [
             'tenant'       => $tenant,
             'user'         => $user,
             'activeNav'    => 'estimates',
             'pageTitle'    => 'Estimate ' . ($estimate->case_number ?? '#' . $estimate->id),
+            // Pass as $estimate so the view enters estimate mode
             'estimate'     => $estimate,
-            'items'        => $items,
+            // Map estimate items/devices/events to the shared variable names
+            'jobItems'     => $items,
+            'jobDevices'   => $devices,
+            'jobAttachments' => $attachments,
+            'jobEvents'    => $events,
+            // Estimate-only: also pass categorised arrays for financial summary
             'productItems' => $productItems,
             'partItems'    => $partItems,
             'serviceItems' => $serviceItems,
             'extraItems'   => $extraItems,
-            'devices'      => $devices,
-            'attachments'  => $attachments,
-            'events'       => $events,
+            // Not applicable for estimates
+            'jobTimelogs'  => collect(),
+            'jobPayments'  => collect(),
+            'jobExpenses'  => collect(),
+            'jobFeedback'  => collect(),
             'totals'       => $totals,
         ]);
     }
