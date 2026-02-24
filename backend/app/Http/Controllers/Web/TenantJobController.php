@@ -653,12 +653,16 @@ class TenantJobController extends Controller
         }
 
         $totals = [
+            'currency'             => $currency,
+            'subtotal_cents'       => $itemsSubtotalCents,
             'items_subtotal_cents' => $itemsSubtotalCents,
-            'tax_total_cents' => null,
-            'grand_total_cents' => $itemsSubtotalCents,
-            'paid_total_cents' => null,
-            'balance_cents' => null,
-            'currency' => $currency,
+            'tax_cents'            => null,
+            'tax_total_cents'      => null,
+            'total_cents'          => $itemsSubtotalCents,
+            'grand_total_cents'    => $itemsSubtotalCents,
+            'paid_cents'           => null,
+            'paid_total_cents'     => null,
+            'balance_cents'        => null,
         ];
 
         return view('tenant.job_show', [
@@ -672,6 +676,11 @@ class TenantJobController extends Controller
             'jobAttachments' => $attachments,
             'jobEvents' => $events,
             'totals' => $totals,
+            // Not yet implemented — pass empty collections so the view renders
+            'jobTimelogs' => collect(),
+            'jobPayments' => collect(),
+            'jobExpenses' => collect(),
+            'jobFeedback' => collect(),
         ]);
     }
 }
