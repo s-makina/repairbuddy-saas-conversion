@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class EstimateForm extends JobForm
 {
-    public $estimate;
+    public ?RepairBuddyEstimate $estimate = null;
     public $estimateId;
     public ?string $estimate_status = 'draft';
 
@@ -218,9 +218,17 @@ class EstimateForm extends JobForm
         $assignedTechId = ! empty($this->technician_ids) ? (int) $this->technician_ids[0] : null;
 
         $estimate = DB::transaction(function () use ($caseNumber, $title, $branch, $currency, $assignedTechId) {
-            if ($this->estimateId && $this->estimate instanceof RepairBuddyEstimate) {
+            // Re-fetch from DB so hydration of $this->estimate is not relied upon
+            $existingEstimate = $this->estimateId
+                ? RepairBuddyEstimate::query()
+                    ->where('tenant_id', (int) $this->tenant->id)
+                    ->whereKey((int) $this->estimateId)
+                    ->first()
+                : null;
+
+            if ($existingEstimate) {
                 // UPDATE existing
-                $estimate = $this->estimate;
+                $estimate = $existingEstimate;
                 $estimate->forceFill([
                     'case_number' => $caseNumber,
                     'title' => $title,

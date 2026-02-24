@@ -870,6 +870,94 @@
     }
     .jf-sc-row .jf-val { font-weight: 600; }
 
+    /* ── Breakdown: category + tax grouping ── */
+    .jf-cat-block {
+        margin-bottom: .45rem;
+    }
+    .jf-cat-block:last-of-type { margin-bottom: 0; }
+    .jf-cat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .3rem 0 .15rem;
+        font-size: .84rem;
+        font-weight: 600;
+        color: var(--rb-text);
+    }
+    .jf-cat-row .jf-val { font-weight: 700; }
+    .jf-cat-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        font-size: .68rem;
+        margin-right: .35rem;
+        flex-shrink: 0;
+    }
+    .jf-tax-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-left: .75rem;
+        padding: .18rem .55rem .18rem .6rem;
+        margin-bottom: .05rem;
+        background: rgba(245,158,11,.07);
+        border-left: 2px solid rgba(245,158,11,.4);
+        border-radius: 0 4px 4px 0;
+        font-size: .75rem;
+        color: #92400e;
+    }
+    .jf-tax-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        font-weight: 600;
+    }
+    .jf-tax-badge i { font-size: .7rem; opacity: .8; }
+    .jf-tax-row .jf-tax-amount {
+        font-weight: 700;
+        color: #b45309;
+    }
+    .jf-divider {
+        border: none;
+        border-top: 1px solid var(--rb-border);
+        margin: .55rem 0;
+    }
+    .jf-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .28rem 0;
+        font-size: .82rem;
+    }
+    .jf-summary-row .jf-val { font-weight: 600; }
+    .jf-tax-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .28rem .6rem;
+        margin: .2rem 0;
+        border-radius: 6px;
+        background: rgba(245,158,11,.08);
+        border: 1px solid rgba(245,158,11,.2);
+        font-size: .82rem;
+        color: #92400e;
+    }
+    .jf-tax-total-row .jf-val { font-weight: 700; color: #b45309; }
+    .jf-grand-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .4rem .5rem;
+        border-radius: 6px;
+        background: rgba(var(--rb-brand-rgb, 59,130,246),.07);
+        font-size: .9rem;
+        font-weight: 800;
+    }
+    .jf-grand-row .jf-val { color: var(--rb-brand); font-weight: 800; }
+
     /* ── Sidebar Settings ── */
     .jf-ss { margin-bottom: .625rem; }
     .jf-ss:last-child { margin-bottom: 0; }
@@ -1863,39 +1951,117 @@
                 </div>
 
                 {{-- Breakdown --}}
+                @php
+                    $taxInfo    = $this->default_tax_info;
+                    $rateStr    = $taxInfo
+                        ? rtrim(rtrim(number_format((float)($taxInfo['rate'] ?? $this->default_tax_rate), 2), '0'), '.')
+                        : ($this->default_tax_rate > 0 ? rtrim(rtrim(number_format((float)$this->default_tax_rate, 2), '0'), '.') : null);
+                    $taxName    = $taxInfo['name'] ?? null;
+                    $taxModeTag = ($this->prices_inclu_exclu ?? 'exclusive') === 'inclusive' ? __('incl.') : __('excl.');
+                    $isInclusive = ($this->prices_inclu_exclu ?? 'exclusive') === 'inclusive';
+                    $totalTax   = $this->parts_tax + $this->services_tax + $this->extras_tax;
+                @endphp
                 <div class="jf-sc">
-                    <div class="jf-sc-head"><i class="bi bi-pie-chart"></i> {{ __('Breakdown') }}</div>
+                    <div class="jf-sc-head"><i class="bi bi-receipt"></i> {{ __('Cost Breakdown') }}</div>
                     <div class="jf-sc-body">
-                        <div class="jf-sc-row">
-                            <span>{{ __('Parts') }} ({{ count($partsItems) }})</span>
-                            <span class="jf-val">{{ Number::currency($this->parts_total, $currency_code) }}</span>
-                        </div>
-                        <div class="jf-sc-row">
-                            <span>{{ __('Services') }} ({{ count($servicesItems) }})</span>
-                            <span class="jf-val">{{ Number::currency($this->services_total, $currency_code) }}</span>
-                        </div>
-                        <div class="jf-sc-row">
-                            <span>{{ __('Other') }} ({{ count($otherItems) }})</span>
-                            <span class="jf-val">{{ Number::currency($this->extras_total, $currency_code) }}</span>
-                        </div>
-                        @if($this->tax_enabled)
-                            <hr style="border:none;border-top:1px solid var(--rb-border);margin:.4rem 0;">
-                            <div class="jf-sc-row">
-                                <span>{{ __('Tax') }} ({{ $this->default_tax_rate }}%)</span>
-                                <span class="jf-val" style="color:var(--rb-danger);">
-                                    + {{ Number::currency($this->parts_tax + $this->services_tax + $this->extras_tax, $currency_code) }}
+
+                        {{-- Parts block --}}
+                        @if($this->parts_total > 0)
+                        <div class="jf-cat-block">
+                            <div class="jf-cat-row">
+                                <span>
+                                    <span class="jf-cat-icon" style="background:rgba(59,130,246,.1);color:#3b82f6;"><i class="bi bi-box-seam"></i></span>
+                                    {{ __('Parts') }}
+                                    <span style="font-weight:400;color:var(--rb-text-muted);font-size:.77rem;">({{ count($partsItems) }})</span>
                                 </span>
+                                <span class="jf-val">{{ Number::currency($this->parts_total, $currency_code) }}</span>
                             </div>
+                            @if($this->tax_enabled && $this->parts_tax > 0)
+                            <div class="jf-tax-row">
+                                <span class="jf-tax-badge"><i class="bi bi-percent"></i> {{ __('Tax') }}@if($rateStr) <span style="opacity:.75;">{{ $rateStr }}%</span>@endif</span>
+                                <span class="jf-tax-amount">{{ Number::currency($this->parts_tax, $currency_code) }}</span>
+                            </div>
+                            @endif
+                        </div>
                         @endif
-                        <hr style="border:none;border-top:1px solid var(--rb-border);margin:.4rem 0;">
-                        <div class="jf-sc-row" style="font-weight:800;font-size:.92rem;">
-                            <span>{{ __('Total') }}</span>
-                            <span class="jf-val" style="color:var(--rb-brand);">{{ Number::currency($this->grand_total_amount, $currency_code) }}</span>
+
+                        {{-- Services block --}}
+                        @if($this->services_total > 0)
+                        <div class="jf-cat-block">
+                            <div class="jf-cat-row">
+                                <span>
+                                    <span class="jf-cat-icon" style="background:rgba(16,185,129,.1);color:#10b981;"><i class="bi bi-wrench-adjustable"></i></span>
+                                    {{ __('Services') }}
+                                    <span style="font-weight:400;color:var(--rb-text-muted);font-size:.77rem;">({{ count($servicesItems) }})</span>
+                                </span>
+                                <span class="jf-val">{{ Number::currency($this->services_total, $currency_code) }}</span>
+                            </div>
+                            @if($this->tax_enabled && $this->services_tax > 0)
+                            <div class="jf-tax-row">
+                                <span class="jf-tax-badge"><i class="bi bi-percent"></i> {{ __('Tax') }}@if($rateStr) <span style="opacity:.75;">{{ $rateStr }}%</span>@endif</span>
+                                <span class="jf-tax-amount">{{ Number::currency($this->services_tax, $currency_code) }}</span>
+                            </div>
+                            @endif
                         </div>
-                        <div class="jf-sc-row">
-                            <span>{{ __('Balance') }}</span>
-                            <span class="jf-val">{{ Number::currency($this->balance, $currency_code) }}</span>
+                        @endif
+
+                        {{-- Fees / Extras block --}}
+                        @if($this->extras_total > 0)
+                        <div class="jf-cat-block">
+                            <div class="jf-cat-row">
+                                <span>
+                                    <span class="jf-cat-icon" style="background:rgba(139,92,246,.1);color:#8b5cf6;"><i class="bi bi-tags"></i></span>
+                                    {{ __('Fees / Extras') }}
+                                    <span style="font-weight:400;color:var(--rb-text-muted);font-size:.77rem;">({{ count($otherItems) }})</span>
+                                </span>
+                                <span class="jf-val">{{ Number::currency($this->extras_total, $currency_code) }}</span>
+                            </div>
+                            @if($this->tax_enabled && $this->extras_tax > 0)
+                            <div class="jf-tax-row">
+                                <span class="jf-tax-badge"><i class="bi bi-percent"></i> {{ __('Tax') }}@if($rateStr) <span style="opacity:.75;">{{ $rateStr }}%</span>@endif</span>
+                                <span class="jf-tax-amount">{{ Number::currency($this->extras_tax, $currency_code) }}</span>
+                            </div>
+                            @endif
                         </div>
+                        @endif
+
+                        <hr class="jf-divider">
+
+                        {{-- Subtotal --}}
+                        <div class="jf-summary-row">
+                            <span style="color:var(--rb-text-muted);">{{ __('Subtotal') }}</span>
+                            <span class="jf-val">{{ Number::currency($this->parts_total + $this->services_total + $this->extras_total, $currency_code) }}</span>
+                        </div>
+
+                        {{-- Tax total summary row --}}
+                        @if($this->tax_enabled && $totalTax > 0)
+                        <div class="jf-tax-total-row">
+                            <span>
+                                <i class="bi bi-percent" style="margin-right:.3rem;"></i>
+                                @if($taxName){{ $taxName }} &middot; @endif
+                                @if($rateStr){{ $rateStr }}% &middot; @endif
+                                <span style="font-size:.74rem;opacity:.8;">{{ $taxModeTag }}</span>
+                            </span>
+                            <span class="jf-val">{{ $isInclusive ? '' : '+' }} {{ Number::currency($totalTax, $currency_code) }}</span>
+                        </div>
+                        @endif
+
+                        <hr class="jf-divider">
+
+                        {{-- Grand Total --}}
+                        <div class="jf-grand-row">
+                            <span>{{ __('Grand Total') }}</span>
+                            <span class="jf-val">{{ Number::currency($this->grand_total_amount, $currency_code) }}</span>
+                        </div>
+
+                        {{-- Balance --}}
+                        @if($this->balance > 0)
+                        <div class="jf-summary-row" style="margin-top:.3rem;">
+                            <span style="color:var(--rb-text-muted);">{{ __('Balance Due') }}</span>
+                            <span class="jf-val" style="color:var(--rb-danger);">{{ Number::currency($this->balance, $currency_code) }}</span>
+                        </div>
+                        @endif
+
                     </div>
                 </div>
 
