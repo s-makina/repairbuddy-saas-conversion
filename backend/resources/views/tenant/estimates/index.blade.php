@@ -25,9 +25,18 @@
     $baseUrl = $tenantSlug ? route('tenant.estimates.index', ['business' => $tenantSlug]) : '#';
     $newUrl  = $tenantSlug ? route('tenant.estimates.create', ['business' => $tenantSlug]) : '#';
 
-    $formatMoney = function ($cents) {
+    $currencyCode = strtoupper(is_string($tenant?->currency ?? null) && $tenant->currency !== '' ? $tenant->currency : 'USD');
+    try {
+        $fmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
+        $fmt->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currencyCode);
+        $currencySymbol = $fmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL) ?: ($currencyCode . ' ');
+    } catch (\Exception $e) {
+        $currencySymbol = $currencyCode . ' ';
+    }
+
+    $formatMoney = function ($cents) use ($currencySymbol) {
         if ($cents === null) return '—';
-        return '$' . number_format(((int) $cents) / 100, 2, '.', ',');
+        return $currencySymbol . number_format(((int) $cents) / 100, 2, '.', ',');
     };
 
     // ── Badge map ──

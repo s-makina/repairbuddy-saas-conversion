@@ -680,6 +680,10 @@ Route::prefix('t/{business}')
             ->where(['jobId' => '[0-9]+' ])
             ->name('tenant.jobs.update');
 
+        Route::post('/jobs/{jobId}/payments', [\App\Http\Controllers\Web\TenantJobController::class, 'storePayment'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.jobs.payments.store');
+
         Route::post('/jobs', [\App\Http\Controllers\Web\TenantJobController::class, 'store'])
             ->name('tenant.jobs.store');
 

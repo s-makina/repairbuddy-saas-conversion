@@ -86,4 +86,9 @@ class RepairBuddyJob extends Model
     {
         return $this->hasMany(RepairBuddyJobDevice::class, 'job_id');
     }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(RepairBuddyPayment::class, 'job_id');
+    }
 }

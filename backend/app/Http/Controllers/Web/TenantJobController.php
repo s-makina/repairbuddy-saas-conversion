@@ -12,6 +12,8 @@ use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
+use App\Models\RepairBuddyPayment;
+use App\Models\RepairBuddyPaymentStatus;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyJobItem;
@@ -654,6 +656,14 @@ class TenantJobController extends Controller
             $itemsSubtotalCents += ($qty * $unit);
         }
 
+        $payments = RepairBuddyPayment::query()
+            ->with(['receiver'])
+            ->where('job_id', $job->id)
+            ->orderBy('paid_at', 'desc')
+            ->get();
+
+        $paidCents = $payments->sum('amount_cents');
+
         $totals = [
             'currency'             => $currency,
             'subtotal_cents'       => $itemsSubtotalCents,
@@ -662,10 +672,15 @@ class TenantJobController extends Controller
             'tax_total_cents'      => null,
             'total_cents'          => $itemsSubtotalCents,
             'grand_total_cents'    => $itemsSubtotalCents,
-            'paid_cents'           => null,
-            'paid_total_cents'     => null,
-            'balance_cents'        => null,
+            'paid_cents'           => $paidCents,
+            'paid_total_cents'     => $paidCents,
+            'balance_cents'        => $itemsSubtotalCents - $paidCents,
         ];
+
+        $paymentStatuses = RepairBuddyPaymentStatus::query()
+            ->where('is_active', true)
+            ->orderBy('label')
+            ->get();
 
         return view('tenant.job_show', [
             'tenant' => $tenant,
@@ -678,11 +693,75 @@ class TenantJobController extends Controller
             'jobAttachments' => $attachments,
             'jobEvents' => $events,
             'totals' => $totals,
-            // Not yet implemented — pass empty collections so the view renders
             'jobTimelogs' => collect(),
-            'jobPayments' => collect(),
+            'jobPayments' => $payments,
             'jobExpenses' => collect(),
             'jobFeedback' => collect(),
+            'paymentStatuses' => $paymentStatuses,
         ]);
+    }
+
+    /* ---------------------------------------------------------------- */
+    /*  Store a manual payment against a job                            */
+    /* ---------------------------------------------------------------- */
+    public function storePayment(Request $request, string $business, $jobId)
+    {
+        if (! is_numeric($jobId)) {
+            abort(404);
+        }
+
+        $tenant = TenantContext::tenant();
+        $user   = $request->user();
+
+        if (! $user) {
+            return redirect()->route('web.login');
+        }
+
+        $job = RepairBuddyJob::query()->whereKey((int) $jobId)->firstOrFail();
+
+        $validated = $request->validate([
+            'method'         => 'required|string|max:60',
+            'payment_status' => 'required|string|max:60',
+            'amount'         => 'required|numeric|min:0.01',
+            'transaction_id' => 'nullable|string|max:200',
+            'notes'          => 'nullable|string|max:2000',
+            'paid_at'        => 'nullable|date',
+        ]);
+
+        $amountCents = (int) round($validated['amount'] * 100);
+
+        $currency = is_string($tenant?->currency) && $tenant->currency !== ''
+            ? strtoupper((string) $tenant->currency) : 'USD';
+
+        RepairBuddyPayment::create([
+            'job_id'         => $job->id,
+            'received_by'    => $user->id,
+            'method'         => $validated['method'],
+            'payment_status' => $validated['payment_status'],
+            'transaction_id' => $validated['transaction_id'] ?? null,
+            'amount_cents'   => $amountCents,
+            'currency'       => $currency,
+            'notes'          => $validated['notes'] ?? null,
+            'paid_at'        => $validated['paid_at'] ?? now(),
+        ]);
+
+        // Log the event
+        RepairBuddyEvent::create([
+            'tenant_id'    => $tenant->id,
+            'entity_type'  => 'job',
+            'entity_id'    => $job->id,
+            'event_type'   => 'payment_added',
+            'actor_id'     => $user->id,
+            'payload_json' => [
+                'title'   => 'Payment recorded',
+                'message' => "Payment of {$currency} " . number_format($validated['amount'], 2) . " via {$validated['method']}.",
+            ],
+        ]);
+
+        $tenantSlug = is_string($tenant?->slug) ? (string) $tenant->slug : '';
+
+        return redirect()
+            ->route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $job->id])
+            ->with('success', __('Payment recorded successfully.'));
     }
 }

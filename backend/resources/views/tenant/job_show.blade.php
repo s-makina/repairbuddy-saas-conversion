@@ -26,6 +26,7 @@
     $jobPayments    = is_iterable($jobPayments ?? null) ? $jobPayments : [];
     $jobExpenses    = is_iterable($jobExpenses ?? null) ? $jobExpenses : [];
     $jobFeedback    = is_iterable($jobFeedback ?? null) ? $jobFeedback : [];
+    $paymentStatuses = $paymentStatuses ?? collect();
 
     // For estimates: merge categorised items if flat jobItems is empty
     if ($isEstimate && $jobItems->isEmpty()) {
@@ -56,9 +57,18 @@
         $convertedJobUrl = route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $record->converted_job_id]);
     }
 
-    $formatMoney = function ($cents) {
+    $currencyCode = strtoupper(is_string($tenant?->currency ?? null) && $tenant->currency !== '' ? $tenant->currency : 'USD');
+    try {
+        $fmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
+        $fmt->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currencyCode);
+        $currencySymbol = $fmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL) ?: ($currencyCode . ' ');
+    } catch (\Exception $e) {
+        $currencySymbol = $currencyCode . ' ';
+    }
+
+    $formatMoney = function ($cents) use ($currencySymbol) {
         if ($cents === null) return '—';
-        return '$' . number_format(((int) $cents) / 100, 2, '.', ',');
+        return $currencySymbol . number_format(((int) $cents) / 100, 2, '.', ',');
     };
 @endphp
 
@@ -585,26 +595,56 @@
                     <div class="ja-section-icon ja-icon-green"><i class="bi bi-credit-card-2-front"></i></div>
                     <h3>{{ __('Payments') }}</h3>
                     <span class="ja-tag ja-tag-green">{{ count($jobPayments) }}</span>
+                    <button type="button" class="ja-btn ja-btn-primary" style="margin-left:auto; padding:.3rem .75rem; font-size:.76rem;"
+                        data-bs-toggle="modal" data-bs-target="#addPaymentModal"
+                        @click.stop>
+                        <i class="bi bi-plus-circle"></i> {{ __('Add Payment') }}
+                    </button>
                     <i class="bi ja-chevron" :class="open.payments ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 </div>
                 <div class="ja-section-body" x-show="open.payments" x-collapse>
+                    {{-- Payment summary bar --}}
+                    @php
+                        $paidTotal   = collect($jobPayments)->sum('amount_cents');
+                        $grandTotal  = $totals['grand_total_cents'] ?? $totals['total_cents'] ?? 0;
+                        $balanceDue  = $grandTotal - $paidTotal;
+                    @endphp
+                    <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:.75rem; padding:.6rem .75rem; background:var(--rb-bg); border-radius:var(--rb-radius-sm); border:1px solid var(--rb-border);">
+                        <div style="flex:1; min-width:120px;">
+                            <div style="font-size:.68rem; text-transform:uppercase; font-weight:700; color:var(--rb-text-3);">{{ __('Grand Total') }}</div>
+                            <div style="font-size:1rem; font-weight:800; color:var(--rb-text);">{{ $formatMoney($grandTotal) }}</div>
+                        </div>
+                        <div style="flex:1; min-width:120px;">
+                            <div style="font-size:.68rem; text-transform:uppercase; font-weight:700; color:var(--rb-text-3);">{{ __('Total Paid') }}</div>
+                            <div style="font-size:1rem; font-weight:800; color:var(--rb-success);">{{ $formatMoney($paidTotal) }}</div>
+                        </div>
+                        <div style="flex:1; min-width:120px;">
+                            <div style="font-size:.68rem; text-transform:uppercase; font-weight:700; color:var(--rb-text-3);">{{ __('Balance Due') }}</div>
+                            <div style="font-size:1rem; font-weight:800; color:{{ $balanceDue > 0 ? 'var(--rb-danger)' : 'var(--rb-success)' }};">{{ $formatMoney($balanceDue) }}</div>
+                        </div>
+                    </div>
+
                     @if (count($jobPayments) > 0)
                         <div style="overflow-x:auto;">
                             <table class="ja-table">
                                 <thead><tr>
                                     <th>{{ __('Date') }}</th>
                                     <th>{{ __('Method') }}</th>
-                                    <th>{{ __('Reference') }}</th>
+                                    <th>{{ __('Status') }}</th>
+                                    <th>{{ __('Transaction ID') }}</th>
                                     <th class="text-end">{{ __('Amount') }}</th>
+                                    <th>{{ __('Receiver') }}</th>
                                     <th>{{ __('Notes') }}</th>
                                 </tr></thead>
                                 <tbody>
                                 @foreach ($jobPayments as $pmt)
                                     <tr>
-                                        <td>{{ $pmt->paid_at ?? $pmt->created_at ?? '—' }}</td>
+                                        <td>{{ ($pmt->paid_at ?? $pmt->created_at)?->format('M d, Y H:i') ?? '—' }}</td>
                                         <td><span class="ja-status-pill ja-sp-open">{{ strtoupper($pmt->method ?? 'N/A') }}</span></td>
-                                        <td style="font-family:monospace; font-size:.8rem;">{{ $pmt->reference ?? '—' }}</td>
+                                        <td><span class="ja-status-pill ja-sp-done">{{ strtoupper($pmt->payment_status ?? 'N/A') }}</span></td>
+                                        <td style="font-family:monospace; font-size:.8rem;">{{ $pmt->transaction_id ?? '—' }}</td>
                                         <td class="text-end fw-bold">{{ $formatMoney($pmt->amount_cents ?? null) }} {{ $currency }}</td>
+                                        <td style="font-size:.78rem;">{{ $pmt->receiver?->name ?? '—' }}</td>
                                         <td style="font-size:.78rem; color:var(--rb-text-2);">{{ $pmt->notes ?? '' }}</td>
                                     </tr>
                                 @endforeach
@@ -771,8 +811,12 @@
                         </div>
                         @if (isset($totals['balance_cents']))
                         <div class="ja-sidebar-kpi" style="margin-top:.4rem;">
+                            <span class="ja-sidebar-kpi-label">{{ __('Total Paid') }}</span>
+                            <span class="ja-sidebar-kpi-value" style="color:var(--rb-success);">{{ $formatMoney($totals['paid_cents'] ?? 0) }}</span>
+                        </div>
+                        <div class="ja-sidebar-kpi">
                             <span class="ja-sidebar-kpi-label">{{ __('Balance Due') }}</span>
-                            <span class="ja-sidebar-kpi-value" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance_cents']) }}</span>
+                            <span class="ja-sidebar-kpi-value" style="color:{{ ($totals['balance_cents'] ?? 0) > 0 ? 'var(--rb-danger)' : 'var(--rb-success)' }};">{{ $formatMoney($totals['balance_cents']) }}</span>
                         </div>
                         @endif
                     </div>
@@ -860,6 +904,10 @@
                             <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
                                 <i class="bi bi-pencil-square"></i> {{ __('Edit Job') }}
                             </a>
+                            <button type="button" class="ja-btn" style="justify-content:center; width:100%; background:var(--rb-success-soft); color:#16a34a; border:1px solid #bbf7d0;"
+                                data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                                <i class="bi bi-credit-card"></i> {{ __('Add Payment') }}
+                            </button>
                         @endif
 
                         <button type="button"
@@ -930,5 +978,110 @@
 
 {{-- ── Document Preview Modal (wired for job + estimate show pages) ── --}}
 @livewire('tenant.operations.document-preview-modal', ['tenant' => $tenant ?? null])
+
+{{-- ── Add Payment Modal ── --}}
+@if (!$isEstimate && $record)
+@php
+    $paymentGrandTotal = $totals['grand_total_cents'] ?? $totals['total_cents'] ?? 0;
+    $paymentPaidSoFar  = collect($jobPayments)->sum('amount_cents');
+    $paymentBalance    = $paymentGrandTotal - $paymentPaidSoFar;
+    $defaultMethods    = ['cash', 'bank-transfer', 'check', 'card-swipe', 'mobile-payment', 'credit-card', 'debit-card'];
+@endphp
+<div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ route('tenant.jobs.payments.store', ['business' => $tenantSlug, 'jobId' => $record->id]) }}">
+            @csrf
+            <div class="modal-content" style="border-radius:14px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="addPaymentModalLabel">
+                        <i class="bi bi-credit-card-2-front me-2" style="color:var(--rb-brand);"></i>{{ __('Make a Payment') }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{-- Payment summary --}}
+                    <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; padding:.6rem .75rem; background:var(--rb-bg); border-radius:8px; border:1px solid var(--rb-border);">
+                        <div style="flex:1; min-width:100px;">
+                            <div style="font-size:.68rem; text-transform:uppercase; font-weight:700; color:var(--rb-text-3);">{{ __('Payable') }}</div>
+                            <div style="font-size:.95rem; font-weight:800;">{{ $formatMoney($paymentGrandTotal) }}</div>
+                        </div>
+                        <div style="flex:1; min-width:100px;">
+                            <div style="font-size:.68rem; text-transform:uppercase; font-weight:700; color:var(--rb-text-3);">{{ __('Paid') }}</div>
+                            <div style="font-size:.95rem; font-weight:800; color:var(--rb-success);">{{ $formatMoney($paymentPaidSoFar) }}</div>
+                        </div>
+                        <div style="flex:1; min-width:100px;">
+                            <div style="font-size:.68rem; text-transform:uppercase; font-weight:700; color:var(--rb-text-3);">{{ __('Balance') }}</div>
+                            <div id="paymentBalanceDisplay" style="font-size:.95rem; font-weight:800; color:{{ $paymentBalance > 0 ? 'var(--rb-danger)' : 'var(--rb-success)' }};">{{ $formatMoney($paymentBalance) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        {{-- Payment Method --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="pmt_method">{{ __('Payment Method') }} <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="pmt_method" name="method" required>
+                                <option value="">{{ __('Select Method') }}</option>
+                                @foreach ($defaultMethods as $m)
+                                    <option value="{{ $m }}">{{ ucwords(str_replace('-', ' ', $m)) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Payment Status --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="pmt_status">{{ __('Payment Status') }} <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="pmt_status" name="payment_status" required>
+                                <option value="">{{ __('Select Status') }}</option>
+                                @if ($paymentStatuses->count() > 0)
+                                    @foreach ($paymentStatuses as $ps)
+                                        <option value="{{ $ps->slug }}">{{ $ps->label }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="paid">{{ __('Paid') }}</option>
+                                    <option value="pending">{{ __('Pending') }}</option>
+                                    <option value="partial">{{ __('Partial') }}</option>
+                                    <option value="refunded">{{ __('Refunded') }}</option>
+                                @endif
+                            </select>
+                        </div>
+
+                        {{-- Amount --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="pmt_amount">{{ __('Amount') }} ({{ $currency }}) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" class="form-control form-control-sm" id="pmt_amount" name="amount"
+                                   value="{{ number_format($paymentBalance / 100, 2, '.', '') }}" required>
+                        </div>
+
+                        {{-- Payment Date --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="pmt_date">{{ __('Payment Date') }}</label>
+                            <input type="datetime-local" class="form-control form-control-sm" id="pmt_date" name="paid_at"
+                                   value="{{ now()->format('Y-m-d\TH:i') }}">
+                        </div>
+
+                        {{-- Transaction ID --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="pmt_transaction">{{ __('Transaction ID') }}</label>
+                            <input type="text" class="form-control form-control-sm" id="pmt_transaction" name="transaction_id" placeholder="{{ __('Optional') }}">
+                        </div>
+
+                        {{-- Notes --}}
+                        <div class="col-12">
+                            <label class="form-label fw-bold small" for="pmt_notes">{{ __('Notes') }}</label>
+                            <textarea class="form-control form-control-sm" id="pmt_notes" name="notes" rows="2" placeholder="{{ __('Optional payment notes...') }}"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Payment') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 @endsection
