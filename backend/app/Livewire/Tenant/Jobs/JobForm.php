@@ -187,6 +187,32 @@ class JobForm extends Component
         $rawDefaultTaxId = $taxSettings['defaultTaxId'] ?? null;
         $this->default_tax_id = is_numeric($rawDefaultTaxId) ? (int) $rawDefaultTaxId : null;
 
+        // Fallback: if defaultTaxId not in settings but a default rb_taxes record exists, use it
+        if (!$this->default_tax_id && $this->tax_enabled) {
+            $defaultTax = \App\Models\RepairBuddyTax::query()
+                ->where('is_default', true)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$defaultTax) {
+                // No default set — pick the first active one
+                $defaultTax = \App\Models\RepairBuddyTax::query()
+                    ->where('is_active', true)
+                    ->orderBy('id')
+                    ->first();
+                if ($defaultTax) {
+                    $defaultTax->forceFill(['is_default' => true])->save();
+                }
+            }
+
+            if ($defaultTax) {
+                $this->default_tax_id = $defaultTax->id;
+                // Persist the resolved defaultTaxId back into settings so future loads skip this
+                $store->set('taxes.defaultTaxId', (string) $defaultTax->id);
+                $this->tenant->save();
+            }
+        }
+
         $this->currency_code = $this->tenant->currency ?? 'USD';
         try {
             $fmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
