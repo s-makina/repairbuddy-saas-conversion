@@ -758,4 +758,14 @@ Route::prefix('t/{business}')
         // Legacy AJAX handler
         Route::match(['get', 'post'], '/legacy-ajax', [\App\Http\Controllers\Web\AjaxController::class, 'handle'])
             ->name('tenant.legacy-ajax');
+
+        // ── Mockup pages (design previews) ──
+        Route::get('/mockups/datatables', function (\Illuminate\Http\Request $request) {
+            $tenant = $request->route('business');
+            $tenantModel = \App\Models\Tenant::where('slug', $tenant)->firstOrFail();
+            return view('tenant.mockups.datatables', [
+                'pageTitle' => 'DataTable Designs',
+                'tenant'    => $tenantModel,
+            ]);
+        })->name('tenant.mockups.datatables');
     });
