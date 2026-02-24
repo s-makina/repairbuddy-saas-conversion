@@ -239,13 +239,14 @@ body {
 /* ── Print ── */
 @media print {
     @page { size: A4; margin: 12mm 14mm; }
-    body { background: none; padding: 0; font-size: 12px; }
-    .action-bar { display: none !important; }
-    .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; }
-    .doc-header, .paid-banner {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
     }
+    body { background: #fff; padding: 0; font-size: 12px; margin: 0; }
+    .action-bar { display: none !important; }
+    .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; border: none; overflow: visible; }
     .payment-box { break-inside: avoid; }
 }
 </style>

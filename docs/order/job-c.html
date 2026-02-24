@@ -121,10 +121,11 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
 
 @media print {
   @page { size: A4 landscape; margin: 10mm 12mm; }
-  body { background: none; padding: 0; font-size: 11px; }
+  *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  body { background: #fff; padding: 0; font-size: 11px; margin: 0; }
   .bar { display: none !important; }
-  .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; min-height: unset; }
-  .sidebar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; min-height: unset; border: none; overflow: visible; }
+  .sidebar { background: var(--ink) !important; color: #fff !important; }
   .sig-row, .sec { break-inside: avoid; }
 }
 </style>

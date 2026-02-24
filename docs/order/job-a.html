@@ -110,10 +110,11 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
 
 @media print {
   @page { size: A4; margin: 11mm 13mm; }
-  body { background: none; padding: 0; font-size: 11px; }
+  *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  body { background: #fff; padding: 0; font-size: 11px; margin: 0; }
   .bar { display: none !important; }
-  .paper { margin: 0; box-shadow: none; border-radius: 0; border-left-width: 3px; max-width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sig-row, .sec { break-inside: avoid; }
+  .paper { margin: 0; box-shadow: none; border-radius: 0; border-left-width: 3px; max-width: 100%; border: none; overflow: visible; }
+  .sig-row, .sec, .hd, .info-strip { break-inside: avoid; }
 }
 </style>
 </head>

@@ -733,6 +733,25 @@ Route::prefix('t/{business}')
             ->where(['estimateId' => '[0-9]+' ])
             ->name('tenant.estimates.destroy');
 
+        /* ------------------------------------------------------------ */
+        /*  PRINT / PDF – jobs & estimates                               */
+        /* ------------------------------------------------------------ */
+        Route::get('/jobs/{jobId}/print', [\App\Http\Controllers\Web\PrintDocumentController::class, 'showJob'])
+            ->where(['jobId' => '[0-9]+'])
+            ->name('tenant.jobs.print');
+
+        Route::get('/jobs/{jobId}/pdf', [\App\Http\Controllers\Web\PrintDocumentController::class, 'pdfJob'])
+            ->where(['jobId' => '[0-9]+'])
+            ->name('tenant.jobs.pdf');
+
+        Route::get('/estimates/{estimateId}/print', [\App\Http\Controllers\Web\PrintDocumentController::class, 'showEstimate'])
+            ->where(['estimateId' => '[0-9]+'])
+            ->name('tenant.estimates.print');
+
+        Route::get('/estimates/{estimateId}/pdf', [\App\Http\Controllers\Web\PrintDocumentController::class, 'pdfEstimate'])
+            ->where(['estimateId' => '[0-9]+'])
+            ->name('tenant.estimates.pdf');
+
         Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
             ->name('tenant.calendar.events');
 

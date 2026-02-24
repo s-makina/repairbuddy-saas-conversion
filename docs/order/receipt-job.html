@@ -113,10 +113,19 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
 
 @media print {
   @page { size: A5; margin: 8mm 10mm; }
-  body { background: none; padding: 0; font-size: 11px; }
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  body { background: #fff; padding: 0; font-size: 11px; margin: 0; }
   .bar { display: none !important; }
-  .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; }
-  .sig-row, .sec { break-inside: avoid; }
+  .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; border: none; overflow: visible; }
+  .rule-top { background: #111827 !important; border-top: 3px solid #111827; }
+  .tbl thead th, .dtbl thead th { border-bottom-color: #111827 !important; }
+  .tgrand { border-top-color: #111827 !important; }
+  .ctag-bad { background: #f3f4f6 !important; }
+  .sig-row, .sec, .hd, .info-strip { break-inside: avoid; }
 }
 </style>
 </head>

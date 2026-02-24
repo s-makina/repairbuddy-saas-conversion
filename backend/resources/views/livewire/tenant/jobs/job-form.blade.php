@@ -1021,6 +1021,35 @@
                 <a href="{{ $backUrl }}" class="jf-btn jf-btn-cancel">
                     <i class="bi bi-x-lg"></i> {{ __('Cancel') }}
                 </a>
+                @if ($isEditing)
+                    @if ($isEstimate)
+                        <a href="{{ route('tenant.estimates.print', ['business' => $tenant->slug, 'estimateId' => $estimateId]) }}"
+                           target="_blank"
+                           class="jf-btn jf-btn-cancel"
+                           title="{{ __('Print / Preview Estimate') }}">
+                            <i class="bi bi-printer"></i> {{ __('Print') }}
+                        </a>
+                        <a href="{{ route('tenant.estimates.pdf', ['business' => $tenant->slug, 'estimateId' => $estimateId]) }}"
+                           target="_blank"
+                           class="jf-btn jf-btn-cancel"
+                           title="{{ __('Download Estimate PDF') }}">
+                            <i class="bi bi-file-earmark-pdf"></i> {{ __('PDF') }}
+                        </a>
+                    @else
+                        <a href="{{ route('tenant.jobs.print', ['business' => $tenant->slug, 'jobId' => $jobId]) }}"
+                           target="_blank"
+                           class="jf-btn jf-btn-cancel"
+                           title="{{ __('Print / Preview Work Order') }}">
+                            <i class="bi bi-printer"></i> {{ __('Print') }}
+                        </a>
+                        <a href="{{ route('tenant.jobs.pdf', ['business' => $tenant->slug, 'jobId' => $jobId]) }}"
+                           target="_blank"
+                           class="jf-btn jf-btn-cancel"
+                           title="{{ __('Download Work Order PDF') }}">
+                            <i class="bi bi-file-earmark-pdf"></i> {{ __('PDF') }}
+                        </a>
+                    @endif
+                @endif
                 <button type="submit" form="job-form" class="jf-btn jf-btn-save">
                     <i class="bi bi-check-lg"></i>
                     @if ($isEstimate)
