@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Order / Repair Summary — RepairBuddy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/*
+ * receipt-job.html
+ * Printable Work Order / Repair Summary — handed to the customer on device pickup.
+ * Lists everything done, parts used, and the amount due.
+ * Screen: white sheet on a gray canvas with an action bar.
+ * Print:  clean A4/Letter, action bar hidden.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --brand:      #7c3aed;
+    --brand-dark: #6d28d9;
+    --brand-soft: #ede9fe;
+    --success:    #16a34a;
+    --danger:     #dc2626;
+    --text:       #0f172a;
+    --text-2:     #475569;
+    --text-3:     #94a3b8;
+    --border:     #e2e8f0;
+    --radius:     8px;
+}
+
+body {
+    background: #e8edf2;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 2rem 1rem 4rem;
+}
+
+/* ── Action bar ── */
+.action-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(15,23,42,.92);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .65rem 1.5rem; gap: 1rem;
+}
+.action-bar-title { color: #e2e8f0; font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; }
+.action-bar-title i { color: #a78bfa; }
+.action-bar-right { display: flex; gap: .5rem; }
+
+.btn {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .78rem; font-weight: 600; border-radius: 7px;
+    border: 1px solid transparent; padding: .4rem .85rem;
+    cursor: pointer; transition: all .15s; line-height: 1.4; text-decoration: none;
+}
+.btn-ghost  { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); color: #e2e8f0; }
+.btn-ghost:hover  { background: rgba(255,255,255,.15); }
+.btn-print  { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn-print:hover  { background: var(--brand-dark); }
+
+/* ── Paper ── */
+.paper {
+    max-width: 800px;
+    margin: 3.5rem auto 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+    overflow: hidden;
+}
+
+/* ── Header ── */
+.doc-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    padding: 2rem 2.5rem;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem;
+    flex-wrap: wrap;
+}
+.shop-logo-placeholder {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #fff; margin-bottom: .5rem;
+}
+.shop-name { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: .15rem; }
+.shop-meta { font-size: .78rem; color: rgba(255,255,255,.8); line-height: 1.7; }
+
+.doc-type-block { text-align: right; }
+.doc-type-label { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,.65); margin-bottom: .25rem; }
+.doc-type-name  { font-size: 2rem; font-weight: 900; color: #fff; line-height: 1; margin-bottom: .4rem; }
+.doc-number { font-size: .85rem; color: rgba(255,255,255,.9); font-weight: 600; margin-bottom: .2rem; }
+.doc-date   { font-size: .78rem; color: rgba(255,255,255,.72); margin-bottom: .4rem; }
+.doc-status-pill {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .3rem .75rem; border-radius: 999px;
+    font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    background: rgba(134,239,172,.2); color: #86efac; border: 1px solid rgba(134,239,172,.35);
+}
+
+/* ── Body ── */
+.doc-body { padding: 2rem 2.5rem; }
+
+.meta-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;
+    padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem;
+}
+.meta-block h4 {
+    font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--text-3); margin-bottom: .5rem;
+}
+.meta-block address { font-style: normal; font-size: .875rem; line-height: 1.7; color: var(--text-2); }
+.meta-block strong  { color: var(--text); font-weight: 700; display: block; font-size: .95rem; }
+.meta-block p { font-size: .875rem; color: var(--text-2); line-height: 1.7; }
+
+.section { margin-bottom: 1.75rem; }
+.section-title {
+    font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--text-3); margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem;
+}
+.section-title::before {
+    content: ''; display: block; width: 3px; height: 14px;
+    background: var(--brand); border-radius: 2px;
+}
+
+/* Devices */
+.device-table { width: 100%; border-collapse: collapse; }
+.device-table th {
+    font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-3); padding: .45rem .75rem;
+    background: #f8fafc; border-bottom: 2px solid var(--border); text-align: left;
+}
+.device-table td {
+    padding: .6rem .75rem; border-bottom: 1px solid var(--border);
+    font-size: .875rem; vertical-align: top;
+}
+.device-table tbody tr:last-child td { border-bottom: none; }
+.device-table .dev-name { font-weight: 700; color: var(--text); }
+.device-table .dev-sub  { font-size: .75rem; color: var(--text-3); margin-top: .1rem; }
+.condition-tag {
+    display: inline-block; font-size: .67rem; font-weight: 700; padding: .15rem .5rem;
+    border-radius: 999px; letter-spacing: .04em;
+}
+.cond-good   { background: #dcfce7; color: #15803d; }
+.cond-fair   { background: #fef3c7; color: #92400e; }
+.cond-damage { background: #fee2e2; color: #b91c1c; }
+
+/* Items table */
+.items-table { width: 100%; border-collapse: collapse; }
+.items-table thead th {
+    font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-3); padding: .5rem .75rem;
+    background: #f8fafc; border-bottom: 2px solid var(--border); text-align: left;
+}
+.items-table thead th.right { text-align: right; }
+.items-table thead th.center { text-align: center; }
+.items-table tbody td {
+    padding: .65rem .75rem; border-bottom: 1px solid var(--border);
+    font-size: .875rem; vertical-align: middle;
+}
+.items-table tbody tr:last-child td { border-bottom: none; }
+.item-name { font-weight: 600; color: var(--text); }
+.item-desc { font-size: .75rem; color: var(--text-3); margin-top: .1rem; }
+.item-type-tag {
+    display: inline-block; font-size: .62rem; font-weight: 700;
+    padding: .05rem .45rem; border-radius: 999px; margin-top: .15rem;
+}
+.tag-service { background: #e0f2fe; color: #0369a1; }
+.tag-part    { background: #ede9fe; color: #6d28d9; }
+.tag-extra   { background: #fef3c7; color: #92400e; }
+.items-table td.right  { text-align: right; font-weight: 600; }
+.items-table td.center { text-align: center; color: var(--text-2); }
+
+/* Totals */
+.totals-area { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.totals-box { width: 280px; }
+.totals-row { display: flex; justify-content: space-between; padding: .35rem 0; font-size: .875rem; color: var(--text-2); }
+.totals-row span:last-child { font-weight: 600; color: var(--text); }
+.totals-row.discount span:last-child { color: var(--success); }
+.totals-divider { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+.totals-grand { display: flex; justify-content: space-between; padding: .5rem 0; }
+.totals-grand span:first-child { font-size: .9rem; font-weight: 800; }
+.totals-grand span:last-child  { font-size: 1.3rem; font-weight: 900; color: var(--brand); }
+
+/* Work performed summary */
+.work-summary {
+    background: #fafbfc; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem 1.25rem;
+    font-size: .85rem; color: var(--text-2); line-height: 1.8;
+}
+.work-summary strong { color: var(--text); font-weight: 700; }
+
+/* Warranty */
+.warranty-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .35rem; }
+.warranty-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .35rem .75rem; border-radius: 999px;
+    background: #f0fdf4; border: 1px solid #bbf7d0;
+    font-size: .78rem; font-weight: 600; color: #15803d;
+}
+
+/* Pickup signature */
+.pickup-section {
+    margin-top: 2rem; padding: 1.25rem 1.5rem;
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+}
+.sig-block h5 {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-3); margin-bottom: .6rem;
+}
+.sig-line { width: 100%; border-bottom: 1px solid var(--text-3); height: 36px; margin-bottom: .35rem; }
+.sig-label { font-size: .72rem; color: var(--text-3); }
+
+/* Footer */
+.doc-footer {
+    padding: 1rem 2.5rem;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: .72rem; color: var(--text-3);
+    background: #f8fafc; gap: 1rem; flex-wrap: wrap;
+}
+.doc-footer-terms { max-width: 480px; line-height: 1.6; }
+.doc-footer-qr {
+    width: 52px; height: 52px; background: var(--border); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .6rem; color: var(--text-3); text-align: center; flex-shrink: 0;
+}
+
+/* ── Print ── */
+@media print {
+    @page { size: A4; margin: 12mm 14mm; }
+    body { background: none; padding: 0; font-size: 12px; }
+    .action-bar { display: none !important; }
+    .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; }
+    .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pickup-section { break-inside: avoid; }
+    .section { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- Action Bar -->
+<div class="action-bar">
+  <div class="action-bar-title">
+    <i class="bi bi-briefcase-fill"></i>
+    Work Order #ORD-2024-0087 — Repair Summary
+  </div>
+  <div class="action-bar-right">
+    <a href="#" class="btn btn-ghost"><i class="bi bi-envelope"></i> Email to Customer</a>
+    <a href="#" class="btn btn-ghost"><i class="bi bi-download"></i> Download PDF</a>
+    <button class="btn btn-print" onclick="window.print()"><i class="bi bi-printer-fill"></i> Print</button>
+  </div>
+</div>
+
+<!-- Paper -->
+<div class="paper">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div>
+      <div class="shop-logo-placeholder"><i class="bi bi-tools"></i></div>
+      <div class="shop-name">FixIt Pro Repair Shop</div>
+      <div class="shop-meta">
+        123 Main Street, Sydney NSW 2000<br>
+        (02) 9000 1234 · hello@fixitpro.com.au<br>
+        ABN 12 345 678 901
+      </div>
+    </div>
+    <div class="doc-type-block">
+      <div class="doc-type-label">Document Type</div>
+      <div class="doc-type-name">WORK ORDER</div>
+      <div class="doc-number">#ORD-2024-0087 · Case CASE-0142</div>
+      <div class="doc-date">Opened: Feb 20, 2026 · Completed: Feb 24, 2026</div>
+      <div class="doc-status-pill"><i class="bi bi-check-circle-fill"></i> Repair Completed</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="doc-body">
+
+    <!-- Meta -->
+    <div class="meta-row">
+      <div class="meta-block">
+        <h4>Customer</h4>
+        <address>
+          <strong>John Doe</strong>
+          john.doe@email.com<br>
+          +1 555-0101<br>
+          42 Customer Ave, Melbourne VIC 3000
+        </address>
+      </div>
+      <div class="meta-block">
+        <h4>Technician</h4>
+        <p>
+          <strong>Alice Martinez</strong>
+          alice@fixitpro.com.au<br>
+          Main Branch
+        </p>
+      </div>
+      <div class="meta-block">
+        <h4>Dates</h4>
+        <p>
+          <span style="font-size:.75rem; color:var(--text-3)">Drop-off</span><br>
+          <strong style="font-size:.875rem">Feb 20, 2026</strong>
+        </p>
+        <p style="margin-top:.4rem">
+          <span style="font-size:.75rem; color:var(--text-3)">Pickup</span><br>
+          <strong style="font-size:.875rem">Feb 24, 2026</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- Devices -->
+    <div class="section">
+      <div class="section-title">Devices Serviced</div>
+      <table class="device-table">
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Identifier</th>
+            <th>Condition In</th>
+            <th>Condition Out</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="dev-name">Dell XPS 15 (9520)</div>
+              <div class="dev-sub">Laptop · Windows 11 Home</div>
+            </td>
+            <td><span style="font-size:.78rem; color:var(--text-2)">S/N: DX15-9920K</span></td>
+            <td><span class="condition-tag cond-damage">Cracked Screen</span></td>
+            <td><span class="condition-tag cond-good">Good — Repaired</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="dev-name">iPhone 14 Pro (256GB)</div>
+              <div class="dev-sub">Smartphone · iOS 17.3.1</div>
+            </td>
+            <td><span style="font-size:.78rem; color:var(--text-2)">IMEI: 358971082347605</span></td>
+            <td><span class="condition-tag cond-fair">Water Damage</span></td>
+            <td><span class="condition-tag cond-good">Good — Cleaned</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Work Performed -->
+    <div class="section">
+      <div class="section-title">Work Performed</div>
+      <div class="work-summary">
+        <strong>Summary:</strong> Replaced cracked screen on Dell XPS 15 with an OEM-grade panel. Replaced degraded battery achieving full charge capacity. Performed full diagnostic — no additional faults found. iPhone liquid-damage cleaning completed; all functions tested and passed.
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="section">
+      <div class="section-title">Parts &amp; Services</div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width:42%">Item</th>
+            <th class="center" style="width:9%">Qty</th>
+            <th class="right" style="width:18%">Unit Price</th>
+            <th class="right" style="width:11%">Tax</th>
+            <th class="right" style="width:20%">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="item-name">Screen Replacement (OEM)</div>
+              <span class="item-type-tag tag-part">Part</span>
+            </td>
+            <td class="center">1</td>
+            <td class="right">$95.00</td>
+            <td class="right" style="color:var(--text-3); font-weight:400">10%</td>
+            <td class="right">$95.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="item-name">Battery Replacement (OEM)</div>
+              <span class="item-type-tag tag-part">Part</span>
+            </td>
+            <td class="center">1</td>
+            <td class="right">$45.00</td>
+            <td class="right" style="color:var(--text-3); font-weight:400">10%</td>
+            <td class="right">$45.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="item-name">Screen &amp; Battery Labour</div>
+              <span class="item-type-tag tag-service">Service</span>
+            </td>
+            <td class="center">1</td>
+            <td class="right">$40.00</td>
+            <td class="right" style="color:var(--text-3); font-weight:400">10%</td>
+            <td class="right">$40.00</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="item-name">iPhone Liquid Damage Clean</div>
+              <span class="item-type-tag tag-service">Service</span>
+            </td>
+            <td class="center">1</td>
+            <td class="right">$60.00</td>
+            <td class="right" style="color:var(--text-3); font-weight:400">10%</td>
+            <td class="right">$60.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="totals-area">
+        <div class="totals-box">
+          <div class="totals-row"><span>Subtotal (ex tax)</span><span>$240.00</span></div>
+          <div class="totals-row"><span>GST (10%)</span><span>$24.00</span></div>
+          <div class="totals-row discount"><span>Discount</span><span>−$10.00</span></div>
+          <hr class="totals-divider">
+          <div class="totals-grand"><span>Total (inc GST)</span><span>$254.00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warranty -->
+    <div class="section">
+      <div class="section-title">Warranty</div>
+      <div class="warranty-chips">
+        <span class="warranty-chip"><i class="bi bi-shield-check-fill"></i> Screen — 90 days parts &amp; labour</span>
+        <span class="warranty-chip"><i class="bi bi-shield-check-fill"></i> Battery — 90 days parts &amp; labour</span>
+        <span class="warranty-chip"><i class="bi bi-shield-check-fill"></i> Labour — 30 days</span>
+      </div>
+      <p style="font-size:.75rem; color:var(--text-3); margin-top:.6rem">
+        Warranty is void if device shows signs of subsequent physical damage, water ingress, or unauthorised repair.
+      </p>
+    </div>
+
+    <!-- Pickup Signature -->
+    <div class="pickup-section">
+      <div class="sig-block">
+        <h5>Customer Pickup Confirmation</h5>
+        <div class="sig-line"></div>
+        <div class="sig-label">Signature &amp; Date</div>
+        <p style="font-size:.78rem; color:var(--text-3); margin-top:.5rem">
+          I confirm I have collected my device(s) in the described condition and agree to the warranty terms above.
+        </p>
+      </div>
+      <div class="sig-block">
+        <h5>Released By</h5>
+        <div class="sig-line"></div>
+        <div class="sig-label">Staff Signature &amp; Date</div>
+        <p style="font-size:.78rem; color:var(--text-3); margin-top:.5rem">
+          FixIt Pro Repair Shop — Authorised Staff Member
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /doc-body -->
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <div class="doc-footer-terms">
+      This document serves as your work order and warranty record. Please retain for warranty claims. Payment is due at time of pickup unless prior arrangements have been made. FixIt Pro Repair Shop is not responsible for pre-existing data loss.
+    </div>
+    <div class="doc-footer-qr">QR<br>Code</div>
+  </div>
+
+</div><!-- /paper -->
+</body>
+</html>

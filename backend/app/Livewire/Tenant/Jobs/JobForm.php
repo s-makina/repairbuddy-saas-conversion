@@ -45,6 +45,9 @@ class JobForm extends Component
     public string $currency_code = 'USD';
     public string $currency_symbol = '$';
 
+    /** 'job' or 'estimate' — drives conditional UI in the shared blade */
+    public string $formMode = 'job';
+
     public ?string $case_number = null;
     public ?string $title = null;
     public ?string $status_slug = null;

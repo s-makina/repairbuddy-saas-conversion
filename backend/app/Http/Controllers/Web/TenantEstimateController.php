@@ -447,17 +447,20 @@ class TenantEstimateController extends Controller
             ->get(['id', 'name', 'service_code', 'base_price_amount_cents', 'base_price_currency']);
 
         return view('tenant.estimates.create', [
-            'tenant'          => $tenant,
-            'user'            => $user,
-            'activeNav'       => 'estimates',
-            'pageTitle'       => 'New Estimate',
-            'estimate'        => null,
-            'customers'       => $customers,
-            'technicians'     => $technicians,
-            'customerDevices' => $customerDevices,
-            'devices'         => $devices,
-            'parts'           => $parts,
-            'services'        => $services,
+            'tenant'           => $tenant,
+            'user'             => $user,
+            'activeNav'        => 'estimates',
+            'pageTitle'        => 'New Estimate',
+            'estimate'         => null,
+            'estimateId'       => null,
+            'customers'        => $customers,
+            'technicians'      => $technicians,
+            'customerDevices'  => $customerDevices,
+            'devices'          => $devices,
+            'parts'            => $parts,
+            'services'         => $services,
+            'estimateItems'    => [],
+            'estimateDevices'  => [],
         ]);
     }
 
@@ -483,7 +486,7 @@ class TenantEstimateController extends Controller
         }
 
         $estimate = RepairBuddyEstimate::query()
-            ->with(['customer', 'assignedTechnician', 'devices', 'items.tax'])
+            ->with(['customer', 'assignedTechnician', 'devices.customerDevice.device.brand', 'items.tax'])
             ->where('tenant_id', (int) $tenant->id)
             ->where('branch_id', (int) $branch->id)
             ->whereKey((int) $estimateId)
@@ -536,17 +539,20 @@ class TenantEstimateController extends Controller
             ->get(['id', 'name', 'service_code', 'base_price_amount_cents', 'base_price_currency']);
 
         return view('tenant.estimates.create', [
-            'tenant'          => $tenant,
-            'user'            => $user,
-            'activeNav'       => 'estimates',
-            'pageTitle'       => 'Edit Estimate ' . ($estimate->case_number ?? '#' . $estimate->id),
-            'estimate'        => $estimate,
-            'customers'       => $customers,
-            'technicians'     => $technicians,
-            'customerDevices' => $customerDevices,
-            'devices'         => $devices,
-            'parts'           => $parts,
-            'services'        => $services,
+            'tenant'           => $tenant,
+            'user'             => $user,
+            'activeNav'        => 'estimates',
+            'pageTitle'        => 'Edit Estimate ' . ($estimate->case_number ?? '#' . $estimate->id),
+            'estimate'         => $estimate,
+            'estimateId'       => $estimate->id,
+            'customers'        => $customers,
+            'technicians'      => $technicians,
+            'customerDevices'  => $customerDevices,
+            'devices'          => $devices,
+            'parts'            => $parts,
+            'services'         => $services,
+            'estimateItems'    => $estimate->items,
+            'estimateDevices'  => $estimate->devices,
         ]);
     }
 

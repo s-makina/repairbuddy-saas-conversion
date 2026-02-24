@@ -956,6 +956,15 @@
 </style>
 @endpush
 
+@php
+    $isEstimate = ($formMode ?? 'job') === 'estimate';
+    $isEditing  = $isEstimate ? !empty($estimateId) : !empty($jobId);
+    $backUrl    = $isEstimate
+        ? route('tenant.estimates.index', ['business' => $tenant->slug])
+        : route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs';
+    $entityLabel = $isEstimate ? __('Estimate') : __('Job');
+@endphp
+
 <div class="container-fluid px-0 jf-page">
     @livewire('tenant.operations.quick-customer-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-technician-modal', ['tenant' => $tenant])
@@ -971,35 +980,54 @@
         <div class="jf-top-bar-inner">
             <div class="jf-left">
                 {{-- Back button --}}
-                <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}"
-                   class="jf-back-btn" title="{{ __('Back to Jobs') }}">
+                <a href="{{ $backUrl }}"
+                   class="jf-back-btn" title="{{ __('Back to :entity', ['entity' => $isEstimate ? __('Estimates') : __('Jobs')]) }}">
                     <i class="bi bi-arrow-left"></i>
                 </a>
                 {{-- Title + breadcrumb --}}
                 <div class="jf-title-block">
-                    <span class="jf-mode-badge {{ $jobId ? 'mode-edit' : 'mode-create' }}">
-                        <i class="bi {{ $jobId ? 'bi-pencil' : 'bi-plus-lg' }}"></i>
-                        {{ $jobId ? __('Edit') : __('New') }}
+                    <span class="jf-mode-badge {{ $isEditing ? 'mode-edit' : 'mode-create' }}">
+                        <i class="bi {{ $isEditing ? 'bi-pencil' : 'bi-plus-lg' }}"></i>
+                        {{ $isEditing ? __('Edit') : __('New') }}
                     </span>
                     <h1 class="jf-page-title">
-                        <i class="bi bi-tools"></i>
-                        {{ $jobId ? __('Edit Job') : __('Create New Job') }}
+                        <i class="bi {{ $isEstimate ? 'bi-file-earmark-text' : 'bi-tools' }}"></i>
+                        @if ($isEstimate)
+                            {{ $isEditing ? __('Edit Estimate') : __('Create New Estimate') }}
+                        @else
+                            {{ $isEditing ? __('Edit Job') : __('Create New Job') }}
+                        @endif
                     </h1>
                     <ol class="jf-breadcrumb">
                         <li><a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) }}">{{ __('Dashboard') }}</a></li>
                         <li><i class="bi bi-chevron-right jf-bc-sep"></i></li>
-                        <li><a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}">{{ __('Jobs') }}</a></li>
+                        @if ($isEstimate)
+                            <li><a href="{{ route('tenant.estimates.index', ['business' => $tenant->slug]) }}">{{ __('Estimates') }}</a></li>
+                        @else
+                            <li><a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}">{{ __('Jobs') }}</a></li>
+                        @endif
                         <li><i class="bi bi-chevron-right jf-bc-sep"></i></li>
-                        <li><span class="jf-bc-current">{{ $jobId ? __('Edit') : __('New Repair Job') }}</span></li>
+                        <li><span class="jf-bc-current">
+                            @if ($isEstimate)
+                                {{ $isEditing ? __('Edit') : __('New Estimate') }}
+                            @else
+                                {{ $isEditing ? __('Edit') : __('New Repair Job') }}
+                            @endif
+                        </span></li>
                     </ol>
                 </div>
             </div>
             <div class="jf-right">
-                <a href="{{ route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=jobs' }}" class="jf-btn jf-btn-cancel">
+                <a href="{{ $backUrl }}" class="jf-btn jf-btn-cancel">
                     <i class="bi bi-x-lg"></i> {{ __('Cancel') }}
                 </a>
                 <button type="submit" form="job-form" class="jf-btn jf-btn-save">
-                    <i class="bi bi-check-lg"></i> {{ $jobId ? __('Update Job') : __('Create Job') }}
+                    <i class="bi bi-check-lg"></i>
+                    @if ($isEstimate)
+                        {{ $isEditing ? __('Update Estimate') : __('Create Estimate') }}
+                    @else
+                        {{ $isEditing ? __('Update Job') : __('Create Job') }}
+                    @endif
                 </button>
             </div>
         </div>
@@ -1013,13 +1041,13 @@
              ════════════════════════════════════ --}}
         <div class="jf-main">
 
-            {{-- ── Section 1: Job Details ── --}}
+            {{-- ── Section 1: Details ── --}}
             <div class="jf-section">
                 <div class="jf-section-head" @click="sections.details = !sections.details">
                     <div class="jf-section-badge" style="background:var(--rb-brand-soft);color:var(--rb-brand)">
                         <i class="bi bi-file-earmark-text"></i>
                     </div>
-                    <h3>{{ __('Job Details') }}</h3>
+                    <h3>{{ $isEstimate ? __('Estimate Details') : __('Job Details') }}</h3>
                     <span class="jf-tag" style="background:var(--rb-success-soft);color:#16a34a;">{{ __('Required') }}</span>
                     <i class="bi bi-chevron-down jf-chevron" :style="sections.details ? '' : 'transform:rotate(-90deg)'"></i>
                 </div>
@@ -1036,7 +1064,7 @@
                         </div>
                         <div class="jf-c2">
                             <div class="jf-fg">
-                                <label>{{ __('Job Title') }}</label>
+                                <label>{{ $isEstimate ? __('Estimate Title') : __('Job Title') }}</label>
                                 <input type="text" class="form-control" wire:model.defer="title" placeholder="{{ __('e.g., iPhone 14 Screen Repair') }}" />
                                 @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
@@ -1148,7 +1176,7 @@
                     {{-- Schedule Dates --}}
                     <div class="jf-fg">
                         <label><i class="bi bi-calendar3"></i> {{ __('Schedule Dates') }}</label>
-                        <div class="jf-dates-grid">
+                        <div class="jf-dates-grid" @if($isEstimate) style="grid-template-columns:repeat(2,1fr)" @endif>
                             <div>
                                 <label class="form-label small text-muted mb-1">{{ __('Pickup Date') }}</label>
                                 <input type="date" class="form-control" wire:model.defer="pickup_date" />
@@ -1159,11 +1187,13 @@
                                 <input type="date" class="form-control" wire:model.defer="delivery_date" />
                                 @error('delivery_date')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
+                            @if(! $isEstimate)
                             <div>
                                 <label class="form-label small text-muted mb-1">{{ __('Next Service') }}</label>
                                 <input type="date" class="form-control" wire:model.defer="next_service_date" />
                                 @error('next_service_date')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
+                            @endif
                         </div>
                     </div>
 
@@ -1317,7 +1347,7 @@
                                 </button>
                             @else
                                 <button type="button" class="jf-btn jf-btn-save" wire:click="addDeviceToTable">
-                                    <i class="bi bi-plus-lg"></i> {{ __('Add to Job') }}
+                                    <i class="bi bi-plus-lg"></i> {{ $isEstimate ? __('Add to Estimate') : __('Add to Job') }}
                                 </button>
                             @endif
                         </div>
@@ -1681,6 +1711,7 @@
             </div>
 
             {{-- ── Section 4: Notes & Attachments ── --}}
+            @if(! $isEstimate)
             <div class="jf-section">
                 <div class="jf-section-head" @click="sections.notes = !sections.notes">
                     <div class="jf-section-badge" style="background:#fef3c7;color:#92400e">
@@ -1767,6 +1798,27 @@
                     </div>
                 </div>
             </div>
+            @endif
+
+            {{-- Estimate-mode: simpler Notes section --}}
+            @if($isEstimate)
+            <div class="jf-section">
+                <div class="jf-section-head" @click="sections.notes = !sections.notes">
+                    <div class="jf-section-badge" style="background:#fef3c7;color:#92400e">
+                        <i class="bi bi-paperclip"></i>
+                    </div>
+                    <h3>{{ __('Notes') }}</h3>
+                    <i class="bi bi-chevron-down jf-chevron" :style="sections.notes ? '' : 'transform:rotate(-90deg)'"></i>
+                </div>
+                <div class="jf-section-body" x-show="sections.notes" x-collapse>
+                    <div class="jf-fg">
+                        <label>{{ __('Internal Notes (Staff Only)') }}</label>
+                        <textarea class="form-control" rows="3" wire:model.defer="wc_order_note" placeholder="{{ __('Special instructions or internal notes...') }}"></textarea>
+                        @error('wc_order_note')<div class="text-danger small">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
 
         {{-- ════════════════════════════════════
@@ -1776,7 +1828,7 @@
             <div class="jf-sticky">
                 {{-- Grand Total Hero --}}
                 <div class="jf-gt-hero">
-                    <div class="jf-gt-label">{{ __('Estimated Total') }}</div>
+                    <div class="jf-gt-label">{{ $isEstimate ? __('Estimate Total') : __('Estimated Total') }}</div>
                     <div class="jf-gt-amount">{{ Number::currency($this->grand_total_amount, $currency_code) }}</div>
                     <div class="jf-gt-items">{{ count($items) }} {{ __('items') }} · {{ count($deviceRows) }} {{ __('devices') }}</div>
                 </div>
@@ -1818,6 +1870,24 @@
                     </div>
                 </div>
 
+                {{-- Settings --}}
+                @if($isEstimate)
+                <div class="jf-sc">
+                    <div class="jf-sc-head"><i class="bi bi-gear"></i> {{ __('Estimate Settings') }}</div>
+                    <div class="jf-sc-body">
+                        <div class="jf-ss">
+                            <label>{{ __('Status') }}</label>
+                            <select wire:model.defer="estimate_status">
+                                <option value="draft">{{ __('Draft') }}</option>
+                                <option value="sent">{{ __('Sent') }}</option>
+                                <option value="approved">{{ __('Approved') }}</option>
+                                <option value="rejected">{{ __('Rejected') }}</option>
+                                <option value="expired">{{ __('Expired') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                @else
                 {{-- Job Settings --}}
                 <div class="jf-sc">
                     <div class="jf-sc-head"><i class="bi bi-gear"></i> {{ __('Job Settings') }}</div>
@@ -1853,8 +1923,7 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- Customer Card --}}
+                @endif
                 @if($this->selected_customer)
                     <div class="jf-sc">
                         <div class="jf-sc-head"><i class="bi bi-person-circle"></i> {{ __('Customer') }}</div>
@@ -1889,7 +1958,12 @@
                 {{-- Submit (mobile fallback) --}}
                 <div class="d-grid" style="margin-top:.5rem;">
                     <button type="submit" class="jf-btn jf-btn-save" style="justify-content:center;padding:.75rem;">
-                        <i class="bi bi-check-lg"></i> {{ $jobId ? __('Update Job') : __('Create Job') }}
+                        <i class="bi bi-check-lg"></i>
+                        @if ($isEstimate)
+                            {{ $isEditing ? __('Update Estimate') : __('Create Estimate') }}
+                        @else
+                            {{ $isEditing ? __('Update Job') : __('Create Job') }}
+                        @endif
                     </button>
                 </div>
             </div>
@@ -1898,7 +1972,8 @@
     </div>
     </form>
 
-    {{-- ══════ Job Extra Modal ══════ --}}
+    {{-- ══════ Job Extra Modal (only for jobs) ══════ --}}
+    @if(! $isEstimate)
     <div x-data="{ show: @entangle('showExtraModal') }" x-show="show" x-cloak class="rb-modal-backdrop" @keydown.escape.window="show = false">
         <div class="rb-modal-container" @click.away="show = false">
             <div class="rb-modal-header">
@@ -1954,6 +2029,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     </div>
 </div>
