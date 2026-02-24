@@ -3,7 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\RepairBuddyCustomerDevice;
+use App\Models\RepairBuddyJob;
+use App\Models\Role;
+use App\Models\Status;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\TenantBootstrap\EnsureDefaultRepairBuddyStatuses;
 use App\Support\BranchContext;
 use App\Support\TenantContext;
@@ -45,417 +51,238 @@ class TenantDashboardController extends Controller
         }
 
         if ($screen === 'jobs' || $screen === 'jobs_card') {
-            $current_view = $screen === 'jobs_card' ? 'card' : 'table';
-            $_page = $screen === 'jobs_card' ? 'jobs_card' : 'jobs';
+            $branch = BranchContext::branch();
 
-            $view_label = $current_view === 'card' ? 'Table View' : 'Card View';
+            if (! $tenant || ! $branch instanceof Branch) {
+                abort(400, 'Tenant or branch context is missing.');
+            }
 
-            $view_url = $tenant?->slug
-                ? route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=' . ($current_view === 'card' ? 'jobs' : 'jobs_card')
-                : '#';
+            /* ── Build jobs query ── */
+            $jobQuery = RepairBuddyJob::query()
+                ->with(['customer', 'technicians', 'jobDevices'])
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('branch_id', (int) $branch->id)
+                ->orderByDesc('id');
 
-            $baseDashboardUrl = $tenant?->slug
-                ? route('tenant.dashboard', ['business' => $tenant->slug])
-                : '#';
+            /* search */
+            $searchInput = is_string($request->query('searchinput'))
+                ? trim((string) $request->query('searchinput')) : '';
+            if ($searchInput !== '') {
+                $jobQuery->where(function ($q) use ($searchInput) {
+                    $q->where('case_number', 'like', "%{$searchInput}%")
+                      ->orWhere('title', 'like', "%{$searchInput}%")
+                      ->orWhere('case_detail', 'like', "%{$searchInput}%")
+                      ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', "%{$searchInput}%"));
+                });
+            }
 
-            $jobShowUrl101 = $tenant?->slug ? route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => 101]) : '#';
-            $jobShowUrl102 = $tenant?->slug ? route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => 102]) : '#';
+            /* status filter */
+            $statusFilter = is_string($request->query('job_status'))
+                ? trim((string) $request->query('job_status')) : '';
+            if ($statusFilter !== '' && $statusFilter !== 'all') {
+                $jobQuery->where('status_slug', $statusFilter);
+            }
 
-            $mockJobRowsTable = <<<'HTML'
-<tr class="job_id_101 job_status_in_process">
-    <td  class="ps-4" data-label="ID"><a href="__JOB_SHOW_URL_101__" target="_blank"><strong>00101</a></strong></th>
-    <td data-label="Case Number/Tech"><a href="__JOB_SHOW_URL_101__" target="_blank">WC_ABC123</a><br><strong class="text-primary">Tech: Alex</strong></td>
-    <td data-label="Customer">John Smith<br><strong>P</strong>: (555) 111-2222<br><strong>E</strong>: john@example.com</td>
-    <td data-label="Devices">Dell Inspiron 15 (D-1001)</td>
-    <td data-bs-toggle="tooltip" data-bs-title="P: = Pickup date D: = Delivery date N: = Next service date " data-label="Dates"><strong>P</strong>:02/10/2026<br><strong>D</strong>:02/12/2026<br><strong>N</strong>:02/15/2026</td>
-    <td data-label="Total">
-        <strong>$120.00</strong>
-    </td>
-    <td class="gap-3 p-3" data-label="Balance">
-        <span class="p-2 text-success-emphasis bg-success-subtle border border-success-subtle rounded-3">$40.00</span>
-    </td>
-    <td data-label="Payment">
-        Partial
-    </td>
-    <td data-label="Status">
-        <div class="dropdown"><button class="btn btn-sm dropdown-toggle d-flex align-items-center btn-info" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi-gear me-2"></i>In Process</button><ul class="dropdown-menu"><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 "
-                            recordid="101"
-                            data-type="job_status_update"
-                            data-value="new"
-                            data-security=""
-                            href="#" data-status="new"><div class="d-flex align-items-center"><i class="bi-plus-circle text-primary me-2"></i><span>New</span></div></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 active"
-                            recordid="101"
-                            data-type="job_status_update"
-                            data-value="inprocess"
-                            data-security=""
-                            href="#" data-status="inprocess"><div class="d-flex align-items-center"><i class="bi-gear text-info me-2"></i><span>In Process</span></div><i class="bi bi-check2 text-primary ms-2"></i></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 "
-                            recordid="101"
-                            data-type="job_status_update"
-                            data-value="delivered"
-                            data-security=""
-                            href="#" data-status="delivered"><div class="d-flex align-items-center"><i class="bi-check-square text-success me-2"></i><span>Delivered</span></div></a></li></ul></div>
-    </td>
-    <td data-label="Priority">
-        <div class="dropdown"><button class="btn btn-sm dropdown-toggle d-flex align-items-center btn-warning" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi-arrow-up-circle me-2"></i><span>High</span></button><ul class="dropdown-menu shadow-sm"><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2"
-                                    recordid="101"
-                                    data-type="update_job_priority"
-                                    data-value="normal"
-                                    data-security=""
-                                    href="#"><div class="d-flex align-items-center"><i class="bi-circle text-secondary me-2"></i><span>Normal</span></div></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 active"
-                                    recordid="101"
-                                    data-type="update_job_priority"
-                                    data-value="high"
-                                    data-security=""
-                                    href="#"><div class="d-flex align-items-center"><i class="bi-arrow-up-circle text-warning me-2"></i><span>High</span></div><i class="bi-check2 text-primary ms-2"></i></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2"
-                                    recordid="101"
-                                    data-type="update_job_priority"
-                                    data-value="urgent"
-                                    data-security=""
-                                    href="#"><div class="d-flex align-items-center"><i class="bi-exclamation-triangle text-danger me-2"></i><span>Urgent</span></div></a></li></ul></div>
-    </td>
-    
-    <td data-label="Actions" class="text-end pe-4">
-        <div class="dropdown">
-            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-gear me-1"></i> Actions
-            </button>
-            <ul class="dropdown-menu shadow-sm">
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#openTakePaymentModal" recordid="101" data-security="">
-                        <i class="bi bi-credit-card text-success me-2"></i>Take Payment
-                    </a>
-                </li>
-                <li><a class="dropdown-item" href="#" target="_blank">
-                    <i class="bi bi-printer text-secondary me-2"></i>Print Job Invoice</a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="#" target="_blank">
-                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>Download PDF
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="#" target="_blank">
-                        <i class="bi bi-envelope text-info me-2"></i>Email Customer
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#wcrbduplicatejobfront" recordid="101" data-security="">
-                        <i class="bi bi-files text-warning me-2"></i>Duplicate job
-                    </a>
-                </li>
-                <li><a class="dropdown-item" href="__JOB_SHOW_URL_101__" target="_blank"><i class="bi bi-pencil-square text-primary me-2"></i>Edit</a></li>
-            </ul>
-        </div>
-    </td>
-</tr>
-<tr class="job_id_102 job_status_completed">
-    <td  class="ps-4" data-label="ID"><a href="__JOB_SHOW_URL_102__" target="_blank"><strong>00102</a></strong></th>
-    <td data-label="Case Number/Tech"><a href="__JOB_SHOW_URL_102__" target="_blank">WC_DEF456</a><br><strong class="text-primary">Tech: Sam</strong></td>
-    <td data-label="Customer">Sarah Johnson<br><strong>P</strong>: (555) 333-4444<br><strong>E</strong>: sarah@example.com</td>
-    <td data-label="Devices">iPhone 13 (IP-2233)</td>
-    <td data-bs-toggle="tooltip" data-bs-title="P: = Pickup date D: = Delivery date N: = Next service date " data-label="Dates"><strong>P</strong>:02/09/2026<br><strong>D</strong>:02/11/2026</td>
-    <td data-label="Total">
-        <strong>$80.00</strong>
-    </td>
-    <td class="gap-3 p-3" data-label="Balance">
-        <span class="p-2 text-primary-emphasis bg-primary-subtle border border-primary-subtle rounded-3">$0.00</span>
-    </td>
-    <td data-label="Payment">
-        Paid
-    </td>
-    <td data-label="Status">
-        <div class="dropdown"><button class="btn btn-sm dropdown-toggle d-flex align-items-center btn-success" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi-check-square me-2"></i>Delivered</button><ul class="dropdown-menu"><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 "
-                            recordid="102"
-                            data-type="job_status_update"
-                            data-value="new"
-                            data-security=""
-                            href="#" data-status="new"><div class="d-flex align-items-center"><i class="bi-plus-circle text-primary me-2"></i><span>New</span></div></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 "
-                            recordid="102"
-                            data-type="job_status_update"
-                            data-value="inprocess"
-                            data-security=""
-                            href="#" data-status="inprocess"><div class="d-flex align-items-center"><i class="bi-gear text-info me-2"></i><span>In Process</span></div></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 active"
-                            recordid="102"
-                            data-type="job_status_update"
-                            data-value="delivered"
-                            data-security=""
-                            href="#" data-status="delivered"><div class="d-flex align-items-center"><i class="bi-check-square text-success me-2"></i><span>Delivered</span></div><i class="bi bi-check2 text-primary ms-2"></i></a></li></ul></div>
-    </td>
-    <td data-label="Priority">
-        <div class="dropdown"><button class="btn btn-sm dropdown-toggle d-flex align-items-center btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi-circle me-2"></i><span>Normal</span></button><ul class="dropdown-menu shadow-sm"><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2 active"
-                                    recordid="102"
-                                    data-type="update_job_priority"
-                                    data-value="normal"
-                                    data-security=""
-                                    href="#"><div class="d-flex align-items-center"><i class="bi-circle text-secondary me-2"></i><span>Normal</span></div><i class="bi-check2 text-primary ms-2"></i></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2"
-                                    recordid="102"
-                                    data-type="update_job_priority"
-                                    data-value="high"
-                                    data-security=""
-                                    href="#"><div class="d-flex align-items-center"><i class="bi-arrow-up-circle text-warning me-2"></i><span>High</span></div></a></li><li><a class="dropdown-item d-flex justify-content-between align-items-center py-2"
-                                    recordid="102"
-                                    data-type="update_job_priority"
-                                    data-value="urgent"
-                                    data-security=""
-                                    href="#"><div class="d-flex align-items-center"><i class="bi-exclamation-triangle text-danger me-2"></i><span>Urgent</span></div></a></li></ul></div>
-    </td>
-    
-    <td data-label="Actions" class="text-end pe-4">
-        <div class="dropdown">
-            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-gear me-1"></i> Actions
-            </button>
-            <ul class="dropdown-menu shadow-sm">
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#openTakePaymentModal" recordid="102" data-security="">
-                        <i class="bi bi-credit-card text-success me-2"></i>Take Payment
-                    </a>
-                </li>
-                <li><a class="dropdown-item" href="#" target="_blank">
-                    <i class="bi bi-printer text-secondary me-2"></i>Print Job Invoice</a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="#" target="_blank">
-                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>Download PDF
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="#" target="_blank">
-                        <i class="bi bi-envelope text-info me-2"></i>Email Customer
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#wcrbduplicatejobfront" recordid="102" data-security="">
-                        <i class="bi bi-files text-warning me-2"></i>Duplicate job
-                    </a>
-                </li>
-                <li><a class="dropdown-item" href="__JOB_SHOW_URL_102__" target="_blank"><i class="bi bi-pencil-square text-primary me-2"></i>Edit</a></li>
-            </ul>
-        </div>
-    </td>
-</tr>
-HTML;
+            /* payment status filter */
+            $paymentFilter = is_string($request->query('wc_payment_status'))
+                ? trim((string) $request->query('wc_payment_status')) : '';
+            if ($paymentFilter !== '' && $paymentFilter !== 'all') {
+                $jobQuery->where('payment_status_slug', $paymentFilter);
+            }
 
-            $mockJobRowsTable = str_replace(
-                ['__JOB_SHOW_URL_101__', '__JOB_SHOW_URL_102__'],
-                [$jobShowUrl101, $jobShowUrl102],
-                $mockJobRowsTable
-            );
+            /* priority filter */
+            $priorityFilter = is_string($request->query('wc_job_priority'))
+                ? trim((string) $request->query('wc_job_priority')) : '';
+            if ($priorityFilter !== '' && $priorityFilter !== 'all') {
+                $jobQuery->where('priority', $priorityFilter);
+            }
 
-            $mockJobRowsCard = <<<'HTML'
-<div class="row g-3 p-3">
-    <div class="col-xl-3 col-lg-4 col-md-6">
-        <div class="card h-100 job-card border">
-            <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <strong class="text-primary">00101</strong>
-                <span class="badge bg-warning">In Process</span>
-            </div>
-            <div class="card-body">
-                <div class="d-flex align-items-start mb-3">
-                    <span class="device-icon me-3">
-                        <i class="bi bi-laptop display-6 text-primary"></i>
-                    </span>
-                    <div>
-                        <h6 class="card-title mb-1">Dell Inspiron 15</h6>
-                        <p class="text-muted small mb-0">WC_ABC123</p>
-                    </div>
-                </div>
-                <div class="job-meta">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Customer:</span>
-                        <span class="fw-semibold text-truncate ms-2" style="max-width: 120px;">John Smith</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Priority:</span>
-                        <span class="badge bg-danger">High</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Total:</span>
-                        <span class="fw-semibold">$120.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Due:</span>
-                        <span class="fw-semibold">02/12/2026</span>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent border-top-0 pt-0">
-                <div class="btn-group w-100">
-                    <a href="__JOB_SHOW_URL_101__" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View</a>
-                    <a href="__JOB_SHOW_URL_101__" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
-                    <a href="#" target="_blank" class="btn btn-outline-info btn-sm"><i class="bi bi-printer me-1"></i></a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-lg-4 col-md-6">
-        <div class="card h-100 job-card border">
-            <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <strong class="text-primary">00102</strong>
-                <span class="badge bg-success">Completed</span>
-            </div>
-            <div class="card-body">
-                <div class="d-flex align-items-start mb-3">
-                    <span class="device-icon me-3">
-                        <i class="bi bi-phone display-6 text-primary"></i>
-                    </span>
-                    <div>
-                        <h6 class="card-title mb-1">iPhone 13</h6>
-                        <p class="text-muted small mb-0">WC_DEF456</p>
-                    </div>
-                </div>
-                <div class="job-meta">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Customer:</span>
-                        <span class="fw-semibold text-truncate ms-2" style="max-width: 120px;">Sarah Johnson</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Priority:</span>
-                        <span class="badge bg-secondary">Normal</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Total:</span>
-                        <span class="fw-semibold">$80.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Due:</span>
-                        <span class="fw-semibold">02/11/2026</span>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent border-top-0 pt-0">
-                <div class="btn-group w-100">
-                    <a href="__JOB_SHOW_URL_102__" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View</a>
-                    <a href="__JOB_SHOW_URL_102__" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
-                    <a href="#" target="_blank" class="btn btn-outline-info btn-sm"><i class="bi bi-printer me-1"></i></a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-HTML;
+            /* device filter */
+            $deviceFilter = $request->query('device_post_id');
+            if (is_numeric($deviceFilter) && (int) $deviceFilter > 0) {
+                $jobQuery->whereHas('jobDevices', fn ($dq) => $dq->where('customer_device_id', (int) $deviceFilter));
+            }
 
-            $mockJobRowsCard = str_replace(
-                ['__JOB_SHOW_URL_101__', '__JOB_SHOW_URL_102__'],
-                [$jobShowUrl101, $jobShowUrl102],
-                $mockJobRowsCard
-            );
+            $jobs = $jobQuery->limit(500)->get();
 
-            $mockPagination = <<<'HTML'
-<div class="card-footer">
-    <div class="d-flex justify-content-between align-items-center">
-        <div class="text-muted">Showing 1 to 2 of 2 jobs</div>
-        <nav><ul class="pagination mb-0">
-            <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-chevron-left"></i></a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-        </ul></nav>
-    </div>
-</div>
-HTML;
-
-            $mockExportButtons = <<<'HTML'
-<ul class="dropdown-menu">
-    <li><a href="#" class="dropdown-item">
-        <i class="bi bi-filetype-csv me-2"></i>CSV
-    </a></li>
-    <li><a href="#" class="dropdown-item">
-        <i class="bi bi-filetype-pdf me-2"></i>PDF
-    </a></li>
-    <li><a href="#" class="dropdown-item">
-        <i class="bi bi-filetype-xlsx me-2"></i>Excel
-    </a></li>
-</ul>
-HTML;
-
-            $mockJobStatusOptions = <<<'HTML'
-<option value="new">New</option>
-<option value="in_process">In Process</option>
-<option value="completed">Completed</option>
-HTML;
-
-            $mockDeviceOptions = <<<'HTML'
-<option value="">Devices ...</option>
-<option value="1">Dell Inspiron 15</option>
-<option value="2">iPhone 13</option>
-HTML;
-
-            $mockPaymentStatusOptions = <<<'HTML'
-<option value="unpaid">Unpaid</option>
-<option value="partial">Partial</option>
-<option value="paid">Paid</option>
-HTML;
-
-            $mockPriorityOptions = <<<'HTML'
-<select class="form-select" name="wc_job_priority" id="wc_job_priority">
-    <option value="all">Priority (All)</option>
-    <option value="normal">Normal</option>
-    <option value="urgent">Urgent</option>
-</select>
-HTML;
-
-            $mockDuplicateFrontBox = <<<'HTML'
-<div id="wcrb-duplicate-job-front-box" class="d-none"></div>
-HTML;
-
-            $jobStatusTiles = [
-                [
-                    'status_slug' => 'in_process',
-                    'status_name' => 'In Process',
-                    'jobs_count' => 3,
-                    'color' => 'bg-primary',
-                    'url' => $baseDashboardUrl !== '#'
-                        ? ($baseDashboardUrl . '?screen=' . $_page . '&job_status=in_process')
-                        : '#',
-                ],
-                [
-                    'status_slug' => 'completed',
-                    'status_name' => 'Completed',
-                    'jobs_count' => 5,
-                    'color' => 'bg-success',
-                    'url' => $baseDashboardUrl !== '#'
-                        ? ($baseDashboardUrl . '?screen=' . $_page . '&job_status=completed')
-                        : '#',
-                ],
-                [
-                    'status_slug' => 'new',
-                    'status_name' => 'New',
-                    'jobs_count' => 2,
-                    'color' => 'bg-warning',
-                    'url' => $baseDashboardUrl !== '#'
-                        ? ($baseDashboardUrl . '?screen=' . $_page . '&job_status=new')
-                        : '#',
-                ],
+            /* ── Format rows for <x-ui.datatable> ── */
+            $priorityBadgeMap = [
+                'high'   => 'wcrb-pill--high',
+                'urgent' => 'wcrb-pill--danger',
+                'normal' => 'wcrb-pill--low',
             ];
 
+            $statusBadgeMap = [
+                'new'          => 'wcrb-pill--pending',
+                'in_process'   => 'wcrb-pill--progress',
+                'inprocess'    => 'wcrb-pill--progress',
+                'completed'    => 'wcrb-pill--active',
+                'delivered'    => 'wcrb-pill--active',
+                'waiting_parts'=> 'wcrb-pill--warning',
+            ];
+
+            $paymentBadgeMap = [
+                'unpaid'  => 'wcrb-pill--danger',
+                'partial' => 'wcrb-pill--warning',
+                'paid'    => 'wcrb-pill--active',
+            ];
+
+            $jobRows = [];
+            foreach ($jobs as $job) {
+                $num = is_numeric($job->job_number) ? (int) $job->job_number : (int) $job->id;
+                $jobId = str_pad((string) $num, 5, '0', STR_PAD_LEFT);
+                $caseNumber = is_string($job->case_number) ? (string) $job->case_number : '';
+
+                $customerName = $job->customer?->name ?? '—';
+                $tech = $job->technicians->first();
+                $techName = $tech?->name ?? '—';
+
+                $devices = $job->jobDevices
+                    ->map(fn ($d) => is_string($d->label_snapshot ?? null) ? trim((string) $d->label_snapshot) : '')
+                    ->filter()
+                    ->take(3)
+                    ->implode(', ') ?: '—';
+
+                $statusSlug = is_string($job->status_slug) ? trim((string) $job->status_slug) : '';
+                $statusLabel = $statusSlug !== '' ? ucwords(str_replace(['_', '-'], ' ', $statusSlug)) : '—';
+
+                $priorityLabel = is_string($job->priority) ? ucfirst((string) $job->priority) : '—';
+                $paymentLabel = is_string($job->payment_status_slug) ? ucfirst((string) $job->payment_status_slug) : '—';
+
+                $pickup = $job->pickup_date?->format('M d, Y') ?? '';
+                $delivery = $job->delivery_date?->format('M d, Y') ?? '';
+
+                $showUrl = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]);
+
+                $actions = '<div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap">'
+                    . '<a href="' . e($showUrl) . '" class="btn btn-sm btn-primary" style="padding: .25rem .65rem; font-size: .78rem;" title="' . e(__('View')) . '"><i class="bi bi-eye me-1"></i>' . e(__('View')) . '</a>'
+                    . '<div class="dropdown">'
+                    . '<button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false" title="' . e(__('More actions')) . '" style="padding: .25rem .45rem;"><i class="bi bi-three-dots" style="font-size:.75rem;"></i></button>'
+                    . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 160px;">'
+                    . '<li><button class="dropdown-item py-2" type="button" onclick="openDocPreview(\'job\',' . (int) $job->id . ')"><i class="bi bi-printer me-2 text-muted"></i>' . e(__('Print / Preview')) . '</button></li>'
+                    . '<li><a class="dropdown-item py-2" href="' . e(route('tenant.jobs.edit', ['business' => $tenant->slug, 'jobId' => $job->id])) . '"><i class="bi bi-pencil me-2 text-muted"></i>' . e(__('Edit Job')) . '</a></li>'
+                    . '</ul>'
+                    . '</div>'
+                    . '</div>';
+
+                $jobRows[] = [
+                    'job_id'     => $jobId,
+                    'case_number'=> $caseNumber,
+                    'customer'   => $customerName,
+                    'device'     => $devices,
+                    'technician' => $techName,
+                    'status'     => $statusLabel,
+                    '_badgeClass_status' => $statusBadgeMap[strtolower($statusSlug)] ?? 'wcrb-pill--inactive',
+                    'priority'   => $priorityLabel,
+                    '_badgeClass_priority' => $priorityBadgeMap[strtolower($job->priority ?? '')] ?? 'wcrb-pill--inactive',
+                    'payment'    => $paymentLabel,
+                    '_badgeClass_payment' => $paymentBadgeMap[strtolower($job->payment_status_slug ?? '')] ?? 'wcrb-pill--inactive',
+                    'pickup_date'  => $pickup,
+                    'delivery_date'=> $delivery,
+                    'actions'    => $actions,
+                ];
+            }
+
+            /* ── Status tiles (real counts) ── */
+            $statusCounts = RepairBuddyJob::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('branch_id', (int) $branch->id)
+                ->selectRaw('status_slug, COUNT(*) as cnt')
+                ->groupBy('status_slug')
+                ->pluck('cnt', 'status_slug')
+                ->toArray();
+
+            $statusColors = [
+                'new'           => 'bg-warning',
+                'in_process'    => 'bg-primary',
+                'inprocess'     => 'bg-primary',
+                'completed'     => 'bg-success',
+                'delivered'     => 'bg-info',
+                'waiting_parts' => 'bg-secondary',
+            ];
+
+            $baseDashboardUrl = route('tenant.dashboard', ['business' => $tenant->slug]);
+
+            $jobStatusTiles = [];
+            foreach ($statusCounts as $slug => $count) {
+                if ((int) $count <= 0) {
+                    continue;
+                }
+                $jobStatusTiles[] = [
+                    'status_slug' => $slug,
+                    'status_name' => ucwords(str_replace(['_', '-'], ' ', (string) $slug)),
+                    'jobs_count'  => $count,
+                    'color'       => $statusColors[$slug] ?? 'bg-secondary',
+                    'url'         => $baseDashboardUrl . '?screen=jobs&job_status=' . urlencode((string) $slug),
+                ];
+            }
+
+            /* ── Look-ups for filter dropdowns ── */
+            $jobStatuses = Status::query()
+                ->where('status_type', 'Job')
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->get(['id', 'code', 'label']);
+
+            $paymentStatuses = Status::query()
+                ->where('status_type', 'Payment')
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->get(['id', 'code', 'label']);
+
+            $customers = User::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('role', 'customer')
+                ->orderBy('name')
+                ->limit(500)
+                ->get(['id', 'name']);
+
+            $technicianRoleId = Role::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('name', 'Technician')
+                ->value('id');
+            $technicianRoleId = is_numeric($technicianRoleId) ? (int) $technicianRoleId : null;
+
+            $technicians = User::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('is_admin', false)
+                ->where('status', 'active')
+                ->where(function ($q) use ($technicianRoleId) {
+                    if ($technicianRoleId) {
+                        $q->where('role_id', $technicianRoleId);
+                    }
+                    $q->orWhereHas('roles', fn ($rq) => $rq->where('name', 'Technician'))
+                      ->orWhere('role', 'technician');
+                })
+                ->orderBy('name')
+                ->limit(500)
+                ->get(['id', 'name']);
+
+            $devices = RepairBuddyCustomerDevice::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('branch_id', (int) $branch->id)
+                ->orderByDesc('id')
+                ->limit(500)
+                ->get(['id', 'label', 'serial']);
+
             return view('tenant.jobs', [
-                'tenant' => $tenant,
-                'user' => $user,
-                'activeNav' => 'jobs',
-                'pageTitle' => 'Jobs',
-                'role' => is_string($user?->role) ? (string) $user->role : null,
-                'current_view' => $current_view,
-                '_page' => $_page,
-                'view_label' => $view_label,
-                'view_url' => $view_url,
-                '_job_status' => $jobStatusTiles,
-                'job_status_options_html' => $mockJobStatusOptions,
-                'job_priority_options_html' => $mockPriorityOptions,
-                'device_options_html' => $mockDeviceOptions,
-                'payment_status_options_html' => $mockPaymentStatusOptions,
-                'export_buttons_html' => $mockExportButtons,
-                'license_state' => true,
-                'use_store_select' => false,
-                'clear_filters_url' => $baseDashboardUrl !== '#'
-                    ? ($baseDashboardUrl . '?screen=' . $_page)
-                    : '#',
-                'duplicate_job_front_box_html' => $mockDuplicateFrontBox,
-                'jobs_list' => [
-                    'rows' => $current_view === 'card' ? $mockJobRowsCard : $mockJobRowsTable,
-                    'pagination' => $mockPagination,
-                ],
+                'tenant'          => $tenant,
+                'user'            => $user,
+                'activeNav'       => 'jobs',
+                'pageTitle'       => 'Jobs',
+                'role'            => is_string($user?->role) ? (string) $user->role : null,
+                'jobRows'         => $jobRows,
+                '_job_status'     => $jobStatusTiles,
+                'jobStatuses'     => $jobStatuses,
+                'paymentStatuses' => $paymentStatuses,
+                'customers'       => $customers,
+                'technicians'     => $technicians,
+                'devices'         => $devices,
+                'searchInput'     => $searchInput,
+                'statusFilter'    => $statusFilter,
+                'paymentFilter'   => $paymentFilter,
+                'priorityFilter'  => $priorityFilter,
+                'deviceFilter'    => $deviceFilter,
             ]);
         }
 

@@ -1,8 +1,41 @@
-@extends('tenant.layouts.myaccount', ['title' => 'Jobs'])
+@extends('tenant.layouts.myaccount', ['title' => $pageTitle ?? 'Jobs'])
 
-@push('page-styles')
-<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css" />
-@endpush
+@php
+    /** @var \App\Models\Tenant|null $tenant */
+    /** @var \App\Models\User|null   $user */
+    $jobRows        = $jobRows ?? [];
+    $_job_status    = $_job_status ?? [];
+    $jobStatuses    = $jobStatuses ?? collect();
+    $paymentStatuses= $paymentStatuses ?? collect();
+    $customers      = $customers ?? collect();
+    $technicians    = $technicians ?? collect();
+    $devices        = $devices ?? collect();
+    $role           = $role ?? null;
+    $searchInput    = $searchInput ?? '';
+    $statusFilter   = $statusFilter ?? '';
+    $paymentFilter  = $paymentFilter ?? '';
+    $priorityFilter = $priorityFilter ?? '';
+    $deviceFilter   = $deviceFilter ?? '';
+
+    $tenantSlug  = is_string($tenant?->slug) ? (string) $tenant->slug : '';
+    $createUrl   = $tenantSlug ? route('tenant.jobs.create', ['business' => $tenantSlug]) : '#';
+    $baseUrl     = $tenantSlug ? route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' : '#';
+
+    // ── Columns for <x-ui.datatable>
+    $jobColumns = [
+        ['key' => 'job_id',        'label' => __('Job #'),       'width' => '90px',  'sortable' => true,  'filter' => true],
+        ['key' => 'case_number',   'label' => __('Case #'),      'width' => '120px', 'sortable' => true,  'filter' => true],
+        ['key' => 'customer',      'label' => __('Customer'),    'width' => '160px', 'sortable' => true,  'filter' => true],
+        ['key' => 'device',        'label' => __('Device'),      'width' => '160px', 'sortable' => true,  'filter' => true],
+        ['key' => 'technician',    'label' => __('Technician'),  'width' => '130px', 'sortable' => true,  'filter' => true],
+        ['key' => 'status',        'label' => __('Status'),      'width' => '120px', 'sortable' => true,  'badge' => true],
+        ['key' => 'priority',      'label' => __('Priority'),    'width' => '100px', 'sortable' => true,  'badge' => true],
+        ['key' => 'payment',       'label' => __('Payment'),     'width' => '100px', 'sortable' => true,  'badge' => true],
+        ['key' => 'pickup_date',   'label' => __('Pickup'),      'width' => '110px', 'sortable' => true,  'nowrap' => true],
+        ['key' => 'delivery_date', 'label' => __('Delivery'),    'width' => '110px', 'sortable' => true,  'nowrap' => true],
+        ['key' => 'actions',       'label' => '',                 'width' => '160px', 'sortable' => false, 'align' => 'text-end', 'html' => true],
+    ];
+@endphp
 
 @push('page-scripts')
 <script>
@@ -13,315 +46,126 @@
     }
   }
 </script>
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
-<script>
-  (function () {
-    if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
-      return;
-    }
-
-    var $table = window.jQuery('#jobsTable');
-    if ($table.length === 0) {
-      return;
-    }
-
-    if (window.jQuery.fn.DataTable.isDataTable($table)) {
-      return;
-    }
-
-    $table.DataTable({
-      processing: true,
-      serverSide: true,
-      pageLength: 25,
-      ajax: {
-        url: "{{ route('tenant.jobs.datatable', ['business' => $tenant->slug]) }}",
-        data: function (d) {
-          d.job_status = window.jQuery('#job_status').val() || '';
-          d.wc_payment_status = window.jQuery('#wc_payment_status').val() || '';
-          d.device_post_id = window.jQuery('#rep_devices').val() || '';
-          d.searchinput = window.jQuery('#searchInput').val() || '';
-        }
-      },
-      order: [[0, 'desc']],
-      columns: [
-        { data: 'job_id_display', name: 'job_number' },
-        { data: 'case_number_display', name: 'case_number' },
-        { data: 'customer_display', name: 'customer_id', orderable: false, searchable: false },
-        { data: 'devices_display', name: 'jobDevices.label_snapshot', orderable: false, searchable: false },
-        { data: 'dates_display', name: 'pickup_date', orderable: false, searchable: false },
-        { data: 'total_display', name: 'total_display', orderable: false, searchable: false },
-        { data: 'balance_display', name: 'balance_display', orderable: false, searchable: false },
-        { data: 'payment_display', name: 'payment_status_slug' },
-        { data: 'status_display', name: 'status_slug' },
-        { data: 'priority_display', name: 'priority' },
-        { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end pe-4' }
-      ]
-    });
-
-    window.jQuery('#applyFilters').on('click', function (e) {
-      e.preventDefault();
-      $table.DataTable().ajax.reload();
-    });
-
-    window.jQuery('#clearFilters').on('click', function (e) {
-      e.preventDefault();
-      window.jQuery('#searchInput').val('');
-      window.jQuery('#job_status').val('all');
-      window.jQuery('#wc_payment_status').val('all');
-      window.jQuery('#rep_devices').val('');
-      $table.DataTable().search('').ajax.reload();
-    });
-
-    window.jQuery('#searchInput').on('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        $table.DataTable().search(window.jQuery(this).val() || '').draw();
-      }
-    });
-  })();
-</script>
 @endpush
 
 @section('content')
-@php
-    $current_view = $current_view ?? (request()->query('screen') === 'jobs_card' ? 'card' : 'table');
-    $_page = $_page ?? (request()->query('screen') === 'jobs_card' ? 'jobs_card' : 'jobs');
+<div class="container-fluid p-3">
 
-    $jobs_list = $jobs_list ?? ['rows' => '', 'pagination' => ''];
-    $_job_status = $_job_status ?? [];
-
-    $job_status_options_html = $job_status_options_html ?? '';
-    $job_priority_options_html = $job_priority_options_html ?? '';
-    $store_select_options_html = $store_select_options_html ?? '';
-    $device_options_html = $device_options_html ?? '';
-    $payment_status_options_html = $payment_status_options_html ?? '';
-    $customer_select_options_html = $customer_select_options_html ?? '';
-    $technician_select_options_html = $technician_select_options_html ?? '';
-    $export_buttons_html = $export_buttons_html ?? '';
-    $use_store_select = $use_store_select ?? false;
-    $license_state = $license_state ?? true;
-    $clear_filters_url = $clear_filters_url ?? request()->fullUrlWithQuery(['screen' => $_page]);
-
-    $view_label = $view_label ?? ($current_view === 'card' ? 'Table View' : 'Card View');
-    $view_url = $view_url ?? '#';
-
-    $role = $role ?? null;
-    $_mainpage = $_mainpage ?? null;
-@endphp
-<!-- Jobs Content -->
-<main class="dashboard-content container-fluid py-4">
-    <!-- Stats Overview -->
+    {{-- ═══════ Stats Cards ═══════ --}}
+    @if (!empty($_job_status))
     <div class="row g-3 mb-4">
-        @if (! empty($_job_status))
-            @foreach ($_job_status as $_jobsstatus)
-                @php
-                    $_color = $_jobsstatus['color'] ?? '';
-                    $_pageurl = $_jobsstatus['url'] ?? '#';
-                @endphp
-                @if (($_jobsstatus['jobs_count'] ?? 0) > 0)
+        @foreach ($_job_status as $_jobsstatus)
         <div class="col">
-            <a href="{{ $_pageurl }}">
-            <div class="card stats-card {{ $_color }} text-white">
-                <div class="card-body text-center p-3">
-                    <h6 class="card-title text-white-50 mb-1">{{ $_jobsstatus['status_name'] ?? '' }}</h6>
-                    <h4 class="mb-0">{{ $_jobsstatus['jobs_count'] ?? '' }}</h4>
+            <a href="{{ $_jobsstatus['url'] ?? '#' }}" class="text-decoration-none">
+                <div class="card stats-card {{ $_jobsstatus['color'] ?? 'bg-secondary' }} text-white">
+                    <div class="card-body text-center p-3">
+                        <h6 class="card-title text-white-50 mb-1">{{ $_jobsstatus['status_name'] ?? '' }}</h6>
+                        <h4 class="mb-0">{{ $_jobsstatus['jobs_count'] ?? 0 }}</h4>
+                    </div>
                 </div>
-            </div>
             </a>
         </div>
-                @endif
-            @endforeach
-        @endif
-
+        @endforeach
     </div>
+    @endif
 
-    <!-- Search and Filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" action="">
-            <input type="hidden" name="screen" value="{{ $_page }}" />
-            <div class="row g-3">
-                <div class="col-md-2">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0">
-                            <i class="bi bi-search text-muted"></i>
-                        </span>
-                        <input type="text" class="form-control border-start-0" name="searchinput" id="searchInput" 
-                        value="{{ request()->query('searchinput', '') }}"
-                        placeholder="{{ __('Search by Job ID, Case Number, Title, Notes, Dates') }}...">
-                    </div>
-                </div>
-                <!-- Job Status Starts /-->
-                <div class="col">
-                    @php $current_status = request()->query('job_status', ''); @endphp
-                    <select class="form-select" name="job_status" id="job_status">
-                        <option value="all" {{ ((string) $current_status === 'all') ? 'selected' : '' }}>{{ __('Job Status (All)') }}</option>
-                    {!! $job_status_options_html !!}
-                    </select>
-                </div>
-                <!-- Job Status Ends /-->
-                
-                <div class="col">
-                    {!! $job_priority_options_html !!}
-                </div>
-
-                <!-- Start select store /-->
-                @if ($use_store_select)
-                    <div class="col">                    
-                        <select name="wc_store" class="form-select" id="wc_store">
-                            <option value="all">{{ __('Store (All)') }}</option>
-                            {!! $store_select_options_html !!}
+    {{-- ═══════ DataTable ═══════ --}}
+    <x-ui.datatable
+        tableId="jobsTable"
+        :title="__('Repair Jobs')"
+        :columns="$jobColumns"
+        :rows="$jobRows"
+        :searchable="true"
+        :paginate="true"
+        :perPage="25"
+        :perPageOptions="[10, 25, 50, 100]"
+        :exportable="true"
+        :filterable="true"
+        :createRoute="$createUrl"
+        :createLabel="__('New Job')"
+        :emptyMessage="__('No jobs found.')"
+    >
+        <x-slot:filters>
+            <form method="get" action="{{ $baseUrl }}">
+                <input type="hidden" name="screen" value="jobs" />
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label" style="font-size: 0.75rem;">{{ __('Job Status') }}</label>
+                        <select class="form-select form-select-sm" name="job_status">
+                            <option value="all">{{ __('All Statuses') }}</option>
+                            @foreach ($jobStatuses as $js)
+                                <option value="{{ $js->code }}" {{ $statusFilter === $js->code ? 'selected' : '' }}>
+                                    {{ $js->label }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
-				@endif
-                <!-- End Select store /-->
-
-                <!-- Select device starts /-->
-                <div class="col">
-                    <select id="rep_devices" name="device_post_id" class="form-select">
-                    {!! $device_options_html !!}
-                    </select>
-                </div>
-                <!-- Select device Ends /-->
-
-                <!-- Starts payment status /-->
-                <div class="col">
-                    @php $current_payment_status = request()->query('wc_payment_status', ''); @endphp
-                    <select name="wc_payment_status" id="wc_payment_status" class="form-select">
-                        <option value="all" {{ ((string) $current_payment_status === 'all') ? 'selected' : '' }}>{{ __('Payment Status (All)') }}</option>
-                        {!! $payment_status_options_html !!}
-                    </select>
-                </div>
-                <!-- Ends payment status /-->
-                
-                @if ( $role == 'administrator' || $role == 'store_manager' || $role == 'technician' )
-                <div class="col">
-                    {!! $customer_select_options_html !!}
-                </div>
-                @endif
-                
-                @if ( $role == 'administrator' || $role == 'store_manager' )
-                <div class="col">
-                    {!! $technician_select_options_html !!}
-                </div>
-                @endif
-
-                <div class="col">
-                    <div class="d-flex gap-2">
-                        <a class="btn btn-outline-secondary" href="{{ $clear_filters_url }}" id="clearFilters">
-                            <i class="bi bi-arrow-clockwise"></i>
-                        </a>
-                        <button class="btn btn-primary" id="applyFilters">
-                            <i class="bi bi-funnel"></i> {{ __('Filter') }}
-                        </button>
+                    <div class="col-md-2">
+                        <label class="form-label" style="font-size: 0.75rem;">{{ __('Priority') }}</label>
+                        <select class="form-select form-select-sm" name="wc_job_priority">
+                            <option value="all">{{ __('All Priorities') }}</option>
+                            @foreach (['normal', 'high', 'urgent'] as $p)
+                                <option value="{{ $p }}" {{ $priorityFilter === $p ? 'selected' : '' }}>{{ ucfirst($p) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" style="font-size: 0.75rem;">{{ __('Payment') }}</label>
+                        <select class="form-select form-select-sm" name="wc_payment_status">
+                            <option value="all">{{ __('All') }}</option>
+                            @foreach ($paymentStatuses as $ps)
+                                <option value="{{ $ps->code }}" {{ $paymentFilter === $ps->code ? 'selected' : '' }}>
+                                    {{ $ps->label }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" style="font-size: 0.75rem;">{{ __('Device') }}</label>
+                        <select class="form-select form-select-sm" name="device_post_id">
+                            <option value="">{{ __('All Devices') }}</option>
+                            @foreach ($devices as $d)
+                                <option value="{{ $d->id }}" {{ (string) $deviceFilter === (string) $d->id ? 'selected' : '' }}>
+                                    {{ $d->label ?? 'Device #' . $d->id }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-auto d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>{{ __('Apply') }}</button>
+                        <a href="{{ $baseUrl }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i></a>
                     </div>
                 </div>
-            </div>
             </form>
-        </div>
-    </div>
+        </x-slot:filters>
 
-    <!-- Jobs Table/Card -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">{{ __('Jobs') }}</h5>
-            <div class="d-flex gap-2">
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="bi bi-download me-1"></i> {{ __('Export') }}
-                    </button>
-                    {!! $export_buttons_html !!}
-                </div>
+        <x-slot:bulkActions>
+            <button class="btn btn-sm btn-outline-primary" style="font-size: 0.75rem;"><i class="bi bi-printer me-1"></i>{{ __('Print') }}</button>
+            <button class="btn btn-sm btn-outline-danger" style="font-size: 0.75rem;"><i class="bi bi-trash me-1"></i>{{ __('Delete') }}</button>
+        </x-slot:bulkActions>
+    </x-ui.datatable>
 
-                @if ($license_state)
-                <a href="{{ $view_url }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-grid-3x3-gap me-1"></i> {{ $view_label }}
-                </a>
-                @else
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        {{ __('Card View') }}
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><span class="dropdown-item text-muted">
-                            <i class="bi bi-lock me-2"></i>{{ __('Pro Feature') }}
-                        </span></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-success" href="https://www.webfulcreations.com/repairbuddy-wordpress-plugin/pricing/" target="_blank" data-bs-toggle="modal" data-bs-target="#upgradeModal">
-                            <i class="bi bi-star me-2"></i>{{ __('Upgrade Now') }}
-                        </a></li>
-                        <li><a class="dropdown-item text-info" href="https://www.webfulcreations.com/repairbuddy-wordpress-plugin/repairbuddy-features/" target="_blank">
-                            <i class="bi bi-info-circle me-2"></i>{{ __('View Features') }}
-                        </a></li>
-                    </ul>
-                </div>
-                @endif
-            </div>
-        </div>
-        <div class="card-body p-0">
-            @if ($current_view === 'card')
-            <!-- Card View -->
-            <div class="cardView" id="cardView">
-                {!! $jobs_list['rows'] ?? '' !!}
-            </div>
-            @else
-            <!-- Table View -->
-            <div class="table-responsive" id="jobsTable_list">
-                <div class="aj_msg"></div>
-                <table class="table table-hover mb-0 table-striped" id="jobsTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th>{{ __('ID') }}</th>
-                            <th>{{ __('Case Number') }}/{{ __('Tech') }}</th>
-                            <th>{{ __('Customer') }}</th>
-                            <th>{{ __('Devices') }}</th>
-                            <th>{{ __('Dates') }}</th>
-                            <th>{{ __('Total') }}</th>
-                            <th>{{ __('Balance') }}</th>
-                            <th>{{ __('Payment') }}</th>
-                            <th>{{ __('Status') }}</th>
-                            <th>{{ __('Priority') }}</th>
-                            <th class="text-end pe-4">{{ __('Actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {!! $jobs_list['rows'] ?? '' !!}
-                    </tbody>
-                </table>
-            </div>
-            @endif
-        </div>
-        <!-- Pagination -->
-        {!! $jobs_list['pagination'] ?? '' !!}
-    </div>
-</main>
+</div>
 
 {{-- ── Document Preview Modal ── --}}
 @livewire('tenant.operations.document-preview-modal', ['tenant' => $tenant ?? null])
-
-{!! $duplicate_job_front_box_html ?? '' !!}
-
-<!-- Bootstrap Modal for Post Entry -->
-<div class="modal fade" id="openTakePaymentModal" tabindex="-1" aria-labelledby="openTakePaymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="openTakePaymentModalLabel">
-                    {{ __('Make a payment') }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form class="" method="post" name="wcrb_jl_form_submit_payment" data-success-class=".set_addpayment_joblist_message">
-                    <div id="replacementpart_joblist_formfields">
-                        <!-- Replacementpart starts -->
-                         Champ
-                        <!-- Replacementpart Ends -->
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
+
+@push('page-styles')
+<style>
+    .wcrb-pill--progress { color: #1d4ed8; background: rgba(59,130,246,.10); border-color: rgba(59,130,246,.25); }
+    .wcrb-pill--pending  { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+    .wcrb-pill--warning  { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+    .wcrb-pill--danger   { color: #991b1b; background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.25); }
+    .wcrb-pill--high     { color: #991b1b; background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.25); }
+    .wcrb-pill--medium   { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+    .wcrb-pill--low      { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.25); }
+
+    [data-bs-theme="dark"] .wcrb-pill--progress { background: rgba(59,130,246,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--pending  { background: rgba(245,158,11,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--warning  { background: rgba(245,158,11,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--danger   { background: rgba(239,68,68,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--high     { background: rgba(239,68,68,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--low      { background: rgba(16,185,129,.20); }
+</style>
+@endpush

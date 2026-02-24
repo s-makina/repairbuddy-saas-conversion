@@ -100,9 +100,8 @@ class TenantEstimateController extends Controller
             $query->where('assigned_technician_id', (int) $technicianFilter);
         }
 
-        /* ---------- paginate ---------- */
-        $perPage   = 20;
-        $estimates = $query->paginate($perPage)->appends($request->query());
+        /* ---------- fetch all (client-side pagination via Alpine) ---------- */
+        $estimates = $query->limit(500)->get();
 
         /* ---------- counts for stats ---------- */
         $baseCountQuery = RepairBuddyEstimate::query()
