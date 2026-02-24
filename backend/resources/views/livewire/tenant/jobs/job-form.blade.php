@@ -680,6 +680,24 @@
         outline: none;
     }
 
+    /* ── Per-item tax override select ── */
+    .jf-tax-sel {
+        font-size: .72rem;
+        border: 1px solid var(--rb-border);
+        border-radius: 6px;
+        padding: .28rem .5rem .28rem .4rem;
+        color: var(--rb-text);
+        background: var(--rb-bg);
+        outline: none;
+        cursor: pointer;
+        flex-shrink: 0;
+        max-width: 130px;
+        min-width: 80px;
+        transition: border-color .15s;
+    }
+    .jf-tax-sel:focus { border-color: var(--rb-brand); background: #fff; }
+    .jf-tax-sel.tax-none { color: var(--rb-text-3); font-style: italic; }
+
     .jf-il-total {
         min-width: 70px;
         text-align: right;
@@ -1650,6 +1668,14 @@
                                     <span class="cur">{{ $currency_symbol }}</span>
                                     <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
                                 </div>
+                                @if($tax_enabled)
+                                <select class="jf-tax-sel{{ empty($row['tax_id']) ? ' tax-none' : '' }}" wire:model.defer="items.{{ $i }}.tax_id" title="{{ __('Tax override') }}">
+                                    <option value="">{{ __('No tax') }}</option>
+                                    @foreach($availableTaxes as $tax)
+                                        <option value="{{ $tax['id'] }}">{{ $tax['label'] }}</option>
+                                    @endforeach
+                                </select>
+                                @endif
                             </div>
                             <div class="jf-il-total">{{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
                             <button type="button" class="jf-il-rm" wire:click="removeItem({{ $i }})" title="{{ __('Remove') }}"><i class="bi bi-trash"></i></button>
@@ -1746,6 +1772,14 @@
                                     <span class="cur">{{ $currency_symbol }}</span>
                                     <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
                                 </div>
+                                @if($tax_enabled)
+                                <select class="jf-tax-sel{{ empty($row['tax_id']) ? ' tax-none' : '' }}" wire:model.defer="items.{{ $i }}.tax_id" title="{{ __('Tax override') }}">
+                                    <option value="">{{ __('No tax') }}</option>
+                                    @foreach($availableTaxes as $tax)
+                                        <option value="{{ $tax['id'] }}">{{ $tax['label'] }}</option>
+                                    @endforeach
+                                </select>
+                                @endif
                             </div>
                             <div class="jf-il-total">{{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
                             <button type="button" class="jf-il-rm" wire:click="removeItem({{ $i }})" title="{{ __('Remove') }}"><i class="bi bi-trash"></i></button>
@@ -1806,6 +1840,14 @@
                                     <span class="cur">{{ $currency_symbol }}</span>
                                     <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
                                 </div>
+                                @if($tax_enabled)
+                                <select class="jf-tax-sel{{ empty($row['tax_id']) ? ' tax-none' : '' }}" wire:model.defer="items.{{ $i }}.tax_id" title="{{ __('Tax override') }}">
+                                    <option value="">{{ __('No tax') }}</option>
+                                    @foreach($availableTaxes as $tax)
+                                        <option value="{{ $tax['id'] }}">{{ $tax['label'] }}</option>
+                                    @endforeach
+                                </select>
+                                @endif
                             </div>
                             <div class="jf-il-total">{{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
                             <button type="button" class="jf-il-rm" wire:click="removeItem({{ $i }})" title="{{ __('Remove') }}"><i class="bi bi-trash"></i></button>

@@ -42,6 +42,7 @@ class JobForm extends Component
     public bool $tax_enabled = false;
     public ?string $default_tax_mode = null;
     public ?int $default_tax_id = null;
+    public array $availableTaxes = [];  // [['id'=>1,'label'=>'GST 10%'], ...]
     public string $currency_code = 'USD';
     public string $currency_symbol = '$';
 
@@ -213,6 +214,19 @@ class JobForm extends Component
             }
         }
 
+        // Load all active taxes for per-item override dropdown
+        $this->availableTaxes = \App\Models\RepairBuddyTax::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'rate'])
+            ->map(fn ($t) => [
+                'id'    => $t->id,
+                'label' => $t->name . ' (' . rtrim(rtrim(number_format((float)$t->rate, 2), '0'), '.') . '%)',
+            ])
+            ->values()
+            ->toArray();
+
         $this->currency_code = $this->tenant->currency ?? 'USD';
         try {
             $fmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
@@ -292,6 +306,7 @@ class JobForm extends Component
                     'name' => $it->name_snapshot ?? null,
                     'qty' => $it->qty ?? 1,
                     'unit_price_cents' => $it->unit_price_amount_cents ?? 0,
+                    'tax_id' => $it->tax_id ?? null,
                     'meta_json' => is_array($it->meta_json ?? null) ? json_encode($it->meta_json) : null,
                 ];
             }
@@ -357,6 +372,7 @@ class JobForm extends Component
             'items.*.code' => ['nullable', 'string', 'max:64'],
             'items.*.qty' => ['nullable', 'integer', 'min:1', 'max:9999'],
             'items.*.unit_price_cents' => ['nullable', 'integer', 'min:-1000000000', 'max:1000000000'],
+            'items.*.tax_id' => ['nullable', 'integer'],
             'items.*.meta_json' => ['nullable', 'string', 'max:2000'],
 
             'extras' => ['array'],
@@ -638,6 +654,7 @@ class JobForm extends Component
             'code' => null,
             'qty' => 1,
             'unit_price_cents' => 0,
+            'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
     }
@@ -664,6 +681,7 @@ class JobForm extends Component
             'device_row_index' => $this->selected_device_link_index,
             'qty' => 1,
             'unit_price_cents' => $part->price_amount_cents / 100,
+            'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
 
@@ -692,6 +710,7 @@ class JobForm extends Component
             'device_row_index' => $this->selected_device_link_index,
             'qty' => 1,
             'unit_price_cents' => 0,
+            'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
 
@@ -717,6 +736,7 @@ class JobForm extends Component
                     'unit_price_cents' => $service->base_price_amount_cents / 100,
                     'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
                     'device_row_index' => $this->selected_device_link_index,
+                    'tax_id' => $this->default_tax_id,
                     'meta_json' => null,
                 ];
             }
@@ -729,6 +749,7 @@ class JobForm extends Component
                 'unit_price_cents' => 0,
                 'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
                 'device_row_index' => $this->selected_device_link_index,
+                'tax_id' => $this->default_tax_id,
                 'meta_json' => null,
             ];
         }
@@ -752,6 +773,7 @@ class JobForm extends Component
             'unit_price_cents' => 0,
             'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
             'device_row_index' => $this->selected_device_link_index,
+            'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
 
@@ -850,6 +872,7 @@ class JobForm extends Component
             'item_qty' => array_map(fn ($r) => $r['qty'] ?? null, $this->items),
             'item_unit_price_cents' => array_map(fn ($r) => (int) round(($r['unit_price_cents'] ?? 0) * 100), $this->items),
             'item_meta_json' => array_map(fn ($r) => $r['meta_json'] ?? null, $this->items),
+            'item_tax_id' => array_map(fn ($r) => is_numeric($r['tax_id'] ?? null) ? (int)$r['tax_id'] : null, $this->items),
 
             'extra_item_occurred_at' => array_map(fn ($r) => $r['occurred_at'] ?? null, $this->extras),
             'extra_item_label' => array_map(fn ($r) => $r['label'] ?? null, $this->extras),

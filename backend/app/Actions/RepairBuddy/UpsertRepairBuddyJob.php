@@ -366,11 +366,12 @@ class UpsertRepairBuddyJob
     {
         $defaultTaxId = $this->resolveDefaultTaxId($tenant);
 
-        $types = is_array($validated['item_type'] ?? null) ? $validated['item_type'] : [];
-        $names = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
-        $codes = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
-        $qtys = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
+        $types  = is_array($validated['item_type'] ?? null) ? $validated['item_type'] : [];
+        $names  = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
+        $codes  = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
+        $qtys   = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
         $prices = is_array($validated['item_unit_price_cents'] ?? null) ? $validated['item_unit_price_cents'] : [];
+        $taxIds = is_array($validated['item_tax_id'] ?? null) ? $validated['item_tax_id'] : [];
 
         $max = max(count($types), count($names), count($codes), count($qtys), count($prices));
         for ($i = 0; $i < $max; $i++) {
@@ -389,8 +390,9 @@ class UpsertRepairBuddyJob
 
             $metaJson = $c !== '' ? ['code' => $c] : null;
 
-            // Discounts don't get taxed
-            $itemTaxId = ($t === 'discount') ? null : $defaultTaxId;
+            // Discounts don't get taxed; otherwise use per-item override or fall back to default
+            $itemTaxId = ($t === 'discount') ? null
+                : (is_numeric($taxIds[$i] ?? null) ? (int) $taxIds[$i] : $defaultTaxId);
 
             RepairBuddyJobItem::query()->create([
                 'job_id' => $job->id,
@@ -410,12 +412,13 @@ class UpsertRepairBuddyJob
     {
         $defaultTaxId = $this->resolveDefaultTaxId($tenant);
 
-        $types = is_array($validated['item_type'] ?? null) ? $validated['item_type'] : [];
-        $names = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
-        $codes = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
-        $qtys = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
+        $types  = is_array($validated['item_type'] ?? null) ? $validated['item_type'] : [];
+        $names  = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
+        $codes  = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
+        $qtys   = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
         $prices = is_array($validated['item_unit_price_cents'] ?? null) ? $validated['item_unit_price_cents'] : [];
-        $metas = is_array($validated['item_meta_json'] ?? null) ? $validated['item_meta_json'] : [];
+        $metas  = is_array($validated['item_meta_json'] ?? null) ? $validated['item_meta_json'] : [];
+        $taxIds = is_array($validated['item_tax_id'] ?? null) ? $validated['item_tax_id'] : [];
 
         $max = max(count($types), count($names), count($codes), count($qtys), count($prices), count($metas));
         for ($i = 0; $i < $max; $i++) {
@@ -447,6 +450,10 @@ class UpsertRepairBuddyJob
                 $metaDecoded['code'] = $c;
             }
 
+            // Discounts don't get taxed; otherwise use per-item override or fall back to default
+            $itemTaxId = ($t === 'discount') ? null
+                : (is_numeric($taxIds[$i] ?? null) ? (int) $taxIds[$i] : $defaultTaxId);
+
             RepairBuddyJobItem::query()->create([
                 'job_id' => $job->id,
                 'item_type' => $t,
@@ -455,7 +462,7 @@ class UpsertRepairBuddyJob
                 'qty' => $q,
                 'unit_price_amount_cents' => $p,
                 'unit_price_currency' => is_string($tenant->currency ?? null) ? (string) $tenant->currency : null,
-                'tax_id' => ($t === 'discount') ? null : $defaultTaxId,
+                'tax_id' => $itemTaxId,
                 'meta_json' => $metaDecoded,
             ]);
         }

@@ -133,6 +133,7 @@ class EstimateForm extends JobForm
                     'code' => null,
                     'qty' => $it->qty ?? 1,
                     'unit_price_cents' => ($it->unit_price_amount_cents ?? 0) / 100,
+                    'tax_id' => $it->tax_id ?? null,
                     'meta_json' => is_array($it->meta_json ?? null) ? json_encode($it->meta_json) : null,
                 ];
             }
@@ -295,6 +296,7 @@ class EstimateForm extends JobForm
                 }
 
                 $priceCents = (int) round(($item['unit_price_cents'] ?? 0) * 100);
+                $itemTaxId  = is_numeric($item['tax_id'] ?? null) ? (int) $item['tax_id'] : null;
 
                 RepairBuddyEstimateItem::query()->create([
                     'estimate_id' => $estimate->id,
@@ -304,7 +306,7 @@ class EstimateForm extends JobForm
                     'qty' => is_numeric($item['qty'] ?? null) ? (int) $item['qty'] : 1,
                     'unit_price_amount_cents' => $priceCents,
                     'unit_price_currency' => $currency,
-                    'tax_id' => null,
+                    'tax_id' => $itemTaxId,
                     'meta_json' => null,
                 ]);
             }
