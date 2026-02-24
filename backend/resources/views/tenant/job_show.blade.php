@@ -789,25 +789,40 @@
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Extras') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($ex['subtotal']) }}</span></div>
                         @endif
                         @else
-                        {{-- Job: derive from flat items list --}}
+                        {{-- Job: use controller-computed per-category totals --}}
                         @php
-                            $serviceTotal = $jobItems->where('item_type', 'service')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
-                            $partTotal    = $jobItems->where('item_type', 'part')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
+                            $svcT  = $totals['services']  ?? ['subtotal' => 0];
+                            $prtT  = $totals['parts']     ?? ['subtotal' => 0];
+                            $feeT  = $totals['fees']      ?? ['subtotal' => 0];
+                            $dscT  = $totals['discounts'] ?? ['subtotal' => 0];
                         @endphp
-                        @if ($serviceTotal > 0)
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Services') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($serviceTotal) }}</span></div>
+                        @if (($svcT['subtotal'] ?? 0) > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Services') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($svcT['subtotal']) }}</span></div>
                         @endif
-                        @if ($partTotal > 0)
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Parts') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($partTotal) }}</span></div>
+                        @if (($prtT['subtotal'] ?? 0) > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Parts') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($prtT['subtotal']) }}</span></div>
+                        @endif
+                        @if (($feeT['subtotal'] ?? 0) > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Fees / Extras') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($feeT['subtotal']) }}</span></div>
+                        @endif
+                        @if (($dscT['subtotal'] ?? 0) > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Discounts') }}</span><span class="ja-sidebar-kpi-value" style="color:var(--rb-danger);">-{{ $formatMoney($dscT['subtotal']) }}</span></div>
                         @endif
                         @endif
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Subtotal') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['subtotal_cents'] ?? null) }}</span></div>
                         @if (($totals['tax_cents'] ?? 0) > 0)
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Tax') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['tax_cents']) }}</span></div>
+                        @php
+                            $taxLabel = __('Tax');
+                            if (!empty($totals['tax_name'])) $taxLabel .= ' (' . e($totals['tax_name']);
+                            if (!empty($totals['tax_rate'])) $taxLabel .= ' ' . rtrim(rtrim(number_format((float)$totals['tax_rate'], 2), '0'), '.') . '%';
+                            if (!empty($totals['tax_name'])) $taxLabel .= ')';
+                            $taxModeTag = ($totals['tax_mode'] ?? 'exclusive') === 'inclusive' ? __('incl.') : __('excl.');
+                        @endphp
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ $taxLabel }} <small class="text-muted">({{ $taxModeTag }})</small></span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['tax_cents']) }}</span></div>
                         @endif
                         <div class="ja-sidebar-grand">
                             <span>{{ __('Grand Total') }}</span>
-                            <span>{{ $formatMoney($totals['total_cents'] ?? $totals['grand_total_cents'] ?? null) }} {{ $currency }}</span>
+                            <span>{{ $formatMoney($totals['grand_total_cents'] ?? $totals['total_cents'] ?? null) }} {{ $currency }}</span>
                         </div>
                         @if (isset($totals['balance_cents']))
                         <div class="ja-sidebar-kpi" style="margin-top:.4rem;">

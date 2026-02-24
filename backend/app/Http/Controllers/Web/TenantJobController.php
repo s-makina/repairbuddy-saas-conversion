@@ -14,6 +14,8 @@ use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyPayment;
 use App\Models\RepairBuddyPaymentStatus;
+use App\Models\RepairBuddyTax;
+use App\Services\TenantSettings\TenantSettingsStore;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyJobItem;
@@ -649,11 +651,78 @@ class TenantJobController extends Controller
 
         $currency = is_string($tenant?->currency) && $tenant?->currency !== '' ? strtoupper((string) $tenant->currency) : 'USD';
 
-        $itemsSubtotalCents = 0;
+        /* ── Tax settings from tenant ── */
+        $store = new TenantSettingsStore($tenant);
+        $taxSettings = $store->get('taxes', []);
+        $taxEnabled = (bool) ($taxSettings['enableTaxes'] ?? false);
+        $pricesMode = is_string($job->prices_inclu_exclu) && $job->prices_inclu_exclu !== ''
+            ? $job->prices_inclu_exclu
+            : (is_string($taxSettings['invoiceAmounts'] ?? null) ? (string) $taxSettings['invoiceAmounts'] : 'exclusive');
+
+        /* ── Categorize items and compute per-category totals ── */
+        $categories = ['service' => [], 'part' => [], 'fee' => [], 'discount' => []];
         foreach ($items as $item) {
-            $qty = is_numeric($item->qty) ? (int) $item->qty : 1;
-            $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
-            $itemsSubtotalCents += ($qty * $unit);
+            $type = is_string($item->item_type) ? strtolower((string) $item->item_type) : 'fee';
+            if (! array_key_exists($type, $categories)) {
+                $categories['fee'][] = $item; // unknown types go to fees/extras
+            } else {
+                $categories[$type][] = $item;
+            }
+        }
+
+        $computeCategoryTotals = function (array $categoryItems, string $mode, bool $taxOn) {
+            $sub = 0;
+            $tax = 0;
+            foreach ($categoryItems as $item) {
+                $qty  = is_numeric($item->qty) ? max(1, (int) $item->qty) : 1;
+                $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                $line = $qty * $unit;
+                $sub += $line;
+
+                if ($taxOn && $item->relationLoaded('tax') && $item->tax) {
+                    $rate = (float) ($item->tax->rate ?? 0);
+                    if ($rate > 0) {
+                        if ($mode === 'inclusive') {
+                            // Tax is embedded in the price: tax = line - line / (1 + rate/100)
+                            $tax += (int) round($line - ($line / (1 + ($rate / 100))));
+                        } else {
+                            // Tax is on top: tax = line * rate / 100
+                            $tax += (int) round($line * ($rate / 100.0));
+                        }
+                    }
+                }
+            }
+            return ['subtotal' => $sub, 'tax' => $tax, 'total' => $sub + $tax];
+        };
+
+        $serviceTotals  = $computeCategoryTotals($categories['service'], $pricesMode, $taxEnabled);
+        $partTotals     = $computeCategoryTotals($categories['part'], $pricesMode, $taxEnabled);
+        $feeTotals      = $computeCategoryTotals($categories['fee'], $pricesMode, $taxEnabled);
+        $discountTotals = $computeCategoryTotals($categories['discount'], $pricesMode, false); // discounts never taxed
+
+        // For inclusive: subtotal = sum of all line items (tax already inside), grand total = subtotal
+        // For exclusive: subtotal = sum of all line items, grand total = subtotal + total tax
+        $itemsSubtotalCents = $serviceTotals['subtotal'] + $partTotals['subtotal'] + $feeTotals['subtotal'];
+        $discountCents      = $discountTotals['subtotal'];
+        $taxCents           = $serviceTotals['tax'] + $partTotals['tax'] + $feeTotals['tax'];
+
+        if ($pricesMode === 'inclusive') {
+            // Inclusive: prices already contain tax, grand total = items - discounts
+            $grandTotalCents = $itemsSubtotalCents - $discountCents;
+        } else {
+            // Exclusive: tax added on top
+            $grandTotalCents = $itemsSubtotalCents + $taxCents - $discountCents;
+        }
+
+        // Tax info for display
+        $taxName = null;
+        $taxRate = null;
+        if ($taxEnabled) {
+            $firstTaxedItem = $items->first(fn ($i) => $i->tax !== null);
+            if ($firstTaxedItem && $firstTaxedItem->tax) {
+                $taxName = $firstTaxedItem->tax->name;
+                $taxRate = (float) $firstTaxedItem->tax->rate;
+            }
         }
 
         $payments = RepairBuddyPayment::query()
@@ -666,15 +735,24 @@ class TenantJobController extends Controller
 
         $totals = [
             'currency'             => $currency,
-            'subtotal_cents'       => $itemsSubtotalCents,
+            'subtotal_cents'       => $itemsSubtotalCents - $discountCents,
             'items_subtotal_cents' => $itemsSubtotalCents,
-            'tax_cents'            => null,
-            'tax_total_cents'      => null,
-            'total_cents'          => $itemsSubtotalCents,
-            'grand_total_cents'    => $itemsSubtotalCents,
+            'discount_cents'       => $discountCents,
+            'tax_cents'            => $taxCents,
+            'tax_total_cents'      => $taxCents,
+            'tax_name'             => $taxName,
+            'tax_rate'             => $taxRate,
+            'tax_mode'             => $pricesMode,
+            'total_cents'          => $grandTotalCents,
+            'grand_total_cents'    => $grandTotalCents,
             'paid_cents'           => $paidCents,
             'paid_total_cents'     => $paidCents,
-            'balance_cents'        => $itemsSubtotalCents - $paidCents,
+            'balance_cents'        => $grandTotalCents - $paidCents,
+            // Per-category breakdowns
+            'services'  => $serviceTotals,
+            'parts'     => $partTotals,
+            'fees'      => $feeTotals,
+            'discounts' => $discountTotals,
         ];
 
         $paymentStatuses = RepairBuddyPaymentStatus::query()

@@ -13,6 +13,7 @@ use App\Models\RepairBuddyJobCounter;
 use App\Models\RepairBuddyJobDevice;
 use App\Models\RepairBuddyJobExtraItem;
 use App\Models\RepairBuddyJobItem;
+use App\Models\RepairBuddyTax;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
@@ -363,6 +364,8 @@ class UpsertRepairBuddyJob
 
     private function replaceJobItemsCreateSimple(RepairBuddyJob $job, Tenant $tenant, array $validated): void
     {
+        $defaultTaxId = $this->resolveDefaultTaxId($tenant);
+
         $types = is_array($validated['item_type'] ?? null) ? $validated['item_type'] : [];
         $names = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
         $codes = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
@@ -386,6 +389,9 @@ class UpsertRepairBuddyJob
 
             $metaJson = $c !== '' ? ['code' => $c] : null;
 
+            // Discounts don't get taxed
+            $itemTaxId = ($t === 'discount') ? null : $defaultTaxId;
+
             RepairBuddyJobItem::query()->create([
                 'job_id' => $job->id,
                 'item_type' => $t,
@@ -394,7 +400,7 @@ class UpsertRepairBuddyJob
                 'qty' => $q,
                 'unit_price_amount_cents' => $p,
                 'unit_price_currency' => is_string($tenant->currency ?? null) ? (string) $tenant->currency : null,
-                'tax_id' => null,
+                'tax_id' => $itemTaxId,
                 'meta_json' => $metaJson,
             ]);
         }
@@ -402,6 +408,8 @@ class UpsertRepairBuddyJob
 
     private function replaceJobItemsWithMeta(RepairBuddyJob $job, Tenant $tenant, array $validated): void
     {
+        $defaultTaxId = $this->resolveDefaultTaxId($tenant);
+
         $types = is_array($validated['item_type'] ?? null) ? $validated['item_type'] : [];
         $names = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
         $codes = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
@@ -447,10 +455,52 @@ class UpsertRepairBuddyJob
                 'qty' => $q,
                 'unit_price_amount_cents' => $p,
                 'unit_price_currency' => is_string($tenant->currency ?? null) ? (string) $tenant->currency : null,
-                'tax_id' => null,
+                'tax_id' => ($t === 'discount') ? null : $defaultTaxId,
                 'meta_json' => $metaDecoded,
             ]);
         }
+    }
+
+    /**
+     * Resolve the default tax ID from tenant settings.
+     */
+    private function resolveDefaultTaxId(Tenant $tenant): ?int
+    {
+        $settings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings');
+        $taxSettings = is_array($settings) ? (array) data_get($settings, 'taxes', []) : [];
+
+        $taxEnabled = (bool) ($taxSettings['enableTaxes'] ?? false);
+        if (! $taxEnabled) {
+            return null;
+        }
+
+        $rawId = $taxSettings['defaultTaxId'] ?? null;
+        $taxId = is_numeric($rawId) ? (int) $rawId : null;
+
+        if ($taxId) {
+            $exists = RepairBuddyTax::query()
+                ->whereKey($taxId)
+                ->where('is_active', true)
+                ->exists();
+            if ($exists) {
+                return $taxId;
+            }
+        }
+
+        // Fallback: first active default tax
+        $tax = RepairBuddyTax::query()
+            ->where('is_default', true)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $tax) {
+            $tax = RepairBuddyTax::query()
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->first();
+        }
+
+        return $tax?->id;
     }
 
     private function attachJobFile(RepairBuddyJob $job, User $actor, UploadedFile $uploaded): void

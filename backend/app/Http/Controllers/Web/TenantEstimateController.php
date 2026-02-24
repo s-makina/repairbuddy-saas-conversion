@@ -20,6 +20,7 @@ use App\Support\RepairBuddyCaseNumberService;
 use App\Support\BranchContext;
 use App\Support\RepairBuddyEstimateConversionService;
 use App\Support\TenantContext;
+use App\Services\TenantSettings\TenantSettingsStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -297,6 +298,14 @@ class TenantEstimateController extends Controller
         $currency = is_string($tenant->currency) && $tenant->currency !== ''
             ? strtoupper((string) $tenant->currency) : 'USD';
 
+        /* ── Tax settings ── */
+        $store = new TenantSettingsStore($tenant);
+        $taxSettings = $store->get('taxes', []);
+        $taxEnabled = (bool) ($taxSettings['enableTaxes'] ?? false);
+        $pricesMode = is_string($estimate->prices_inclu_exclu ?? null) && ($estimate->prices_inclu_exclu ?? '') !== ''
+            ? $estimate->prices_inclu_exclu
+            : (is_string($taxSettings['invoiceAmounts'] ?? null) ? (string) $taxSettings['invoiceAmounts'] : 'exclusive');
+
         /* categorize items same as plugin */
         $productItems = [];
         $partItems    = [];
@@ -325,7 +334,7 @@ class TenantEstimateController extends Controller
         }
 
         /* compute per-category and grand totals */
-        $computeCategoryTotals = function (array $categoryItems) {
+        $computeCategoryTotals = function (array $categoryItems) use ($pricesMode, $taxEnabled) {
             $sub = 0;
             $tax = 0;
             foreach ($categoryItems as $item) {
@@ -333,9 +342,15 @@ class TenantEstimateController extends Controller
                 $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
                 $line = $qty * $unit;
                 $sub += $line;
-                if ($item->relationLoaded('tax') && $item->tax) {
+                if ($taxEnabled && $item->relationLoaded('tax') && $item->tax) {
                     $rate = (float) ($item->tax->rate ?? 0);
-                    $tax += (int) round($line * ($rate / 100.0));
+                    if ($rate > 0) {
+                        if ($pricesMode === 'inclusive') {
+                            $tax += (int) round($line - ($line / (1 + ($rate / 100))));
+                        } else {
+                            $tax += (int) round($line * ($rate / 100.0));
+                        }
+                    }
                 }
             }
             return ['subtotal' => $sub, 'tax' => $tax, 'total' => $sub + $tax];
@@ -349,10 +364,17 @@ class TenantEstimateController extends Controller
         $subtotalCents = $productTotals['subtotal'] + $partTotals['subtotal'] + $serviceTotals['subtotal'] + $extraTotals['subtotal'];
         $taxCents = $productTotals['tax'] + $partTotals['tax'] + $serviceTotals['tax'] + $extraTotals['tax'];
 
+        if ($pricesMode === 'inclusive') {
+            $grandTotalCents = $subtotalCents; // tax embedded
+        } else {
+            $grandTotalCents = $subtotalCents + $taxCents;
+        }
+
         $totals = [
             'subtotal_cents' => $subtotalCents,
             'tax_cents'      => $taxCents,
-            'total_cents'    => $subtotalCents + $taxCents,
+            'tax_mode'       => $pricesMode,
+            'total_cents'    => $grandTotalCents,
             'currency'       => $currency,
             'products' => $productTotals,
             'parts'    => $partTotals,
