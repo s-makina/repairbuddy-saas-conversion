@@ -3,15 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Estimate / Quote — EST-2024-0042 — FixIt Pro Repair Shop</title>
+<title>Estimate C — Ultra-Compact Typographic</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
 /*
- * receipt-estimate.html  |  Customer-Facing Estimate / Quote
- * Style: Ultra-Compact Typographic (estimate-c base)
- * Narrow 580px, B&W, 3px rule-top, flat info-strip, hairline table rules.
+ * estimate-c.html  |  Variant C — Ultra-Compact Typographic
+ * Narrow 580px sheet, black & white, single hairline accent, no gradients.
+ * Maximum information density. Works on A5 / half-letter / email embed.
  */
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --ink: #111827; --ink2: #4b5563; --ink3: #9ca3af;
@@ -19,57 +18,57 @@
 }
 body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color: var(--ink); font-size: 12.5px; line-height: 1.45; padding: 2.5rem 1rem 4rem; -webkit-font-smoothing: antialiased; }
 
-/* action bar */
-.bar { position: fixed; inset: 0 0 auto 0; z-index: 99; background: rgba(17,24,39,.95); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.4rem; gap: 1rem; }
+/* bar */
+.bar { position: fixed; inset: 0 0 auto 0; z-index: 99; background: rgba(17,24,39,.95); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.4rem; gap: 1rem; }
 .bar-title { color: #e5e7eb; font-size: .78rem; font-weight: 600; display: flex; align-items: center; gap: .4rem; }
 .bar-title i { color: #6b7280; }
 .bar-actions { display: flex; gap: .35rem; }
 .btn { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 600; border-radius: 5px; border: 1px solid transparent; padding: .3rem .68rem; cursor: pointer; line-height: 1.4; text-decoration: none; transition: all .12s; }
-.btn-ghost   { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: #d1d5db; }
-.btn-ghost:hover { background: rgba(255,255,255,.13); }
-.btn-solid   { background: #111827; border-color: #111827; color: #fff; }
+.btn-ghost  { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: #d1d5db; }
+.btn-solid  { background: #111827; border-color: #111827; color: #fff; }
 .btn-approve { background: #16a34a; border-color: #16a34a; color: #fff; }
 .btn-reject  { background: transparent; border-color: #ef4444; color: #ef4444; }
 
 /* paper */
 .paper { max-width: 580px; margin: 3rem auto 0; background: var(--paper); border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+
+/* rule top */
 .rule-top { height: 3px; background: var(--ink); }
 
-/* header */
+/* head */
 .hd { padding: 1.1rem 1.5rem .9rem; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.shop-name { font-size: .9rem; font-weight: 800; letter-spacing: -.01em; }
-.shop-meta  { font-size: .68rem; color: var(--ink3); line-height: 1.65; margin-top: .1rem; }
-.doc-right  { text-align: right; flex-shrink: 0; }
-.doc-type   { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--ink3); }
-.doc-num    { font-size: 1.25rem; font-weight: 900; letter-spacing: -.02em; line-height: 1.1; }
-.doc-meta   { font-size: .68rem; color: var(--ink3); line-height: 1.65; }
-.doc-badge  { display: inline-block; margin-top: .25rem; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .15rem .5rem; border: 1px solid var(--ink); border-radius: 3px; }
+.shop-name { font-size: .9rem; font-weight: 800; color: var(--ink); letter-spacing: -.01em; }
+.shop-meta { font-size: .68rem; color: var(--ink3); line-height: 1.65; margin-top: .1rem; }
+.doc-right { text-align: right; }
+.doc-type { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--ink3); }
+.doc-num  { font-size: 1.25rem; font-weight: 900; color: var(--ink); line-height: 1.1; letter-spacing: -.02em; }
+.doc-meta { font-size: .68rem; color: var(--ink3); line-height: 1.65; }
+.doc-status { display: inline-block; margin-top: .25rem; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .15rem .5rem; border: 1px solid var(--ink); border-radius: 3px; color: var(--ink); }
 
 /* info strip */
-.info-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid var(--line); }
+.info-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--line); }
 .is-cell { padding: .65rem 1rem; border-right: 1px solid var(--line); }
 .is-cell:last-child { border-right: none; }
-.is-lbl { font-size: .57rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink3); margin-bottom: .2rem; }
+.is-label { font-size: .57rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink3); margin-bottom: .2rem; }
 .is-val { font-size: .8rem; color: var(--ink2); line-height: 1.55; }
 .is-val strong { color: var(--ink); font-weight: 700; display: block; font-size: .82rem; }
 
 /* body */
 .bd { padding: 1rem 1.5rem; }
-.sec { margin-bottom: .9rem; }
 .sec-lbl { font-size: .57rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: var(--ink3); margin-bottom: .4rem; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }
+.sec { margin-bottom: .9rem; }
 
-/* device chips */
 .chips { display: flex; flex-wrap: wrap; gap: .28rem; }
 .chip { font-size: .7rem; font-weight: 600; padding: .18rem .55rem; border: 1px solid var(--line); border-radius: 3px; color: var(--ink2); display: inline-flex; align-items: center; gap: .3rem; }
 .chip i { color: var(--ink3); font-size: .65rem; }
 
-/* items table */
+/* table */
 .tbl { width: 100%; border-collapse: collapse; }
 .tbl thead th { font-size: .57rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3); padding: .3rem .45rem; border-bottom: 1.5px solid var(--ink); text-align: left; }
 .tbl thead th.r { text-align: right; }
 .tbl tbody td { padding: .42rem .45rem; border-bottom: 1px solid var(--line); font-size: .8rem; vertical-align: middle; }
 .tbl tbody tr:last-child td { border-bottom: none; }
-.it-name { font-weight: 600; }
+.it-name { font-weight: 600; color: var(--ink); }
 .it-sub  { font-size: .67rem; color: var(--ink3); }
 .tag { font-size: .55rem; font-weight: 700; padding: .04rem .35rem; border: 1px solid var(--line); border-radius: 2px; color: var(--ink3); margin-top: .07rem; display: inline-block; text-transform: uppercase; letter-spacing: .04em; }
 .tbl td.r { text-align: right; font-weight: 600; }
@@ -83,12 +82,11 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
 .tdiv { border: none; border-top: 1px solid var(--line); margin: .22rem 0; }
 .tgrand { display: flex; justify-content: space-between; padding: .3rem 0; border-top: 1.5px solid var(--ink); margin-top: .05rem; }
 .tgrand span:first-child { font-size: .8rem; font-weight: 800; }
-.tgrand span:last-child  { font-size: 1rem; font-weight: 900; }
+.tgrand span:last-child  { font-size: 1rem; font-weight: 900; color: var(--ink); }
 
-/* note */
 .note { font-size: .7rem; color: var(--ink3); line-height: 1.6; margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--line); }
 
-/* signature */
+/* sig */
 .sig-row { margin-top: .85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; padding: .7rem; border: 1px solid var(--line); border-radius: 4px; }
 .sig-lbl  { font-size: .57rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3); margin-bottom: .4rem; }
 .sig-line { border-bottom: 1px solid var(--ink3); height: 26px; margin-bottom: .2rem; }
@@ -96,7 +94,7 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
 
 /* footer */
 .foot { padding: .6rem 1.5rem; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
-.foot-text { font-size: .62rem; color: var(--ink3); line-height: 1.55; max-width: 430px; }
+.foot-text { font-size: .62rem; color: var(--ink3); line-height: 1.55; max-width: 400px; }
 .qr { width: 40px; height: 40px; background: var(--line); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: .5rem; color: var(--ink3); text-align: center; flex-shrink: 0; }
 
 @media print {
@@ -109,9 +107,8 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
 </style>
 </head>
 <body>
-
 <div class="bar">
-  <div class="bar-title"><i class="bi bi-file-earmark-text-fill"></i> Estimate EST-2024-0042</div>
+  <div class="bar-title"><i class="bi bi-file-earmark-text-fill"></i> Estimate EST-2024-0042 — Variant C</div>
   <div class="bar-actions">
     <a href="#" class="btn btn-ghost"><i class="bi bi-envelope"></i> Email</a>
     <button class="btn btn-reject"><i class="bi bi-x-circle"></i> Reject</button>
@@ -131,64 +128,35 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
     <div class="doc-right">
       <div class="doc-type">Estimate / Quote</div>
       <div class="doc-num">EST-2024-0042</div>
-      <div class="doc-meta">Issued: Feb 24, 2026<br>Valid until: Mar 10, 2026</div>
-      <span class="doc-badge">Pending Approval</span>
+      <div class="doc-meta">Issued: Feb 24, 2026<br>Valid: Mar 10, 2026</div>
+      <div><span class="doc-status">Pending Approval</span></div>
     </div>
   </div>
 
   <div class="info-strip">
-    <div class="is-cell">
-      <div class="is-lbl">Bill To</div>
-      <div class="is-val"><strong>John Doe</strong>john.doe@email.com<br>+1 555-0101</div>
-    </div>
-    <div class="is-cell">
-      <div class="is-lbl">Technician</div>
-      <div class="is-val"><strong>Alice Martinez</strong>Case: CASE-0189</div>
-    </div>
-    <div class="is-cell">
-      <div class="is-lbl">Priority / ETA</div>
-      <div class="is-val"><strong>High</strong>Est. 2–3 business days</div>
-    </div>
+    <div class="is-cell"><div class="is-label">Bill To</div><div class="is-val"><strong>John Doe</strong>john.doe@email.com<br>+1 555-0101</div></div>
+    <div class="is-cell"><div class="is-label">Technician</div><div class="is-val"><strong>Alice Martinez</strong>Case: CASE-0189</div></div>
+    <div class="is-cell"><div class="is-label">Priority / ETA</div><div class="is-val"><strong>High</strong>Est. 2–3 business days</div></div>
   </div>
 
   <div class="bd">
     <div class="sec">
       <div class="sec-lbl">Devices</div>
       <div class="chips">
-        <span class="chip"><i class="bi bi-laptop"></i> Dell XPS 15 9520 · S/N DX15-9920K</span>
-        <span class="chip"><i class="bi bi-phone"></i> iPhone 14 Pro 256GB · IMEI 358971082347605</span>
+        <span class="chip"><i class="bi bi-laptop"></i> Dell XPS 15 · S/N DX15-9920K</span>
+        <span class="chip"><i class="bi bi-phone"></i> iPhone 14 Pro · IMEI 358971082347605</span>
       </div>
     </div>
 
     <div class="sec">
       <div class="sec-lbl">Estimated Items</div>
       <table class="tbl">
-        <thead>
-          <tr>
-            <th style="width:46%">Description</th>
-            <th class="c" style="width:7%">Qty</th>
-            <th class="r" style="width:16%">Unit</th>
-            <th class="r" style="width:10%">Tax</th>
-            <th class="r" style="width:21%">Amount</th>
-          </tr>
-        </thead>
+        <thead><tr><th style="width:47%">Description</th><th class="c" style="width:7%">Qty</th><th class="r" style="width:16%">Unit</th><th class="r" style="width:10%">Tax</th><th class="r" style="width:20%">Amount</th></tr></thead>
         <tbody>
-          <tr>
-            <td><div class="it-name">Screen Replacement (OEM)</div><div class="it-sub">Dell XPS 15 9520 panel</div><span class="tag">Part</span></td>
-            <td class="c">1</td><td class="r">$95.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$95.00</td>
-          </tr>
-          <tr>
-            <td><div class="it-name">Battery Replacement (OEM)</div><div class="it-sub">XPS 15 spec battery</div><span class="tag">Part</span></td>
-            <td class="c">1</td><td class="r">$45.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$45.00</td>
-          </tr>
-          <tr>
-            <td><div class="it-name">Screen &amp; Battery Labour</div><div class="it-sub">Est. 1.5 hrs incl. diagnostic</div><span class="tag">Service</span></td>
-            <td class="c">1</td><td class="r">$40.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$40.00</td>
-          </tr>
-          <tr>
-            <td><div class="it-name">Data Backup &amp; Restore</div><span class="tag">Service</span></td>
-            <td class="c">1</td><td class="r">$25.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$25.00</td>
-          </tr>
+          <tr><td><div class="it-name">Screen Replacement (OEM)</div><div class="it-sub">Dell XPS 15 9520 panel</div><span class="tag">Part</span></td><td class="c">1</td><td class="r">$95.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$95.00</td></tr>
+          <tr><td><div class="it-name">Battery Replacement (OEM)</div><div class="it-sub">XPS 15 spec battery</div><span class="tag">Part</span></td><td class="c">1</td><td class="r">$45.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$45.00</td></tr>
+          <tr><td><div class="it-name">Screen &amp; Battery Labour</div><div class="it-sub">Est. 1.5 hrs incl. diagnostic</div><span class="tag">Service</span></td><td class="c">1</td><td class="r">$40.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$40.00</td></tr>
+          <tr><td><div class="it-name">Data Backup &amp; Restore</div><span class="tag">Service</span></td><td class="c">1</td><td class="r">$25.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$25.00</td></tr>
         </tbody>
       </table>
       <div class="totals-wrap">
@@ -202,27 +170,18 @@ body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color
       </div>
     </div>
 
-    <div class="note">Parts pricing may vary if unavailable — we will contact you before substituting. A 50% deposit ($112.75) is required before ordering parts. Parts warranty 90 days · Labour warranty 30 days.</div>
+    <div class="note">Parts pricing may vary if unavailable — we will contact you before proceeding with any substitution. A 50% deposit ($112.75) is required before ordering parts. Parts warranty 90 days · Labour warranty 30 days.</div>
 
     <div class="sig-row">
-      <div>
-        <div class="sig-lbl">Customer Approval</div>
-        <div class="sig-line"></div>
-        <div class="sig-sub">Signature &amp; date — authorises work to proceed</div>
-      </div>
-      <div>
-        <div class="sig-lbl">Authorised — FixIt Pro</div>
-        <div class="sig-line"></div>
-        <div class="sig-sub">Alice Martinez · Senior Technician</div>
-      </div>
+      <div><div class="sig-lbl">Customer Approval</div><div class="sig-line"></div><div class="sig-sub">Signature &amp; Date — authorises work</div></div>
+      <div><div class="sig-lbl">Authorised — FixIt Pro</div><div class="sig-line"></div><div class="sig-sub">Alice Martinez · Senior Technician</div></div>
     </div>
   </div>
 
   <div class="foot">
-    <div class="foot-text">Not a tax invoice. Tax invoice issued on job completion. Valid 14 days from issue date. ABN 12 345 678 901.</div>
+    <div class="foot-text">Not a tax invoice. Tax invoice issued on completion. Valid 14 days. ABN 12 345 678 901.</div>
     <div class="qr">QR<br>Code</div>
   </div>
 </div>
-
 </body>
 </html>

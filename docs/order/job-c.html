@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job C — Technical Workshop Card</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/*
+ * job-c.html  |  Variant C — Technical Workshop Card
+ * Dark sidebar carries all job meta. White main content for items.
+ * Monospace details, QR-block in sidebar. Feels like a real repair ticket.
+ * Narrow width for easy scanning and posting to a device in workshop.
+ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #111827; --ink2: #4b5563; --ink3: #9ca3af;
+  --dark: #111827; --dark2: #1f2937; --dark3: #374151;
+  --ok: #22c55e; --ok-s: #dcfce7; --ok-b: #86efac;
+  --warn-s: #fef3c7;
+  --line: #e5e7eb; --bg: #f3f4f6; --paper: #fff;
+}
+body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; color: var(--ink); font-size: 13px; line-height: 1.5; padding: 2.5rem 1rem 4rem; -webkit-font-smoothing: antialiased; }
+
+/* bar */
+.bar { position: fixed; inset: 0 0 auto 0; z-index: 99; background: rgba(17,24,39,.95); display: flex; align-items: center; justify-content: space-between; padding: .55rem 1.5rem; gap: 1rem; }
+.bar-title { color: #e5e7eb; font-size: .8rem; font-weight: 600; display: flex; align-items: center; gap: .45rem; }
+.bar-title i { color: #34d399; }
+.bar-actions { display: flex; gap: .4rem; }
+.btn { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 600; border-radius: 6px; border: 1px solid transparent; padding: .35rem .75rem; cursor: pointer; line-height: 1.4; text-decoration: none; transition: all .12s; }
+.btn-ghost  { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.12); color: #e5e7eb; }
+.btn-ghost:hover { background: rgba(255,255,255,.14); }
+.btn-ok  { background: #16a34a; border-color: #16a34a; color: #fff; }
+
+/* paper */
+.paper { max-width: 760px; margin: 3.2rem auto 0; background: var(--paper); border-radius: 10px; box-shadow: 0 2px 20px rgba(0,0,0,.10); overflow: hidden; display: grid; grid-template-columns: 200px 1fr; min-height: 600px; }
+
+/* ── DARK SIDEBAR ── */
+.sidebar { background: var(--dark); padding: 1.25rem 1rem; display: flex; flex-direction: column; gap: 1.1rem; }
+
+.sb-logo { display: flex; align-items: center; gap: .5rem; margin-bottom: .25rem; }
+.sb-logo-icon { width: 30px; height: 30px; border-radius: 7px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; font-size: .85rem; color: #fff; flex-shrink: 0; }
+.sb-shop { font-size: .7rem; font-weight: 800; color: #fff; line-height: 1.3; }
+
+.sb-divider { border: none; border-top: 1px solid var(--dark3); }
+
+.sb-doc-type { font-size: .52rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #6b7280; margin-bottom: .15rem; }
+.sb-doc-num  { font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: -.02em; line-height: 1.1; margin-bottom: .2rem; }
+.sb-doc-case { font-size: .68rem; color: #9ca3af; margin-bottom: .35rem; }
+.sb-status { display: inline-flex; align-items: center; gap: .25rem; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .18rem .55rem; border-radius: 999px; background: rgba(34,197,94,.15); color: var(--ok); border: 1px solid rgba(34,197,94,.3); }
+
+.sb-kv { }
+.sb-kv-label { font-size: .53rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: .12rem; }
+.sb-kv-val   { font-size: .75rem; color: #d1d5db; line-height: 1.5; }
+.sb-kv-val strong { color: #fff; font-weight: 700; }
+
+/* device lozenge */
+.sb-device { background: var(--dark2); border: 1px solid var(--dark3); border-radius: 5px; padding: .45rem .6rem; margin-bottom: .35rem; }
+.sb-device-name { font-size: .72rem; font-weight: 700; color: #fff; }
+.sb-device-id   { font-size: .62rem; color: #9ca3af; margin-top: .05rem; font-family: 'Courier New', monospace; }
+.sb-device-cond { display: flex; gap: .3rem; margin-top: .28rem; }
+.ctag { font-size: .57rem; font-weight: 700; padding: .1rem .4rem; border-radius: 3px; }
+.cin  { background: rgba(239,68,68,.15); color: #fca5a5; }
+.cout { background: rgba(34,197,94,.15); color: var(--ok); }
+
+/* QR placeholder */
+.sb-qr { margin-top: auto; }
+.sb-qr-box { width: 70px; height: 70px; background: #fff; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: .58rem; color: var(--ink3); text-align: center; margin-bottom: .3rem; }
+.sb-qr-lbl { font-size: .55rem; color: #6b7280; text-align: center; }
+
+/* ── MAIN CONTENT ── */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+
+/* shop address strip for print */
+.main-head { padding: .85rem 1.25rem; border-bottom: 1px solid var(--line); }
+.mh-shop  { font-size: .78rem; font-weight: 700; color: var(--ink); }
+.mh-meta  { font-size: .65rem; color: var(--ink3); line-height: 1.6; }
+
+/* body */
+.main-body { padding: 1rem 1.25rem; flex: 1; }
+.sec-lbl { font-size: .57rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink3); margin-bottom: .42rem; display: flex; align-items: center; gap: .32rem; }
+.sec-lbl::before { content: ''; width: 2px; height: 10px; background: var(--ok); border-radius: 1px; }
+.sec { margin-bottom: .9rem; }
+
+/* work summary */
+.ws-box { padding: .55rem .75rem; background: #f9fafb; border: 1px solid var(--line); border-radius: 5px; font-size: .75rem; color: var(--ink2); line-height: 1.65; }
+
+/* items */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th { font-size: .56rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3); padding: .3rem .45rem; border-bottom: 2px solid var(--line); background: #f9fafb; text-align: left; }
+.tbl thead th.r { text-align: right; }
+.tbl tbody td { padding: .42rem .45rem; border-bottom: 1px solid var(--line); font-size: .78rem; }
+.tbl tbody tr:last-child td { border-bottom: none; }
+.it-name { font-weight: 600; color: var(--ink); }
+.tag { display: inline-block; font-size: .55rem; font-weight: 700; padding: .04rem .35rem; border-radius: 3px; margin-top: .05rem; border: 1px solid var(--line); color: var(--ink3); text-transform: uppercase; letter-spacing: .04em; }
+.tbl td.r { text-align: right; font-weight: 600; }
+.tbl td.c { text-align: center; color: var(--ink2); font-size: .75rem; }
+
+/* totals */
+.totals { margin-top: .55rem; }
+.tr { display: flex; justify-content: space-between; padding: .15rem 0; font-size: .78rem; color: var(--ink2); }
+.tr span:last-child { font-weight: 600; color: var(--ink); }
+.tr.disc span:last-child { color: var(--ok); }
+.tdiv { border: none; border-top: 1px solid var(--line); margin: .22rem 0; }
+.tgrand { display: flex; justify-content: space-between; padding: .3rem .5rem; background: var(--ok-s); border: 1px solid var(--ok-b); border-radius: 4px; margin-top: .2rem; }
+.tgrand span:first-child { font-size: .78rem; font-weight: 800; }
+.tgrand span:last-child  { font-size: 1rem; font-weight: 900; color: #14532d; }
+
+/* warranty */
+.warr { display: flex; flex-wrap: wrap; gap: .28rem; }
+.w-chip { display: inline-flex; align-items: center; gap: .28rem; font-size: .67rem; font-weight: 600; padding: .18rem .52rem; border-radius: 999px; background: var(--ok-s); color: #14532d; border: 1px solid var(--ok-b); }
+
+/* sig */
+.sig-row { margin-top: .85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: .7rem; border: 1.5px dashed var(--line); border-radius: 4px; }
+.sig-lbl  { font-size: .56rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3); margin-bottom: .38rem; }
+.sig-line { border-bottom: 1px solid var(--ink3); height: 26px; margin-bottom: .18rem; }
+.sig-sub  { font-size: .61rem; color: var(--ink3); }
+
+/* footer strip */
+.main-foot { padding: .6rem 1.25rem; border-top: 1px solid var(--line); background: #f9fafb; font-size: .62rem; color: var(--ink3); line-height: 1.55; }
+
+@media print {
+  @page { size: A4 landscape; margin: 10mm 12mm; }
+  body { background: none; padding: 0; font-size: 11px; }
+  .bar { display: none !important; }
+  .paper { margin: 0; box-shadow: none; border-radius: 0; max-width: 100%; min-height: unset; }
+  .sidebar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sig-row, .sec { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="bar-title"><i class="bi bi-briefcase-fill"></i> Work Order #ORD-2024-0087 — Variant C</div>
+  <div class="bar-actions">
+    <a href="#" class="btn btn-ghost"><i class="bi bi-envelope"></i> Email</a>
+    <a href="#" class="btn btn-ghost"><i class="bi bi-download"></i> PDF</a>
+    <button class="btn btn-ok" onclick="window.print()"><i class="bi bi-printer-fill"></i> Print</button>
+  </div>
+</div>
+
+<div class="paper">
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div>
+      <div class="sb-logo">
+        <div class="sb-logo-icon"><i class="bi bi-tools"></i></div>
+        <div class="sb-shop">FixIt Pro<br>Repair Shop</div>
+      </div>
+      <div style="font-size:.62rem; color:#6b7280; line-height:1.6">123 Main St, Sydney NSW 2000<br>(02) 9000 1234<br>ABN 12 345 678 901</div>
+    </div>
+
+    <hr class="sb-divider">
+
+    <div>
+      <div class="sb-doc-type">Work Order</div>
+      <div class="sb-doc-num">#ORD-2024-0087</div>
+      <div class="sb-doc-case">Case: CASE-0142</div>
+      <span class="sb-status"><i class="bi bi-check-circle-fill"></i> Completed</span>
+    </div>
+
+    <hr class="sb-divider">
+
+    <div>
+      <div class="sb-kv-label">Customer</div>
+      <div class="sb-kv-val"><strong>John Doe</strong><br>john.doe@email.com<br>+1 555-0101</div>
+    </div>
+    <div>
+      <div class="sb-kv-label">Technician</div>
+      <div class="sb-kv-val"><strong>Alice Martinez</strong><br>Main Branch</div>
+    </div>
+    <div class="sb-kv">
+      <div class="sb-kv-label">Drop-off</div>
+      <div class="sb-kv-val">Feb 20, 2026</div>
+    </div>
+    <div class="sb-kv">
+      <div class="sb-kv-label">Completed</div>
+      <div class="sb-kv-val">Feb 24, 2026</div>
+    </div>
+
+    <hr class="sb-divider">
+
+    <div>
+      <div class="sb-kv-label" style="margin-bottom:.4rem">Devices</div>
+      <div class="sb-device">
+        <div class="sb-device-name">Dell XPS 15 9520</div>
+        <div class="sb-device-id">S/N: DX15-9920K</div>
+        <div class="sb-device-cond"><span class="ctag cin">Cracked</span><span class="ctag cout">Repaired</span></div>
+      </div>
+      <div class="sb-device">
+        <div class="sb-device-name">iPhone 14 Pro 256GB</div>
+        <div class="sb-device-id">IMEI: 358971082347605</div>
+        <div class="sb-device-cond"><span class="ctag cin">Liquid</span><span class="ctag cout">Cleaned</span></div>
+      </div>
+    </div>
+
+    <div class="sb-qr">
+      <div class="sb-qr-box">QR<br>Code</div>
+      <div class="sb-qr-lbl">Scan to verify order</div>
+    </div>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+    <div class="main-head">
+      <div class="mh-shop">Work Order / Repair Summary — Tax Invoice</div>
+      <div class="mh-meta">FixIt Pro Repair Shop · ABN 12 345 678 901 · hello@fixitpro.com.au · (02) 9000 1234</div>
+    </div>
+
+    <div class="main-body">
+      <div class="sec">
+        <div class="sec-lbl">Work Performed</div>
+        <div class="ws-box">Replaced cracked screen on Dell XPS 15 with OEM-grade panel. Replaced degraded battery. Full diagnostic — no further faults. iPhone liquid-damage cleaning — all functions tested and passed.</div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-lbl">Parts &amp; Services</div>
+        <table class="tbl">
+          <thead><tr><th style="width:44%">Item</th><th class="c" style="width:8%">Qty</th><th class="r" style="width:16%">Unit</th><th class="r" style="width:11%">Tax</th><th class="r" style="width:21%">Amount</th></tr></thead>
+          <tbody>
+            <tr><td><div class="it-name">Screen Replacement (OEM)</div><span class="tag">Part</span></td><td class="c">1</td><td class="r">$95.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$95.00</td></tr>
+            <tr><td><div class="it-name">Battery Replacement (OEM)</div><span class="tag">Part</span></td><td class="c">1</td><td class="r">$45.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$45.00</td></tr>
+            <tr><td><div class="it-name">Screen &amp; Battery Labour</div><span class="tag">Service</span></td><td class="c">1</td><td class="r">$40.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$40.00</td></tr>
+            <tr><td><div class="it-name">iPhone Liquid Damage Clean</div><span class="tag">Service</span></td><td class="c">1</td><td class="r">$60.00</td><td class="r" style="color:var(--ink3);font-weight:400">10%</td><td class="r">$60.00</td></tr>
+          </tbody>
+        </table>
+        <div class="totals" style="max-width:240px; margin-left:auto;">
+          <div class="tr"><span>Subtotal (ex GST)</span><span>$240.00</span></div>
+          <div class="tr"><span>GST (10%)</span><span>$24.00</span></div>
+          <div class="tr disc"><span>Loyalty Discount</span><span>−$10.00</span></div>
+          <hr class="tdiv">
+          <div class="tgrand"><span>Total (inc GST)</span><span>$254.00</span></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-lbl">Warranty</div>
+        <div class="warr">
+          <span class="w-chip"><i class="bi bi-shield-check-fill"></i> Screen — 90 days</span>
+          <span class="w-chip"><i class="bi bi-shield-check-fill"></i> Battery — 90 days</span>
+          <span class="w-chip"><i class="bi bi-shield-check-fill"></i> Labour — 30 days</span>
+        </div>
+      </div>
+
+      <div class="sig-row">
+        <div><div class="sig-lbl">Customer Pickup Confirmation</div><div class="sig-line"></div><div class="sig-sub">Confirm receipt &amp; agree to warranty terms</div></div>
+        <div><div class="sig-lbl">Released By — FixIt Pro</div><div class="sig-line"></div><div class="sig-sub">Authorised staff member &amp; date</div></div>
+      </div>
+    </div>
+
+    <div class="main-foot">
+      Retain for warranty claims. FixIt Pro is not responsible for pre-existing data loss. Warranty void if subsequent damage or unauthorised repair. ABN 12 345 678 901.
+    </div>
+  </div>
+</div>
+</body>
+</html>
