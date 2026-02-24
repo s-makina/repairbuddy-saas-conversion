@@ -197,8 +197,8 @@
         <x-slot:actions>
             {{-- Status quick-filter tabs --}}
             <div class="btn-group btn-group-sm" role="group">
-                <a href="{{ $baseUrl }}" class="btn btn-outline-secondary {{ $statusFilter === '' ? 'active' : '' }}">
-                    {{ __('All') }} <span class="badge bg-secondary bg-opacity-25 text-secondary ms-1">{{ $countTotal }}</span>
+                <!-- <a href="{{ $baseUrl }}" class="btn btn-sm btn-outline {{ $statusFilter === '' ? 'active' : '' }}">
+                    {{ __('All') }} <span class="badge bg-secondary bg-opacity-25 btn-sm text-secondary ms-1">{{ $countTotal }}</span>
                 </a>
                 <a href="{{ $baseUrl }}?estimate_status=pending" class="btn btn-outline-secondary {{ $statusFilter === 'pending' ? 'active' : '' }}">
                     {{ __('Pending') }} <span class="badge bg-primary bg-opacity-25 text-primary ms-1">{{ $countPending }}</span>
@@ -208,7 +208,7 @@
                 </a>
                 <a href="{{ $baseUrl }}?estimate_status=rejected" class="btn btn-outline-secondary {{ $statusFilter === 'rejected' ? 'active' : '' }}">
                     {{ __('Rejected') }} <span class="badge bg-danger bg-opacity-25 text-danger ms-1">{{ $countRejected }}</span>
-                </a>
+                </a> -->
             </div>
         </x-slot:actions>
 

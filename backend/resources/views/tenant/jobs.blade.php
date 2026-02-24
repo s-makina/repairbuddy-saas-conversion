@@ -52,22 +52,19 @@
 <div class="container-fluid p-3">
 
     {{-- ═══════ Stats Cards ═══════ --}}
-    @if (!empty($_job_status))
-    <div class="row g-3 mb-4">
+    <!-- @if (!empty($_job_status))
+    <div class="d-flex flex-wrap gap-2 mb-4">
         @foreach ($_job_status as $_jobsstatus)
-        <div class="col">
+            @php $tc = $_jobsstatus['color'] ?? 'secondary'; @endphp
             <a href="{{ $_jobsstatus['url'] ?? '#' }}" class="text-decoration-none">
-                <div class="card stats-card {{ $_jobsstatus['color'] ?? 'bg-secondary' }} text-white">
-                    <div class="card-body text-center p-3">
-                        <h6 class="card-title text-white-50 mb-1">{{ $_jobsstatus['status_name'] ?? '' }}</h6>
-                        <h4 class="mb-0">{{ $_jobsstatus['jobs_count'] ?? 0 }}</h4>
-                    </div>
+                <div class="stat-tile stat-tile--{{ $tc }}">
+                    <span class="stat-tile__count">{{ $_jobsstatus['jobs_count'] ?? 0 }}</span>
+                    <span class="stat-tile__label">{{ $_jobsstatus['status_name'] ?? '' }}</span>
                 </div>
             </a>
-        </div>
         @endforeach
     </div>
-    @endif
+    @endif -->
 
     {{-- ═══════ DataTable ═══════ --}}
     <x-ui.datatable
@@ -153,6 +150,7 @@
 
 @push('page-styles')
 <style>
+    /* ── badge pills ── */
     .wcrb-pill--progress { color: #1d4ed8; background: rgba(59,130,246,.10); border-color: rgba(59,130,246,.25); }
     .wcrb-pill--pending  { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
     .wcrb-pill--warning  { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
@@ -160,12 +158,45 @@
     .wcrb-pill--high     { color: #991b1b; background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.25); }
     .wcrb-pill--medium   { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
     .wcrb-pill--low      { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.25); }
-
     [data-bs-theme="dark"] .wcrb-pill--progress { background: rgba(59,130,246,.20); }
     [data-bs-theme="dark"] .wcrb-pill--pending  { background: rgba(245,158,11,.20); }
     [data-bs-theme="dark"] .wcrb-pill--warning  { background: rgba(245,158,11,.20); }
     [data-bs-theme="dark"] .wcrb-pill--danger   { background: rgba(239,68,68,.20); }
     [data-bs-theme="dark"] .wcrb-pill--high     { background: rgba(239,68,68,.20); }
     [data-bs-theme="dark"] .wcrb-pill--low      { background: rgba(16,185,129,.20); }
+
+    /* ── status summary tiles ── */
+    .stat-tile {
+        display: inline-flex; align-items: center; gap: .45rem;
+        padding: .3rem .75rem;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: .78rem;
+        font-weight: 500;
+        transition: filter .15s, transform .1s;
+        white-space: nowrap;
+    }
+    .stat-tile:hover { filter: brightness(.95); transform: translateY(-1px); }
+    .stat-tile__count {
+        font-size: .9rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .stat-tile__label { opacity: .85; }
+
+    /* color variants */
+    .stat-tile--primary   { color: #1d4ed8; background: rgba(59,130,246,.10); border-color: rgba(59,130,246,.30); }
+    .stat-tile--success   { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.30); }
+    .stat-tile--warning   { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.30); }
+    .stat-tile--info      { color: #155e75; background: rgba(6,182,212,.10);  border-color: rgba(6,182,212,.30); }
+    .stat-tile--danger    { color: #991b1b; background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.30); }
+    .stat-tile--secondary { color: #374151; background: rgba(107,114,128,.10); border-color: rgba(107,114,128,.28); }
+
+    [data-bs-theme="dark"] .stat-tile--primary   { color: #93c5fd; background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.35); }
+    [data-bs-theme="dark"] .stat-tile--success   { color: #6ee7b7; background: rgba(16,185,129,.18); border-color: rgba(16,185,129,.35); }
+    [data-bs-theme="dark"] .stat-tile--warning   { color: #fcd34d; background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.35); }
+    [data-bs-theme="dark"] .stat-tile--info      { color: #67e8f9; background: rgba(6,182,212,.18);  border-color: rgba(6,182,212,.35); }
+    [data-bs-theme="dark"] .stat-tile--danger    { color: #fca5a5; background: rgba(239,68,68,.18);  border-color: rgba(239,68,68,.35); }
+    [data-bs-theme="dark"] .stat-tile--secondary { color: #d1d5db; background: rgba(107,114,128,.18); border-color: rgba(107,114,128,.32); }
 </style>
 @endpush

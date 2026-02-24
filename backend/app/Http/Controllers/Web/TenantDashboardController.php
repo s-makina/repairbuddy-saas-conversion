@@ -193,12 +193,12 @@ class TenantDashboardController extends Controller
                 ->toArray();
 
             $statusColors = [
-                'new'           => 'bg-warning',
-                'in_process'    => 'bg-primary',
-                'inprocess'     => 'bg-primary',
-                'completed'     => 'bg-success',
-                'delivered'     => 'bg-info',
-                'waiting_parts' => 'bg-secondary',
+                'new'           => 'warning',
+                'in_process'    => 'primary',
+                'inprocess'     => 'primary',
+                'completed'     => 'success',
+                'delivered'     => 'info',
+                'waiting_parts' => 'secondary',
             ];
 
             $baseDashboardUrl = route('tenant.dashboard', ['business' => $tenant->slug]);
