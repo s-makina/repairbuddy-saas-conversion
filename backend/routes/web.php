@@ -74,26 +74,14 @@ Route::prefix('t/{business}')
     });
 
 // ──────────────────────────────────────────────────────────────
-// Customer Portal (auth required, customer-facing dashboard)
+// Customer Portal (auth required, single page with tab sections)
 // ──────────────────────────────────────────────────────────────
 Route::prefix('t/{business}/portal')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['web', 'tenant', 'branch.public', 'auth'])
     ->group(function () {
-        Route::get('/', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'dashboard'])
-            ->name('tenant.customer.dashboard');
-
-        Route::get('/jobs', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'jobs'])
-            ->name('tenant.customer.jobs');
-
-        Route::get('/estimates', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'estimates'])
-            ->name('tenant.customer.estimates');
-
-        Route::get('/devices', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'devices'])
-            ->name('tenant.customer.devices');
-
-        Route::get('/account', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'account'])
-            ->name('tenant.customer.account');
+        Route::get('/', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'portal'])
+            ->name('tenant.customer.portal');
 
         Route::post('/account', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'updateAccount'])
             ->name('tenant.customer.account.update');

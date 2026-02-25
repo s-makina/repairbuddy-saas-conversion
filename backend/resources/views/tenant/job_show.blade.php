@@ -879,7 +879,7 @@
                         @endif
                         <div class="ja-sidebar-grand">
                             <span>{{ __('Grand Total') }}</span>
-                            <span>{{ $formatMoney($totals['grand_total_cents'] ?? $totals['total_cents'] ?? null) }} {{ $currency }}</span>
+                            <span>{{ $formatMoney($totals['grand_total_cents'] ?? $totals['total_cents'] ?? null) }}</span>
                         </div>
                         @if (isset($totals['balance_cents']))
                         <div class="ja-sidebar-kpi" style="margin-top:.4rem;">

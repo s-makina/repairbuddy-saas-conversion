@@ -49,196 +49,78 @@
     {{-- =====================  LEFT SIDEBAR  ===================== --}}
     <div class="col-lg-4">
 
-        {{-- Job Details card --}}
+        {{-- Combined context card --}}
+        @php
+            $statusMap = ['open'=>'primary','in_progress'=>'warning','completed'=>'success','cancelled'=>'danger','pending'=>'secondary'];
+            $statusColor = $statusMap[$job->status ?? ''] ?? 'secondary';
+        @endphp
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
-                <div class="sb-section-icon" style="background:rgba(37,99,235,.10);color:#2563eb;">
-                    <i class="bi bi-briefcase-fill"></i>
-                </div>
-                <h6 class="mb-0 fw-bold">{{ __('Job Details') }}</h6>
-            </div>
-            <div class="card-body p-0">
-
-                <div class="sb-row">
-                    <span class="sb-icon-wrap" style="background:rgba(37,99,235,.10);color:#2563eb;">
-                        <i class="bi bi-hash"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-key">{{ __('Job Number') }}</span>
-                        <span class="sb-val">#{{ $job->job_number }}</span>
-                    </div>
-                </div>
-
-                @if($job->case_number)
-                <div class="sb-row">
-                    <span class="sb-icon-wrap" style="background:rgba(6,182,212,.10);color:#0e7490;">
-                        <i class="bi bi-file-earmark-text"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-key">{{ __('Case Number') }}</span>
-                        <span class="sb-val">{{ $job->case_number }}</span>
-                    </div>
-                </div>
-                @endif
-
-                <div class="sb-row">
-                    <span class="sb-icon-wrap" style="background:rgba(107,114,128,.10);color:#4b5563;">
-                        <i class="bi bi-activity"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-key">{{ __('Status') }}</span>
-                        <span class="sb-val">
-                            @php
-                                $statusMap = [
-                                    'open'        => 'primary',
-                                    'in_progress' => 'warning',
-                                    'completed'   => 'success',
-                                    'cancelled'   => 'danger',
-                                    'pending'     => 'secondary',
-                                ];
-                                $statusColor = $statusMap[$job->status ?? ''] ?? 'secondary';
-                            @endphp
-                            <span class="badge rounded-pill text-bg-{{ $statusColor }} fw-normal">
-                                {{ ucfirst(str_replace('_', ' ', $job->status ?? __('Unknown'))) }}
-                            </span>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="sb-row">
-                    <span class="sb-icon-wrap" style="background:rgba(16,185,129,.10);color:#059669;">
-                        <i class="bi bi-calendar3"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-key">{{ __('Created') }}</span>
-                        <span class="sb-val">{{ $job->created_at->format('M d, Y') }}</span>
-                    </div>
-                </div>
-
-                @if($job->created_at->diffInDays(now()) <= 365)
-                <div class="sb-row">
-                    <span class="sb-icon-wrap" style="background:rgba(139,92,246,.10);color:#7c3aed;">
-                        <i class="bi bi-clock-history"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-key">{{ __('Age') }}</span>
-                        <span class="sb-val">{{ $job->created_at->diffForHumans() }}</span>
-                    </div>
-                </div>
-                @endif
-
-            </div>
-        </div>
-
-        {{-- Customer card --}}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
-                <div class="sb-section-icon" style="background:rgba(37,99,235,.10);color:#2563eb;">
-                    <i class="bi bi-person-fill"></i>
-                </div>
-                <h6 class="mb-0 fw-bold">{{ __('Customer') }}</h6>
-            </div>
             <div class="card-body p-3">
 
-                {{-- Avatar + name --}}
-                <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
-                    <div class="customer-avatar-lg">
+                {{-- Customer row --}}
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <div class="customer-avatar-sm flex-shrink-0">
                         {{ strtoupper(substr($job->customer->name ?? 'C', 0, 1)) }}
                     </div>
-                    <div class="min-w-0">
-                        <div class="fw-semibold text-dark" style="font-size:.88rem;">{{ $job->customer->name ?? __('Unknown Customer') }}</div>
-                        <div class="small text-muted">{{ __('Customer') }}</div>
-                    </div>
-                </div>
-
-                @if(!empty($job->customer->email))
-                <div class="sb-row sb-row--compact">
-                    <span class="sb-icon-wrap" style="background:rgba(234,179,8,.10);color:#92400e;">
-                        <i class="bi bi-envelope-fill"></i>
-                    </span>
-                    <div class="sb-content min-w-0">
-                        <span class="sb-key">{{ __('Email') }}</span>
-                        <span class="sb-val text-truncate d-block" title="{{ $job->customer->email }}">{{ $job->customer->email }}</span>
-                    </div>
-                </div>
-                @endif
-
-                @if(!empty($job->customer->phone_number))
-                <div class="sb-row sb-row--compact">
-                    <span class="sb-icon-wrap" style="background:rgba(16,185,129,.10);color:#059669;">
-                        <i class="bi bi-telephone-fill"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-key">{{ __('Phone') }}</span>
-                        <span class="sb-val">{{ $job->customer->phone_number }}</span>
-                    </div>
-                </div>
-                @endif
-
-                @if(empty($job->customer->email) && empty($job->customer->phone_number))
-                <p class="text-muted small mb-0 text-center py-1">{{ __('No contact details on file.') }}</p>
-                @endif
-
-            </div>
-        </div>
-
-        {{-- Devices card --}}
-        @if($job->jobDevices && $job->jobDevices->count())
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
-                <div class="sb-section-icon" style="background:rgba(245,158,11,.10);color:#b45309;">
-                    <i class="bi bi-cpu-fill"></i>
-                </div>
-                <h6 class="mb-0 fw-bold">{{ __('Devices') }}</h6>
-                <span class="badge rounded-pill text-bg-secondary fw-normal ms-auto" style="font-size:.65rem;">
-                    {{ $job->jobDevices->count() }}
-                </span>
-            </div>
-            <div class="card-body p-0">
-                @foreach($job->jobDevices as $jd)
-                @php $device = $jd->customerDevice->device ?? null; @endphp
-                <div class="sb-row {{ $loop->last ? '' : '' }}">
-                    <span class="sb-icon-wrap" style="background:rgba(245,158,11,.10);color:#b45309;">
-                        <i class="bi bi-phone"></i>
-                    </span>
-                    <div class="sb-content">
-                        <span class="sb-val">{{ $device->name ?? __('Unknown Device') }}</span>
-                        @if(!empty($device->brand))
-                        <span class="sb-note">{{ $device->brand }}</span>
+                    <div class="min-w-0 flex-grow-1">
+                        <div class="fw-semibold lh-1" style="font-size:.85rem;color:#111827;">{{ $job->customer->name ?? __('Unknown') }}</div>
+                        @if(!empty($job->customer->email))
+                        <div class="text-truncate text-muted" style="font-size:.73rem;" title="{{ $job->customer->email }}">{{ $job->customer->email }}</div>
                         @endif
                     </div>
+                    @if(!empty($job->customer->phone_number))
+                    <a href="tel:{{ $job->customer->phone_number }}" class="text-muted flex-shrink-0" style="font-size:.8rem;" title="{{ $job->customer->phone_number }}">
+                        <i class="bi bi-telephone"></i>
+                    </a>
+                    @endif
                 </div>
-                @endforeach
+
+                {{-- Key-value grid --}}
+                <div class="ctx-grid">
+                    <span class="ctx-k"><i class="bi bi-hash me-1 opacity-50"></i>{{ __('Job') }}</span>
+                    <span class="ctx-v">#{{ $job->job_number }}</span>
+
+                    @if($job->case_number)
+                    <span class="ctx-k"><i class="bi bi-file-earmark me-1 opacity-50"></i>{{ __('Case') }}</span>
+                    <span class="ctx-v">{{ $job->case_number }}</span>
+                    @endif
+
+                    <span class="ctx-k"><i class="bi bi-activity me-1 opacity-50"></i>{{ __('Status') }}</span>
+                    <span class="ctx-v">
+                        <span class="badge rounded-pill text-bg-{{ $statusColor }} fw-normal" style="font-size:.68rem;">
+                            {{ ucfirst(str_replace('_', ' ', $job->status ?? __('Unknown'))) }}
+                        </span>
+                    </span>
+
+                    <span class="ctx-k"><i class="bi bi-calendar3 me-1 opacity-50"></i>{{ __('Created') }}</span>
+                    <span class="ctx-v">{{ $job->created_at->format('M d, Y') }}</span>
+
+                    @if($job->jobDevices && $job->jobDevices->count())
+                    <span class="ctx-k"><i class="bi bi-phone me-1 opacity-50"></i>{{ __('Devices') }}</span>
+                    <span class="ctx-v d-flex flex-wrap gap-1">
+                        @foreach($job->jobDevices as $jd)
+                        @php $dev = $jd->customerDevice->device ?? null; @endphp
+                        <span class="badge text-bg-light border fw-normal" style="font-size:.68rem;">{{ $dev->name ?? '—' }}</span>
+                        @endforeach
+                    </span>
+                    @endif
+                </div>
+
             </div>
         </div>
-        @endif
 
-        {{-- How It Works card --}}
+        {{-- How It Works --}}
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
-                <div class="sb-section-icon" style="background:rgba(16,185,129,.10);color:#059669;">
-                    <i class="bi bi-lightbulb-fill"></i>
-                </div>
-                <h6 class="mb-0 fw-bold">{{ __('How It Works') }}</h6>
+            <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                <i class="bi bi-lightbulb-fill text-success" style="font-size:.8rem;"></i>
+                <span class="fw-semibold" style="font-size:.8rem;">{{ __('How It Works') }}</span>
             </div>
             <div class="card-body p-3">
                 <ol class="how-steps mb-0">
-                    <li>
-                        <span class="fw-semibold">{{ __('Choose a type') }}</span>
-                        <span class="sb-note d-block">{{ __('Select pickup, delivery, or a custom label.') }}</span>
-                    </li>
-                    <li>
-                        <span class="fw-semibold">{{ __('Link is generated') }}</span>
-                        <span class="sb-note d-block">{{ __('A unique, secure URL is created instantly.') }}</span>
-                    </li>
-                    <li>
-                        <span class="fw-semibold">{{ __('Customer signs') }}</span>
-                        <span class="sb-note d-block">{{ __('Share the link — works on any device.') }}</span>
-                    </li>
-                    <li>
-                        <span class="fw-semibold">{{ __('Signature saved') }}</span>
-                        <span class="sb-note d-block">{{ __('Timestamped, IP-logged, tamper-evident.') }}</span>
-                    </li>
+                    <li>{{ __('Choose a signature type') }}</li>
+                    <li>{{ __('A secure link is generated') }}</li>
+                    <li>{{ __('Customer signs on any device') }}</li>
+                    <li>{{ __('Timestamped & tamper-evident') }}</li>
                 </ol>
             </div>
         </div>
@@ -450,67 +332,61 @@
         font-size: .8rem; flex-shrink: 0;
     }
 
-    /* Sidebar rows */
-    .sb-row {
-        display: flex;
+    /* Compact context grid (2-col: label | value) */
+    .ctx-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: .28rem .75rem;
         align-items: center;
-        gap: .75rem;
-        padding: .75rem 1rem;
-        border-bottom: 1px solid rgba(0,0,0,.05);
     }
-    .sb-row:last-child { border-bottom: none; }
-    .sb-row--compact { padding-top: .55rem; padding-bottom: .55rem; }
-
-    .sb-icon-wrap {
-        width: 30px; height: 30px; border-radius: .4rem;
-        display: flex; align-items: center; justify-content: center;
-        font-size: .8rem; flex-shrink: 0;
+    .ctx-k {
+        font-size: .72rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .04em;
+        color: #9ca3af; white-space: nowrap;
     }
-    .sb-content { display: flex; flex-direction: column; min-width: 0; }
-    .sb-key  { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; line-height: 1; margin-bottom: .18rem; }
-    .sb-val  { font-size: .82rem; font-weight: 500; color: #1f2937; line-height: 1.25; }
-    .sb-note { font-size: .74rem; color: #9ca3af; line-height: 1.4; }
+    .ctx-v {
+        font-size: .8rem; font-weight: 500; color: #1f2937;
+    }
 
-    /* Customer avatar */
-    .customer-avatar-lg {
-        width: 44px; height: 44px; border-radius: 50%;
+    /* Small customer avatar */
+    .customer-avatar-sm {
+        width: 32px; height: 32px; border-radius: 50%;
         background: linear-gradient(135deg, #2563eb, #7c3aed);
         color: #fff;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1rem; font-weight: 700; flex-shrink: 0;
-        box-shadow: 0 2px 6px rgba(37,99,235,.3);
+        font-size: .8rem; font-weight: 700; flex-shrink: 0;
     }
 
-    /* How It Works steps */
     .how-steps {
         list-style: none;
         counter-reset: step;
         padding-left: 0;
+        margin: 0;
     }
     .how-steps li {
         counter-increment: step;
-        display: flex;
-        flex-direction: column;
-        padding-left: 2rem;
+        padding-left: 1.75rem;
         position: relative;
-        padding-bottom: .85rem;
+        padding-bottom: .55rem;
+        font-size: .8rem;
+        color: #374151;
     }
     .how-steps li:last-child { padding-bottom: 0; }
     .how-steps li::before {
         content: counter(step);
         position: absolute;
-        left: 0; top: 0;
-        width: 20px; height: 20px;
+        left: 0; top: 1px;
+        width: 18px; height: 18px;
         background: rgba(16,185,129,.15);
         color: #059669;
         border-radius: 50%;
-        font-size: .68rem; font-weight: 700;
+        font-size: .65rem; font-weight: 700;
         display: flex; align-items: center; justify-content: center;
     }
     .how-steps li::after {
         content: '';
         position: absolute;
-        left: 9px; top: 22px; bottom: 0;
+        left: 8px; top: 21px; bottom: 0;
         width: 1px;
         background: #e5e7eb;
     }
@@ -589,8 +465,7 @@
 
     /* Dark mode */
     [data-bs-theme="dark"] .card { background: var(--bs-body-bg); }
-    [data-bs-theme="dark"] .sb-row { border-color: rgba(255,255,255,.06); }
-    [data-bs-theme="dark"] .sb-val { color: var(--bs-body-color); }
+    [data-bs-theme="dark"] .ctx-v { color: var(--bs-body-color); }
     [data-bs-theme="dark"] .type-row { border-color: rgba(255,255,255,.1); background: transparent; }
     [data-bs-theme="dark"] .type-row:hover    { border-color: #3b82f6; background: rgba(59,130,246,.07); }
     [data-bs-theme="dark"] .type-row.selected { border-color: #60a5fa; background: rgba(37,99,235,.15); }

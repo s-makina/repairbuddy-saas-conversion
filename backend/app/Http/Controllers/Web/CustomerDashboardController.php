@@ -12,178 +12,63 @@ use Illuminate\Support\Facades\Auth;
 
 class CustomerDashboardController extends Controller
 {
-    /* ──────────────────────────── helpers ──────────────────────────── */
+    /* ──────────────────────────── Portal (single page) ──────────────────────── */
 
-    private function resolveContext(string $business): ?array
+    public function portal(Request $request, string $business)
     {
         $tenant = TenantContext::tenant();
         $user   = Auth::user();
 
         if (! $tenant || ! $user) {
-            return null;
-        }
-
-        return [
-            'tenant'   => $tenant,
-            'business' => $business,
-            'user'     => $user,
-        ];
-    }
-
-    /* ──────────────────────── Dashboard ──────────────────────────── */
-
-    public function dashboard(Request $request, string $business)
-    {
-        $ctx = $this->resolveContext($business);
-        if (! $ctx) {
             abort(404);
         }
 
-        ['tenant' => $tenant, 'user' => $user] = $ctx;
-
-        // Job stats
-        $jobsQuery = RepairBuddyJob::where('tenant_id', $tenant->id)
-            ->where('customer_id', $user->id);
-
+        // ── Job stats ──
+        $jobsQuery     = RepairBuddyJob::where('tenant_id', $tenant->id)->where('customer_id', $user->id);
         $totalJobs     = (clone $jobsQuery)->count();
         $openJobs      = (clone $jobsQuery)->whereNull('closed_at')->count();
         $completedJobs = (clone $jobsQuery)->whereNotNull('closed_at')->count();
 
-        // Recent jobs (last 5)
-        $recentJobs = (clone $jobsQuery)
-            ->orderByDesc('created_at')
-            ->limit(5)
-            ->get();
+        // Recent jobs (last 10)
+        $jobs = (clone $jobsQuery)->orderByDesc('created_at')->limit(10)->get();
 
-        // Estimate stats
-        $estimatesQuery = RepairBuddyEstimate::where('tenant_id', $tenant->id)
-            ->where('customer_id', $user->id);
-
+        // ── Estimate stats ──
+        $estimatesQuery   = RepairBuddyEstimate::where('tenant_id', $tenant->id)->where('customer_id', $user->id);
         $totalEstimates   = (clone $estimatesQuery)->count();
         $pendingEstimates = (clone $estimatesQuery)->where('status', 'pending')->count();
+        $estimates        = (clone $estimatesQuery)->orderByDesc('created_at')->limit(10)->get();
 
-        // Devices
-        $totalDevices = RepairBuddyCustomerDevice::where('tenant_id', $tenant->id)
-            ->where('customer_id', $user->id)
-            ->count();
-
-        return view('tenant.customer.dashboard', array_merge($ctx, [
-            'activeMenu'       => 'dashboard',
-            'totalJobs'        => $totalJobs,
-            'openJobs'         => $openJobs,
-            'completedJobs'    => $completedJobs,
-            'recentJobs'       => $recentJobs,
-            'totalEstimates'   => $totalEstimates,
-            'pendingEstimates' => $pendingEstimates,
-            'totalDevices'     => $totalDevices,
-        ]));
-    }
-
-    /* ──────────────────────── My Jobs ──────────────────────────── */
-
-    public function jobs(Request $request, string $business)
-    {
-        $ctx = $this->resolveContext($business);
-        if (! $ctx) {
-            abort(404);
-        }
-
-        ['tenant' => $tenant, 'user' => $user] = $ctx;
-
-        $statusFilter = $request->get('status', 'all');
-
-        $query = RepairBuddyJob::where('tenant_id', $tenant->id)
-            ->where('customer_id', $user->id)
-            ->orderByDesc('created_at');
-
-        if ($statusFilter === 'open') {
-            $query->whereNull('closed_at');
-        } elseif ($statusFilter === 'completed') {
-            $query->whereNotNull('closed_at');
-        }
-
-        $jobs = $query->paginate(15);
-
-        // Counts for filter pills
-        $allCount       = RepairBuddyJob::where('tenant_id', $tenant->id)->where('customer_id', $user->id)->count();
-        $openCount      = RepairBuddyJob::where('tenant_id', $tenant->id)->where('customer_id', $user->id)->whereNull('closed_at')->count();
-        $completedCount = RepairBuddyJob::where('tenant_id', $tenant->id)->where('customer_id', $user->id)->whereNotNull('closed_at')->count();
-
-        return view('tenant.customer.jobs', array_merge($ctx, [
-            'activeMenu'     => 'jobs',
-            'jobs'           => $jobs,
-            'statusFilter'   => $statusFilter,
-            'allCount'       => $allCount,
-            'openCount'      => $openCount,
-            'completedCount' => $completedCount,
-        ]));
-    }
-
-    /* ──────────────────────── My Estimates ──────────────────────── */
-
-    public function estimates(Request $request, string $business)
-    {
-        $ctx = $this->resolveContext($business);
-        if (! $ctx) {
-            abort(404);
-        }
-
-        ['tenant' => $tenant, 'user' => $user] = $ctx;
-
-        $estimates = RepairBuddyEstimate::where('tenant_id', $tenant->id)
-            ->where('customer_id', $user->id)
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
-        return view('tenant.customer.estimates', array_merge($ctx, [
-            'activeMenu' => 'estimates',
-            'estimates'  => $estimates,
-        ]));
-    }
-
-    /* ──────────────────────── My Devices ──────────────────────── */
-
-    public function devices(Request $request, string $business)
-    {
-        $ctx = $this->resolveContext($business);
-        if (! $ctx) {
-            abort(404);
-        }
-
-        ['tenant' => $tenant, 'user' => $user] = $ctx;
-
+        // ── Devices ──
         $devices = RepairBuddyCustomerDevice::where('tenant_id', $tenant->id)
             ->where('customer_id', $user->id)
             ->with('device')
             ->orderByDesc('created_at')
-            ->paginate(15);
+            ->get();
 
-        return view('tenant.customer.devices', array_merge($ctx, [
-            'activeMenu' => 'devices',
-            'devices'    => $devices,
-        ]));
+        return view('tenant.customer.portal', [
+            'tenant'           => $tenant,
+            'business'         => $business,
+            'user'             => $user,
+            'totalJobs'        => $totalJobs,
+            'openJobs'         => $openJobs,
+            'completedJobs'    => $completedJobs,
+            'jobs'             => $jobs,
+            'totalEstimates'   => $totalEstimates,
+            'pendingEstimates' => $pendingEstimates,
+            'estimates'        => $estimates,
+            'devices'          => $devices,
+            'section'          => $request->get('section', 'dashboard'),
+        ]);
     }
 
-    /* ──────────────────────── My Account ──────────────────────── */
-
-    public function account(Request $request, string $business)
-    {
-        $ctx = $this->resolveContext($business);
-        if (! $ctx) {
-            abort(404);
-        }
-
-        return view('tenant.customer.account', array_merge($ctx, [
-            'activeMenu' => 'account',
-        ]));
-    }
-
-    /* ──────────────────────── Update Account ──────────────────── */
+    /* ──────────────────────────── Update Account ────────────────────────────── */
 
     public function updateAccount(Request $request, string $business)
     {
-        $ctx = $this->resolveContext($business);
-        if (! $ctx) {
+        $tenant = TenantContext::tenant();
+        $user   = Auth::user();
+
+        if (! $tenant || ! $user) {
             abort(404);
         }
 
@@ -200,13 +85,12 @@ class CustomerDashboardController extends Controller
             'country'    => 'nullable|string|max:100',
         ]);
 
-        $user = $ctx['user'];
         $user->update(array_merge($validated, [
             'name' => trim($validated['first_name'] . ' ' . ($validated['last_name'] ?? '')),
         ]));
 
         return redirect()
-            ->route('tenant.customer.account', ['business' => $business])
+            ->route('tenant.customer.portal', ['business' => $business, 'section' => 'account'])
             ->with('success', 'Account details updated successfully.');
     }
 }
