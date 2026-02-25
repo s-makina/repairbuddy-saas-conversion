@@ -8,7 +8,7 @@
   $navItems = [
       ['label' => 'Book Device',     'icon' => 'bi-phone',          'route' => 'tenant.booking.show'],
       ['label' => 'Job Status',      'icon' => 'bi-activity',       'route' => 'tenant.status.show'],
-      ['label' => 'My Account',      'icon' => 'bi-person-circle',  'route' => 'tenant.myaccount'],
+      ['label' => 'My Portal',       'icon' => 'bi-speedometer2',   'route' => auth()->check() ? 'tenant.customer.dashboard' : 'tenant.myaccount'],
       ['label' => 'Our Services',    'icon' => 'bi-tools',          'route' => 'tenant.services'],
       ['label' => 'Parts',           'icon' => 'bi-box-seam',       'route' => 'tenant.parts'],
       ['label' => 'Review Your Job', 'icon' => 'bi-file-earmark-check', 'route' => 'tenant.review'],

@@ -1,270 +1,603 @@
-﻿@extends('tenant.layouts.myaccount', ['title' => $pageTitle ?? 'Generate Signature Request'])
+﻿@extends('tenant.layouts.myaccount', ['title' => __('New Signature Request')])
 
 @section('content')
-<div class="container p-3 p-md-4" style="max-width:700px;">
 
-    {{-- Flash Messages --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <strong>{{ __('Please fix the following errors:') }}</strong>
-            <ul class="mb-0 mt-1 ps-3">
-                @foreach($errors->all() as $error)
-                    <li style="font-size:.85rem;">{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
+{{-- Flash messages --}}
+@if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>
+        <strong>{{ __('Please fix the following errors:') }}</strong>
+        <ul class="mb-0 mt-1 ps-3">
+            @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
-    {{-- Page Header --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+<div class="sig-create-wrap">
+
+{{-- Hero header --}}
+<div class="sig-hero-header mb-4">
+    <div class="hero-left">
+        <div class="sig-hero-icon">
+            <i class="bi bi-pen-fill"></i>
+        </div>
         <div>
-            <h5 class="fw-bold mb-1">
-                <i class="bi bi-pen me-2 text-primary"></i>{{ __('Generate Signature Request') }}
-            </h5>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('tenant.signatures.index', ['business' => $tenant->slug, 'jobId' => $job->id]) }}"
-               class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-list me-1"></i>{{ __('All Requests') }}
-            </a>
-            <a href="{{ route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]) }}"
-               class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>{{ __('Back to Job') }}
-            </a>
+            <h4>{{ __('New Signature Request') }}</h4>
+            <div class="hero-subtitle">{{ __('Send a digital signature request to your customer') }}</div>
         </div>
     </div>
-
-    {{-- Context Strip --}}
-    <div class="ctx-strip mb-3">
-        <div class="row g-3">
-            <div class="col-6 col-sm-3">
-                <div class="ctx-item">
-                    <span class="ctx-key">{{ __('Job #') }}</span>
-                    <span class="ctx-val fw-bold text-primary">{{ $job->job_number ?? $job->id }}</span>
-                </div>
-            </div>
-            <div class="col-6 col-sm-3">
-                <div class="ctx-item">
-                    <span class="ctx-key">{{ __('Case #') }}</span>
-                    <span class="ctx-val">{{ $job->case_number ?? '' }}</span>
-                </div>
-            </div>
-            @if($job->customer)
-            <div class="col-6 col-sm-3">
-                <div class="ctx-item">
-                    <span class="ctx-key">{{ __('Customer') }}</span>
-                    <span class="ctx-val">{{ $job->customer->name }}</span>
-                </div>
-            </div>
-            @endif
-            <div class="col-6 col-sm-3">
-                <div class="ctx-item">
-                    <span class="ctx-key">{{ __('Status') }}</span>
-                    <span class="ctx-val">
-                        <span class="badge bg-secondary" style="font-size:.7rem;">
-                            {{ $job->status_label ?? ucfirst(str_replace('-',' ', $job->status_slug ?? '')) }}
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Form Card --}}
-    <div class="form-card p-4">
-        <form method="POST"
-              action="{{ route('tenant.signatures.store', ['business' => $tenant->slug, 'jobId' => $job->id]) }}">
-            @csrf
-
-            {{--  Signature Type  --}}
-            <div class="mb-4">
-                <div class="section-label mb-2">
-                    {{ __('Signature Type') }} <span class="text-danger">*</span>
-                </div>
-
-                @if(!empty($signatureSettings['pickup_enabled']))
-                <label class="type-row pickup-row {{ old('signature_type') === 'pickup' ? 'selected' : '' }}"
-                       onclick="rowSelect(this, 'pickup', '{{ __('Pickup Signature') }}')">
-                    <input type="radio" name="signature_type" value="pickup"
-                           {{ old('signature_type') === 'pickup' ? 'checked' : '' }}>
-                    <div class="tr-icon"><i class="bi bi-box-arrow-in-up-right"></i></div>
-                    <div class="tr-text">
-                        <div class="tr-name">{{ __('Pickup Signature') }}</div>
-                        <div class="tr-note">{{ __('Customer collects device from shop') }}</div>
-                    </div>
-                    <i class="bi bi-check-circle-fill text-primary check-icon {{ old('signature_type') === 'pickup' ? '' : 'd-none' }}"
-                       style="font-size:1rem;"></i>
-                </label>
-                @endif
-
-                @if(!empty($signatureSettings['delivery_enabled']))
-                <label class="type-row delivery-row {{ old('signature_type') === 'delivery' ? 'selected' : '' }}"
-                       onclick="rowSelect(this, 'delivery', '{{ __('Delivery Signature') }}')">
-                    <input type="radio" name="signature_type" value="delivery"
-                           {{ old('signature_type') === 'delivery' ? 'checked' : '' }}>
-                    <div class="tr-icon"><i class="bi bi-truck"></i></div>
-                    <div class="tr-text">
-                        <div class="tr-name">{{ __('Delivery Signature') }}</div>
-                        <div class="tr-note">{{ __('Device delivered to customer\'s location') }}</div>
-                    </div>
-                    <i class="bi bi-check-circle-fill text-primary check-icon {{ old('signature_type') === 'delivery' ? '' : 'd-none' }}"
-                       style="font-size:1rem;"></i>
-                </label>
-                @endif
-
-                <label class="type-row custom-row {{ old('signature_type') === 'custom' ? 'selected' : '' }}"
-                       onclick="rowSelect(this, 'custom', '')">
-                    <input type="radio" name="signature_type" value="custom"
-                           {{ old('signature_type') === 'custom' ? 'checked' : '' }}>
-                    <div class="tr-icon"><i class="bi bi-pen"></i></div>
-                    <div class="tr-text">
-                        <div class="tr-name">{{ __('Custom Signature') }}</div>
-                        <div class="tr-note">{{ __('Any other signature requirement') }}</div>
-                    </div>
-                    <i class="bi bi-check-circle-fill text-primary check-icon {{ old('signature_type') === 'custom' ? '' : 'd-none' }}"
-                       style="font-size:1rem;"></i>
-                </label>
-
-                @error('signature_type')
-                    <div class="text-danger mt-1" style="font-size:.82rem;"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</div>
-                @enderror
-                <div class="form-text mt-1">{{ __('Pickup and Delivery types are linked to workflow settings.') }}</div>
-            </div>
-
-            {{--  Signature Label  --}}
-            <div class="mb-4">
-                <label for="signature_label" class="form-label fw-semibold" style="font-size:.85rem;">
-                    {{ __('Signature Label') }} <span class="text-danger">*</span>
-                </label>
-                <input type="text"
-                       name="signature_label"
-                       id="signature_label"
-                       class="form-control @error('signature_label') is-invalid @enderror"
-                       value="{{ old('signature_label') }}"
-                       placeholder="{{ __('e.g., Delivery Signature, Pickup Authorization') }}"
-                       required>
-                @error('signature_label')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-                <div class="form-text">{{ __('A short description shown to the customer when they sign.') }}</div>
-            </div>
-
-            {{--  Email Notification  --}}
-            @if($job->customer && $job->customer->email)
-            <div class="email-block mb-4">
-                <div class="form-check form-switch mb-1">
-                    <input class="form-check-input" type="checkbox"
-                           name="send_email" id="send_email" value="1"
-                           {{ old('send_email', '1') ? 'checked' : '' }}>
-                    <label class="form-check-label fw-semibold" for="send_email" style="font-size:.85rem;">
-                        <i class="bi bi-envelope me-1 text-primary"></i>{{ __('Send email notification to customer') }}
-                    </label>
-                </div>
-                <div class="ms-4 text-muted" style="font-size:.78rem;">
-                    {{ __('Signature link will be sent to') }} <strong>{{ $job->customer->email }}</strong>
-                </div>
-            </div>
-            @endif
-
-            <hr class="mb-3">
-            <div class="d-flex justify-content-end gap-2">
-                <a href="{{ route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]) }}"
-                   class="btn btn-outline-secondary btn-sm">
-                    {{ __('Cancel') }}
-                </a>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-check-circle me-1"></i>{{ __('Generate Request') }}
-                </button>
-            </div>
-        </form>
-    </div>
-
-    {{-- How it works hint --}}
-    <div class="d-flex align-items-start gap-2 mt-3 px-1" style="font-size:.78rem;color:#9ca3af;">
-        <i class="bi bi-info-circle mt-1 flex-shrink-0"></i>
-        <span>{{ __('A unique signing link is generated and optionally emailed. The customer signs remotely and the result is saved to the job automatically.') }}</span>
+    <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
+        <a href="{{ route('tenant.signatures.index', ['business' => $tenant->slug, 'jobId' => $job->id]) }}" class="btn-hero-back">
+            <i class="bi bi-list-ul me-1"></i>{{ __('All Requests') }}
+        </a>
+        <a href="{{ route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]) }}" class="btn-hero-back">
+            <i class="bi bi-arrow-left me-1"></i>{{ __('Back to Job') }}
+        </a>
     </div>
 </div>
+
+{{-- 2-column layout --}}
+<div class="row g-4">
+
+    {{-- =====================  LEFT SIDEBAR  ===================== --}}
+    <div class="col-lg-4">
+
+        {{-- Job Details card --}}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="sb-section-icon" style="background:rgba(37,99,235,.10);color:#2563eb;">
+                    <i class="bi bi-briefcase-fill"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">{{ __('Job Details') }}</h6>
+            </div>
+            <div class="card-body p-0">
+
+                <div class="sb-row">
+                    <span class="sb-icon-wrap" style="background:rgba(37,99,235,.10);color:#2563eb;">
+                        <i class="bi bi-hash"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-key">{{ __('Job Number') }}</span>
+                        <span class="sb-val">#{{ $job->job_number }}</span>
+                    </div>
+                </div>
+
+                @if($job->case_number)
+                <div class="sb-row">
+                    <span class="sb-icon-wrap" style="background:rgba(6,182,212,.10);color:#0e7490;">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-key">{{ __('Case Number') }}</span>
+                        <span class="sb-val">{{ $job->case_number }}</span>
+                    </div>
+                </div>
+                @endif
+
+                <div class="sb-row">
+                    <span class="sb-icon-wrap" style="background:rgba(107,114,128,.10);color:#4b5563;">
+                        <i class="bi bi-activity"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-key">{{ __('Status') }}</span>
+                        <span class="sb-val">
+                            @php
+                                $statusMap = [
+                                    'open'        => 'primary',
+                                    'in_progress' => 'warning',
+                                    'completed'   => 'success',
+                                    'cancelled'   => 'danger',
+                                    'pending'     => 'secondary',
+                                ];
+                                $statusColor = $statusMap[$job->status ?? ''] ?? 'secondary';
+                            @endphp
+                            <span class="badge rounded-pill text-bg-{{ $statusColor }} fw-normal">
+                                {{ ucfirst(str_replace('_', ' ', $job->status ?? __('Unknown'))) }}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="sb-row">
+                    <span class="sb-icon-wrap" style="background:rgba(16,185,129,.10);color:#059669;">
+                        <i class="bi bi-calendar3"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-key">{{ __('Created') }}</span>
+                        <span class="sb-val">{{ $job->created_at->format('M d, Y') }}</span>
+                    </div>
+                </div>
+
+                @if($job->created_at->diffInDays(now()) <= 365)
+                <div class="sb-row">
+                    <span class="sb-icon-wrap" style="background:rgba(139,92,246,.10);color:#7c3aed;">
+                        <i class="bi bi-clock-history"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-key">{{ __('Age') }}</span>
+                        <span class="sb-val">{{ $job->created_at->diffForHumans() }}</span>
+                    </div>
+                </div>
+                @endif
+
+            </div>
+        </div>
+
+        {{-- Customer card --}}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="sb-section-icon" style="background:rgba(37,99,235,.10);color:#2563eb;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">{{ __('Customer') }}</h6>
+            </div>
+            <div class="card-body p-3">
+
+                {{-- Avatar + name --}}
+                <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                    <div class="customer-avatar-lg">
+                        {{ strtoupper(substr($job->customer->name ?? 'C', 0, 1)) }}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="fw-semibold text-dark" style="font-size:.88rem;">{{ $job->customer->name ?? __('Unknown Customer') }}</div>
+                        <div class="small text-muted">{{ __('Customer') }}</div>
+                    </div>
+                </div>
+
+                @if(!empty($job->customer->email))
+                <div class="sb-row sb-row--compact">
+                    <span class="sb-icon-wrap" style="background:rgba(234,179,8,.10);color:#92400e;">
+                        <i class="bi bi-envelope-fill"></i>
+                    </span>
+                    <div class="sb-content min-w-0">
+                        <span class="sb-key">{{ __('Email') }}</span>
+                        <span class="sb-val text-truncate d-block" title="{{ $job->customer->email }}">{{ $job->customer->email }}</span>
+                    </div>
+                </div>
+                @endif
+
+                @if(!empty($job->customer->phone_number))
+                <div class="sb-row sb-row--compact">
+                    <span class="sb-icon-wrap" style="background:rgba(16,185,129,.10);color:#059669;">
+                        <i class="bi bi-telephone-fill"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-key">{{ __('Phone') }}</span>
+                        <span class="sb-val">{{ $job->customer->phone_number }}</span>
+                    </div>
+                </div>
+                @endif
+
+                @if(empty($job->customer->email) && empty($job->customer->phone_number))
+                <p class="text-muted small mb-0 text-center py-1">{{ __('No contact details on file.') }}</p>
+                @endif
+
+            </div>
+        </div>
+
+        {{-- Devices card --}}
+        @if($job->jobDevices && $job->jobDevices->count())
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="sb-section-icon" style="background:rgba(245,158,11,.10);color:#b45309;">
+                    <i class="bi bi-cpu-fill"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">{{ __('Devices') }}</h6>
+                <span class="badge rounded-pill text-bg-secondary fw-normal ms-auto" style="font-size:.65rem;">
+                    {{ $job->jobDevices->count() }}
+                </span>
+            </div>
+            <div class="card-body p-0">
+                @foreach($job->jobDevices as $jd)
+                @php $device = $jd->customerDevice->device ?? null; @endphp
+                <div class="sb-row {{ $loop->last ? '' : '' }}">
+                    <span class="sb-icon-wrap" style="background:rgba(245,158,11,.10);color:#b45309;">
+                        <i class="bi bi-phone"></i>
+                    </span>
+                    <div class="sb-content">
+                        <span class="sb-val">{{ $device->name ?? __('Unknown Device') }}</span>
+                        @if(!empty($device->brand))
+                        <span class="sb-note">{{ $device->brand }}</span>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- How It Works card --}}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="sb-section-icon" style="background:rgba(16,185,129,.10);color:#059669;">
+                    <i class="bi bi-lightbulb-fill"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">{{ __('How It Works') }}</h6>
+            </div>
+            <div class="card-body p-3">
+                <ol class="how-steps mb-0">
+                    <li>
+                        <span class="fw-semibold">{{ __('Choose a type') }}</span>
+                        <span class="sb-note d-block">{{ __('Select pickup, delivery, or a custom label.') }}</span>
+                    </li>
+                    <li>
+                        <span class="fw-semibold">{{ __('Link is generated') }}</span>
+                        <span class="sb-note d-block">{{ __('A unique, secure URL is created instantly.') }}</span>
+                    </li>
+                    <li>
+                        <span class="fw-semibold">{{ __('Customer signs') }}</span>
+                        <span class="sb-note d-block">{{ __('Share the link — works on any device.') }}</span>
+                    </li>
+                    <li>
+                        <span class="fw-semibold">{{ __('Signature saved') }}</span>
+                        <span class="sb-note d-block">{{ __('Timestamped, IP-logged, tamper-evident.') }}</span>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+    </div>{{-- /col-lg-4 --}}
+
+    {{-- =====================  RIGHT COLUMN: FORM  ===================== --}}
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold">{{ __('Request Details') }}</h6>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ route('tenant.signatures.store', ['business' => $tenant->slug, 'jobId' => $job->id]) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="type" id="type-hidden" value="{{ old('type', 'pickup') }}">
+
+                    {{-- Signature type --}}
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">{{ __('Signature Type') }}</label>
+
+                        <label class="type-row pickup-row {{ old('type','pickup') === 'pickup' ? 'selected' : '' }}"
+                               onclick="rowSelect(this, 'pickup', '{{ __('Pickup Signature') }}')">
+                            <input type="radio" name="_type_ui" value="pickup" class="d-none" {{ old('type','pickup') === 'pickup' ? 'checked' : '' }}>
+                            <span class="tr-icon pickup-icon"><i class="bi bi-box-arrow-up"></i></span>
+                            <span class="tr-body">
+                                <span class="tr-name">{{ __('Pickup') }}</span>
+                                <span class="tr-note">{{ __('Customer confirms they are collecting their device.') }}</span>
+                            </span>
+                            <span class="tr-check"><i class="bi bi-check-lg"></i></span>
+                        </label>
+
+                        <label class="type-row delivery-row {{ old('type') === 'delivery' ? 'selected' : '' }}"
+                               onclick="rowSelect(this, 'delivery', '{{ __('Delivery Signature') }}')">
+                            <input type="radio" name="_type_ui" value="delivery" class="d-none" {{ old('type') === 'delivery' ? 'checked' : '' }}>
+                            <span class="tr-icon delivery-icon"><i class="bi bi-truck"></i></span>
+                            <span class="tr-body">
+                                <span class="tr-name">{{ __('Delivery') }}</span>
+                                <span class="tr-note">{{ __('Customer confirms receipt of a delivered device.') }}</span>
+                            </span>
+                            <span class="tr-check"><i class="bi bi-check-lg"></i></span>
+                        </label>
+
+                        <label class="type-row custom-row {{ old('type') === 'custom' ? 'selected' : '' }}"
+                               onclick="rowSelect(this, 'custom', '')">
+                            <input type="radio" name="_type_ui" value="custom" class="d-none" {{ old('type') === 'custom' ? 'checked' : '' }}>
+                            <span class="tr-icon custom-icon"><i class="bi bi-pencil-square"></i></span>
+                            <span class="tr-body">
+                                <span class="tr-name">{{ __('Custom') }}</span>
+                                <span class="tr-note">{{ __('Write your own label for any other purpose.') }}</span>
+                            </span>
+                            <span class="tr-check"><i class="bi bi-check-lg"></i></span>
+                        </label>
+                    </div>
+
+                    <div class="sig-divider my-4"><span>{{ __('Details') }}</span></div>
+
+                    {{-- Label --}}
+                    <div class="mb-4">
+                        <label for="signature_label" class="form-label fw-semibold">{{ __('Signature Label') }}</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted" style="font-size:.72rem;">{{ __('Visible to the customer when they open the signature link.') }}</span>
+                            <span id="label-counter" class="text-muted" style="font-size:.72rem;white-space:nowrap;">0 / 255</span>
+                        </div>
+                        <input type="text"
+                               class="form-control @error('label') is-invalid @enderror"
+                               id="signature_label"
+                               name="label"
+                               placeholder="{{ __("e.g. Pickup Signature — John's iPhone 14") }}"
+                               value="{{ old('label', 'Pickup Signature') }}"
+                               maxlength="255">
+                        @error('label')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Email notification strip --}}
+                    @if(!empty($job->customer->email))
+                    <div class="email-strip d-flex align-items-center gap-3 mb-4">
+                        <div class="email-icon-wrap flex-shrink-0">
+                            <i class="bi bi-envelope-fill"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div style="font-size:.8rem;font-weight:600;color:#1f2937;">{{ __('Email Notification') }}</div>
+                            <div class="text-truncate" style="font-size:.74rem;color:#6b7280;">
+                                {{ __('Send a copy of the link to') }}
+                                <strong>{{ $job->customer->email }}</strong>
+                            </div>
+                        </div>
+                        <div class="form-check form-switch mb-0 flex-shrink-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="send_email" name="send_email" value="1"
+                                   {{ old('send_email', '1') ? 'checked' : '' }}>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Footer --}}
+                    <div class="d-flex align-items-center justify-content-between gap-2 pt-3 border-top flex-wrap">
+                        <div class="d-flex align-items-center gap-2 text-muted" style="font-size:.74rem;">
+                            <i class="bi bi-shield-lock-fill text-success" style="font-size:.85rem;"></i>
+                            {{ __('Signatures are timestamped, IP-logged, and tamper-evident.') }}
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('tenant.signatures.index', ['business' => $tenant->slug, 'jobId' => $job->id]) }}" class="btn btn-outline-secondary btn-sm">
+                                {{ __('Cancel') }}
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-sm px-4">
+                                <i class="bi bi-pen-fill me-1"></i>{{ __('Generate Request') }}
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>{{-- /col-lg-8 --}}
+
+</div>{{-- /row --}}
+
+</div>{{-- /sig-create-wrap --}}
+
 @endsection
 
 @push('page-styles')
 <style>
-    /*  Context strip  */
-    .ctx-strip {
-        background: #fff;
-        border-radius: .5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.04);
-        padding: 1rem 1.25rem;
-    }
-    .ctx-item { display: flex; flex-direction: column; gap: .15rem; }
-    .ctx-key  { font-size: .67rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; }
-    .ctx-val  { font-size: .84rem; font-weight: 500; color: #1f2937; }
-
-    /*  Form card  */
-    .form-card {
-        background: #fff;
-        border-radius: .5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.04);
+    /* Design tokens */
+    :root {
+        --rb-primary: #3B82F6;
+        --rb-primary-dark: #1D4ED8;
+        --rb-primary-rgb: 59, 130, 246;
+        --rb-hero-bg: radial-gradient(circle at center, #4b5563 0%, #1f2937 100%);
+        --rb-card-border: #e2e8f0;
+        --rb-text-muted: #64748b;
+        --rb-text-dark: #0f172a;
     }
 
-    /*  Section label  */
-    .section-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; }
+    /* Layout wrapper */
+    .sig-create-wrap { max-width: 1100px; margin: 0 auto; }
 
-    /*  Type radio rows  */
-    .type-row {
+    /* Hero header */
+    .sig-hero-header {
+        background: var(--rb-hero-bg);
+        border-radius: 16px;
+        padding: 1.75rem 2rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+    .sig-hero-header .hero-left {
+        display: flex; align-items: center; gap: 1rem;
+        flex: 1; min-width: 0;
+    }
+    .sig-hero-icon {
+        width: 48px; height: 48px;
+        background: rgba(255,255,255,.12);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem; flex-shrink: 0;
+        border: 1px solid rgba(255,255,255,.18);
+    }
+    .sig-hero-header h4 {
+        font-size: 1.35rem; font-weight: 700;
+        margin: 0; color: #fff !important;
+    }
+    .sig-hero-header .hero-subtitle {
+        font-size: .85rem; opacity: .75; margin-top: .15rem;
+    }
+    .btn-hero-back {
+        background: rgba(255,255,255,.1);
+        border: 1px solid rgba(255,255,255,.2);
+        color: white;
+        padding: .5rem 1rem;
+        border-radius: 8px;
+        font-size: .85rem; font-weight: 500;
+        text-decoration: none;
+        display: inline-flex; align-items: center; gap: .4rem;
+        transition: background .2s;
+        white-space: nowrap;
+    }
+    .btn-hero-back:hover { background: rgba(255,255,255,.2); color: white; }
+
+    /* Form elements (matching job create) */
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: .4rem;
+        font-size: .875rem;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        padding: .6rem .875rem;
+        font-size: .9rem;
+        transition: border-color .2s ease, box-shadow .2s ease;
+        background-color: #fff;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--rb-primary);
+        box-shadow: 0 0 0 3px rgba(var(--rb-primary-rgb), .12);
+    }
+
+    /* Sidebar section icon */
+    .sb-section-icon {
+        width: 28px; height: 28px; border-radius: .4rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; flex-shrink: 0;
+    }
+
+    /* Sidebar rows */
+    .sb-row {
         display: flex;
         align-items: center;
-        gap: .85rem;
-        padding: .85rem 1rem;
+        gap: .75rem;
+        padding: .75rem 1rem;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    .sb-row:last-child { border-bottom: none; }
+    .sb-row--compact { padding-top: .55rem; padding-bottom: .55rem; }
+
+    .sb-icon-wrap {
+        width: 30px; height: 30px; border-radius: .4rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; flex-shrink: 0;
+    }
+    .sb-content { display: flex; flex-direction: column; min-width: 0; }
+    .sb-key  { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; line-height: 1; margin-bottom: .18rem; }
+    .sb-val  { font-size: .82rem; font-weight: 500; color: #1f2937; line-height: 1.25; }
+    .sb-note { font-size: .74rem; color: #9ca3af; line-height: 1.4; }
+
+    /* Customer avatar */
+    .customer-avatar-lg {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; font-weight: 700; flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(37,99,235,.3);
+    }
+
+    /* How It Works steps */
+    .how-steps {
+        list-style: none;
+        counter-reset: step;
+        padding-left: 0;
+    }
+    .how-steps li {
+        counter-increment: step;
+        display: flex;
+        flex-direction: column;
+        padding-left: 2rem;
+        position: relative;
+        padding-bottom: .85rem;
+    }
+    .how-steps li:last-child { padding-bottom: 0; }
+    .how-steps li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0; top: 0;
+        width: 20px; height: 20px;
+        background: rgba(16,185,129,.15);
+        color: #059669;
+        border-radius: 50%;
+        font-size: .68rem; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .how-steps li::after {
+        content: '';
+        position: absolute;
+        left: 9px; top: 22px; bottom: 0;
+        width: 1px;
+        background: #e5e7eb;
+    }
+    .how-steps li:last-child::after { display: none; }
+
+    /* ----  Form (right column)  ---- */
+
+    /* Ornamental divider */
+    .sig-divider { display: flex; align-items: center; gap: .75rem; }
+    .sig-divider::before, .sig-divider::after { content: ''; flex: 1; height: 1px; background: #e5e7eb; }
+    .sig-divider span { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #d1d5db; white-space: nowrap; }
+
+    /* Type rows */
+    .type-row {
+        display: flex; align-items: center; gap: 1rem;
+        padding: .9rem 1rem;
         border: 1.5px solid #e5e7eb;
-        border-radius: .45rem;
+        border-radius: .5rem;
         cursor: pointer;
-        transition: border-color .12s ease, background .12s ease;
+        transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
         margin-bottom: .5rem;
         user-select: none;
+        position: relative; overflow: hidden;
     }
     .type-row:last-of-type { margin-bottom: 0; }
-    .type-row:hover    { border-color: #93c5fd; background: #f8fbff; }
-    .type-row.selected { border-color: #2563eb; background: #eff6ff; }
-    .type-row input[type=radio] { width: 16px; height: 16px; flex-shrink: 0; accent-color: #2563eb; }
-    .type-row .tr-icon {
-        width: 36px; height: 36px; border-radius: .4rem;
+    .type-row::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        background: transparent;
+        transition: background .15s ease;
+        border-radius: .5rem 0 0 .5rem;
+    }
+    .type-row:hover    { border-color: #bfdbfe; background: #f8fbff; box-shadow: 0 1px 4px rgba(37,99,235,.08); }
+    .type-row.selected { border-color: #93c5fd; background: #eff6ff; box-shadow: 0 1px 6px rgba(37,99,235,.12); }
+    .type-row.selected::before { background: #2563eb; }
+
+    .tr-icon {
+        width: 42px; height: 42px; border-radius: .5rem;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1rem; flex-shrink: 0;
+        font-size: 1.1rem; flex-shrink: 0;
+        transition: transform .15s ease;
     }
-    .type-row .tr-text { flex: 1; }
-    .type-row .tr-name { font-weight: 600; font-size: .84rem; color: #374151; }
-    .type-row .tr-note { font-size: .74rem; color: #9ca3af; }
+    .type-row.selected .tr-icon { transform: scale(1.08); }
+    .pickup-icon   { background: rgba(6,182,212,.10);   color: #0e7490; }
+    .delivery-icon { background: rgba(245,158,11,.10);  color: #b45309; }
+    .custom-icon   { background: rgba(107,114,128,.10); color: #4b5563; }
+
+    .tr-body { flex: 1; min-width: 0; }
+    .tr-name { font-weight: 600; font-size: .85rem; color: #374151; transition: color .15s; }
+    .tr-note { font-size: .74rem; color: #9ca3af; line-height: 1.4; margin-top: .1rem; }
     .type-row.selected .tr-name { color: #1d4ed8; }
-    .pickup-row   .tr-icon { background: rgba(6,182,212,.10);   color: #0e7490; }
-    .delivery-row .tr-icon { background: rgba(245,158,11,.10);  color: #b45309; }
-    .custom-row   .tr-icon { background: rgba(107,114,128,.10); color: #4b5563; }
 
-    /*  Email block  */
-    .email-block {
-        background: #f0f9ff;
+    .tr-check {
+        width: 20px; height: 20px; border-radius: 50%;
+        border: 2px solid #d1d5db;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; color: transparent;
+        transition: all .15s ease;
+        font-size: .75rem;
+    }
+    .type-row.selected .tr-check { border-color: #2563eb; background: #2563eb; color: #fff; }
+
+    /* Email strip */
+    .email-strip {
+        background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%);
         border: 1px solid #bae6fd;
-        border-radius: .45rem;
-        padding: .85rem 1rem;
+        border-radius: .5rem;
+        padding: .9rem 1.1rem;
+    }
+    .email-icon-wrap {
+        width: 36px; height: 36px; border-radius: .45rem;
+        background: rgba(37,99,235,.10); color: #2563eb;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .95rem;
     }
 
-    /* Dark mode adjustments */
-    [data-bs-theme="dark"] .ctx-strip,
-    [data-bs-theme="dark"] .form-card {
-        background: var(--bs-body-bg);
-        box-shadow: 0 1px 3px rgba(0,0,0,.2);
-    }
+    /* Dark mode */
+    [data-bs-theme="dark"] .card { background: var(--bs-body-bg); }
+    [data-bs-theme="dark"] .sb-row { border-color: rgba(255,255,255,.06); }
+    [data-bs-theme="dark"] .sb-val { color: var(--bs-body-color); }
     [data-bs-theme="dark"] .type-row { border-color: rgba(255,255,255,.1); background: transparent; }
-    [data-bs-theme="dark"] .type-row:hover    { border-color: #3b82f6; background: rgba(59,130,246,.08); }
-    [data-bs-theme="dark"] .type-row.selected { border-color: #2563eb; background: rgba(37,99,235,.15); }
-    [data-bs-theme="dark"] .email-block { background: rgba(14,165,233,.08); border-color: rgba(14,165,233,.2); }
+    [data-bs-theme="dark"] .type-row:hover    { border-color: #3b82f6; background: rgba(59,130,246,.07); }
+    [data-bs-theme="dark"] .type-row.selected { border-color: #60a5fa; background: rgba(37,99,235,.15); }
+    [data-bs-theme="dark"] .tr-name  { color: var(--bs-body-color); }
+    [data-bs-theme="dark"] .email-strip { background: rgba(14,165,233,.07); border-color: rgba(14,165,233,.2); }
+    [data-bs-theme="dark"] .sig-divider::before, [data-bs-theme="dark"] .sig-divider::after { background: rgba(255,255,255,.1); }
+    [data-bs-theme="dark"] .how-steps li::after { background: rgba(255,255,255,.1); }
 </style>
 @endpush
 
@@ -272,27 +605,40 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const autoLabels = {
-        'pickup':   '{{ __("Pickup Signature") }}',
-        'delivery': '{{ __("Delivery Signature") }}',
-        'custom':   ''
+        pickup:   '{{ __("Pickup Signature") }}',
+        delivery: '{{ __("Delivery Signature") }}',
+        custom:   ''
     };
 
     window.rowSelect = function (rowEl, value, defaultLabel) {
         document.querySelectorAll('.type-row').forEach(function (r) {
             r.classList.remove('selected');
-            r.querySelector('.check-icon').classList.add('d-none');
         });
         rowEl.classList.add('selected');
-        rowEl.querySelector('.check-icon').classList.remove('d-none');
+        document.getElementById('type-hidden').value = value;
 
         const labelInput = document.getElementById('signature_label');
         const current    = labelInput.value.trim();
         const wasAuto    = Object.values(autoLabels).includes(current) || current === '';
         if (wasAuto) {
             labelInput.value = defaultLabel;
+            updateCounter();
             if (!defaultLabel) { labelInput.focus(); }
         }
     };
+
+    const labelInput = document.getElementById('signature_label');
+    const counterEl  = document.getElementById('label-counter');
+    function updateCounter() {
+        if (!labelInput || !counterEl) return;
+        const len = labelInput.value.length;
+        counterEl.textContent = len + ' / 255';
+        counterEl.style.color = len > 230 ? '#ef4444' : '#9ca3af';
+    }
+    if (labelInput) {
+        labelInput.addEventListener('input', updateCounter);
+        updateCounter();
+    }
 });
 </script>
 @endpush
