@@ -72,9 +72,9 @@ class SignatureController extends Controller
 
         $jobStatuses = Status::query()
             ->where('tenant_id', $tenant->id)
-            ->where('entity_type', 'job')
+            ->where('status_type', 'Job')
             ->where('is_active', true)
-            ->orderBy('sort_order')
+            ->orderBy('label')
             ->get();
 
         return view('tenant.signatures.create', [
