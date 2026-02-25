@@ -33,10 +33,12 @@ class CustomerDashboardController extends Controller
         $jobs = (clone $jobsQuery)->orderByDesc('created_at')->limit(10)->get();
 
         // ── Estimate stats ──
-        $estimatesQuery   = RepairBuddyEstimate::where('tenant_id', $tenant->id)->where('customer_id', $user->id);
-        $totalEstimates   = (clone $estimatesQuery)->count();
-        $pendingEstimates = (clone $estimatesQuery)->where('status', 'pending')->count();
-        $estimates        = (clone $estimatesQuery)->orderByDesc('created_at')->limit(10)->get();
+        $estimatesQuery    = RepairBuddyEstimate::where('tenant_id', $tenant->id)->where('customer_id', $user->id);
+        $totalEstimates    = (clone $estimatesQuery)->count();
+        $pendingEstimates  = (clone $estimatesQuery)->where('status', 'pending')->count();
+        $approvedEstimates = (clone $estimatesQuery)->where('status', 'approved')->count();
+        $rejectedEstimates = (clone $estimatesQuery)->where('status', 'rejected')->count();
+        $estimates         = (clone $estimatesQuery)->orderByDesc('created_at')->limit(10)->get();
 
         // ── Devices ──
         $devices = RepairBuddyCustomerDevice::where('tenant_id', $tenant->id)
@@ -55,6 +57,8 @@ class CustomerDashboardController extends Controller
             'jobs'             => $jobs,
             'totalEstimates'   => $totalEstimates,
             'pendingEstimates' => $pendingEstimates,
+            'approvedEstimates'=> $approvedEstimates,
+            'rejectedEstimates'=> $rejectedEstimates,
             'estimates'        => $estimates,
             'devices'          => $devices,
             'section'          => $request->get('section', 'dashboard'),
