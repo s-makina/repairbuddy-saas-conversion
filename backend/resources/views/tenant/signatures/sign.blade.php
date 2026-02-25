@@ -1,6 +1,6 @@
-@php
+﻿@php
     $siteName = ($tenant && $tenant->name) ? $tenant->name : config('app.name', 'RepairBuddy');
-    $thePageTitle = __('Sign your job') . ' — ' . $siteName;
+    $thePageTitle = __('Sign your job') . ' - ' . $siteName;
 @endphp
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
@@ -15,201 +15,254 @@
     <link rel="stylesheet" href="{{ asset('repairbuddy/my_account/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('repairbuddy/my_account/css/bootstrap-icons.min.css') }}">
     <style>
-        body { font-family: 'Inter', sans-serif; min-height: 100vh; }
-        .auth-container { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
-        .auth-card { border-radius: 16px; overflow: hidden; }
-        .auth-logo { text-align: center; }
-        .auth-logo img { max-height: 60px; width: auto; }
-        #signatureCanvas { touch-action: none; border: 2px dashed #dee2e6; border-radius: 8px; cursor: crosshair; background: #fff; }
-        [data-bs-theme="dark"] #signatureCanvas { background: #1a1a2e; border-color: #495057; }
-        [data-bs-theme="dark"] body { background: #121212; }
+        :root {
+            --sig-primary: #2563eb;
+            --sig-radius: 12px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: #f8f9fb;
+        }
+        [data-bs-theme="dark"] body { background: #111827; }
+
+        .sig-wrapper { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
+
+        .sig-card {
+            border: none;
+            border-radius: var(--sig-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.04);
+            overflow: hidden;
+        }
+
+        .sig-logo { text-align: center; }
+        .sig-logo img { max-height: 48px; width: auto; }
+
+        .sig-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: .45rem 0;
+            font-size: .84rem;
+            border-bottom: 1px solid rgba(0,0,0,.04);
+        }
+        .sig-detail-row:last-child { border-bottom: none; }
+        .sig-detail-label { color: #6b7280; }
+        .sig-detail-value { font-weight: 500; }
+
+        .sig-canvas-wrap {
+            background: #fff;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            position: relative;
+            transition: border-color .2s;
+        }
+        .sig-canvas-wrap:hover,
+        .sig-canvas-wrap.active { border-color: var(--sig-primary); }
+        [data-bs-theme="dark"] .sig-canvas-wrap {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        .sig-canvas-wrap canvas {
+            width: 100%;
+            height: 180px;
+            cursor: crosshair;
+            touch-action: none;
+            display: block;
+        }
+        .sig-canvas-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #d1d5db;
+            font-size: .82rem;
+            pointer-events: none;
+            transition: opacity .3s;
+        }
+        .sig-canvas-wrap.has-signature .sig-canvas-hint { opacity: 0; }
+
+        .sig-step {
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            font-size: .82rem;
+        }
+        .sig-step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--sig-primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; z-index: 10; }
     </style>
 </head>
 
-<body class="bg-light">
-    <div class="auth-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-10 col-lg-8">
-                    {{-- Top Bar --}}
-                    <div class="d-flex justify-content-end mb-4">
-                        <div class="dropdown">
-                            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title="{{ __('Theme Settings') }}">
-                                <i class="bi bi-palette"></i>
-                            </button>
-                            <ul class="dropdown-menu rounded-3 p-0">
-                                <li>
-                                    <div class="btn-group w-100" role="group">
-                                        <button type="button" class="btn theme-option" data-theme="light" title="{{ __('Light Mode') }}">
-                                            <i class="bi bi-sun"></i>
-                                        </button>
-                                        <button type="button" class="btn border-start border-end theme-option" data-theme="dark" title="{{ __('Dark Mode') }}">
-                                            <i class="bi bi-moon"></i>
-                                        </button>
-                                        <button type="button" class="btn theme-option" data-theme="auto" title="{{ __('Auto Mode') }}">
-                                            <i class="bi bi-circle-half"></i>
-                                        </button>
-                                    </div>
-                                </li>
-                            </ul>
+<body>
+    {{-- Theme Toggle --}}
+    <div class="theme-toggle">
+        <div class="dropdown dropup">
+            <button class="btn btn-light btn-sm border shadow-sm rounded-circle" style="width:36px;height:36px;" type="button" data-bs-toggle="dropdown" title="{{ __('Theme') }}">
+                <i class="bi bi-circle-half" style="font-size:.85rem;"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow rounded-3 p-1 mb-1" style="min-width:auto;">
+                <li><button class="dropdown-item rounded-2 py-1 px-2 theme-option" data-theme="light"><i class="bi bi-sun me-1"></i> {{ __('Light') }}</button></li>
+                <li><button class="dropdown-item rounded-2 py-1 px-2 theme-option" data-theme="dark"><i class="bi bi-moon me-1"></i> {{ __('Dark') }}</button></li>
+                <li><button class="dropdown-item rounded-2 py-1 px-2 theme-option" data-theme="auto"><i class="bi bi-circle-half me-1"></i> {{ __('Auto') }}</button></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="sig-wrapper">
+        {{-- Main Card --}}
+        <div class="card sig-card">
+            <div class="card-body p-4 p-md-5">
+
+                {{-- Logo --}}
+                <div class="sig-logo mb-4">
+                    @if($tenant && $tenant->logo_url)
+                        <img src="{{ $tenant->logo_url }}" alt="{{ $siteName }}">
+                    @else
+                        <h4 class="fw-bold text-primary mb-0">{{ $siteName }}</h4>
+                    @endif
+                </div>
+
+                {{-- Title --}}
+                <div class="text-center mb-4">
+                    <h5 class="fw-bold mb-2">{{ __('Signature Required') }}</h5>
+                    @if(!empty($signatureRequest->signature_label))
+                        <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border px-3 py-2" style="font-size:.8rem;">
+                            <i class="bi bi-pen me-1"></i>{{ $signatureRequest->signature_label }}
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Details Grid --}}
+                <div class="row g-3 mb-4">
+                    @if($customer)
+                    <div class="col-md-6">
+                        <div class="rounded-3 bg-light p-3 h-100" style="font-size:.84rem;">
+                            <div class="fw-semibold text-muted text-uppercase mb-2" style="font-size:.68rem;letter-spacing:.04em;">
+                                <i class="bi bi-person me-1"></i>{{ __('Customer') }}
+                            </div>
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Name') }}</span>
+                                <span class="sig-detail-value">{{ $customer->name }}</span>
+                            </div>
+                            @if($customer->email)
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Email') }}</span>
+                                <span class="sig-detail-value text-truncate" style="max-width:140px;">{{ $customer->email }}</span>
+                            </div>
+                            @endif
+                            @if($customer->phone)
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Phone') }}</span>
+                                <span class="sig-detail-value">{{ $customer->phone }}</span>
+                            </div>
+                            @endif
                         </div>
                     </div>
-
-                    {{-- Auth Card --}}
-                    <div class="card auth-card border-0 shadow-lg">
-                        <div class="card-body p-4 p-md-5">
-                            {{-- Logo --}}
-                            <div class="auth-logo mb-4">
-                                @if($tenant && $tenant->logo_url)
-                                    <img src="{{ $tenant->logo_url }}" alt="{{ $siteName }}" class="img-fluid">
-                                @else
-                                    <h3 class="fw-bold text-primary">{{ $siteName }}</h3>
-                                @endif
+                    @endif
+                    <div class="{{ $customer ? 'col-md-6' : 'col-12' }}">
+                        <div class="rounded-3 bg-light p-3 h-100" style="font-size:.84rem;">
+                            <div class="fw-semibold text-muted text-uppercase mb-2" style="font-size:.68rem;letter-spacing:.04em;">
+                                <i class="bi bi-tools me-1"></i>{{ __('Job Information') }}
                             </div>
-
-                            <div class="text-center mb-3">
-                                <h4 class="fw-bold mb-3">{{ __('Complete Your Signature Requirement') }}</h4>
-                                @if(!empty($signatureRequest->signature_label))
-                                    <div class="alert alert-info d-inline-block">
-                                        <i class="bi bi-pen me-2"></i>
-                                        {{ __('Signature for:') }}
-                                        <strong>{{ $signatureRequest->signature_label }}</strong>
-                                    </div>
-                                @endif
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Order #') }}</span>
+                                <span class="sig-detail-value text-primary">{{ $job->job_number ?? $job->id }}</span>
                             </div>
-
-                            {{-- Job Details Card --}}
-                            <div class="card border shadow-sm mb-3">
-                                <div class="card-body p-4">
-                                    <div class="row">
-                                        {{-- Customer Information --}}
-                                        @if($customer)
-                                        <div class="col-md-6 mb-4 mb-md-0">
-                                            <div class="card h-100 border-0 bg-light">
-                                                <div class="card-body">
-                                                    <h6 class="card-subtitle mb-3 text-muted fw-bold">
-                                                        <i class="bi bi-person-circle me-2"></i>{{ __('Customer Information') }}
-                                                    </h6>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 80px;">
-                                                                <i class="bi bi-person me-1"></i>{{ __('Name') }}:
-                                                            </span>
-                                                            <span class="fw-medium">{{ $customer->name }}</span>
-                                                        </div>
-                                                        @if($customer->email)
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 80px;">
-                                                                <i class="bi bi-envelope me-1"></i>{{ __('Email') }}:
-                                                            </span>
-                                                            <span class="fw-medium">{{ $customer->email }}</span>
-                                                        </div>
-                                                        @endif
-                                                        @if($customer->phone)
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 80px;">
-                                                                <i class="bi bi-telephone me-1"></i>{{ __('Phone') }}:
-                                                            </span>
-                                                            <span class="fw-medium">{{ $customer->phone }}</span>
-                                                        </div>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @endif
-
-                                        {{-- Job Information --}}
-                                        <div class="col-md-6">
-                                            <div class="card h-100 border-0 bg-light">
-                                                <div class="card-body">
-                                                    <h6 class="card-subtitle mb-3 text-muted fw-bold">
-                                                        <i class="bi bi-tools me-2"></i>{{ __('Job Information') }}
-                                                    </h6>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 100px;">
-                                                                <i class="bi bi-hash me-1"></i>{{ __('Order #') }}:
-                                                            </span>
-                                                            <span class="fw-bold text-primary">{{ $job->job_number ?? $job->id }}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 100px;">
-                                                                <i class="bi bi-folder me-1"></i>{{ __('Case #') }}:
-                                                            </span>
-                                                            <span class="fw-medium">{{ $job->case_number }}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 100px;">
-                                                                <i class="bi bi-calendar me-1"></i>{{ __('Created') }}:
-                                                            </span>
-                                                            <span class="fw-medium">{{ $job->created_at?->format('M d, Y') }}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-start">
-                                                            <span class="text-muted me-2" style="min-width: 100px;">
-                                                                <i class="bi bi-info-circle me-1"></i>{{ __('Status') }}:
-                                                            </span>
-                                                            <span class="badge bg-secondary">{{ $job->status_slug }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Case #') }}</span>
+                                <span class="sig-detail-value">{{ $job->case_number }}</span>
                             </div>
-
-                            {{-- Signature Section --}}
-                            <div class="card border shadow-sm">
-                                <div class="card-header bg-primary py-3">
-                                    <h5 class="card-title mb-0 text-white">
-                                        <i class="bi bi-pen me-2"></i>{{ __('Signature Required') }}
-                                    </h5>
-                                </div>
-                                <div class="card-body p-4">
-                                    @if($canSign)
-                                        <p class="text-muted mb-4">
-                                            <i class="bi bi-info-circle me-2"></i>
-                                            {{ __('Please provide your signature in the area below to acknowledge and approve the job details.') }}
-                                        </p>
-
-                                        {{-- Signature Pad --}}
-                                        <div id="signaturepad" class="bg-light border rounded p-3 position-relative" style="min-height: 200px;">
-                                            <canvas id="signatureCanvas" style="width:100%;height:200px;"></canvas>
-                                        </div>
-
-                                        <div class="mt-4 d-flex justify-content-between flex-wrap gap-2">
-                                            <button type="button" class="btn btn-outline-secondary" id="clearBtn">
-                                                <i class="bi bi-x-circle me-1"></i>{{ __('Clear Signature') }}
-                                            </button>
-                                            <button type="button" class="btn btn-primary" id="submitBtn">
-                                                <i class="bi bi-check-circle me-1"></i>{{ __('Submit Signature') }}
-                                            </button>
-                                        </div>
-
-                                        {{-- Error/Success Messages --}}
-                                        <div id="signatureMessage" class="mt-3" style="display:none;"></div>
-                                    @else
-                                        <div class="alert alert-warning mb-0">
-                                            <i class="bi bi-exclamation-triangle me-2"></i>
-                                            {{ $statusMessage ?: __('You cannot sign this document at this time.') }}
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            {{-- Footer Note --}}
-                            <div class="text-center mt-4 pt-3 border-top">
-                                <p class="text-muted small mb-0">
-                                    <i class="bi bi-shield-check me-1"></i>
-                                    {{ __('Your information is secure and will only be used for this job approval.') }}
-                                </p>
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Status') }}</span>
+                                <span class="badge bg-secondary" style="font-size:.72rem;">{{ $job->status_slug }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {{-- Signature Pad Section --}}
+                <div class="border-top pt-4">
+                    @if($canSign)
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width:28px;height:28px;">
+                                <i class="bi bi-pen text-white" style="font-size:.75rem;"></i>
+                            </div>
+                            <h6 class="fw-bold mb-0">{{ __('Draw Your Signature') }}</h6>
+                        </div>
+
+                        <p class="text-muted small mb-3">{{ __('Use your mouse or finger to sign in the area below.') }}</p>
+
+                        {{-- Canvas --}}
+                        <div class="sig-canvas-wrap mb-3" id="canvasWrap">
+                            <canvas id="signatureCanvas"></canvas>
+                            <div class="sig-canvas-hint">
+                                <i class="bi bi-pen me-1"></i>{{ __('Sign here') }}
+                            </div>
+                        </div>
+
+                        {{-- Actions --}}
+                        <div class="d-flex justify-content-between flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearBtn">
+                                <i class="bi bi-eraser me-1"></i>{{ __('Clear') }}
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm px-4" id="submitBtn">
+                                <i class="bi bi-check-circle me-1"></i>{{ __('Submit Signature') }}
+                            </button>
+                        </div>
+
+                        {{-- Message Area --}}
+                        <div id="signatureMessage" class="mt-3" style="display:none;"></div>
+                    @else
+                        <div class="text-center py-4">
+                            <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;">
+                                <i class="bi bi-exclamation-triangle text-warning" style="font-size:1.5rem;"></i>
+                            </div>
+                            <p class="text-muted mb-0">{{ $statusMessage ?: __('You cannot sign this document at this time.') }}</p>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Footer --}}
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted mb-0" style="font-size:.75rem;">
+                        <i class="bi bi-shield-lock me-1"></i>
+                        {{ __('Your information is secure and will only be used for this job approval.') }}
+                    </p>
+                </div>
             </div>
         </div>
+
+        {{-- Steps Guide (below card) --}}
+        @if($canSign)
+        <div class="mt-3 px-2">
+            <div class="d-flex flex-wrap gap-4 justify-content-center">
+                <div class="sig-step">
+                    <div class="sig-step-num">1</div>
+                    <span class="text-muted">{{ __('Review job details above') }}</span>
+                </div>
+                <div class="sig-step">
+                    <div class="sig-step-num">2</div>
+                    <span class="text-muted">{{ __('Draw your signature') }}</span>
+                </div>
+                <div class="sig-step">
+                    <div class="sig-step-num">3</div>
+                    <span class="text-muted">{{ __('Click submit') }}</span>
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
 
     <script src="{{ asset('repairbuddy/my_account/js/bootstrap.bundle.min.js') }}"></script>
@@ -224,6 +277,7 @@
         };
 
         let signaturePad = null;
+        const canvasWrap = document.getElementById('canvasWrap');
 
         document.addEventListener('DOMContentLoaded', function() {
             initSignaturePad();
@@ -232,25 +286,32 @@
         });
 
         function initSignaturePad() {
-            const container = document.getElementById('signaturepad');
             const canvas = document.getElementById('signatureCanvas');
-            if (!container || !canvas) return;
+            if (!canvasWrap || !canvas) return;
 
-            canvas.width = container.offsetWidth - 24;
-            canvas.height = 200;
+            canvas.width = canvasWrap.offsetWidth;
+            canvas.height = 180;
 
             signaturePad = new SignaturePad(canvas, {
                 backgroundColor: 'rgb(255, 255, 255)',
                 penColor: 'rgb(0, 0, 0)',
                 minWidth: 1,
-                maxWidth: 3,
+                maxWidth: 2.5,
                 throttle: 16,
+            });
+
+            signaturePad.addEventListener('beginStroke', function() {
+                canvasWrap.classList.add('active', 'has-signature');
+            });
+
+            signaturePad.addEventListener('endStroke', function() {
+                canvasWrap.classList.remove('active');
             });
 
             window.addEventListener('resize', function() {
                 const data = signaturePad.toData();
-                canvas.width = container.offsetWidth - 24;
-                canvas.height = 200;
+                canvas.width = canvasWrap.offsetWidth;
+                canvas.height = 180;
                 signaturePad.clear();
                 if (data && data.length > 0) {
                     signaturePad.fromData(data);
@@ -263,6 +324,7 @@
             if (clearBtn) {
                 clearBtn.addEventListener('click', function() {
                     if (signaturePad) signaturePad.clear();
+                    canvasWrap.classList.remove('has-signature');
                 });
             }
 
@@ -271,7 +333,6 @@
                 submitBtn.addEventListener('click', uploadSignature);
             }
 
-            // Prevent scrolling on touch for canvas
             const canvas = document.getElementById('signatureCanvas');
             if (canvas) {
                 canvas.addEventListener('touchstart', function(e) {
@@ -300,8 +361,8 @@
             const msgDiv = document.getElementById('signatureMessage');
             if (msgDiv) {
                 msgDiv.style.display = 'block';
-                msgDiv.className = 'mt-3 alert alert-' + (type === 'error' ? 'danger' : 'success');
-                msgDiv.innerHTML = '<i class="bi bi-' + (type === 'error' ? 'exclamation-circle' : 'check-circle') + ' me-2"></i>' + text;
+                msgDiv.className = 'mt-3 alert alert-' + (type === 'error' ? 'danger' : 'success') + ' d-flex align-items-center';
+                msgDiv.innerHTML = '<i class="bi bi-' + (type === 'error' ? 'exclamation-circle' : 'check-circle') + ' me-2"></i><div>' + text + '</div>';
             }
         }
 
@@ -313,16 +374,13 @@
 
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> {{ __("Saving...") }}';
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> {{ __("Submitting...") }}';
             submitBtn.disabled = true;
 
-            // Convert signature to blob
             const signatureData = signaturePad.toDataURL('image/png');
             const blob = dataURLtoBlob(signatureData);
             const formData = new FormData();
-            const fileName = 'signature-' + Date.now() + '.png';
-
-            formData.append('signature_file', blob, fileName);
+            formData.append('signature_file', blob, 'signature-' + Date.now() + '.png');
             formData.append('_token', signatureParams.csrfToken);
 
             fetch(signatureParams.submitUrl, {
@@ -344,9 +402,7 @@
                     document.getElementById('clearBtn').style.display = 'none';
 
                     if (data.data && data.data.redirect) {
-                        setTimeout(() => {
-                            window.location.href = data.data.redirect;
-                        }, 2000);
+                        setTimeout(() => { window.location.href = data.data.redirect; }, 1500);
                     }
                 } else {
                     showMessage('error', data.error || '{{ __("An error occurred. Please try again.") }}');
@@ -366,9 +422,7 @@
             const bstr = atob(arr[1]);
             let n = bstr.length;
             const u8arr = new Uint8Array(n);
-            while(n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
+            while(n--) { u8arr[n] = bstr.charCodeAt(n); }
             return new Blob([u8arr], {type: mime});
         }
     })();

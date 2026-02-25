@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Show — Mockup 2: Centered Timeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --rb-primary: #2563eb;
+            --rb-success: #10b981;
+        }
+        body { font-family: 'Inter', sans-serif; background: #f4f6f9; }
+
+        /* ── Pill badges ── */
+        .rb-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .7rem; border-radius: 999px; font-size: .72rem; font-weight: 600; border: 1px solid transparent; }
+        .rb-pill--completed { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.25); }
+        .rb-pill--pending   { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+        .rb-pill--expired   { color: #991b1b; background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.25); }
+        .rb-pill--delivery  { color: #78350f; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+
+        /* ── Signature canvas ── */
+        .sig-frame {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .sig-frame::after {
+            content: '';
+            position: absolute;
+            bottom: 40px;
+            left: 15%;
+            right: 15%;
+            border-bottom: 1px dashed #d1d5db;
+        }
+        .sig-frame svg { position: relative; z-index: 1; }
+
+        /* ── Timeline ── */
+        .timeline { position: relative; padding-left: 28px; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 4px;
+            bottom: 4px;
+            width: 2px;
+            background: #e5e7eb;
+            border-radius: 1px;
+        }
+        .tl-item { position: relative; padding-bottom: 1.25rem; }
+        .tl-item:last-child { padding-bottom: 0; }
+        .tl-dot {
+            position: absolute;
+            left: -28px;
+            top: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            z-index: 1;
+        }
+        .tl-dot--green { border-color: var(--rb-success); background: var(--rb-success); }
+        .tl-dot--green::after { content: ''; display: block; width: 6px; height: 6px; background: #fff; border-radius: 50%; margin: 3px auto; }
+        .tl-dot--blue  { border-color: var(--rb-primary); background: var(--rb-primary); }
+        .tl-dot--blue::after  { content: ''; display: block; width: 6px; height: 6px; background: #fff; border-radius: 50%; margin: 3px auto; }
+
+        /* ── Info grid ── */
+        .info-cell { padding: .6rem 0; border-bottom: 1px solid rgba(0,0,0,.04); }
+        .info-cell:last-child { border-bottom: none; }
+        .info-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: #9ca3af; font-weight: 600; margin-bottom: .15rem; }
+        .info-value { font-size: .85rem; font-weight: 500; }
+
+        /* ── Top hero strip ── */
+        .hero-strip {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-radius: 12px;
+            color: #fff;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     DESIGN: Centered single-column with a colored hero
+     strip at top, signature preview front-and-center,
+     then an info grid + vertical timeline.
+     ═══════════════════════════════════════════════════ -->
+
+<div class="container-fluid p-3 p-md-4" style="max-width:900px;">
+
+    <!-- Back nav -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0" style="font-size:.82rem;">
+                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Jobs</a></li>
+                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">#CSN-2026-0145</a></li>
+                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Signatures</a></li>
+                <li class="breadcrumb-item active">Delivery Signature</li>
+            </ol>
+        </nav>
+        <div class="d-flex gap-2">
+            <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Job</a>
+        </div>
+    </div>
+
+    <!-- Hero Strip -->
+    <div class="hero-strip">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-pen" style="font-size:1.25rem;"></i>
+                    <h5 class="fw-bold mb-0">Delivery Signature</h5>
+                </div>
+                <div style="opacity:.8;font-size:.85rem;">
+                    Job #CSN-2026-0145 &middot; John Doe &middot; Case #1042
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge rounded-pill bg-white text-success fw-semibold px-3 py-2" style="font-size:.78rem;">
+                    <i class="bi bi-check-circle me-1"></i>Completed
+                </span>
+                <div class="dropdown">
+                    <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2 text-muted"></i>Download Signature</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-printer me-2 text-muted"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-envelope me-2 text-muted"></i>Resend Email</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-clockwise me-2 text-muted"></i>Regenerate Link</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signature Preview -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="sig-frame mb-3" style="min-height:220px;">
+                <svg width="340" height="130" viewBox="0 0 340 130" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:.85;">
+                    <path d="M20 85 C45 15, 65 110, 85 60 S125 15, 150 75 S185 25, 210 65 S245 95, 270 48 S290 25, 320 58" stroke="#1a1a2e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M70 100 C80 90, 100 112, 120 95" stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="text-center">
+                <small class="text-muted">Signed on <strong>February 24, 2026</strong> at <strong>14:32</strong></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Grid + Actions Row -->
+    <div class="row g-4 mb-4">
+        <!-- Request Details -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">
+                        <i class="bi bi-tag me-1"></i>Request
+                    </h6>
+                    <div class="info-cell">
+                        <div class="info-label">Label</div>
+                        <div class="info-value">Delivery Signature</div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">Type</div>
+                        <div class="info-value"><span class="rb-pill rb-pill--delivery">Delivery</span></div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">Expires</div>
+                        <div class="info-value">Feb 28, 2026</div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">Generated By</div>
+                        <div class="info-value">Mike Smith</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">
+                        <i class="bi bi-person me-1"></i>Customer
+                    </h6>
+                    <div class="info-cell">
+                        <div class="info-label">Name</div>
+                        <div class="info-value">John Doe</div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">Email</div>
+                        <div class="info-value text-truncate">john.doe@email.com</div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">+1 (555) 123-4567</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signing Details -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">
+                        <i class="bi bi-shield-check me-1"></i>Verification
+                    </h6>
+                    <div class="info-cell">
+                        <div class="info-label">IP Address</div>
+                        <div class="info-value font-monospace" style="font-size:.8rem;">192.168.1.45</div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">User Agent</div>
+                        <div class="info-value" style="font-size:.78rem;">Chrome 121 / Windows 11</div>
+                    </div>
+                    <div class="info-cell">
+                        <div class="info-label">Verification Code</div>
+                        <div class="info-value font-monospace" style="font-size:.8rem;">abc123def456</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Link -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row align-items-center g-2">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">
+                        Signature Link
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control bg-light" value="https://acme-repairs.repairbuddy.io/signature/abc123def456" readonly>
+                        <button class="btn btn-outline-primary" type="button"><i class="bi bi-clipboard me-1"></i>Copy</button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                    <div class="d-flex flex-wrap gap-2 justify-content-md-end" style="padding-top:18px;">
+                        <button class="btn btn-primary btn-sm"><i class="bi bi-box-arrow-up-right me-1"></i>Open</button>
+                        <button class="btn btn-outline-primary btn-sm"><i class="bi bi-envelope me-1"></i>Email</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-muted"></i>Timeline</h6>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                <div class="tl-item">
+                    <div class="tl-dot tl-dot--green"></div>
+                    <div>
+                        <div class="fw-semibold" style="font-size:.84rem;">Signature completed by customer</div>
+                        <div class="text-muted" style="font-size:.76rem;">Feb 24, 2026 at 14:32 &middot; IP: 192.168.1.45</div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot tl-dot--blue"></div>
+                    <div>
+                        <div class="fw-semibold" style="font-size:.84rem;">Customer opened the signature page</div>
+                        <div class="text-muted" style="font-size:.76rem;">Feb 24, 2026 at 14:30</div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot tl-dot--blue"></div>
+                    <div>
+                        <div class="fw-semibold" style="font-size:.84rem;">Email notification sent</div>
+                        <div class="text-muted" style="font-size:.76rem;">Feb 23, 2026 at 10:16 &middot; john.doe@email.com</div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot tl-dot--blue"></div>
+                    <div>
+                        <div class="fw-semibold" style="font-size:.84rem;">Signature request created</div>
+                        <div class="text-muted" style="font-size:.76rem;">Feb 23, 2026 at 10:15 &middot; By Mike Smith</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-muted small mt-3 pt-2 border-top">
+        <i class="bi bi-shield-lock me-1"></i>
+        Signature ID: #SIG-1042-001 &middot; All data encrypted in transit
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Signature — Mockup 3: Step Wizard + Live Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bs-primary: #2563eb; }
+        body { font-family: 'Inter', sans-serif; background: #f4f6f9; font-size: .9rem; color: #1f2937; }
+
+        /* ── Step indicator ── */
+        .steps-bar {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 1.75rem;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-shrink: 0;
+        }
+        .step-num {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .78rem; font-weight: 700;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            color: #9ca3af;
+            transition: all .2s;
+            flex-shrink: 0;
+        }
+        .step-item.active  .step-num { border-color: #2563eb; background: #2563eb; color: #fff; }
+        .step-item.done    .step-num { border-color: #10b981; background: #10b981; color: #fff; }
+        .step-text { font-size: .78rem; font-weight: 600; color: #9ca3af; }
+        .step-item.active .step-text { color: #2563eb; }
+        .step-item.done   .step-text { color: #059669; }
+        .step-line { flex: 1; height: 2px; background: #e5e7eb; margin: 0 .5rem; }
+        .step-line.done { background: #10b981; }
+
+        /* ── Step section cards ── */
+        .step-card {
+            background: #fff;
+            border-radius: .5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.04);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .step-card-header {
+            padding: .75rem 1.1rem;
+            background: #fff;
+            border-bottom: 1px solid rgba(0,0,0,.06);
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+        .step-card-body { padding: 1.25rem 1.1rem; }
+
+        /* ── Type tiles (full-width horizontal in wizard) ── */
+        .type-tile {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            padding: .9rem 1rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: .45rem;
+            cursor: pointer;
+            transition: all .12s ease;
+            background: #fff;
+        }
+        .type-tile + .type-tile { margin-top: .4rem; }
+        .type-tile:hover { border-color: #93c5fd; background: #f8fbff; }
+        .type-tile.selected { border-color: #2563eb; background: #eff6ff; }
+        .type-tile .tt-icon {
+            width: 38px;height:38px;border-radius:.4rem;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;
+        }
+        .pickup-tile   .tt-icon { background:rgba(6,182,212,.10);  color:#0e7490; }
+        .delivery-tile .tt-icon { background:rgba(245,158,11,.10); color:#b45309; }
+        .custom-tile   .tt-icon { background:rgba(107,114,128,.10);color:#4b5563; }
+        .tt-body { flex:1; }
+        .tt-name { font-weight:600;font-size:.84rem;color:#374151; }
+        .tt-note { font-size:.74rem;color:#9ca3af; }
+        .type-tile.selected .tt-name { color:#1d4ed8; }
+
+        /* ── Live preview card ── */
+        .preview-card {
+            position: sticky;
+            top: 1rem;
+            background: #fff;
+            border-radius: .5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.04);
+        }
+        .preview-card-header {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            color: #fff;
+            border-radius: .5rem .5rem 0 0;
+            padding: .85rem 1rem;
+        }
+        .preview-field { padding: .42rem 0; font-size:.83rem; border-bottom:1px solid rgba(0,0,0,.05); }
+        .preview-field:last-child { border-bottom:none; }
+        .preview-field .pf-key  { font-size:.7rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em; }
+        .preview-field .pf-val  { font-weight:500;color:#1f2937;margin-top:.1rem; }
+        .preview-field .pf-val.empty { color:#d1d5db;font-style:italic;font-weight:400; }
+
+        /* ── Pill ── */
+        .wcrb-pill { display:inline-flex;align-items:center;gap:.3rem;padding:.24rem .7rem;border-radius:999px;font-size:.72rem;font-weight:600;border:1px solid transparent;white-space:nowrap; }
+        .wcrb-pill--info    { color:#155e75;background:rgba(6,182,212,.10);border-color:rgba(6,182,212,.25); }
+        .wcrb-pill--warning { color:#78350f;background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.25); }
+        .wcrb-pill--muted   { color:#4b5563;background:rgba(107,114,128,.10);border-color:rgba(107,114,128,.25); }
+        .wcrb-pill--pending { color:#92400e;background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.25); }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-3 p-md-4" style="max-width:1100px;">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h5 class="fw-bold mb-1">
+                <i class="bi bi-pen me-2 text-primary"></i>Generate Signature Request
+            </h5>
+            <p class="text-muted small mb-0">
+                Job #CSN-2026-0145 &mdash; John Doe
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="#" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list me-1"></i>All Requests
+            </a>
+            <a href="#" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Job
+            </a>
+        </div>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="steps-bar">
+        <div class="step-item active" id="step-ind-1">
+            <div class="step-num" id="sn-1">1</div>
+            <span class="step-text">Choose Type</span>
+        </div>
+        <div class="step-line" id="sl-1"></div>
+        <div class="step-item" id="step-ind-2">
+            <div class="step-num" id="sn-2">2</div>
+            <span class="step-text">Label &amp; Email</span>
+        </div>
+        <div class="step-line" id="sl-2"></div>
+        <div class="step-item" id="step-ind-3">
+            <div class="step-num" id="sn-3">3</div>
+            <span class="step-text">Review</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT: Wizard steps form -->
+        <div class="col-lg-7 col-xl-8">
+
+            <!-- STEP 1 — Signature type -->
+            <div class="step-card" id="step1">
+                <div class="step-card-header">
+                    <div class="step-num active" style="width:26px;height:26px;font-size:.75rem;font-weight:700;border:2px solid #2563eb;background:#2563eb;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+                    <h6 class="mb-0 fw-bold" style="font-size:.87rem;">Choose Signature Type</h6>
+                </div>
+                <div class="step-card-body">
+                    <div class="type-tile pickup-tile" onclick="pickType('pickup','Pickup Signature',this)">
+                        <div class="tt-icon"><i class="bi bi-box-arrow-in-up-right"></i></div>
+                        <div class="tt-body">
+                            <div class="tt-name">Pickup Signature</div>
+                            <div class="tt-note">Customer arrives and collects the repaired device</div>
+                        </div>
+                        <i class="bi bi-check-circle-fill text-primary check-icon" style="font-size:1rem;opacity:0;transition:opacity .15s;"></i>
+                    </div>
+                    <div class="type-tile delivery-tile" onclick="pickType('delivery','Delivery Signature',this)">
+                        <div class="tt-icon"><i class="bi bi-truck"></i></div>
+                        <div class="tt-body">
+                            <div class="tt-name">Delivery Signature</div>
+                            <div class="tt-note">Device is delivered to the customer's address</div>
+                        </div>
+                        <i class="bi bi-check-circle-fill text-primary check-icon" style="font-size:1rem;opacity:0;transition:opacity .15s;"></i>
+                    </div>
+                    <div class="type-tile custom-tile" onclick="pickType('custom','',this)">
+                        <div class="tt-icon"><i class="bi bi-pen"></i></div>
+                        <div class="tt-body">
+                            <div class="tt-name">Custom Signature</div>
+                            <div class="tt-note">Any other authorization or confirmation</div>
+                        </div>
+                        <i class="bi bi-check-circle-fill text-primary check-icon" style="font-size:1rem;opacity:0;transition:opacity .15s;"></i>
+                    </div>
+                    <div class="form-text mt-2">Pickup and Delivery types are linked to workflow settings.</div>
+                    <input type="hidden" id="sig-type" name="signature_type">
+                </div>
+            </div>
+
+            <!-- STEP 2 — Label + email -->
+            <div class="step-card" id="step2" style="opacity:.55;pointer-events:none;transition:opacity .2s;">
+                <div class="step-card-header">
+                    <div style="width:26px;height:26px;font-size:.75rem;font-weight:700;border:2px solid #e5e7eb;background:#f9fafb;color:#9ca3af;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="sh-2">2</div>
+                    <h6 class="mb-0 fw-bold" style="font-size:.87rem;color:#9ca3af;" id="sh2-title">Label &amp; Notification</h6>
+                </div>
+                <div class="step-card-body">
+                    <div class="mb-3">
+                        <label for="signature_label" class="form-label fw-semibold" style="font-size:.85rem;">
+                            Signature Label <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               id="signature_label"
+                               name="signature_label"
+                               class="form-control"
+                               placeholder="e.g., Delivery Signature, Pickup Authorization"
+                               oninput="updatePreview()">
+                        <div class="form-text">A short description shown to the customer when they sign.</div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;">
+                        <div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="send_email" name="send_email" value="1" checked onchange="updatePreview()">
+                                <label class="form-check-label fw-semibold" for="send_email" style="font-size:.85rem;">
+                                    <i class="bi bi-envelope me-1 text-primary"></i>Email notification to customer
+                                </label>
+                            </div>
+                            <div class="ms-4 text-muted" style="font-size:.78rem;">john.doe@email.com</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3 — Review + submit -->
+            <div class="step-card" id="step3" style="opacity:.45;pointer-events:none;transition:opacity .2s;">
+                <div class="step-card-header">
+                    <div style="width:26px;height:26px;font-size:.75rem;font-weight:700;border:2px solid #e5e7eb;background:#f9fafb;color:#9ca3af;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="sh-3">3</div>
+                    <h6 class="mb-0 fw-bold" style="font-size:.87rem;color:#9ca3af;" id="sh3-title">Confirm &amp; Generate</h6>
+                </div>
+                <div class="step-card-body">
+                    <div class="d-flex align-items-start gap-3 p-3 rounded mb-3"
+                         style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                        <i class="bi bi-info-circle text-success mt-1"></i>
+                        <div style="font-size:.83rem;">
+                            A unique signing link will be generated for this job.
+                            The customer can sign on any device — no account required.
+                        </div>
+                    </div>
+                    <form method="POST">
+                        <input type="hidden" name="signature_type" id="hidden-type">
+                        <input type="hidden" name="signature_label" id="hidden-label">
+                        <input type="hidden" name="send_email" id="hidden-email" value="1">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="#" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-check-circle me-1"></i>Generate Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Live preview -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="preview-card">
+                <div class="preview-card-header">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-eye" style="font-size:.9rem;opacity:.75;"></i>
+                        <span style="font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;opacity:.75;">Live Preview</span>
+                    </div>
+                    <div style="font-size:.88rem;font-weight:700;">Signature Request Card</div>
+                    <div style="font-size:.74rem;opacity:.65;margin-top:.1rem;">How this will appear in the job</div>
+                </div>
+                <div class="p-3">
+                    <div class="preview-field">
+                        <div class="pf-key">Type</div>
+                        <div class="pf-val" id="pv-type">
+                            <span class="wcrb-pill wcrb-pill--muted pv-pill">
+                                <i class="bi bi-dash"></i> Not selected
+                            </span>
+                        </div>
+                    </div>
+                    <div class="preview-field">
+                        <div class="pf-key">Label</div>
+                        <div class="pf-val empty" id="pv-label">Waiting for input…</div>
+                    </div>
+                    <div class="preview-field">
+                        <div class="pf-key">Status</div>
+                        <div class="pf-val">
+                            <span class="wcrb-pill wcrb-pill--pending">
+                                <i class="bi bi-hourglass-split"></i> Pending
+                            </span>
+                        </div>
+                    </div>
+                    <div class="preview-field">
+                        <div class="pf-key">Customer</div>
+                        <div class="pf-val">John Doe</div>
+                    </div>
+                    <div class="preview-field">
+                        <div class="pf-key">Email notification</div>
+                        <div class="pf-val" id="pv-email">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>Will be sent
+                        </div>
+                    </div>
+                    <div class="preview-field">
+                        <div class="pf-key">Expires</div>
+                        <div class="pf-val text-muted" style="font-size:.8rem;">3 days after generation</div>
+                    </div>
+                </div>
+                <div class="px-3 pb-3">
+                    <div class="d-flex align-items-center gap-2 p-2 rounded"
+                         style="background:#f9fafb;border:1px dashed #e5e7eb;font-size:.75rem;color:#9ca3af;">
+                        <i class="bi bi-link-45deg"></i>
+                        <span>acme.repairbuddy.io/signature/<em>code</em></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job card snippet -->
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-tools me-2 text-muted"></i>Job Details</h6>
+                </div>
+                <div class="card-body" style="font-size:.84rem;">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Job #</span>
+                            <span class="fw-bold text-primary">1042</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Customer</span>
+                            <span class="fw-medium">John Doe</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Status</span>
+                            <span class="badge bg-secondary" style="font-size:.72rem;">In Progress</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const typeMeta = {
+    pickup:   { label: 'Pickup',   pillClass: 'wcrb-pill--info',    icon: 'bi-box-arrow-in-up-right' },
+    delivery: { label: 'Delivery', pillClass: 'wcrb-pill--warning', icon: 'bi-truck' },
+    custom:   { label: 'Custom',   pillClass: 'wcrb-pill--muted',   icon: 'bi-pen' },
+};
+let currentType = '';
+
+function pickType(value, defaultLabel, el) {
+    document.querySelectorAll('.type-tile').forEach(t => {
+        t.classList.remove('selected');
+        t.querySelector('.check-icon').style.opacity = '0';
+    });
+    el.classList.add('selected');
+    el.querySelector('.check-icon').style.opacity = '1';
+    document.getElementById('sig-type').value = value;
+    currentType = value;
+
+    // Auto-fill label if empty or was auto-set
+    const labelInput = document.getElementById('signature_label');
+    const current = labelInput.value.trim();
+    const wasAuto = ['Pickup Signature','Delivery Signature'].includes(current) || current === '';
+    if (wasAuto) {
+        labelInput.value = defaultLabel;
+        if (!defaultLabel) setTimeout(() => labelInput.focus(), 50);
+    }
+
+    // Advance step indicator
+    advanceStep(1);
+    unlockStep(2);
+    updatePreview();
+}
+
+function advanceStep(completedStep) {
+    const sn = document.getElementById('sn-' + completedStep);
+    sn.textContent = '';
+    sn.innerHTML = '<i class="bi bi-check2" style="font-size:.75rem;"></i>';
+    sn.style.borderColor = '#10b981';
+    sn.style.background  = '#10b981';
+
+    const si = document.getElementById('step-ind-' + completedStep);
+    si.querySelector('.step-text').style.color = '#059669';
+
+    document.getElementById('sl-' + completedStep).style.background = '#10b981';
+
+    const nextInd = document.getElementById('step-ind-' + (completedStep + 1));
+    if (nextInd) {
+        nextInd.classList.add('active');
+        nextInd.querySelector('.step-text').style.color = '#2563eb';
+        const nextNum = document.getElementById('sn-' + (completedStep + 1));
+        nextNum.style.borderColor = '#2563eb';
+        nextNum.style.background  = '#2563eb';
+        nextNum.style.color = '#fff';
+    }
+}
+
+function unlockStep(num) {
+    const card = document.getElementById('step' + num);
+    card.style.opacity = '1';
+    card.style.pointerEvents = 'auto';
+    const headerBadge = document.getElementById('sh-' + num);
+    if (headerBadge) {
+        headerBadge.style.borderColor = '#2563eb';
+        headerBadge.style.background  = '#2563eb';
+        headerBadge.style.color = '#fff';
+    }
+    const headerTitle = document.getElementById('sh' + num + '-title');
+    if (headerTitle) headerTitle.style.color = '#1f2937';
+
+    // Also set up label input to advance to step 3 on typing
+    if (num === 2) {
+        const lbl = document.getElementById('signature_label');
+        lbl.addEventListener('input', () => {
+            if (lbl.value.trim().length > 1) {
+                unlockStep(3);
+            }
+        });
+    }
+}
+
+function updatePreview() {
+    // Type pill
+    const pvType = document.getElementById('pv-type');
+    if (currentType && typeMeta[currentType]) {
+        const m = typeMeta[currentType];
+        pvType.innerHTML = `<span class="wcrb-pill ${m.pillClass}"><i class="bi ${m.icon}"></i> ${m.label}</span>`;
+    }
+
+    // Label
+    const pvLabel = document.getElementById('pv-label');
+    const lv = document.getElementById('signature_label')?.value.trim();
+    if (lv) {
+        pvLabel.textContent = lv;
+        pvLabel.classList.remove('empty');
+    } else {
+        pvLabel.textContent = 'Waiting for input…';
+        pvLabel.classList.add('empty');
+    }
+
+    // Email
+    const pvEmail = document.getElementById('pv-email');
+    const emailChecked = document.getElementById('send_email')?.checked;
+    pvEmail.innerHTML = emailChecked
+        ? '<i class="bi bi-check-circle-fill text-success me-1"></i>Will be sent'
+        : '<i class="bi bi-x-circle text-muted me-1"></i>Not sending';
+
+    // Sync hidden inputs
+    document.getElementById('hidden-type').value  = currentType;
+    document.getElementById('hidden-label').value = lv || '';
+    document.getElementById('hidden-email').value = emailChecked ? '1' : '0';
+}
+
+// Bind label input live update
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('signature_label').addEventListener('input', updatePreview);
+});
+</script>
+</body>
+</html>

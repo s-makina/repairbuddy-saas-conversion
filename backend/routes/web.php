@@ -719,6 +719,10 @@ Route::prefix('t/{business}')
             ->where(['jobId' => '[0-9]+', 'signatureId' => '[0-9]+' ])
             ->name('tenant.signatures.generator');
 
+        Route::get('/jobs/{jobId}/signatures/{signatureId}/show', [\App\Http\Controllers\Web\SignatureController::class, 'show'])
+            ->where(['jobId' => '[0-9]+', 'signatureId' => '[0-9]+' ])
+            ->name('tenant.signatures.show');
+
         Route::post('/jobs/{jobId}/signatures/{signatureId}/send', [\App\Http\Controllers\Web\SignatureController::class, 'sendEmail'])
             ->where(['jobId' => '[0-9]+', 'signatureId' => '[0-9]+' ])
             ->name('tenant.signatures.send');

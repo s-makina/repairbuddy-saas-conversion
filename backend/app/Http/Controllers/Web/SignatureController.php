@@ -169,6 +169,64 @@ class SignatureController extends Controller
     }
 
     /* ────────────────────────────────────────────────────────────────
+     *  AUTHENTICATED — Signature request detail (show page)
+     * ──────────────────────────────────────────────────────────────── */
+    public function show(Request $request, string $business, $jobId, $signatureId)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+        if (! $user) {
+            return redirect()->route('web.login');
+        }
+
+        $job = RepairBuddyJob::query()
+            ->with(['customer', 'jobDevices.customerDevice.device'])
+            ->whereKey((int) $jobId)
+            ->firstOrFail();
+
+        $signatureRequest = RepairBuddySignatureRequest::query()
+            ->with(['generator'])
+            ->where('job_id', $job->id)
+            ->whereKey((int) $signatureId)
+            ->firstOrFail();
+
+        $signatureUrl = $signatureRequest->getSignatureUrl($tenant->slug);
+
+        // Build an audit log from model timestamps
+        $auditLog = [];
+        if ($signatureRequest->completed_at) {
+            $auditLog[] = [
+                'icon'      => 'bi-check-circle-fill',
+                'color'     => 'success',
+                'label'     => __('Signature completed'),
+                'timestamp' => $signatureRequest->completed_at,
+                'meta'      => implode(' · ', array_filter([
+                    $signatureRequest->completed_ip ? 'IP: ' . $signatureRequest->completed_ip : null,
+                    $signatureRequest->completed_user_agent ? $this->parseUserAgent($signatureRequest->completed_user_agent) : null,
+                ])),
+            ];
+        }
+        $auditLog[] = [
+            'icon'      => 'bi-envelope-fill',
+            'color'     => 'info',
+            'label'     => __('Signature request created'),
+            'timestamp' => $signatureRequest->generated_at ?? $signatureRequest->created_at,
+            'meta'      => $signatureRequest->generator ? __('by') . ' ' . $signatureRequest->generator->name : null,
+        ];
+
+        return view('tenant.signatures.show', [
+            'tenant'           => $tenant,
+            'user'             => $user,
+            'activeNav'        => 'jobs',
+            'pageTitle'        => __('Signature Request') . ' — ' . ($signatureRequest->signature_label ?? '#' . $signatureRequest->id),
+            'job'              => $job,
+            'signatureRequest' => $signatureRequest,
+            'signatureUrl'     => $signatureUrl,
+            'auditLog'         => $auditLog,
+        ]);
+    }
+
+    /* ────────────────────────────────────────────────────────────────
      *  AUTHENTICATED — Send signature request email
      * ──────────────────────────────────────────────────────────────── */
     public function sendEmail(Request $request, string $business, $jobId, $signatureId)
@@ -357,6 +415,15 @@ class SignatureController extends Controller
     /* ────────────────────────────────────────────────────────────────
      *  Helpers
      * ──────────────────────────────────────────────────────────────── */
+    private function parseUserAgent(string $ua): string
+    {
+        if (str_contains($ua, 'Chrome'))  { return 'Chrome'; }
+        if (str_contains($ua, 'Firefox')) { return 'Firefox'; }
+        if (str_contains($ua, 'Safari'))  { return 'Safari'; }
+        if (str_contains($ua, 'Edge'))    { return 'Edge'; }
+        return 'Unknown browser';
+    }
+
     private function notifyAdminOfSignature(Tenant $tenant, RepairBuddySignatureRequest $signatureRequest): void
     {
         // Find tenant admin users and create event

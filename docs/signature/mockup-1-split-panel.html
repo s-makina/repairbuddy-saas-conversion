@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Show — Mockup 1: Split Panel (Refined)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        /* ─────────────────────────────────────────────────────────
+           Design tokens — mirror what the actual Laravel app uses
+           ───────────────────────────────────────────────────────── */
+        :root {
+            --bs-primary: #2563eb;
+            --bs-font-sans-serif: 'Inter', system-ui, sans-serif;
+        }
+        body {
+            font-family: var(--bs-font-sans-serif);
+            background: #f4f6f9;
+            font-size: .9rem;
+            color: #1f2937;
+        }
+
+        /* ── Pill status badges  (matches wcrb-pill--* in blade) ── */
+        .wcrb-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: .26rem .72rem;
+            border-radius: 999px;
+            font-size: .72rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .wcrb-pill--active   { color: #065f46; background: rgba(16,185,129,.10);  border-color: rgba(16,185,129,.25); }
+        .wcrb-pill--pending  { color: #92400e; background: rgba(245,158,11,.10);  border-color: rgba(245,158,11,.25); }
+        .wcrb-pill--danger   { color: #991b1b; background: rgba(239,68,68,.10);   border-color: rgba(239,68,68,.25); }
+        .wcrb-pill--info     { color: #155e75; background: rgba(6,182,212,.10);   border-color: rgba(6,182,212,.25); }
+        .wcrb-pill--warning  { color: #78350f; background: rgba(245,158,11,.10);  border-color: rgba(245,158,11,.25); }
+        .wcrb-pill--muted    { color: #4b5563; background: rgba(107,114,128,.10); border-color: rgba(107,114,128,.25); }
+
+        /* ── Cards — borderless with subtle shadow ── */
+        .rb-card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.04); border-radius: .5rem; }
+        .rb-card .card-header {
+            background: #fff;
+            border-bottom: 1px solid rgba(0,0,0,.06);
+            padding: .75rem 1rem;
+            border-radius: .5rem .5rem 0 0;
+        }
+        .rb-card .card-header h6 { font-size: .82rem; font-weight: 700; margin: 0; }
+        .rb-card .card-body { padding: 1rem; }
+
+        /* ── Detail row — key/value pairs inside cards ── */
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .48rem 0;
+            font-size: .84rem;
+            border-bottom: 1px solid rgba(0,0,0,.04);
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: #6b7280; }
+        .detail-value { font-weight: 500; text-align: right; max-width: 60%; }
+
+        /* ── Signature canvas area ── */
+        .sig-canvas {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: .5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 190px;
+            position: relative;
+        }
+        .sig-canvas::after {
+            content: '';
+            position: absolute;
+            bottom: 38px;
+            left: 10%;
+            right: 10%;
+            border-bottom: 1px dashed #d1d5db;
+            pointer-events: none;
+        }
+
+        /* ── Form control overrides for the URL input ── */
+        .form-control.bg-light { background-color: #f3f4f6 !important; border-color: #e5e7eb; font-size: .84rem; }
+        .form-control.bg-light:focus { background-color: #fff !important; border-color: #2563eb; box-shadow: 0 0 0 .18rem rgba(37,99,235,.18); }
+        .form-control[readonly] { cursor: default; }
+        .input-group .btn { font-size: .82rem; }
+
+        /* ── Audit log ── */
+        .audit-track { position: relative; padding-left: 1.4rem; }
+        .audit-track::before {
+            content: '';
+            position: absolute;
+            left: .35rem;
+            top: .55rem;
+            bottom: .55rem;
+            width: 2px;
+            background: #e5e7eb;
+            border-radius: 1px;
+        }
+        .audit-item { position: relative; padding-bottom: 1.1rem; }
+        .audit-item:last-child { padding-bottom: 0; }
+        .audit-dot {
+            position: absolute;
+            left: -1.4rem;
+            top: .2rem;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+        }
+        .audit-dot--green { border-color: #10b981; background: #10b981; }
+        .audit-dot--blue  { border-color: #2563eb; background: #2563eb; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-3 p-md-4" style="max-width:1200px;">
+
+    <!-- ═══ Page Header ═══ -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h5 class="fw-bold mb-1">
+                <i class="bi bi-pen me-2 text-primary"></i>Signature Request Details
+            </h5>
+            <p class="text-muted small mb-0">
+                Job #CSN-2026-0145 &mdash; John Doe
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="#" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list me-1"></i>All Requests
+            </a>
+            <a href="#" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Job
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ═══════════════════════════
+             LEFT COLUMN — Context cards
+             ═══════════════════════════ -->
+        <div class="col-lg-4">
+
+            <!-- Status Banner -->
+            <div class="card rb-card border-start border-success border-3 mb-3">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px;">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size:1.15rem;"></i>
+                    </div>
+                    <div>
+                        <span class="wcrb-pill wcrb-pill--active">
+                            <i class="bi bi-check-circle"></i> Completed
+                        </span>
+                        <div class="text-muted mt-1" style="font-size:.75rem;">
+                            Signed Feb 24, 2026 at 14:32
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Info -->
+            <div class="card rb-card mb-3">
+                <div class="card-header">
+                    <h6><i class="bi bi-tag me-2 text-muted"></i>Request Info</h6>
+                </div>
+                <div class="card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Label</span>
+                        <span class="detail-value">Delivery Signature</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Type</span>
+                        <span class="wcrb-pill wcrb-pill--warning">Delivery</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Generated</span>
+                        <span class="detail-value">Feb 23, 2026 10:15</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Expires</span>
+                        <span class="detail-value">Feb 28, 2026 10:15</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">By</span>
+                        <span class="detail-value">Mike Smith</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer -->
+            <div class="card rb-card mb-3">
+                <div class="card-header">
+                    <h6><i class="bi bi-person-circle me-2 text-muted"></i>Customer</h6>
+                </div>
+                <div class="card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Name</span>
+                        <span class="detail-value">John Doe</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value" style="font-size:.8rem;">john.doe@email.com</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Phone</span>
+                        <span class="detail-value">+1 (555) 123-4567</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Details -->
+            <div class="card rb-card">
+                <div class="card-header">
+                    <h6><i class="bi bi-tools me-2 text-muted"></i>Job Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Job #</span>
+                        <span class="detail-value fw-bold text-primary">1042</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Case #</span>
+                        <span class="detail-value">CSN-2026-0145</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="badge bg-secondary" style="font-size:.72rem;">In Progress</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Created</span>
+                        <span class="detail-value">Feb 20, 2026</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             RIGHT COLUMN — Link → Preview → Log
+             ═══════════════════════════════════ -->
+        <div class="col-lg-8">
+
+            <!-- 1 ── Signature Link (TOP) -->
+            <div class="card rb-card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6><i class="bi bi-link-45deg me-2 text-primary"></i>Signature Link</h6>
+                </div>
+                <div class="card-body">
+                    <!-- URL row -->
+                    <div class="mb-3">
+                        <label class="form-label mb-1"
+                               style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">
+                            Public URL
+                        </label>
+                        <div class="input-group">
+                            <input type="text"
+                                   class="form-control bg-light"
+                                   id="sigUrl"
+                                   value="https://acme-repairs.repairbuddy.io/signature/abc123def456"
+                                   readonly>
+                            <button class="btn btn-outline-primary" type="button" id="copyBtn">
+                                <i class="bi bi-clipboard me-1"></i>Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="#" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Open Page
+                        </a>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-envelope me-1"></i>Resend Email
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Regenerate
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm ms-auto">
+                            <i class="bi bi-printer me-1"></i>Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 ── Signature Preview -->
+            <div class="card rb-card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6><i class="bi bi-pen me-2 text-primary"></i>Signature</h6>
+                    <a href="#"
+                       class="btn btn-sm btn-primary"
+                       style="padding:.25rem .65rem;font-size:.78rem;">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="sig-canvas">
+                        <svg width="340" height="130" viewBox="0 0 340 130" fill="none"
+                             xmlns="http://www.w3.org/2000/svg" style="opacity:.85;position:relative;z-index:1;">
+                            <path d="M20 85 C45 18, 65 110, 88 58 S128 14, 155 76 S192 22, 218 64 S252 97, 278 46 S298 22, 320 55"
+                                  stroke="#1a1a2e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M68 102 C80 90, 104 114, 126 98"
+                                  stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <p class="text-center text-muted mb-0 mt-2" style="font-size:.75rem;">
+                        Signed on <strong>February 24, 2026</strong> at <strong>14:32</strong>
+                        &nbsp;&middot;&nbsp; IP: 192.168.1.45
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3 ── Activity Log -->
+            <div class="card rb-card">
+                <div class="card-header">
+                    <h6><i class="bi bi-clock-history me-2 text-muted"></i>Activity Log</h6>
+                </div>
+                <div class="card-body">
+                    <div class="audit-track d-flex flex-column gap-0">
+                        <div class="audit-item">
+                            <div class="audit-dot audit-dot--green"></div>
+                            <div>
+                                <div class="fw-medium" style="font-size:.84rem;">Signature completed</div>
+                                <div class="text-muted" style="font-size:.76rem;">
+                                    Feb 24, 2026 14:32 &middot; IP: 192.168.1.45 &middot; Chrome on Windows
+                                </div>
+                            </div>
+                        </div>
+                        <div class="audit-item">
+                            <div class="audit-dot audit-dot--blue"></div>
+                            <div>
+                                <div class="fw-medium" style="font-size:.84rem;">Email sent to customer</div>
+                                <div class="text-muted" style="font-size:.76rem;">
+                                    Feb 23, 2026 10:16 &middot; john.doe@email.com
+                                </div>
+                            </div>
+                        </div>
+                        <div class="audit-item">
+                            <div class="audit-dot audit-dot--blue"></div>
+                            <div>
+                                <div class="fw-medium" style="font-size:.84rem;">Signature request generated</div>
+                                <div class="text-muted" style="font-size:.76rem;">
+                                    Feb 23, 2026 10:15 &middot; By Mike Smith
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-muted small mt-3 pt-2 border-top px-1">
+                <i class="bi bi-shield-check me-1"></i>
+                Signature ID: #SIG-1042-001 &middot; Verification: abc123def456
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btn   = document.getElementById('copyBtn');
+    const input = document.getElementById('sigUrl');
+    if (!btn || !input) return;
+
+    btn.addEventListener('click', function () {
+        input.select();
+        navigator.clipboard.writeText(input.value).then(function () {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+            btn.classList.replace('btn-outline-primary', 'btn-success');
+            setTimeout(function () {
+                btn.innerHTML = orig;
+                btn.classList.replace('btn-success', 'btn-outline-primary');
+            }, 2000);
+        });
+    });
+    input.addEventListener('focus', function () { this.select(); });
+});
+</script>
+</body>
+</html>

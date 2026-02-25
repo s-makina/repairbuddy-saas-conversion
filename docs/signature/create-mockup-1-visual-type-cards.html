@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Signature — Mockup 1: Visual Type Cards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bs-primary: #2563eb; }
+        body { font-family: 'Inter', sans-serif; background: #f4f6f9; font-size: .9rem; color: #1f2937; }
+
+        /* ── Pill badges ── */
+        .wcrb-pill { display:inline-flex;align-items:center;gap:.3rem;padding:.24rem .7rem;border-radius:999px;font-size:.72rem;font-weight:600;border:1px solid transparent;white-space:nowrap; }
+        .wcrb-pill--info    { color:#155e75;background:rgba(6,182,212,.10);border-color:rgba(6,182,212,.25); }
+        .wcrb-pill--warning { color:#78350f;background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.25); }
+        .wcrb-pill--muted   { color:#4b5563;background:rgba(107,114,128,.10);border-color:rgba(107,114,128,.25); }
+
+        /* ── Type selection cards ── */
+        .type-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            padding: 1.25rem .75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: .6rem;
+            cursor: pointer;
+            transition: all .15s ease;
+            background: #fff;
+            text-align: center;
+            user-select: none;
+        }
+        .type-card:hover { border-color: #93c5fd; background: #eff6ff; }
+        .type-card.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+        }
+        .type-card .tc-icon {
+            width: 44px; height: 44px;
+            border-radius: .5rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem;
+            transition: background .15s;
+        }
+        .type-card.pickup-card  .tc-icon { background: rgba(6,182,212,.12);  color: #0e7490; }
+        .type-card.delivery-card .tc-icon { background: rgba(245,158,11,.12); color: #b45309; }
+        .type-card.custom-card   .tc-icon { background: rgba(107,114,128,.12);color: #374151; }
+        .type-card.selected .tc-icon { filter: none; }
+        .type-card .tc-label { font-size: .82rem; font-weight: 600; color: #374151; line-height: 1.3; }
+        .type-card .tc-desc  { font-size: .72rem; color: #9ca3af; line-height: 1.4; }
+        .type-card.selected .tc-label { color: #1d4ed8; }
+
+        /* ── Section label above inputs ── */
+        .field-label { font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;margin-bottom:.35rem;display:block; }
+
+        /* ── Email toggle strip ── */
+        .email-strip {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            border: 1px solid #bfdbfe;
+            border-radius: .5rem;
+            padding: .85rem 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-3 p-md-4" style="max-width:1160px;">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h5 class="fw-bold mb-1">
+                <i class="bi bi-pen me-2 text-primary"></i>Generate Signature Request
+            </h5>
+            <p class="text-muted small mb-0">
+                Job #CSN-2026-0145 &mdash; John Doe
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="#" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list me-1"></i>All Requests
+            </a>
+            <a href="#" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Job
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT: Job context -->
+        <div class="col-lg-4">
+
+            <!-- Job Details -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-tools me-2 text-muted"></i>Job Information</h6>
+                </div>
+                <div class="card-body" style="font-size:.85rem;">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Job #</span>
+                            <span class="fw-bold text-primary">1042</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Case #</span>
+                            <span class="fw-medium">CSN-2026-0145</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Status</span>
+                            <span class="badge bg-secondary" style="font-size:.72rem;">In Progress</span>
+                        </div>
+                        <hr class="my-1">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Customer</span>
+                            <span class="fw-medium">John Doe</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Email</span>
+                            <span class="fw-medium" style="font-size:.8rem;">john.doe@email.com</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Phone</span>
+                            <span class="fw-medium">+1 (555) 123-4567</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How it Works -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body" style="font-size:.84rem;">
+                    <h6 class="fw-bold mb-2">
+                        <i class="bi bi-lightbulb me-2 text-warning"></i>How It Works
+                    </h6>
+                    <ol class="mb-0 ps-3 text-muted d-flex flex-column gap-1">
+                        <li>Choose the signature type and enter a label.</li>
+                        <li>A unique signature URL is generated.</li>
+                        <li>Share it with the customer or send via email.</li>
+                        <li>Customer signs and it saves to the job.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Form -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-pen me-2 text-primary"></i>Signature Details
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form>
+
+                        <!-- ── STEP 1: Signature Type as visual cards ── -->
+                        <div class="mb-4">
+                            <span class="field-label">Signature Type <span class="text-danger">*</span></span>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <div class="type-card pickup-card" onclick="selectType('pickup', 'Pickup Signature', this)">
+                                        <div class="tc-icon"><i class="bi bi-box-arrow-in-up-right"></i></div>
+                                        <div class="tc-label">Pickup</div>
+                                        <div class="tc-desc">Customer collects device</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="type-card delivery-card" onclick="selectType('delivery', 'Delivery Signature', this)">
+                                        <div class="tc-icon"><i class="bi bi-truck"></i></div>
+                                        <div class="tc-label">Delivery</div>
+                                        <div class="tc-desc">Device delivered to customer</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="type-card custom-card" onclick="selectType('custom', '', this)">
+                                        <div class="tc-icon"><i class="bi bi-pen"></i></div>
+                                        <div class="tc-label">Custom</div>
+                                        <div class="tc-desc">Any other signature</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="signature_type" id="signature_type" value="">
+                            <div id="type-help" class="form-text mt-1">Pickup and Delivery types are linked to workflow settings.</div>
+                        </div>
+
+                        <!-- ── STEP 2: Label ── -->
+                        <div class="mb-4">
+                            <label for="signature_label" class="form-label fw-semibold" style="font-size:.85rem;">
+                                Signature Label <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   id="signature_label"
+                                   name="signature_label"
+                                   class="form-control"
+                                   placeholder="e.g., Delivery Signature, Pickup Authorization">
+                            <div class="form-text">A short description shown to the customer when they sign.</div>
+                        </div>
+
+                        <!-- ── STEP 3: Email notification ── -->
+                        <div class="email-strip mb-4">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="send_email" name="send_email" value="1" checked>
+                                <label class="form-check-label fw-semibold" for="send_email" style="font-size:.85rem;">
+                                    <i class="bi bi-envelope me-1 text-primary"></i>Send email notification to customer
+                                </label>
+                            </div>
+                            <div class="ms-4 text-muted" style="font-size:.78rem;">
+                                Signature link will be sent to <strong>john.doe@email.com</strong>
+                            </div>
+                        </div>
+
+                        <hr class="mb-3">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="#" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-check-circle me-1"></i>Generate Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const autoLabels = { pickup: 'Pickup Signature', delivery: 'Delivery Signature', custom: '' };
+
+function selectType(value, defaultLabel, el) {
+    document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('signature_type').value = value;
+
+    const labelInput = document.getElementById('signature_label');
+    const existingVal = labelInput.value.trim();
+    const wasAuto = ['Pickup Signature','Delivery Signature'].includes(existingVal) || existingVal === '';
+    if (wasAuto && defaultLabel) {
+        labelInput.value = defaultLabel;
+    } else if (wasAuto && !defaultLabel) {
+        labelInput.value = '';
+        labelInput.focus();
+    }
+}
+</script>
+</body>
+</html>

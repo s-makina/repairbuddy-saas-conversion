@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Show — Mockup 3: Tabbed Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --rb-primary: #2563eb;
+            --rb-success: #10b981;
+        }
+        body { font-family: 'Inter', sans-serif; background: #f4f6f9; }
+
+        /* ── Pill badges ── */
+        .rb-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .7rem; border-radius: 999px; font-size: .72rem; font-weight: 600; border: 1px solid transparent; }
+        .rb-pill--completed { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.25); }
+        .rb-pill--pending   { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+        .rb-pill--expired   { color: #991b1b; background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.25); }
+        .rb-pill--delivery  { color: #78350f; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+
+        /* ── Signature display ── */
+        .sig-display {
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .sig-display-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 240px;
+            padding: 2rem;
+        }
+        .sig-display-footer {
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            padding: .75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .78rem;
+        }
+
+        /* ── Stat mini-cards ── */
+        .stat-mini {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .85rem 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .stat-mini-icon {
+            width: 40px; height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .stat-mini-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: #9ca3af; font-weight: 600; }
+        .stat-mini-value { font-size: .9rem; font-weight: 600; }
+
+        /* ── Tabs ── */
+        .nav-pills-custom .nav-link {
+            color: #6b7280;
+            font-size: .82rem;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: .45rem .85rem;
+        }
+        .nav-pills-custom .nav-link.active {
+            background: var(--rb-primary);
+            color: #fff;
+        }
+        .nav-pills-custom .nav-link:not(.active):hover {
+            background: rgba(37,99,235,.06);
+            color: var(--rb-primary);
+        }
+
+        /* ── Detail table ── */
+        .dt-row { display: flex; justify-content: space-between; padding: .55rem 0; font-size: .84rem; border-bottom: 1px solid rgba(0,0,0,.04); }
+        .dt-row:last-child { border-bottom: none; }
+        .dt-label { color: #6b7280; }
+        .dt-value { font-weight: 500; text-align: right; }
+
+        /* ── Actions bar ── */
+        .actions-bar {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: .75rem 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     DESIGN: Full-width header with quick-stat mini-cards,
+     large centred signature display, and a tabbed section
+     below for Details / Verification / Activity.
+     ═══════════════════════════════════════════════════ -->
+
+<div class="container-fluid p-3 p-md-4" style="max-width:1100px;">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="#" class="btn btn-light btn-sm border" style="padding:.3rem .55rem;">
+                    <i class="bi bi-arrow-left" style="font-size:.8rem;"></i>
+                </a>
+                <h5 class="fw-bold mb-0">Delivery Signature</h5>
+                <span class="rb-pill rb-pill--completed"><i class="bi bi-check-circle"></i> Completed</span>
+            </div>
+            <div class="text-muted small ms-5">
+                Job <a href="#" class="text-decoration-none fw-medium">#CSN-2026-0145</a>
+                &middot; John Doe
+                &middot; Signature ID: SIG-1042-001
+            </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-list me-1"></i>All Requests</button>
+        </div>
+    </div>
+
+    <!-- Quick Stat Mini-Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-mini">
+                <div class="stat-mini-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-calendar-event"></i>
+                </div>
+                <div>
+                    <div class="stat-mini-label">Generated</div>
+                    <div class="stat-mini-value">Feb 23, 2026</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-mini">
+                <div class="stat-mini-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-mini-label">Completed</div>
+                    <div class="stat-mini-value">Feb 24, 2026</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-mini">
+                <div class="stat-mini-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-tag"></i>
+                </div>
+                <div>
+                    <div class="stat-mini-label">Type</div>
+                    <div class="stat-mini-value">Delivery</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-mini">
+                <div class="stat-mini-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-person"></i>
+                </div>
+                <div>
+                    <div class="stat-mini-label">Signed By</div>
+                    <div class="stat-mini-value">John Doe</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signature Display -->
+    <div class="sig-display mb-4">
+        <div class="sig-display-inner">
+            <svg width="380" height="140" viewBox="0 0 380 140" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:.85;">
+                <path d="M25 90 C50 15, 70 115, 95 60 S135 15, 165 80 S200 25, 230 65 S265 100, 295 45 S315 25, 355 60" stroke="#1a1a2e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M80 108 C92 96, 115 118, 135 100" stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="sig-display-footer">
+            <div>
+                <i class="bi bi-pen me-1 text-muted"></i>
+                <span class="text-muted">Delivery Signature</span>
+                <span class="mx-2 text-muted">&middot;</span>
+                <span class="text-muted">Signed Feb 24, 2026 14:32</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" style="font-size:.78rem;padding:.2rem .6rem;">
+                    <i class="bi bi-download me-1"></i>Download PNG
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;padding:.2rem .6rem;">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Bar -->
+    <div class="actions-bar mb-4">
+        <span class="text-muted small fw-semibold me-2">Actions:</span>
+        <button class="btn btn-primary btn-sm"><i class="bi bi-envelope me-1"></i>Resend Email</button>
+        <button class="btn btn-outline-primary btn-sm"><i class="bi bi-link-45deg me-1"></i>Copy Link</button>
+        <button class="btn btn-outline-primary btn-sm"><i class="bi bi-box-arrow-up-right me-1"></i>Open Public Page</button>
+        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise me-1"></i>Regenerate</button>
+        <div class="ms-auto">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
+        </div>
+    </div>
+
+    <!-- Tabbed Section -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-2">
+            <ul class="nav nav-pills-custom gap-1" id="sigTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                        <i class="bi bi-info-circle me-1"></i>Details
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="verification-tab" data-bs-toggle="tab" data-bs-target="#verification" type="button" role="tab">
+                        <i class="bi bi-shield-check me-1"></i>Verification
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab">
+                        <i class="bi bi-clock-history me-1"></i>Activity
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Details Tab -->
+                <div class="tab-pane fade show active" id="details" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <h6 class="fw-bold mb-3" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Request Information</h6>
+                            <div class="dt-row">
+                                <span class="dt-label">Label</span>
+                                <span class="dt-value">Delivery Signature</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Type</span>
+                                <span class="dt-value"><span class="rb-pill rb-pill--delivery">Delivery</span></span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Status</span>
+                                <span class="dt-value"><span class="rb-pill rb-pill--completed"><i class="bi bi-check-circle"></i> Completed</span></span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Generated</span>
+                                <span class="dt-value">Feb 23, 2026 10:15</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Completed</span>
+                                <span class="dt-value">Feb 24, 2026 14:32</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Expires</span>
+                                <span class="dt-value">Feb 28, 2026 10:15</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Generated By</span>
+                                <span class="dt-value">Mike Smith</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="fw-bold mb-3" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Customer</h6>
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                                    <i class="bi bi-person-fill text-primary" style="font-size:1.1rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">John Doe</div>
+                                    <div class="text-muted small">john.doe@email.com</div>
+                                </div>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Phone</span>
+                                <span class="dt-value">+1 (555) 123-4567</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Email</span>
+                                <span class="dt-value text-truncate" style="max-width:160px;">john.doe@email.com</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="fw-bold mb-3" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Job</h6>
+                            <div class="dt-row">
+                                <span class="dt-label">Job #</span>
+                                <span class="dt-value fw-bold text-primary">1042</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Case #</span>
+                                <span class="dt-value">CSN-2026-0145</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Status</span>
+                                <span class="dt-value"><span class="badge bg-secondary" style="font-size:.72rem;">In Progress</span></span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Created</span>
+                                <span class="dt-value">Feb 20, 2026</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Device</span>
+                                <span class="dt-value">iPhone 15 Pro</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Tab -->
+                <div class="tab-pane fade" id="verification" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-3" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Signing Environment</h6>
+                            <div class="dt-row">
+                                <span class="dt-label">IP Address</span>
+                                <span class="dt-value font-monospace" style="font-size:.82rem;">192.168.1.45</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Browser</span>
+                                <span class="dt-value">Chrome 121</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Operating System</span>
+                                <span class="dt-value">Windows 11</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Full User Agent</span>
+                                <span class="dt-value text-truncate" style="max-width:260px;font-size:.75rem;" title="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36">
+                                    Mozilla/5.0 (Windows NT 10.0; Win64; x64)...
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-3" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Request Verification</h6>
+                            <div class="dt-row">
+                                <span class="dt-label">Verification Code</span>
+                                <span class="dt-value font-monospace" style="font-size:.82rem;">abc123def456</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Signature File</span>
+                                <span class="dt-value">
+                                    <a href="#" class="text-decoration-none"><i class="bi bi-file-image me-1"></i>signature-1042-001.png</a>
+                                </span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">File Size</span>
+                                <span class="dt-value">24.3 KB</span>
+                            </div>
+                            <div class="dt-row">
+                                <span class="dt-label">Completed At</span>
+                                <span class="dt-value">Feb 24, 2026 14:32:18 UTC</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Integrity Banner -->
+                    <div class="mt-4 p-3 rounded-3 border d-flex align-items-center gap-3" style="background:rgba(16,185,129,.04);border-color:rgba(16,185,129,.2) !important;">
+                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">
+                            <i class="bi bi-shield-fill-check text-success" style="font-size:1rem;"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:.84rem;">Signature Integrity Verified</div>
+                            <div class="text-muted" style="font-size:.76rem;">This signature was captured securely and matches the original submission. No modifications detected.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Tab -->
+                <div class="tab-pane fade" id="activity" role="tabpanel">
+                    <div class="d-flex flex-column gap-0">
+                        <!-- Activity items as table-like rows -->
+                        <div class="d-flex align-items-start gap-3 py-3 border-bottom">
+                            <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                                <i class="bi bi-check-lg text-success" style="font-size:.85rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:.84rem;">Signature completed</div>
+                                        <div class="text-muted" style="font-size:.76rem;">Customer signed the document via the public signature page.</div>
+                                    </div>
+                                    <small class="text-muted text-nowrap ms-3" style="font-size:.72rem;">Feb 24, 14:32</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3 py-3 border-bottom">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                                <i class="bi bi-eye text-primary" style="font-size:.85rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:.84rem;">Page viewed by customer</div>
+                                        <div class="text-muted" style="font-size:.76rem;">IP: 192.168.1.45 &middot; Chrome 121 / Windows 11</div>
+                                    </div>
+                                    <small class="text-muted text-nowrap ms-3" style="font-size:.72rem;">Feb 24, 14:30</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3 py-3 border-bottom">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                                <i class="bi bi-envelope text-primary" style="font-size:.85rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:.84rem;">Email notification sent</div>
+                                        <div class="text-muted" style="font-size:.76rem;">Sent to john.doe@email.com</div>
+                                    </div>
+                                    <small class="text-muted text-nowrap ms-3" style="font-size:.72rem;">Feb 23, 10:16</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3 py-3">
+                            <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                                <i class="bi bi-plus-circle text-secondary" style="font-size:.85rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:.84rem;">Signature request created</div>
+                                        <div class="text-muted" style="font-size:.76rem;">Created by Mike Smith &middot; Type: Delivery</div>
+                                    </div>
+                                    <small class="text-muted text-nowrap ms-3" style="font-size:.72rem;">Feb 23, 10:15</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-muted small mt-3 pt-2 border-top">
+        <i class="bi bi-shield-lock me-1"></i>
+        Signature Request ID: SIG-1042-001 &middot; Verification: abc123def456 &middot; Encrypted &amp; Tamper-Proof
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
