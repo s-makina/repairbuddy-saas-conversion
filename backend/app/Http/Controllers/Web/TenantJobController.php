@@ -616,7 +616,7 @@ class TenantJobController extends Controller
         }
 
         $job = RepairBuddyJob::query()
-            ->with(['customer', 'technicians', 'jobDevices'])
+            ->with(['customer', 'technicians', 'jobDevices', 'signatureRequests'])
             ->whereKey((int) $jobId)
             ->first();
 

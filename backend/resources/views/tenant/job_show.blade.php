@@ -427,7 +427,7 @@
     </div>
 
     {{-- ═══════════════ 2-COLUMN LAYOUT ═══════════════ --}}
-    <div class="ja-layout" x-data="{ open: { overview: true, devices: true, techs: true, timelogs: false, payments: false, expenses: false, history: false, feedback: false } }">
+    <div class="ja-layout" x-data="{ open: { overview: true, devices: true, techs: true, timelogs: false, payments: false, expenses: false, history: false, feedback: false, signatures: false } }">
 
         {{-- ──────────── MAIN COLUMN ──────────── --}}
         <div class="ja-main">
@@ -698,6 +698,63 @@
             </div>
             @endif
 
+            {{-- §6a — Signatures --}}
+            @if (!$isEstimate)
+            @php
+                $jobSignatures = $record->signatureRequests ?? collect();
+            @endphp
+            <div class="ja-section">
+                <div class="ja-section-head" @click="open.signatures = !open.signatures">
+                    <div class="ja-section-icon ja-icon-blue"><i class="bi bi-pen"></i></div>
+                    <h3>{{ __('Signatures') }}</h3>
+                    <span class="ja-tag ja-tag-blue">{{ $jobSignatures->count() }}</span>
+                    <i class="bi ja-chevron" :class="open.signatures ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </div>
+                <div class="ja-section-body" x-show="open.signatures" x-collapse>
+                    @forelse ($jobSignatures as $sig)
+                        <div style="border:1px solid var(--rb-border); border-radius:var(--rb-radius-sm); padding:.85rem; margin-bottom:.6rem; background:var(--rb-bg); display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:600; font-size:.9rem; color:var(--rb-text);">{{ $sig->signature_label }}</div>
+                                <div style="font-size:.78rem; color:var(--rb-text-3); margin-top:.15rem;">
+                                    <span class="badge bg-{{ $sig->signature_type === 'pickup' ? 'info' : ($sig->signature_type === 'delivery' ? 'warning' : 'secondary') }}" style="font-size:.7rem;">{{ ucfirst($sig->signature_type) }}</span>
+                                    &middot;
+                                    @if($sig->status === 'completed')
+                                        <span class="text-success"><i class="bi bi-check-circle"></i> {{ __('Signed') }} {{ $sig->completed_at?->format('M d, Y H:i') }}</span>
+                                    @elseif($sig->isExpired())
+                                        <span class="text-danger"><i class="bi bi-clock"></i> {{ __('Expired') }}</span>
+                                    @else
+                                        <span class="text-warning"><i class="bi bi-hourglass-split"></i> {{ __('Pending') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                @if($sig->isCompleted() && $sig->signature_file_path)
+                                    <a href="{{ $sig->signature_file_path }}" target="_blank" class="btn btn-outline-primary btn-sm" title="{{ __('View Signature') }}">
+                                        <i class="bi bi-image"></i>
+                                    </a>
+                                @elseif($sig->isPending() && !$sig->isExpired())
+                                    <a href="{{ route('tenant.signatures.generator', ['business' => $tenantSlug, 'jobId' => $record->id, 'signatureId' => $sig->id]) }}"
+                                       class="btn btn-outline-primary btn-sm" title="{{ __('View Link') }}">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="ja-empty">
+                            <i class="bi bi-pen"></i>{{ __('No signatures requested') }}
+                            <div class="mt-2">
+                                <a href="{{ route('tenant.signatures.create', ['business' => $tenantSlug, 'jobId' => $record->id]) }}"
+                                   class="btn btn-primary btn-sm rounded-pill px-3">
+                                    <i class="bi bi-plus-circle me-1"></i>{{ __('Request Signature') }}
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+            @endif
+
             {{-- §6 — History --}}
             <div class="ja-section">
                 <div class="ja-section-head" @click="open.history = !open.history">
@@ -923,6 +980,16 @@
                                 data-bs-toggle="modal" data-bs-target="#addPaymentModal">
                                 <i class="bi bi-credit-card"></i> {{ __('Add Payment') }}
                             </button>
+
+                            {{-- Signature Request Buttons --}}
+                            <a href="{{ route('tenant.signatures.create', ['business' => $tenantSlug, 'jobId' => $record->id]) }}"
+                               class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
+                                <i class="bi bi-pen"></i> {{ __('Request Signature') }}
+                            </a>
+                            <a href="{{ route('tenant.signatures.index', ['business' => $tenantSlug, 'jobId' => $record->id]) }}"
+                               class="ja-btn ja-btn-outline" style="justify-content:center; width:100%;">
+                                <i class="bi bi-list-check"></i> {{ __('View Signatures') }}
+                            </a>
                         @endif
 
                         <button type="button"

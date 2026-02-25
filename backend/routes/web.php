@@ -61,6 +61,16 @@ Route::prefix('t/{business}')
 
         Route::get('/review', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'review'])
             ->name('tenant.review');
+
+        // Public signature pages (no auth required — customer facing)
+        Route::get('/signature/{verification}', [\App\Http\Controllers\Web\SignatureController::class, 'signatureRequest'])
+            ->name('tenant.signature.request');
+
+        Route::post('/signature/{verification}/submit', [\App\Http\Controllers\Web\SignatureController::class, 'submitSignature'])
+            ->name('tenant.signature.submit');
+
+        Route::get('/signature/{verification}/success', [\App\Http\Controllers\Web\SignatureController::class, 'success'])
+            ->name('tenant.signature.success');
     });
 
 Route::prefix('t/{business}')
@@ -689,6 +699,29 @@ Route::prefix('t/{business}')
 
         Route::get('/jobs/datatable', [\App\Http\Controllers\Web\TenantJobController::class, 'datatable'])
             ->name('tenant.jobs.datatable');
+
+        /* ------------------------------------------------------------ */
+        /*  SIGNATURES – authenticated management pages                  */
+        /* ------------------------------------------------------------ */
+        Route::get('/jobs/{jobId}/signatures', [\App\Http\Controllers\Web\SignatureController::class, 'index'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.signatures.index');
+
+        Route::get('/jobs/{jobId}/signatures/create', [\App\Http\Controllers\Web\SignatureController::class, 'create'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.signatures.create');
+
+        Route::post('/jobs/{jobId}/signatures', [\App\Http\Controllers\Web\SignatureController::class, 'store'])
+            ->where(['jobId' => '[0-9]+' ])
+            ->name('tenant.signatures.store');
+
+        Route::get('/jobs/{jobId}/signatures/{signatureId}', [\App\Http\Controllers\Web\SignatureController::class, 'generator'])
+            ->where(['jobId' => '[0-9]+', 'signatureId' => '[0-9]+' ])
+            ->name('tenant.signatures.generator');
+
+        Route::post('/jobs/{jobId}/signatures/{signatureId}/send', [\App\Http\Controllers\Web\SignatureController::class, 'sendEmail'])
+            ->where(['jobId' => '[0-9]+', 'signatureId' => '[0-9]+' ])
+            ->name('tenant.signatures.send');
 
         /* ------------------------------------------------------------ */
         /*  ESTIMATES – standalone pages                                 */
