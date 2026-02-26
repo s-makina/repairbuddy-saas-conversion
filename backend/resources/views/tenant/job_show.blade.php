@@ -563,19 +563,37 @@
                             <table class="ja-table">
                                 <thead><tr>
                                     <th>{{ __('Technician') }}</th>
+                                    <th>{{ __('Activity') }}</th>
                                     <th>{{ __('Start') }}</th>
                                     <th>{{ __('End') }}</th>
                                     <th class="text-end">{{ __('Duration') }}</th>
+                                    <th>{{ __('Billable') }}</th>
+                                    <th>{{ __('Status') }}</th>
                                     <th>{{ __('Notes') }}</th>
                                 </tr></thead>
                                 <tbody>
                                 @foreach ($jobTimelogs as $log)
+                                    @php
+                                        $mins = is_numeric($log->total_minutes) ? (int) $log->total_minutes : 0;
+                                        $dh = floor($mins / 60);
+                                        $dm = $mins % 60;
+                                        $durationLabel = $dh > 0 ? sprintf('%dh %dm', $dh, $dm) : sprintf('%dm', $dm);
+                                        $stateClass = match ($log->log_state ?? 'pending') {
+                                            'approved' => 'ja-sp-done',
+                                            'rejected' => 'ja-sp-danger',
+                                            'billed'   => 'ja-sp-open',
+                                            default    => 'ja-sp-open',
+                                        };
+                                    @endphp
                                     <tr>
                                         <td class="fw-bold">{{ $log->technician?->name ?? '—' }}</td>
-                                        <td>{{ $log->start_at ?? '—' }}</td>
-                                        <td>{{ $log->end_at ?? '—' }}</td>
-                                        <td class="text-end">{{ $log->duration_label ?? '—' }}</td>
-                                        <td style="font-size:.78rem; color:var(--rb-text-2);">{{ $log->notes ?? '' }}</td>
+                                        <td>{{ ucfirst($log->activity ?? '—') }}</td>
+                                        <td>{{ $log->start_time?->format('M d, g:ia') ?? '—' }}</td>
+                                        <td>{{ $log->end_time?->format('g:ia') ?? '—' }}</td>
+                                        <td class="text-end">{{ $mins > 0 ? $durationLabel : '—' }}</td>
+                                        <td>{!! $log->is_billable ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-dash-circle text-muted"></i>' !!}</td>
+                                        <td><span class="ja-status-pill {{ $stateClass }}">{{ strtoupper($log->log_state ?? 'pending') }}</span></td>
+                                        <td style="font-size:.78rem; color:var(--rb-text-2);">{{ $log->work_description ?? '' }}</td>
                                     </tr>
                                 @endforeach
                                 </tbody>

@@ -789,6 +789,15 @@ Route::prefix('t/{business}')
             ->name('tenant.estimates.destroy');
 
         /* ------------------------------------------------------------ */
+        /*  TIME LOGS – admin listing                                    */
+        /* ------------------------------------------------------------ */
+        Route::get('/time-logs', [\App\Http\Controllers\Web\TenantTimeLogController::class, 'index'])
+            ->name('tenant.time_logs.index');
+
+        Route::get('/time-log', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'dashboard'])
+            ->name('tenant.time_log.dashboard');
+
+        /* ------------------------------------------------------------ */
         /*  PRINT / PDF – jobs & estimates                               */
         /* ------------------------------------------------------------ */
         Route::get('/jobs/{jobId}/print', [\App\Http\Controllers\Web\PrintDocumentController::class, 'showJob'])

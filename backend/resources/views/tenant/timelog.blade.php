@@ -51,7 +51,7 @@
     $canAccess = in_array($userRole, ['technician', 'administrator', 'store_manager'], true);
 @endphp
 
-@if ( $canAccess)
+@if (! $canAccess)
     {{ __("You do not have sufficient permissions to access this page.") }}
 @elseif (! $licenseState)
     {{ __('This is a pro feature please activate your license.') }}
@@ -439,3 +439,20 @@
 
 @endif
 @endsection
+
+@push('page-scripts')
+<script defer src="{{ asset('js/timelog.js') }}"></script>
+@endpush
+
+@push('page-styles')
+<style>
+    .time-log-widget { border-radius: .75rem; overflow: hidden; margin-bottom: 1rem; }
+    .time-log-widget .widget-header { padding: .75rem 1rem; border-bottom: 1px solid #dee2e6; background: #f8f9fa; }
+    .time-log-widget .widget-body { padding: 1rem; }
+    .stats-card { border-radius: .75rem; border: none; }
+    .timer-display { font-size: 2rem; font-weight: 700; font-family: 'Courier New', monospace; color: var(--bs-primary); }
+    .btn-timer { border-radius: .5rem; font-weight: 600; }
+    .log-table th { font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+    .log-table td { font-size: .84rem; vertical-align: middle; }
+</style>
+@endpush

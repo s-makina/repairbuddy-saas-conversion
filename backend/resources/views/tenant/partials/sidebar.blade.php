@@ -46,6 +46,11 @@
         Jobs
       </a>
 
+      <a class="nav-link {{ $activeNav === 'time-logs' ? 'active' : '' }}" href="{{ $tenantSlug ? route('tenant.time_logs.index', ['business' => $tenantSlug]) : '#' }}">
+        <i class="bi bi-clock-history me-2" aria-hidden="true"></i>
+        Time Logs
+      </a>
+
       <a class="nav-link {{ $activeNav === 'estimates' ? 'active' : '' }}" href="{{ $nextTenantBase . '/estimates' }}">
         <i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>
         Estimates

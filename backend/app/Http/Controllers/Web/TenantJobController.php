@@ -22,6 +22,7 @@ use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyPart;
 use App\Models\RepairBuddyService;
 use App\Models\RepairBuddyEvent;
+use App\Models\RepairBuddyTimeLog;
 use App\Models\Role;
 use App\Models\Status;
 use App\Models\Tenant;
@@ -771,7 +772,12 @@ class TenantJobController extends Controller
             'jobAttachments' => $attachments,
             'jobEvents' => $events,
             'totals' => $totals,
-            'jobTimelogs' => collect(),
+            'jobTimelogs' => RepairBuddyTimeLog::query()
+                ->with(['technician:id,name,email'])
+                ->where('job_id', $job->id)
+                ->orderByDesc('start_time')
+                ->limit(200)
+                ->get(),
             'jobPayments' => $payments,
             'jobExpenses' => collect(),
             'jobFeedback' => collect(),
