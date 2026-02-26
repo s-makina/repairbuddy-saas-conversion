@@ -93,6 +93,11 @@ class BookingForm extends Component
     public string $gdprLinkUrl = '';
     public bool $gdprAccepted = false;
 
+    /* ───────── Logged-in / returning customer auto-fill ───────── */
+    public bool $isLoggedInCustomer = false;
+    public ?int $loggedInCustomerId = null;
+    public bool $isReturningCustomer = false;
+
     /* ─────────── mount ─────────── */
 
     public function mount(?Tenant $tenant = null, string $business = '')
@@ -111,6 +116,8 @@ class BookingForm extends Component
 
         $this->loadBookingConfig();
         $this->loadDeviceTypes();
+        $this->prefillLoggedInCustomer();
+        $this->prefillFromSession();
 
         // Apply defaults
         if ($this->defaultTypeId !== '') {
@@ -122,6 +129,111 @@ class BookingForm extends Component
                 $this->loadDevices();
             }
         }
+    }
+
+    /**
+     * Pre-fill customer details if a logged-in customer is on the booking page.
+     */
+    protected function prefillLoggedInCustomer(): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof \App\Models\User) {
+            return;
+        }
+
+        // Only auto-fill for customers within the same tenant
+        if ($user->role !== 'customer' || (int) ($user->tenant_id ?? 0) !== (int) ($this->tenantId ?? 0)) {
+            return;
+        }
+
+        $this->isLoggedInCustomer = true;
+        $this->loggedInCustomerId = (int) $user->id;
+
+        $this->fillFromUser($user);
+    }
+
+    /**
+     * Pre-fill from session for returning guests who have previously booked.
+     * Only applies if not already logged in.
+     */
+    protected function prefillFromSession(): void
+    {
+        if ($this->isLoggedInCustomer) {
+            return;
+        }
+
+        $sessionKey = 'booking_customer_' . ($this->tenantId ?? 0);
+        $saved = session($sessionKey);
+
+        if (! is_array($saved) || empty($saved['email'])) {
+            return;
+        }
+
+        // Verify the saved customer still exists
+        $user = \App\Models\User::query()
+            ->where('tenant_id', (int) ($this->tenantId ?? 0))
+            ->where('email', strtolower(trim((string) $saved['email'])))
+            ->where('role', 'customer')
+            ->first();
+
+        if (! $user instanceof \App\Models\User) {
+            session()->forget($sessionKey);
+            return;
+        }
+
+        $this->isReturningCustomer = true;
+        $this->fillFromUser($user);
+    }
+
+    /**
+     * Fill the customer form fields from a User model.
+     */
+    protected function fillFromUser(\App\Models\User $user): void
+    {
+        $this->firstName = (string) ($user->first_name ?? '');
+        $this->lastName = (string) ($user->last_name ?? '');
+        $this->email = (string) ($user->email ?? '');
+        $this->phone = (string) ($user->phone ?? '');
+        $this->company = (string) ($user->company ?? '');
+        $this->taxId = (string) ($user->tax_id ?? '');
+        $this->addressLine1 = (string) ($user->address_line1 ?? '');
+        $this->city = (string) ($user->address_city ?? '');
+        $this->postalCode = (string) ($user->address_postal_code ?? '');
+    }
+
+    /**
+     * Save customer details to session after a successful booking
+     * so returning guests don't have to re-enter their info.
+     */
+    protected function saveCustomerToSession(): void
+    {
+        $sessionKey = 'booking_customer_' . ($this->tenantId ?? 0);
+        session([$sessionKey => [
+            'email' => strtolower(trim($this->email)),
+            'saved_at' => now()->toIso8601String(),
+        ]]);
+    }
+
+    /**
+     * Clear the saved customer session so a returning guest can enter new details.
+     * Called from the "Not you? Change details" button.
+     */
+    public function clearSavedCustomer(): void
+    {
+        $sessionKey = 'booking_customer_' . ($this->tenantId ?? 0);
+        session()->forget($sessionKey);
+
+        $this->isReturningCustomer = false;
+        $this->firstName = '';
+        $this->lastName = '';
+        $this->email = '';
+        $this->phone = '';
+        $this->company = '';
+        $this->taxId = '';
+        $this->addressLine1 = '';
+        $this->city = '';
+        $this->postalCode = '';
     }
 
     public function hydrate(): void
@@ -591,7 +703,10 @@ class BookingForm extends Component
             return;
         }
 
-        $ids = $this->deviceEntries[$deviceIdx]['selectedServiceIds'] ?? [];
+        // Clone the full array so Livewire detects the nested mutation
+        $entries = $this->deviceEntries;
+
+        $ids = $entries[$deviceIdx]['selectedServiceIds'] ?? [];
         if (! is_array($ids)) {
             $ids = [];
         }
@@ -602,7 +717,10 @@ class BookingForm extends Component
             $ids[] = $serviceId;
         }
 
-        $this->deviceEntries[$deviceIdx]['selectedServiceIds'] = $ids;
+        $entries[$deviceIdx]['selectedServiceIds'] = $ids;
+
+        // Reassign the entire property so Livewire tracks the change in its snapshot
+        $this->deviceEntries = $entries;
     }
 
     /**
@@ -675,6 +793,13 @@ class BookingForm extends Component
             return;
         }
 
+        // For logged-in or returning customers, skip "Your Details" step and submit directly
+        if ($this->isLoggedInCustomer || $this->isReturningCustomer) {
+            $this->step = 5; // briefly set to 5 for the confirmation view
+            $this->submit();
+            return;
+        }
+
         $this->step = 5;
     }
 
@@ -701,17 +826,23 @@ class BookingForm extends Component
     {
         $this->errorMessage = '';
 
+        // For logged-in/returning customers, jobDetails is optional (auto-generated if empty)
+        $jobDetailsRule = ($this->isLoggedInCustomer || $this->isReturningCustomer)
+            ? ['nullable', 'string', 'max:5000']
+            : ['required', 'string', 'max:5000'];
+
         $rules = [
             'firstName' => ['required', 'string', 'max:255'],
             'lastName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:64'],
-            'jobDetails' => ['required', 'string', 'max:5000'],
+            'jobDetails' => $jobDetailsRule,
         ];
 
         $messages = [];
 
-        if ($this->gdprLabel) {
+        // Skip GDPR requirement for logged-in/returning customers (already accepted)
+        if ($this->gdprLabel && ! $this->isLoggedInCustomer && ! $this->isReturningCustomer) {
             $rules['gdprAccepted'] = ['accepted'];
             $messages['gdprAccepted.accepted'] = 'You must accept the privacy policy / terms to continue.';
         }
@@ -721,6 +852,12 @@ class BookingForm extends Component
         if (count($this->deviceEntries) === 0) {
             $this->errorMessage = 'Please add at least one device.';
             return;
+        }
+
+        // Auto-generate job details for logged-in/returning customers if left empty
+        if (($this->isLoggedInCustomer || $this->isReturningCustomer) && trim($this->jobDetails) === '') {
+            $deviceLabels = collect($this->deviceEntries)->pluck('device_label')->filter()->implode(', ');
+            $this->jobDetails = 'Booking for: ' . ($deviceLabels ?: 'repair service');
         }
 
         // Build payload for RepairBuddyPublicBookingService
@@ -793,6 +930,9 @@ class BookingForm extends Component
             $this->submitted = true;
             $this->submissionCaseNumber = (string) ($result['case_number'] ?? '');
             $this->submissionMessage = 'Your booking has been submitted successfully!';
+
+            // Save customer details to session for future bookings
+            $this->saveCustomerToSession();
         } catch (\Illuminate\Validation\ValidationException $e) {
             $messages = $e->validator->errors()->all();
             $this->errorMessage = implode(' ', $messages);
