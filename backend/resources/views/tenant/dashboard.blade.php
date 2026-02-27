@@ -415,194 +415,62 @@
                     </div>
                 </div>
 
-                <!-- Upcoming Appointments -->
-                <style type="text/css">
-                    /* Add this to your stylesheet */
-                    .appointment-item .badge {
-                        white-space: nowrap;
-                    }
-
-                    .appointment-map {
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    }
-
-                    .appointment-map iframe {
-                        border-radius: 4px;
-                    }
-
-                    /* Mobile responsiveness */
-                    @media (max-width: 768px) {
-                        .appointment-item .row {
-                            flex-direction: column;
-                        }
-                        
-                        .appointment-item .col-md-5 {
-                            margin-top: 10px;
-                        }
-                        
-                        .appointment-map {
-                            height: 120px !important;
-                        }
-                    }
-                </style>
+                <!-- Upcoming Visits (Pickups) -->
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">{{ __('Upcoming Visits') }}</h5>
+                            @if(count($upcomingVisits ?? []) > 0)
+                                <span class="badge bg-primary">{{ count($upcomingVisits) }}</span>
+                            @endif
                         </div>
                         <div class="card-body p-0">
-                            <div class="appointment-list" style="height:350px; overflow-y:scroll;">
-                                
-                                <!-- Appointment Item 1 -->
-                                <div class="appointment-item p-3 border-bottom">
-                                    <div class="row">
-                                        <!-- Left Column: Appointment Details -->
-                                        <div class="col-lg-8 col-md-7">
-                                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                                <div>
-                                                    <h6 class="mb-1" style="font-size: 0.9rem;">Laptop Diagnostic</h6>
-                                                    <small class="text-muted" style="font-size: 0.8rem;">Dell Inspiron 15</small>
-                                                </div>
-                                                <span class="badge bg-primary d-lg-none d-md-none d-block mb-2" style="font-size: 0.7rem;">Tomorrow</span>
-                                                <span class="badge bg-primary d-none d-lg-block d-md-block" style="font-size: 0.7rem;">Tomorrow</span>
+                            <div class="appointment-list" style="max-height:350px; overflow-y:auto;">
+                                @forelse ($upcomingVisits ?? [] as $visit)
+                                    <div class="appointment-item p-3 border-bottom">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div>
+                                                <h6 class="mb-1" style="font-size: 0.9rem;">
+                                                    <a href="{{ $visit['edit_url'] }}" target="_blank" class="text-decoration-none">
+                                                        {{ $visit['title'] }}
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted" style="font-size: 0.8rem;">{{ $visit['device_display'] }}</small>
                                             </div>
-                                            <small class="text-muted d-block mb-2" style="font-size: 0.8rem;">10:00 AM - 11:30 AM</small>
-                                            
-                                            <!-- Customer Address -->
-                                            <div class="customer-address mb-2">
-                                                <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
-                                                    <i class="fas fa-map-marker-alt me-1" style="font-size: 0.8rem;"></i>
-                                                    123 Main Street, San Francisco, CA 94105
-                                                </small>
-                                            </div>
-                                            
-                                            <!-- Customer Info -->
-                                            <div class="customer-info">
-                                                <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
-                                                    <i class="fas fa-user me-1" style="font-size: 0.8rem;"></i>
-                                                    John Smith • (555) 123-4567
-                                                </small>
-                                            </div>
+                                            <span class="badge {{ $visit['pickup_date_relative'] === 'Today' ? 'bg-warning text-dark' : 'bg-primary' }}" style="font-size: 0.7rem;">
+                                                {{ $visit['pickup_date_relative'] }}
+                                            </span>
                                         </div>
+                                        <small class="text-muted d-block mb-2" style="font-size: 0.8rem;">
+                                            {{ __('Pickup:') }} {{ $visit['pickup_date_formatted'] }}
+                                        </small>
                                         
-                                        <!-- Right Column: Map -->
-                                        <div class="col-lg-4 col-md-5 mt-2 mt-md-0">
-                                            <div class="appointment-map" style="height: 150px; border-radius: 4px; overflow: hidden;">
-                                                <!-- Google Maps Embed -->
-                                                <iframe 
-                                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.681434336427!2d-122.41941548468158!3d37.77492977975915!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8085808c3d6b3f3f%3A0x8d7c5b9a7b5b5b5b!2s123%20Main%20St%2C%20San%20Francisco%2C%20CA%2094105!5e0!3m2!1sen!2sus!4v1234567890123!5m2!1sen!2sus" 
-                                                    width="100%" 
-                                                    height="150" 
-                                                    style="border:0;" 
-                                                    allowfullscreen="" 
-                                                    loading="lazy" 
-                                                    referrerpolicy="no-referrer-when-downgrade">
-                                                </iframe>
-                                            </div>
+                                        @if($visit['customer_address'])
+                                        <div class="customer-address mb-2">
+                                            <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
+                                                <i class="fas fa-map-marker-alt me-1" style="font-size: 0.8rem;"></i>
+                                                {{ $visit['customer_address'] }}
+                                            </small>
+                                        </div>
+                                        @endif
+                                        
+                                        <div class="customer-info">
+                                            <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
+                                                <i class="fas fa-user me-1" style="font-size: 0.8rem;"></i>
+                                                {{ $visit['customer_name'] }}
+                                                @if($visit['customer_phone'])
+                                                    • {{ $visit['customer_phone'] }}
+                                                @endif
+                                            </small>
                                         </div>
                                     </div>
-                                </div>
-
-                                <!-- Appointment Item 2 -->
-                                <div class="appointment-item p-3 border-bottom">
-                                    <div class="row">
-                                        <!-- Left Column: Appointment Details -->
-                                        <div class="col-lg-8 col-md-7">
-                                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                                <div>
-                                                    <h6 class="mb-1" style="font-size: 0.9rem;">Screen Replacement</h6>
-                                                    <small class="text-muted" style="font-size: 0.8rem;">MacBook Pro 14"</small>
-                                                </div>
-                                                <span class="badge bg-warning d-lg-none d-md-none d-block mb-2" style="font-size: 0.7rem;">Today</span>
-                                                <span class="badge bg-warning d-none d-lg-block d-md-block" style="font-size: 0.7rem;">Today</span>
-                                            </div>
-                                            <small class="text-muted d-block mb-2" style="font-size: 0.8rem;">2:00 PM - 3:30 PM</small>
-                                            
-                                            <!-- Customer Address -->
-                                            <div class="customer-address mb-2">
-                                                <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
-                                                    <i class="fas fa-map-marker-alt me-1" style="font-size: 0.8rem;"></i>
-                                                    456 Tech Avenue, San Jose, CA 95113
-                                                </small>
-                                            </div>
-                                            
-                                            <!-- Customer Info -->
-                                            <div class="customer-info">
-                                                <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
-                                                    <i class="fas fa-user me-1" style="font-size: 0.8rem;"></i>
-                                                    Sarah Johnson • (555) 987-6543
-                                                </small>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Right Column: Map -->
-                                        <div class="col-lg-4 col-md-5 mt-2 mt-md-0">
-                                            <div class="appointment-map" style="height: 150px; border-radius: 4px; overflow: hidden;">
-                                                <!-- Google Maps Embed -->
-                                                <iframe 
-                                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3172.3323495308524!2d-121.88699468472234!3d37.3388475798426!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fcc5b8b6b6b6b%3A0x8b7c5b9a7b5b5b5b!2s456%20Tech%20Ave%2C%20San%20Jose%2C%20CA%2095113!5e0!3m2!1sen!2sus!4v1234567890123!5m2!1sen!2sus" 
-                                                    width="100%" 
-                                                    height="150" 
-                                                    style="border:0;" 
-                                                    allowfullscreen="" 
-                                                    loading="lazy" 
-                                                    referrerpolicy="no-referrer-when-downgrade">
-                                                </iframe>
-                                            </div>
-                                        </div>
+                                @empty
+                                    <div class="text-center p-4">
+                                        <i class="bi bi-calendar-check display-6 text-muted mb-2"></i>
+                                        <h6 class="text-muted" style="font-size: 0.9rem;">{{ __('No Upcoming Visits') }}</h6>
+                                        <p class="small text-muted" style="font-size: 0.8rem;">{{ __('Scheduled pickups will appear here') }}</p>
                                     </div>
-                                </div>
-
-                                <!-- Appointment Item 3 -->
-                                <div class="appointment-item p-3">
-                                    <div class="row">
-                                        <!-- Left Column: Appointment Details -->
-                                        <div class="col-lg-8 col-md-7">
-                                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                                <div>
-                                                    <h6 class="mb-1" style="font-size: 0.9rem;">Virus Removal</h6>
-                                                    <small class="text-muted" style="font-size: 0.8rem;">HP Pavilion</small>
-                                                </div>
-                                                <span class="badge bg-success d-lg-none d-md-none d-block mb-2" style="font-size: 0.7rem;">Tomorrow</span>
-                                                <span class="badge bg-success d-none d-lg-block d-md-block" style="font-size: 0.7rem;">Tomorrow</span>
-                                            </div>
-                                            <small class="text-muted d-block mb-2" style="font-size: 0.8rem;">11:00 AM - 12:00 PM</small>
-                                            
-                                            <!-- Customer Address -->
-                                            <div class="customer-address mb-2">
-                                                <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
-                                                    <i class="fas fa-map-marker-alt me-1" style="font-size: 0.8rem;"></i>
-                                                    789 Innovation Way, Palo Alto, CA 94301
-                                                </small>
-                                            </div>
-                                            
-                                            <!-- Customer Info -->
-                                            <div class="customer-info">
-                                                <small class="text-muted d-flex align-items-center" style="font-size: 0.8rem;">
-                                                    <i class="fas fa-user me-1" style="font-size: 0.8rem;"></i>
-                                                    Michael Chen • (555) 456-7890
-                                                </small>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Right Column: Map -->
-                                        <div class="col-lg-4 col-md-5 mt-2 mt-md-0">
-                                            <div class="appointment-map" style="height: 150px; border-radius: 4px; overflow: hidden;">
-                                                <!-- Google Maps Embed -->
-                                                <iframe 
-                                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3168.635259966661!2d-122.16071918471973!3d37.44188337983366!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fbb5b8b6b6b6b%3A0x8b7c5b9a7b5b5b5b!2s789%20Innovation%20Way%2C%20Palo%20Alto%2C%20CA%2094301!5e0!3m2!1sen!2sus!4v1234567890123!5m2!1sen!2sus" 
-                                                    width="100%" 
-                                                    height="150" 
-                                                    style="border:0;" 
-                                                    allowfullscreen="" 
-                                                    loading="lazy" 
-                                                    referrerpolicy="no-referrer-when-downgrade">
-                                                </iframe>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
+                                @endforelse
                             </div>
                         </div>
                     </div>
@@ -620,7 +488,7 @@
                                     <i class="bi bi-plus-circle me-2"></i>
                                     {{ __('New Job') }}
                                 </a>
-                                <a class="btn btn-outline-primary btn-sm">
+                                <a class="btn btn-outline-primary btn-sm" href="{{ $calendar_url ?? '#' }}">
                                     <i class="bi bi-calendar-plus me-2"></i>
                                     {{ __('Schedule Appointment') }}
                                 </a>
@@ -646,6 +514,18 @@
 
 @push('page-scripts')
   <script>
+    // Chart data from backend
+    @php
+        $defaultChartData = [
+            'revenue' => ['labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], 'data' => [0, 0, 0, 0, 0, 0, 0]],
+            'jobs_completed' => ['data' => [0, 0, 0, 0, 0, 0, 0]],
+            'job_status' => ['labels' => [], 'data' => []],
+            'device_types' => ['labels' => [], 'data' => []],
+            'performance' => ['avg_repair_days' => 0],
+        ];
+    @endphp
+    var chartData = @json($chartData ?? $defaultChartData);
+
     (function () {
       if (typeof Chart === 'undefined') return;
 
@@ -653,9 +533,9 @@
         var el = document.getElementById('revenueChart');
         if (!el) return;
 
-        var labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        var revenue = [320, 540, 410, 760, 610, 980, 720];
-        var jobs = [2, 4, 3, 5, 4, 7, 6];
+        var labels = chartData.revenue.labels;
+        var revenue = chartData.revenue.data;
+        var jobs = chartData.jobs_completed.data;
 
         new Chart(el, {
           type: 'line',
@@ -772,6 +652,12 @@
         var el = document.getElementById(canvasId);
         if (!el) return;
 
+        // Hide chart and show empty state if no data
+        if (!data || data.length === 0 || data.every(function(v) { return v === 0; })) {
+          el.parentElement.innerHTML = '<div class="text-center p-4"><i class="bi bi-pie-chart display-6 text-muted mb-2"></i><p class="text-muted small">No data available</p></div>';
+          return;
+        }
+
         new Chart(el, {
           type: 'doughnut',
           data: {
@@ -821,8 +707,16 @@
       function initDeviceTypePieChart() {
         var el = document.getElementById('deviceTypeChart');
         if (!el) return;
-        var labels = ['Phones', 'Laptops', 'Tablets', 'PC'];
-        var data = [12, 8, 5, 7];
+
+        var labels = chartData.device_types.labels;
+        var data = chartData.device_types.data;
+
+        // Hide chart and show empty state if no data
+        if (!data || data.length === 0 || data.every(function(v) { return v === 0; })) {
+          el.parentElement.innerHTML = '<div class="text-center p-4"><i class="bi bi-pie-chart display-6 text-muted mb-2"></i><p class="text-muted small">No device data</p></div>';
+          return;
+        }
+
         new Chart(el, {
           type: 'pie',
           data: {
@@ -872,16 +766,16 @@
         var el = document.getElementById('performanceChart');
         if (!el) return;
 
-        var labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        var data = [3.2, 2.8, 2.5, 2.1, 1.9, 1.7];
+        var avgDays = chartData.performance.avg_repair_days;
 
+        // Show single bar with average
         new Chart(el, {
           type: 'bar',
           data: {
-            labels: labels,
+            labels: ['Current'],
             datasets: [{
               label: 'Average Repair Time',
-              data: data,
+              data: [avgDays],
               backgroundColor: 'rgba(13, 202, 240, 0.8)',
               borderColor: 'rgba(13, 202, 240, 1)',
               borderWidth: 2,
@@ -902,8 +796,8 @@
                 callbacks: {
                   label: function(context) {
                     var value = context.parsed.y;
-                    if (value === null || value === undefined) {
-                      return 'No data';
+                    if (value === null || value === undefined || value === 0) {
+                      return 'No completed jobs yet';
                     }
                     return 'Average: ' + value.toFixed(1) + ' days';
                   }
@@ -937,9 +831,9 @@
         var el = document.getElementById('customerJobsChart');
         if (!el) return;
 
-        var labels = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'];
-        var jobCounts = [1, 0, 2, 1, 1, 0, 1];
-        var completedJobs = [0, 0, 1, 0, 1, 0, 1];
+        var labels = chartData.revenue.labels;
+        var jobCounts = chartData.jobs_completed.data;
+        var completedJobs = chartData.jobs_completed.data;
 
         new Chart(el, {
           type: 'line',
@@ -1005,15 +899,15 @@
         });
       }
 
-      // Staff charts
+      // Staff charts - use dynamic data
       initRevenueChart();
-      initDoughnutChart('jobStatusChart', ['Completed', 'In Progress', 'Pending', 'Cancelled'], [11, 9, 5, 2], ['#198754', '#0dcaf0', '#ffc107', '#dc3545']);
+      initDoughnutChart('jobStatusChart', chartData.job_status.labels, chartData.job_status.data, ['#198754', '#0dcaf0', '#ffc107', '#dc3545', '#6c757d', '#0d6efd', '#6f42c1', '#fd7e14']);
       initDeviceTypePieChart();
       initPerformanceChart();
 
       // Customer charts
       initCustomerJobsChart();
-      initDoughnutChart('customerStatusChart', ['Completed', 'In Progress', 'Pending Estimates', 'Cancelled'], [3, 2, 1, 0], ['#198754', '#0dcaf0', '#ffc107', '#dc3545']);
+      initDoughnutChart('customerStatusChart', chartData.job_status.labels, chartData.job_status.data, ['#198754', '#0dcaf0', '#ffc107', '#dc3545']);
     })();
   </script>
 @endpush

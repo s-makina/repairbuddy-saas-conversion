@@ -521,22 +521,23 @@ class RepairBuddyPublicBookingService
                 ]);
             }
 
-            if ($otherService === '' && count($serviceEntries) !== 1) {
+            if ($otherService === '' && count($serviceEntries) < 1) {
                 throw ValidationException::withMessages([
-                    'devices' => ['Select exactly one service for each device.'],
+                    'devices' => ['Select at least one service for each device.'],
                 ]);
             }
 
-            if ($otherService === '' && count($serviceEntries) === 1) {
-                $svcEntry = $serviceEntries[0];
-                if (! array_key_exists('service_id', $svcEntry) || ! is_numeric($svcEntry['service_id'])) {
-                    throw ValidationException::withMessages([
-                        'devices' => ['Service is invalid.'],
-                    ]);
-                }
+            // Process all selected services (multi-select allowed)
+            if ($otherService === '' && count($serviceEntries) >= 1) {
+                foreach ($serviceEntries as $svcEntry) {
+                    if (! array_key_exists('service_id', $svcEntry) || ! is_numeric($svcEntry['service_id'])) {
+                        throw ValidationException::withMessages([
+                            'devices' => ['Service is invalid.'],
+                        ]);
+                    }
 
-                $serviceId = (int) $svcEntry['service_id'];
-                $qty = array_key_exists('qty', $svcEntry) && is_numeric($svcEntry['qty']) ? (int) $svcEntry['qty'] : 1;
+                    $serviceId = (int) $svcEntry['service_id'];
+                    $qty = array_key_exists('qty', $svcEntry) && is_numeric($svcEntry['qty']) ? (int) $svcEntry['qty'] : 1;
                 $qty = max(1, min(9999, $qty));
 
                 $service = RepairBuddyService::query()->whereKey($serviceId)->first();
@@ -573,6 +574,7 @@ class RepairBuddyPublicBookingService
                         'device_serial' => $cd->serial,
                     ],
                 ]);
+                }
             }
 
             if ($otherService !== '') {
@@ -679,22 +681,23 @@ class RepairBuddyPublicBookingService
                 ]);
             }
 
-            if ($otherService === '' && count($serviceEntries) !== 1) {
+            if ($otherService === '' && count($serviceEntries) < 1) {
                 throw ValidationException::withMessages([
-                    'devices' => ['Select exactly one service for each device.'],
+                    'devices' => ['Select at least one service for each device.'],
                 ]);
             }
 
-            if ($otherService === '' && count($serviceEntries) === 1) {
-                $svcEntry = $serviceEntries[0];
-                if (! array_key_exists('service_id', $svcEntry) || ! is_numeric($svcEntry['service_id'])) {
-                    throw ValidationException::withMessages([
-                        'devices' => ['Service is invalid.'],
-                    ]);
-                }
+            // Process all selected services (multi-select allowed)
+            if ($otherService === '' && count($serviceEntries) >= 1) {
+                foreach ($serviceEntries as $svcEntry) {
+                    if (! array_key_exists('service_id', $svcEntry) || ! is_numeric($svcEntry['service_id'])) {
+                        throw ValidationException::withMessages([
+                            'devices' => ['Service is invalid.'],
+                        ]);
+                    }
 
-                $serviceId = (int) $svcEntry['service_id'];
-                $qty = array_key_exists('qty', $svcEntry) && is_numeric($svcEntry['qty']) ? (int) $svcEntry['qty'] : 1;
+                    $serviceId = (int) $svcEntry['service_id'];
+                    $qty = array_key_exists('qty', $svcEntry) && is_numeric($svcEntry['qty']) ? (int) $svcEntry['qty'] : 1;
                 $qty = max(1, min(9999, $qty));
 
                 $service = RepairBuddyService::query()->whereKey($serviceId)->first();
@@ -731,6 +734,7 @@ class RepairBuddyPublicBookingService
                         'device_serial' => $cd->serial,
                     ],
                 ]);
+                }
             }
 
             if ($otherService !== '') {

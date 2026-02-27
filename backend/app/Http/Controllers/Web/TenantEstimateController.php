@@ -51,7 +51,7 @@ class TenantEstimateController extends Controller
             ->with(['customer', 'assignedTechnician', 'devices', 'items.tax'])
             ->where('tenant_id', (int) $tenant->id)
             ->where('branch_id', (int) $branch->id)
-            ->orderBy('id', 'desc');
+            ->orderBy('created_at', 'desc');
 
         /* search */
         $search = is_string($request->query('searchinput'))

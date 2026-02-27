@@ -1035,6 +1035,136 @@ HTML;
             ];
         }
 
+        /* ── Upcoming Visits (jobs with pickup_date >= today) ── */
+        $upcomingVisitsRaw = RepairBuddyJob::query()
+            ->with(['customer', 'jobDevices'])
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->where('pickup_date', '>=', today())
+            ->whereNotIn('status_slug', ['completed', 'delivered', 'cancelled'])
+            ->orderBy('pickup_date')
+            ->limit(5)
+            ->get();
+
+        $upcomingVisits = [];
+        foreach ($upcomingVisitsRaw as $uv) {
+            $deviceDisplay = $uv->jobDevices->first()?->label_snapshot ?? $uv->title;
+            $upcomingVisits[] = [
+                'id' => $uv->id,
+                'title' => (string) $uv->title,
+                'device_display' => (string) $deviceDisplay,
+                'customer_name' => $uv->customer?->name ?? '—',
+                'customer_phone' => $uv->customer?->phone_number ?? '',
+                'customer_address' => trim(sprintf('%s %s %s',
+                    $uv->customer?->address ?? '',
+                    $uv->customer?->city ?? '',
+                    $uv->customer?->zip_code ?? ''
+                )),
+                'pickup_date_formatted' => $uv->pickup_date?->format('M d, Y') ?? '',
+                'pickup_date_relative' => $uv->pickup_date?->isToday() ? 'Today'
+                    : ($uv->pickup_date?->isTomorrow() ? 'Tomorrow' : $uv->pickup_date?->format('M d')),
+                'edit_url' => route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $uv->id]),
+                'job_number' => (string) $uv->job_number,
+            ];
+        }
+
+        /* ── Chart Data ── */
+        // Revenue by day (last 7 days)
+        $revenueByDay = RepairBuddyPayment::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->where('payment_status', 'paid')
+            ->where('created_at', '>=', now()->subDays(7)->startOfDay())
+            ->selectRaw('DATE(created_at) as date, SUM(amount_cents) as total')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        $chartLabels = [];
+        $chartRevenue = [];
+        $chartJobsCompleted = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $chartLabels[] = now()->subDays($i)->format('D');
+            $dayRevenue = $revenueByDay->firstWhere('date', $date);
+            $chartRevenue[] = $dayRevenue ? ($dayRevenue->total / 100) : 0;
+        }
+
+        // Jobs completed by day (last 7 days)
+        $jobsCompletedByDay = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->whereIn('status_slug', ['completed', 'delivered'])
+            ->where('closed_at', '>=', now()->subDays(7)->startOfDay())
+            ->selectRaw('DATE(closed_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $dayJobs = $jobsCompletedByDay->firstWhere('date', $date);
+            $chartJobsCompleted[] = $dayJobs ? (int) $dayJobs->count : 0;
+        }
+
+        // Job status distribution
+        $jobStatusDistribution = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->selectRaw('status_slug, COUNT(*) as count')
+            ->groupBy('status_slug')
+            ->pluck('count', 'status_slug')
+            ->toArray();
+
+        // Device types distribution (using label_snapshot from job devices)
+        $deviceTypeDistribution = \App\Models\RepairBuddyJobDevice::query()
+            ->whereHas('job', fn ($q) => $q->where('tenant_id', (int) $tenantId)->where('branch_id', (int) $branchId))
+            ->selectRaw('label_snapshot, COUNT(*) as count')
+            ->whereNotNull('label_snapshot')
+            ->where('label_snapshot', '!=', '')
+            ->groupBy('label_snapshot')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->pluck('count', 'label_snapshot')
+            ->toArray();
+
+        // Average repair time (days between opened_at and closed_at)
+        $avgRepairTime = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->whereIn('status_slug', ['completed', 'delivered'])
+            ->whereNotNull('opened_at')
+            ->whereNotNull('closed_at')
+            ->selectRaw('AVG(DATEDIFF(closed_at, opened_at)) as avg_days')
+            ->value('avg_days');
+
+        $chartData = [
+            'revenue' => [
+                'labels' => $chartLabels,
+                'data' => $chartRevenue,
+            ],
+            'jobs_completed' => [
+                'data' => $chartJobsCompleted,
+            ],
+            'job_status' => [
+                'labels' => array_map(fn($s) => ucwords(str_replace(['_', '-'], ' ', $s)), array_keys($jobStatusDistribution)),
+                'data' => array_values($jobStatusDistribution),
+            ],
+            'device_types' => [
+                'labels' => array_keys($deviceTypeDistribution),
+                'data' => array_values($deviceTypeDistribution),
+            ],
+            'performance' => [
+                'avg_repair_days' => round((float) $avgRepairTime, 1),
+            ],
+        ];
+
+        /* ── Quick Action URLs ── */
+        $job_url = route('tenant.jobs.create', ['business' => $tenant->slug]);
+        $estimate_url = route('tenant.estimates.create', ['business' => $tenant->slug]);
+        $calendar_url = route('tenant.dashboard', ['business' => $tenant->slug, 'screen' => 'calendar']);
+        $report_url = route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=reports';
+
         return view('tenant.dashboard', [
             'tenant' => $tenant,
             'user' => $user,
@@ -1045,6 +1175,12 @@ HTML;
             'latestEstimates' => $latestEstimates,
             'activities' => $activities,
             'priorityJobs' => $priorityJobs,
+            'upcomingVisits' => $upcomingVisits,
+            'chartData' => $chartData,
+            'job_url' => $job_url,
+            'estimate_url' => $estimate_url,
+            'calendar_url' => $calendar_url,
+            'report_url' => $report_url,
         ]);
     }
 

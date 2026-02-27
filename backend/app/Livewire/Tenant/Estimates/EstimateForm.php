@@ -112,6 +112,7 @@ class EstimateForm extends JobForm
 
                 $this->deviceRows[] = [
                     'customer_device_id' => $ed->customer_device_id ?? null,
+                    'device_id' => $ed->customerDevice?->device_id ?? null,
                     'serial' => $ed->serial_snapshot ?? null,
                     'pin' => $ed->pin_snapshot ?? null,
                     'notes' => $ed->notes_snapshot ?? null,

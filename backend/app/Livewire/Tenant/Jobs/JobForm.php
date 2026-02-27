@@ -526,7 +526,12 @@ class JobForm extends Component
         $this->device_serial = $row['serial'] ?? '';
         $this->device_pin = $row['pin'] ?? '';
         $this->device_note = $row['notes'] ?? '';
-        $this->additional_fields = $row['additional_fields'] ?? [];
+        
+        // Initialize additional_fields with all field definition keys, then merge saved values
+        $savedFields = $row['additional_fields'] ?? [];
+        foreach ($this->fieldDefinitions as $def) {
+            $this->additional_fields[$def->key] = $savedFields[$def->key] ?? '';
+        }
         
         $this->device_search = '';
     }
