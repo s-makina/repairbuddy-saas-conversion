@@ -53,7 +53,7 @@ class RepairBuddyTimeLogController extends Controller
         }
 
         if ($status !== '') {
-            if (in_array($status, ['pending', 'approved', 'rejected', 'billed'], true)) {
+            if (in_array($status, ['pending', 'approved', 'rejected', 'billed', 'running'], true)) {
                 $query->where('log_state', $status);
             }
         }
@@ -146,6 +146,112 @@ class RepairBuddyTimeLogController extends Controller
         ]);
     }
 
+    /**
+     * Get the currently running timer for the authenticated user.
+     */
+    public function running(Request $request, string $business)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['time_log' => null], 200);
+        }
+
+        $runningLog = RepairBuddyTimeLog::query()
+            ->with(['job:id,case_number,title,status_slug', 'technician:id,name,email'])
+            ->where('technician_id', $user->id)
+            ->where('log_state', 'running')
+            ->first();
+
+        if (! $runningLog) {
+            return response()->json(['time_log' => null], 200);
+        }
+
+        return response()->json([
+            'time_log' => $this->serializeTimeLog($runningLog),
+        ]);
+    }
+
+    /**
+     * Get chart data for weekly/monthly time distribution.
+     */
+    public function chart(Request $request, string $business)
+    {
+        $validated = $request->validate([
+            'period' => ['sometimes', 'string', 'in:week,month,year'],
+        ]);
+
+        $period = $validated['period'] ?? 'week';
+        $user = $request->user();
+        $technicianId = $user?->id;
+
+        $query = RepairBuddyTimeLog::query()
+            ->where('technician_id', $technicianId)
+            ->where('log_state', '!=', 'running');
+
+        $now = now();
+
+        if ($period === 'week') {
+            $startOfWeek = $now->copy()->startOfWeek();
+            $endOfWeek = $now->copy()->endOfWeek();
+
+            $query->whereBetween('start_time', [$startOfWeek, $endOfWeek]);
+
+            $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            $data = array_fill(0, 7, 0);
+
+            $logs = $query->get();
+            foreach ($logs as $log) {
+                $dayOfWeek = \Illuminate\Support\Carbon::parse($log->start_time)->dayOfWeekIso - 1; // 0=Mon, 6=Sun
+                $minutes = is_numeric($log->total_minutes) ? (int) $log->total_minutes : 0;
+                $data[$dayOfWeek] += round($minutes / 60, 1);
+            }
+        } elseif ($period === 'month') {
+            $startOfMonth = $now->copy()->startOfMonth();
+            $endOfMonth = $now->copy()->endOfMonth();
+
+            $query->whereBetween('start_time', [$startOfMonth, $endOfMonth]);
+
+            $weeksInMonth = 5;
+            $labels = [];
+            $data = array_fill(0, $weeksInMonth, 0);
+
+            for ($i = 1; $i <= $weeksInMonth; $i++) {
+                $labels[] = "Week $i";
+            }
+
+            $logs = $query->get();
+            foreach ($logs as $log) {
+                $date = \Illuminate\Support\Carbon::parse($log->start_time);
+                $weekOfMonth = (int) ceil($date->day / 7) - 1;
+                if ($weekOfMonth >= 0 && $weekOfMonth < $weeksInMonth) {
+                    $minutes = is_numeric($log->total_minutes) ? (int) $log->total_minutes : 0;
+                    $data[$weekOfMonth] += round($minutes / 60, 1);
+                }
+            }
+        } else {
+            // Year
+            $startOfYear = $now->copy()->startOfYear();
+            $endOfYear = $now->copy()->endOfYear();
+
+            $query->whereBetween('start_time', [$startOfYear, $endOfYear]);
+
+            $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            $data = array_fill(0, 12, 0);
+
+            $logs = $query->get();
+            foreach ($logs as $log) {
+                $month = \Illuminate\Support\Carbon::parse($log->start_time)->month - 1;
+                $minutes = is_numeric($log->total_minutes) ? (int) $log->total_minutes : 0;
+                $data[$month] += round($minutes / 60, 1);
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'data' => $data,
+        ]);
+    }
+
     public function store(Request $request, string $business)
     {
         $validated = $request->validate([
@@ -158,6 +264,7 @@ class RepairBuddyTimeLogController extends Controller
             'work_description' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'device_data' => ['sometimes', 'nullable', 'array'],
             'is_billable' => ['sometimes', 'boolean'],
+            'log_state' => ['sometimes', 'string', 'in:pending,running'],
         ]);
 
         $jobId = (int) $validated['job_id'];
@@ -175,6 +282,14 @@ class RepairBuddyTimeLogController extends Controller
         $technicianId = $user?->id;
         if (! is_numeric($technicianId)) {
             abort(403, 'Forbidden.');
+        }
+
+        // Validate technician is assigned to this job
+        $isAssigned = $job->technicians()->where('users.id', $technicianId)->exists();
+        if (! $isAssigned) {
+            return response()->json([
+                'message' => 'You are not assigned to this job.',
+            ], 403);
         }
 
         $startTime = $validated['start_time'];
@@ -208,7 +323,7 @@ class RepairBuddyTimeLogController extends Controller
             'priority' => is_string($validated['priority'] ?? null) && $validated['priority'] !== '' ? $validated['priority'] : 'medium',
             'work_description' => is_string($validated['work_description'] ?? null) ? trim((string) $validated['work_description']) : null,
             'device_data_json' => $validated['device_data'] ?? null,
-            'log_state' => 'pending',
+            'log_state' => is_string($validated['log_state'] ?? null) ? $validated['log_state'] : 'pending',
             'total_minutes' => $totalMinutes,
             'hourly_rate_cents' => $rateCents,
             'hourly_cost_cents' => $costCents,
@@ -231,6 +346,19 @@ class RepairBuddyTimeLogController extends Controller
             ], 404);
         }
 
+        $user = $request->user();
+        $actorId = $user?->id;
+
+        // Only allow editing own time logs (unless admin/manager)
+        $actorRole = is_string($user?->role) ? strtolower($user->role) : '';
+        $canEditOthers = in_array($actorRole, ['admin', 'manager'], true);
+
+        if (! $canEditOthers && (int) $timeLog->technician_id !== (int) $actorId) {
+            return response()->json([
+                'message' => 'You can only edit your own time logs.',
+            ], 403);
+        }
+
         if ((string) $timeLog->log_state === 'billed') {
             return response()->json([
                 'message' => 'Time log is billed and cannot be edited.',
@@ -246,7 +374,7 @@ class RepairBuddyTimeLogController extends Controller
             'work_description' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'device_data' => ['sometimes', 'nullable', 'array'],
             'is_billable' => ['sometimes', 'boolean'],
-            'log_state' => ['sometimes', 'string', 'in:pending,approved,rejected'],
+            'log_state' => ['sometimes', 'string', 'in:pending,approved,rejected,running'],
             'rejection_reason' => ['sometimes', 'nullable', 'string', 'max:10000'],
         ]);
 
@@ -431,24 +559,24 @@ class RepairBuddyTimeLogController extends Controller
 
     private function assertTimeLogsEnabledForJob(RepairBuddyJob $job): void
     {
-        $settings = data_get($this->tenant()->setup_state ?? [], 'repairbuddy_settings', []);
-        $timeLogs = is_array($settings) ? (data_get($settings, 'timeLogs') ?? []) : [];
+        $settings = data_get($this->tenant()->setup_state ?? [], 'time_log', []);
+        if (! is_array($settings)) {
+            $settings = [];
+        }
 
-        if (is_array($timeLogs) && (bool) ($timeLogs['disableTimeLog'] ?? false)) {
+        if ((bool) ($settings['disable_timelog'] ?? false)) {
             abort(403, 'Time logs are disabled.');
         }
 
-        $enabledStatuses = is_array($timeLogs) && isset($timeLogs['enableTimeLogForStatusIds']) && is_array($timeLogs['enableTimeLogForStatusIds'])
-            ? $timeLogs['enableTimeLogForStatusIds']
-            : [];
+        $enabledStatuses = is_array($settings['included_statuses'] ?? null) ? $settings['included_statuses'] : [];
 
         if (count($enabledStatuses) > 0) {
-            $jobStatusId = 'status_' . (string) ($job->status_slug ?? '');
-            if ($jobStatusId === 'status_') {
+            $jobStatus = (string) ($job->status_slug ?? '');
+            if ($jobStatus === '') {
                 abort(422, 'Job status is missing.');
             }
 
-            if (! in_array($jobStatusId, $enabledStatuses, true)) {
+            if (! in_array($jobStatus, $enabledStatuses, true)) {
                 abort(422, 'Time logs are not enabled for this job status.');
             }
         }

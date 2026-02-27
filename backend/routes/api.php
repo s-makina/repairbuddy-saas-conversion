@@ -579,6 +579,8 @@ Route::prefix('{business}')
 
                 Route::prefix('repairbuddy')->middleware('permission:time_logs.view')->group(function () {
                     Route::get('/time-logs', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'index']);
+                    Route::get('/time-logs/running', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'running']);
+                    Route::get('/time-logs/chart', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'chart']);
                     Route::post('/time-logs', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'store']);
                     Route::patch('/time-logs/{timeLogId}', [\App\Http\Controllers\Api\App\RepairBuddyTimeLogController::class, 'update'])
                         ->whereNumber('timeLogId');

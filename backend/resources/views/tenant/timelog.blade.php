@@ -138,16 +138,24 @@
             @endphp
             {!! $_select_options !!}
 
-            @if ( isset( $job_id ) && ! empty( $job_id ) )
             <div class="widget-body">
-                <div class="time-entry" id="currentTimeEntry">
+                <div class="time-entry" id="currentTimeEntry" @if(!isset($job_id) || empty($job_id)) style="display: none;" @endif>
                     <div class="row align-items-center">
                         <div class="col-md-8">
-                            <h6 class="mb-1">{{ $display_name }}</h6>
-                            <p class="text-muted mb-2">{{ __( 'JOB' ) }}-{{ $forma_job_id }} | {{ __( 'Started' ) }}: <span id="startTime">--:--</span></p>
+                            <h6 class="mb-1" id="jobDisplayName">{{ $display_name ?? '' }}</h6>
+                            <p class="text-muted mb-2" id="jobInfo">
+                                @if(isset($job_id) && !empty($job_id))
+                                <strong>JOB-{{ $forma_job_id }}</strong> | {{ $display_name }}
+                                @endif
+                            </p>
+                            <p class="text-muted mb-2" id="deviceLabelInfo">
+                                @if(!empty($device_label))
+                                <i class="bi bi-device-hdd me-1"></i>{{ $device_label }}
+                                @endif
+                            </p>
                             <div class="timer-display mb-2" id="currentTimer">00:00:00</div>
                             <input type="hidden" id="technicianId" value="{{ $technician_id }}">
-                            <input type="hidden" id="jobId" value="{{ $job_id }}">
+                            <input type="hidden" id="jobId" value="{{ $job_id ?? '' }}">
                             <input type="hidden" id="deviceId" value="{{ $device_id ?? '' }}">
                             <input type="hidden" id="deviceSerial" value="{{ $device_serial ?? '' }}">
                             <input type="hidden" id="deviceIndex" value="{{ $device_index ?? 0 }}">
@@ -189,14 +197,11 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            @else
-                <div class="widget-body">
-                    <div class="alert alert-info mb-0">
-                        {{ sprintf( __( 'Please select a job or device to start logging time.' ), $device_label ) }}
-                    </div>
+                
+                <div class="alert alert-info mb-0" id="noJobSelectedAlert" @if(isset($job_id) && !empty($job_id)) style="display: none;" @endif>
+                    {{ __( 'Please select a job or device to start logging time.' ) }}
                 </div>
-            @endif
+            </div>
         </div>
 
         <!-- Quick Time Entry -->
@@ -207,11 +212,10 @@
                     {{ __( "Quick Time Entry" ) }}
                 </h5>
             </div>
-            @if ( isset( $job_id ) && ! empty( $job_id ) )
-            <div class="widget-body">
+            <div class="widget-body" id="quickTimeEntrySection" @if(!isset($job_id) || empty($job_id)) style="display: none;" @endif>
                 <form id="quickTimeForm">
                     <input type="hidden" name="technicianId" value="{{ $technician_id }}">
-                    <input type="hidden" name="jobId" value="{{ $job_id }}">
+                    <input type="hidden" name="jobId" value="{{ $job_id ?? '' }}">
                     <input type="hidden" name="deviceId" value="{{ $device_id ?? '' }}">
                     <input type="hidden" name="deviceSerial" value="{{ $device_serial ?? '' }}">
                     <input type="hidden" name="deviceIndex" value="{{ $device_index ?? 0 }}">
@@ -249,13 +253,11 @@
                     </div>
                 </form>
             </div>
-            @else
-                <div class="widget-body">
-                    <div class="alert alert-info mb-0">
-                        {{ sprintf( __( 'Please select a job or device to start logging time.' ), $device_label ) }}
-                    </div>
+            <div class="widget-body" id="quickTimeNoJobAlert" @if(isset($job_id) && !empty($job_id)) style="display: none;" @endif>
+                <div class="alert alert-info mb-0">
+                    {{ __( 'Please select a job or device to add a time entry.' ) }}
                 </div>
-            @endif
+            </div>
         </div>
 
         <!-- Weekly Summary -->
@@ -431,6 +433,38 @@
 @endsection
 
 @push('page-scripts')
+<script>
+    // Chart data passed from backend
+    @php
+        $defaultChartData = [
+            'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            'data' => [0, 0, 0, 0, 0, 0, 0]
+        ];
+    @endphp
+    window.timelog_chart_data = @json($weekly_chart_data ?? $defaultChartData);
+
+    // Localization strings
+    window.timelog_i18n = {
+        hours_worked: @json(__('Hours Worked')),
+        weekly_hours: @json(__('Weekly Hours Distribution')),
+        hours: @json(__('Hours')),
+        running: @json(__('Running')),
+        paused: @json(__('Paused')),
+        stopped: @json(__('Stopped')),
+        description_activity_required: @json(__('Please enter a work description and select an activity type.')),
+        select_job_first: @json(__('Please select a job/device before starting the timer.')),
+        time_entry_saved: @json(__('Time entry saved successfully!')),
+        save_error: @json(__('Failed to save time entry. Please try again.')),
+        enter_start_end_times: @json(__('Please enter both start and end times.')),
+        end_time_after_start: @json(__('End time must be after start time.')),
+        activity_required: @json(__('Please select an activity type.')),
+        description_required: @json(__('Please enter a work description.')),
+        not_assigned: @json(__('You are not assigned to this job.')),
+        job_not_found: @json(__('Job not found.')),
+        network_error: @json(__('Network error. Please try again.')),
+        chart_update_failed: @json(__('Could not update chart. Please try again.'))
+    };
+</script>
 <script defer src="{{ asset('js/timelog.js') }}"></script>
 @endpush
 

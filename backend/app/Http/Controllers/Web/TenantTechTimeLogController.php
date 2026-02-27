@@ -160,6 +160,20 @@ class TenantTechTimeLogController extends Controller
             }
         }
 
+        /* ─── Weekly Chart Data ───────────────────────────── */
+        $weeklyChartData = [
+            'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            'data' => array_fill(0, 7, 0),
+        ];
+
+        foreach ($weekLogs as $log) {
+            if ($log->start_time) {
+                $dayOfWeek = (int) $log->start_time->dayOfWeekIso - 1; // 0=Mon, 6=Sun
+                $minutes = is_numeric($log->total_minutes) ? (int) $log->total_minutes : 0;
+                $weeklyChartData['data'][$dayOfWeek] += round($minutes / 60, 1);
+            }
+        }
+
         /* ─── Eligible Jobs Dropdown ──────────────────────── */
         $jobQuery = RepairBuddyJob::query()
             ->with(['jobDevices'])
@@ -324,6 +338,7 @@ class TenantTechTimeLogController extends Controller
             'productivity_stats'  => $productivityStats,
             'activity_distribution' => $activityDist,
             'activity_types'      => $activityTypes,
+            'weekly_chart_data'   => $weeklyChartData,
 
             // Job/device selection
             'eligible_jobs_with_devices_dropdown_html' => $jobDropdownHtml,
