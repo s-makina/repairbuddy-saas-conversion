@@ -1613,7 +1613,7 @@
                                                 <div class="jf-item-title">{{ $part->name }}</div>
                                                 <div class="jf-item-meta">{{ $part->manufacturing_code ?: $part->sku ?: '--' }}</div>
                                             </div>
-                                            <span class="fw-bold text-primary small">{{ Number::currency(($part->price_amount_cents ?? 0) / 100, $part->price_currency ?: $currency_code) }}</span>
+                                            <span class="fw-bold text-primary small">{{ Number::currency(($part->price_amount_cents ?? 0) / 100, $currency_code) }}</span>
                                         </div>
                                     @empty
                                         <div class="p-3 text-center text-muted small">
