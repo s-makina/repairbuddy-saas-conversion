@@ -487,8 +487,14 @@ class JobForm extends Component
 
         $device = \App\Models\RepairBuddyDevice::with('brand')->find($this->selected_device_id);
 
+        // Preserve existing customer_device_id when editing
+        $existingCustomerId = null;
+        if ($this->editingDeviceIndex !== null && isset($this->deviceRows[$this->editingDeviceIndex])) {
+            $existingCustomerId = $this->deviceRows[$this->editingDeviceIndex]['customer_device_id'] ?? null;
+        }
+
         $rowData = [
-            'customer_device_id' => null,
+            'customer_device_id' => $existingCustomerId,
             'brand_id' => $device?->device_brand_id,
             'device_id' => $device?->id,
             'brand_name' => $device?->brand?->name ?? '',

@@ -1077,6 +1077,7 @@
     @livewire('tenant.operations.quick-part-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-service-modal', ['tenant' => $tenant])
 
+    <form id="job-form" wire:submit.prevent="save" enctype="multipart/form-data">
     <div x-data="{
         sections: { details: true, devices: true, items: true, notes: false }
     }">
@@ -1156,19 +1157,22 @@
                         </a>
                     @endif
                 @endif
-                <button type="submit" form="job-form" class="jf-btn jf-btn-save">
-                    <i class="bi bi-check-lg"></i>
-                    @if ($isEstimate)
-                        {{ $isEditing ? __('Update Estimate') : __('Create Estimate') }}
-                    @else
-                        {{ $isEditing ? __('Update Job') : __('Create Job') }}
-                    @endif
+                <button type="submit" class="jf-btn jf-btn-save" wire:loading.attr="disabled" wire:target="save">
+                    <i class="bi bi-check-lg" wire:loading.remove wire:target="save"></i>
+                    <span wire:loading wire:target="save" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    <span wire:loading.remove wire:target="save">
+                        @if ($isEstimate)
+                            {{ $isEditing ? __('Update Estimate') : __('Create Estimate') }}
+                        @else
+                            {{ $isEditing ? __('Update Job') : __('Create Job') }}
+                        @endif
+                    </span>
+                    <span wire:loading wire:target="save">{{ __('Saving...') }}</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <form id="job-form" wire:submit.prevent="save" enctype="multipart/form-data">
     <div class="jf-layout">
 
         {{-- ════════════════════════════════════
@@ -2120,6 +2124,7 @@
                                 <option value="approved">{{ __('Approved') }}</option>
                                 <option value="rejected">{{ __('Rejected') }}</option>
                                 <option value="expired">{{ __('Expired') }}</option>
+                                <option value="pending">{{ __('Pending') }}</option>
                             </select>
                         </div>
                     </div>

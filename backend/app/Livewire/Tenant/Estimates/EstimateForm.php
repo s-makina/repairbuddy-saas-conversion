@@ -26,6 +26,7 @@ class EstimateForm extends JobForm
         'approved',
         'rejected',
         'expired',
+        'pending',
     ];
 
     public function mount(
@@ -152,7 +153,7 @@ class EstimateForm extends JobForm
             'delivery_date' => ['nullable', 'date'],
             'case_detail' => ['nullable', 'string', 'max:5000'],
             'wc_order_note' => ['nullable', 'string', 'max:5000'],
-            'estimate_status' => ['nullable', 'string', 'in:draft,sent,approved,rejected,expired'],
+            'estimate_status' => ['nullable', 'string', 'in:draft,sent,approved,rejected,expired,pending'],
             'technician_ids' => ['array'],
             'technician_ids.*' => ['integer'],
             'deviceRows' => ['array'],
@@ -329,9 +330,9 @@ class EstimateForm extends JobForm
         });
 
         return redirect()->route('tenant.estimates.show', [
-            'business' => $this->tenant->slug,
+            'business'   => $this->tenant->slug,
             'estimateId' => $estimate->id,
-        ]);
+        ])->with('success', $this->estimateId ? __('Estimate updated successfully.') : __('Estimate created successfully.'));
     }
 
     protected function generateEstimateCaseNumber($tenant, $branch): string

@@ -610,6 +610,8 @@ class TenantEstimateController extends Controller
             'devices.*.serial'               => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.pin'                  => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.notes'                => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'devices.*.additional_fields'    => ['sometimes', 'array'],
+            'devices.*.additional_fields.*'  => ['sometimes', 'string', 'max:5000'],
 
             /* line items – nested array: items[0][type], items[0][name], items[0][unit_price_dollars], etc. */
             'items'                       => ['sometimes', 'array'],
@@ -659,7 +661,7 @@ class TenantEstimateController extends Controller
                     'serial_snapshot'    => ($dev['serial'] ?? null) ?: ($cd?->serial),
                     'pin_snapshot'       => $dev['pin'] ?? null,
                     'notes_snapshot'     => $dev['notes'] ?? null,
-                    'extra_fields_snapshot_json' => [],
+                    'extra_fields_snapshot_json' => $dev['additional_fields'] ?? [],
                 ]);
             }
 
@@ -760,6 +762,8 @@ class TenantEstimateController extends Controller
             'devices.*.serial'               => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.pin'                  => ['sometimes', 'nullable', 'string', 'max:255'],
             'devices.*.notes'                => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'devices.*.additional_fields'    => ['sometimes', 'array'],
+            'devices.*.additional_fields.*'  => ['sometimes', 'string', 'max:5000'],
 
             /* line items – nested array: items[0][type], items[0][unit_price_dollars], etc. */
             'items'                       => ['sometimes', 'array'],
@@ -814,7 +818,7 @@ class TenantEstimateController extends Controller
                         'serial_snapshot'    => ($dev['serial'] ?? null) ?: ($cd?->serial),
                         'pin_snapshot'       => $dev['pin'] ?? null,
                         'notes_snapshot'     => $dev['notes'] ?? null,
-                        'extra_fields_snapshot_json' => [],
+                        'extra_fields_snapshot_json' => $dev['additional_fields'] ?? [],
                     ]);
                 }
             }
