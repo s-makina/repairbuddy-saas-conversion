@@ -38,7 +38,7 @@
     return $baseUrl.'?screen='.$screen;
   };
 
-  $settingsUrl = $tenantSlug ? route('tenant.settings', ['business' => $tenantSlug]) : '#';
+  $settingsUrl = $tenantSlug ? route('tenant.settings.v2', ['business' => $tenantSlug]) : '#';
   $settingsSectionUrl = function (string $section) use ($tenantSlug): string {
     if (! $tenantSlug) return '#';
     return route('tenant.settings.section', ['business' => $tenantSlug, 'section' => $section]);

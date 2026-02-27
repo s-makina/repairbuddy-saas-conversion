@@ -80,7 +80,7 @@
         Customers
       </a>
 
-      <a class="nav-link {{ $activeNav === 'settings' ? 'active' : '' }}" href="{{ $nextTenantBase . '/settings' }}">
+      <a class="nav-link {{ $activeNav === 'settings' ? 'active' : '' }}" href="{{ $tenantSlug ? route('tenant.settings.v2', ['business' => $tenantSlug]) : '#' }}">
         <i class="bi bi-gear me-2" aria-hidden="true"></i>
         Settings
       </a>

@@ -125,8 +125,8 @@ class DashboardSection extends Component
                 'count' => (int) ($counts[$code] ?? 0),
                 'color' => (string) ($s->color ?? '#063e70'),
                 'link'  => $code
-                    ? route('tenant.jobs.create', ['business' => $slug]) . '?job_status=' . urlencode($code)
-                    : route('tenant.dashboard', ['business' => $slug]),
+                    ? route('tenant.dashboard', ['business' => $slug]) . '?screen=jobs&job_status=' . urlencode($code)
+                    : route('tenant.dashboard', ['business' => $slug]) . '?screen=jobs',
             ];
         })->values()->all();
     }
