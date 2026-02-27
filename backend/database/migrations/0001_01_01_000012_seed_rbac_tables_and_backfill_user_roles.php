@@ -14,9 +14,10 @@ return new class extends Migration
     {
         DB::transaction(function () {
             foreach (Permissions::all() as $permName) {
-                Permission::query()->firstOrCreate([
-                    'name' => $permName,
-                ]);
+                DB::table('permissions')->updateOrInsert(
+                    ['name' => $permName],
+                    ['created_at' => now(), 'updated_at' => now()]
+                );
             }
 
             $ownerPermissions = [
@@ -67,33 +68,57 @@ return new class extends Migration
                 'security.manage',
             ];
 
-            $permissionIdsByName = Permission::query()->pluck('id', 'name')->all();
+            $permissionIdsByName = DB::table('permissions')->pluck('id', 'name')->all();
 
-            foreach (Tenant::query()->get() as $tenant) {
-                $ownerRole = Role::query()->firstOrCreate([
-                    'tenant_id' => $tenant->id,
-                    'name' => 'Owner',
-                ]);
+            foreach (DB::table('tenants')->get() as $tenant) {
+                // Get or create roles
+                $ownerRoleId = DB::table('roles')->where('tenant_id', $tenant->id)->where('name', 'Owner')->value('id');
+                if (!$ownerRoleId) {
+                    $ownerRoleId = DB::table('roles')->insertGetId([
+                        'tenant_id' => $tenant->id,
+                        'name' => 'Owner',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
-                $memberRole = Role::query()->firstOrCreate([
-                    'tenant_id' => $tenant->id,
-                    'name' => 'Member',
-                ]);
+                $memberRoleId = DB::table('roles')->where('tenant_id', $tenant->id)->where('name', 'Member')->value('id');
+                if (!$memberRoleId) {
+                    $memberRoleId = DB::table('roles')->insertGetId([
+                        'tenant_id' => $tenant->id,
+                        'name' => 'Member',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
-                Role::query()->firstOrCreate([
-                    'tenant_id' => $tenant->id,
-                    'name' => 'Technician',
-                ]);
+                // Technician role
+                if (!DB::table('roles')->where('tenant_id', $tenant->id)->where('name', 'Technician')->exists()) {
+                    DB::table('roles')->insert([
+                        'tenant_id' => $tenant->id,
+                        'name' => 'Technician',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
-                $ownerRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
-                    return $permissionIdsByName[$name] ?? null;
-                }, $ownerPermissions))));
+                // Sync permissions manually for legacy table
+                // Assuming pivot table is 'role_permissions'
+                $ownerPermIds = array_values(array_filter(array_map(fn($name) => $permissionIdsByName[$name] ?? null, $ownerPermissions)));
+                foreach ($ownerPermIds as $pId) {
+                    DB::table('role_permissions')->updateOrInsert(
+                        ['role_id' => $ownerRoleId, 'permission_id' => $pId]
+                    );
+                }
 
-                $memberRole->permissions()->sync(array_values(array_filter(array_map(function (string $name) use ($permissionIdsByName) {
-                    return $permissionIdsByName[$name] ?? null;
-                }, $memberPermissions))));
+                $memberPermIds = array_values(array_filter(array_map(fn($name) => $permissionIdsByName[$name] ?? null, $memberPermissions)));
+                foreach ($memberPermIds as $pId) {
+                    DB::table('role_permissions')->updateOrInsert(
+                        ['role_id' => $memberRoleId, 'permission_id' => $pId]
+                    );
+                }
 
-                $users = User::query()
+                $users = DB::table('users')
                     ->where('tenant_id', $tenant->id)
                     ->where('is_admin', false)
                     ->whereNull('role_id')
@@ -101,9 +126,9 @@ return new class extends Migration
 
                 foreach ($users as $user) {
                     $legacy = (string) ($user->role ?? '');
-                    $user->forceFill([
-                        'role_id' => $legacy === 'owner' ? $ownerRole->id : $memberRole->id,
-                    ])->save();
+                    DB::table('users')->where('id', $user->id)->update([
+                        'role_id' => $legacy === 'owner' ? $ownerRoleId : $memberRoleId,
+                    ]);
                 }
             }
         });

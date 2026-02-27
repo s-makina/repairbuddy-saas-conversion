@@ -3,7 +3,6 @@
 @section('content')
 @php
     $userRole = is_string($userRole ?? null) ? (string) $userRole : (is_object($user ?? null) ? (string) ($user->role ?? 'guest') : 'guest');
-    $licenseState = (bool) ($licenseState ?? true);
     $stats = is_array($stats ?? null) ? $stats : [];
 
     $technician_id = $technician_id ?? (is_object($user ?? null) ? ($user->id ?? null) : null);
@@ -47,15 +46,7 @@
     ];
 
     $default_color = 'secondary';
-
-    $canAccess = in_array($userRole, ['technician', 'administrator', 'store_manager'], true);
 @endphp
-
-@if (! $canAccess)
-    {{ __("You do not have sufficient permissions to access this page.") }}
-@elseif (! $licenseState)
-    {{ __('This is a pro feature please activate your license.') }}
-@else
 
 <!-- Time Logs Content -->
 <main class="dashboard-content container-fluid py-4">
@@ -437,7 +428,6 @@
 </div>
 </main>
 
-@endif
 @endsection
 
 @push('page-scripts')

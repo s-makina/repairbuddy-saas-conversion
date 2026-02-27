@@ -106,7 +106,7 @@ class TenantTechTimeLogController extends Controller
         $completedJobs = RepairBuddyJob::query()
             ->where('tenant_id', $tenantId)
             ->where('branch_id', $branchId)
-            ->whereHas('technicians', fn ($q) => $q->where('user_id', $techId))
+            ->whereHas('technicians', fn ($q) => $q->where('users.id', $techId))
             ->where('status_slug', 'completed')
             ->whereBetween('updated_at', [$monthStart, $monthEnd])
             ->count();
@@ -183,6 +183,8 @@ class TenantTechTimeLogController extends Controller
         $jobDropdownHtml = '<select name="job_device" id="timeLogJobDeviceSelect" class="form-select" required>'
             . '<option value="">' . __('Select a Job / Device') . '</option>';
 
+        $selectedValue = is_string($request->query('job')) ? trim((string) $request->query('job')) : '';
+
         foreach ($eligibleJobs as $ej) {
             $case = $ej->case_number ?: 'JOB-' . $ej->id;
             $title = $ej->title ? ' — ' . \Illuminate\Support\Str::limit($ej->title, 40) : '';
@@ -192,12 +194,14 @@ class TenantTechTimeLogController extends Controller
                 foreach ($ej->jobDevices as $idx => $dev) {
                     $devLabel = $dev->label_snapshot ?: 'Device ' . ($idx + 1);
                     $val = $ej->id . '|' . ($dev->customer_device_id ?? '') . '|' . ($dev->serial_snapshot ?? '') . '|' . $idx;
-                    $jobDropdownHtml .= '<option value="' . e($val) . '">' . e($devLabel) . '</option>';
+                    $selected = ($val === $selectedValue) ? ' selected' : '';
+                    $jobDropdownHtml .= '<option value="' . e($val) . '"' . $selected . '>' . e($devLabel) . '</option>';
                 }
                 $jobDropdownHtml .= '</optgroup>';
             } else {
                 $val = $ej->id . '|||0';
-                $jobDropdownHtml .= '<option value="' . e($val) . '">' . e($case . $title) . '</option>';
+                $selected = ($val === $selectedValue) ? ' selected' : '';
+                $jobDropdownHtml .= '<option value="' . e($val) . '"' . $selected . '>' . e($case . $title) . '</option>';
             }
         }
 
@@ -294,6 +298,13 @@ class TenantTechTimeLogController extends Controller
                     if ($selectedJob->title) {
                         $displayName .= ' — ' . $selectedJob->title;
                     }
+
+                    if ($selectedJob->jobDevices && $selectedJob->jobDevices->count() > 0) {
+                        $dev = $selectedJob->jobDevices->get($deviceIndex);
+                        if ($dev) {
+                            $deviceLabel = $dev->label_snapshot ?: 'Device ' . ($deviceIndex + 1);
+                        }
+                    }
                 }
             }
         }
@@ -306,7 +317,7 @@ class TenantTechTimeLogController extends Controller
 
             // Role & license
             'userRole'      => $role,
-            'licenseState'  => ! $disabled,
+            'licenseState'  => true,
 
             // Stats
             'stats'               => $stats,

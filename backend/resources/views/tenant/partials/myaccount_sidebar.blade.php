@@ -104,8 +104,15 @@
       'id' => 'timelog',
       'title' => 'Time Log',
       'icon' => 'bi bi-stopwatch',
-      'url' => $screenUrl('timelog'),
+      'url' => $tenantSlug ? route('tenant.time_log.dashboard', ['business' => $tenantSlug]) : '#',
       'visible' => $isAuthed && ($user?->can('time_logs.view') ?? false),
+    ],
+    [
+      'id' => 'timelogs',
+      'title' => 'Time Logs',
+      'icon' => 'bi bi-clock-history',
+      'url' => $tenantSlug ? route('tenant.time_logs.index', ['business' => $tenantSlug]) : '#',
+      'visible' => $isAuthed && in_array((string) ($user?->role ?? ''), ['administrator', 'store_manager']),
     ],
     [
       'id' => 'estimates',

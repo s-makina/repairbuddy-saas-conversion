@@ -835,7 +835,7 @@ class TenantJobController extends Controller
             'entity_type'  => 'job',
             'entity_id'    => $job->id,
             'event_type'   => 'payment_added',
-            'actor_id'     => $user->id,
+            'actor_user_id' => $user->id,
             'payload_json' => [
                 'title'   => 'Payment recorded',
                 'message' => "Payment of {$currency} " . number_format($validated['amount'], 2) . " via {$validated['method']}.",

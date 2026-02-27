@@ -792,9 +792,11 @@ Route::prefix('t/{business}')
         /*  TIME LOGS – admin listing                                    */
         /* ------------------------------------------------------------ */
         Route::get('/time-logs', [\App\Http\Controllers\Web\TenantTimeLogController::class, 'index'])
+            ->middleware('permission:time_logs.view')
             ->name('tenant.time_logs.index');
 
         Route::get('/time-log', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'dashboard'])
+            ->middleware('permission:time_logs.view')
             ->name('tenant.time_log.dashboard');
 
         /* ------------------------------------------------------------ */

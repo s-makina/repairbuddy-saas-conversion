@@ -432,7 +432,7 @@ class SignatureController extends Controller
             'entity_type'  => 'job',
             'entity_id'    => $signatureRequest->job_id,
             'event_type'   => 'signature_admin_notified',
-            'actor_id'     => null,
+            'actor_user_id' => null,
             'payload_json' => [
                 'title'   => 'Signature submission notification',
                 'message' => "Verified {$signatureRequest->signature_type} signature received for job #{$signatureRequest->job->case_number}.",

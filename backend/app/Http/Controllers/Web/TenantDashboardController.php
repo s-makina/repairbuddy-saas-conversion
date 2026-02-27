@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\RepairBuddyCustomerDevice;
+use App\Models\RepairBuddyEstimate;
+use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
+use App\Models\RepairBuddyPayment;
 use App\Models\Role;
 use App\Models\Status;
 use App\Models\Tenant;
@@ -307,59 +310,10 @@ class TenantDashboardController extends Controller
         }
 
         if ($screen === 'timelog') {
-            $mockEligibleJobsWithDevicesDropdown = <<<'HTML'
-<select class="form-select" id="wcrb_timelog_jobs_devices">
-    <option value="">Select a job/device</option>
-</select>
-HTML;
-
-            $mockNonceFieldHtml = <<<'HTML'
-<input type="hidden" id="wcrb_timelog_nonce_field" name="wcrb_timelog_nonce_field" value="">
-<input type="hidden" name="_wp_http_referer" value="">
-HTML;
-
-            $mockActivityTypesDropdownHtml = <<<'HTML'
-<select class="form-select" id="activityType">
-    <option value="">Select activity</option>
-</select>
-HTML;
-
-            $mockActivityTypesDropdownManualHtml = <<<'HTML'
-<select class="form-select" id="activityType_manual" name="activityType_manual">
-    <option value="">Select activity</option>
-</select>
-HTML;
-
-            return view('tenant.timelog', [
-                'tenant' => $tenant,
-                'user' => $user,
-                'activeNav' => 'timelog',
-                'pageTitle' => 'Time Log',
-                'userRole' => is_string($user?->role) ? (string) $user->role : 'guest',
-                'licenseState' => true,
-                'technician_id' => $user?->id,
-                'device_label' => 'device',
-                'stats' => [
-                    'today_hours' => 0,
-                    'week_hours' => 0,
-                    'billable_rate' => 0,
-                    'month_earnings' => 0,
-                    'month_earnings_formatted' => '$0.00',
-                    'completed_jobs' => 0,
-                    'avg_time_per_job' => 0,
-                ],
-                'eligible_jobs_with_devices_dropdown_html' => $mockEligibleJobsWithDevicesDropdown,
-                'timelog_nonce_field_html' => $mockNonceFieldHtml,
-                'timelog_activity_types_dropdown_html' => $mockActivityTypesDropdownHtml,
-                'timelog_activity_types_dropdown_manual_html' => $mockActivityTypesDropdownManualHtml,
-                'productivity_stats' => [
-                    'avg_daily_hours' => 0,
-                    'total_jobs_completed' => 0,
-                    'efficiency_score' => 0,
-                ],
-                'activity_distribution' => [],
-                'recent_time_logs_html' => '',
-            ]);
+            if ($tenant?->slug) {
+                return redirect()->route('tenant.time_log.dashboard', ['business' => $tenant->slug]);
+            }
+            abort(400, 'Tenant is missing.');
         }
 
         if ($screen === 'customer-devices') {
@@ -943,10 +897,154 @@ HTML;
             ]);
         }
 
+        /* ── Real Stats Calculation ── */
+        $activeJobsCount = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->whereNotIn('status_slug', ['completed', 'delivered', 'cancelled'])
+            ->count();
+
+        $completedJobsCount = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->whereIn('status_slug', ['completed', 'delivered'])
+            ->count();
+
+        $pendingEstimatesCount = RepairBuddyEstimate::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->whereIn('status', ['pending', 'sent'])
+            ->whereNull('converted_job_id')
+            ->count();
+
+        $totalRevenueCents = RepairBuddyPayment::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->where('payment_status', 'paid')
+            ->sum('amount_cents');
+
+        $currency = is_string($tenant?->currency) && $tenant->currency !== '' ? (string) $tenant->currency : 'USD';
+        $revenueFormatted = number_format($totalRevenueCents / 100, 2) . ' ' . strtoupper($currency);
+
+        $overviewStats = [
+            'active_jobs_count' => $activeJobsCount,
+            'completed_jobs_count' => $completedJobsCount,
+            'pending_estimates_count' => $pendingEstimatesCount,
+            'revenue_formatted' => $revenueFormatted,
+        ];
+
+        /* ── Latest Jobs ── */
+        $latestJobsRaw = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $latestJobs = [];
+        foreach ($latestJobsRaw as $j) {
+            $statusClass = 'bg-secondary';
+            if (in_array($j->status_slug, ['completed', 'delivered'])) $statusClass = 'bg-success';
+            elseif (in_array($j->status_slug, ['new', 'pending'])) $statusClass = 'bg-warning text-dark';
+            elseif ($j->status_slug === 'in_process' || $j->status_slug === 'inprocess') $statusClass = 'bg-primary';
+
+            $latestJobs[] = [
+                'title' => (string) $j->title,
+                'display_title' => (string) $j->title,
+                'edit_url' => route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $j->id]),
+                'formatted_total' => '',
+                'job_number' => (string) $j->job_number,
+                'date' => $j->created_at->format('M d, Y'),
+                'status_display' => ucwords(str_replace(['_', '-'], ' ', (string) $j->status_slug)),
+                'status_badge_class' => $statusClass,
+            ];
+        }
+
+        /* ── Latest Estimates ── */
+        $latestEstimatesRaw = RepairBuddyEstimate::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $latestEstimates = [];
+        foreach ($latestEstimatesRaw as $e) {
+            $statusClass = 'bg-info';
+            if ($e->status === 'approved') $statusClass = 'bg-success';
+            elseif ($e->status === 'rejected') $statusClass = 'bg-danger';
+
+            $latestEstimates[] = [
+                'title' => (string) $e->title,
+                'display_title' => (string) $e->title,
+                'edit_url' => route('tenant.estimates.show', ['business' => $tenant->slug, 'estimateId' => $e->id]),
+                'formatted_total' => '',
+                'date' => $e->created_at->format('M d, Y'),
+                'status_display' => ucfirst((string) $e->status),
+                'status_badge_class' => $statusClass,
+            ];
+        }
+
+        /* ── Recent Activity ── */
+        $activitiesRaw = RepairBuddyEvent::query()
+            ->with(['actor'])
+            ->where('tenant_id', (int) $tenantId)
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+
+        $activities = [];
+        foreach ($activitiesRaw as $evt) {
+            $payload = (array) $evt->payload_json;
+            $activities[] = [
+                'activity_color' => 'info',
+                'activity_icon' => 'bi-info-circle',
+                'name' => (string) ($payload['title'] ?? 'Activity'),
+                'change_detail_html' => (string) ($payload['message'] ?? ''),
+                'device_display' => '',
+                'formatted_job_number' => $evt->entity_type === 'job' ? (string) $evt->entity_id : '',
+                'time_ago' => $evt->created_at->diffForHumans(),
+                'user_name' => $evt->actor?->name ?? 'System',
+                'badge_text' => (string) $evt->event_type,
+                'edit_url' => '#',
+            ];
+        }
+
+        /* ── Priority Jobs ── */
+        $priorityJobsRaw = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
+            ->whereIn('priority', ['high', 'urgent'])
+            ->whereNotIn('status_slug', ['completed', 'delivered', 'cancelled'])
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $priorityJobs = [];
+        foreach ($priorityJobsRaw as $pj) {
+            $priorityJobs[] = [
+                'device_name' => (string) $pj->title,
+                'device_display' => (string) $pj->title,
+                'edit_url' => route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $pj->id]),
+                'job_number' => (string) $pj->job_number,
+                'priority' => (string) $pj->priority,
+                'priority_label' => ucfirst((string) $pj->priority),
+                'priority_badge_class' => $pj->priority === 'urgent' ? 'bg-danger' : 'bg-warning',
+                'status_label' => ucwords(str_replace(['_', '-'], ' ', (string) $pj->status_slug)),
+                'status_badge_class' => 'bg-secondary',
+            ];
+        }
+
         return view('tenant.dashboard', [
             'tenant' => $tenant,
             'user' => $user,
             'activeNav' => 'dashboard',
+            'role' => (string) ($user->role ?? 'technician'),
+            'overviewStats' => $overviewStats,
+            'latestJobs' => $latestJobs,
+            'latestEstimates' => $latestEstimates,
+            'activities' => $activities,
+            'priorityJobs' => $priorityJobs,
         ]);
     }
 

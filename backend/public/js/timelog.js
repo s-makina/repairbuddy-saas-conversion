@@ -251,7 +251,11 @@
         if (btnStop) btnStop.addEventListener('click', stopTimer);
 
         if (jobDeviceSelect) {
-            jobDeviceSelect.addEventListener('change', handleJobDeviceChange);
+            if (typeof jQuery !== 'undefined') {
+                jQuery(jobDeviceSelect).on('change', handleJobDeviceChange);
+            } else {
+                jobDeviceSelect.addEventListener('change', handleJobDeviceChange);
+            }
         }
 
         const quickForm = $('#quickTimeForm');
