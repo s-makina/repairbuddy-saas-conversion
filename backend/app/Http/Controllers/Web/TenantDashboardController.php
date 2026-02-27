@@ -989,24 +989,51 @@ HTML;
         $activitiesRaw = RepairBuddyEvent::query()
             ->with(['actor'])
             ->where('tenant_id', (int) $tenantId)
+            ->where('branch_id', (int) $branchId)
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
         $activities = [];
         foreach ($activitiesRaw as $evt) {
-            $payload = (array) $evt->payload_json;
+            $payload = is_array($evt->payload_json) ? $evt->payload_json : [];
+
+            // Generate edit URL based on entity type
+            $editUrl = '#';
+            if ($evt->entity_type === 'job' && $evt->entity_id) {
+                $editUrl = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $evt->entity_id]);
+            } elseif ($evt->entity_type === 'estimate' && $evt->entity_id) {
+                $editUrl = route('tenant.estimates.show', ['business' => $tenant->slug, 'estimateId' => $evt->entity_id]);
+            }
+
+            // Determine icon and color based on event type
+            $activityColor = 'info';
+            $activityIcon = 'bi-info-circle';
+            if (str_contains($evt->event_type, 'created') || str_contains($evt->event_type, 'created')) {
+                $activityColor = 'success';
+                $activityIcon = 'bi-plus-circle';
+            } elseif (str_contains($evt->event_type, 'updated') || str_contains($evt->event_type, 'status')) {
+                $activityColor = 'warning';
+                $activityIcon = 'bi-pencil';
+            } elseif (str_contains($evt->event_type, 'deleted') || str_contains($evt->event_type, 'cancelled')) {
+                $activityColor = 'danger';
+                $activityIcon = 'bi-trash';
+            } elseif (str_contains($evt->event_type, 'completed') || str_contains($evt->event_type, 'delivered')) {
+                $activityColor = 'success';
+                $activityIcon = 'bi-check-circle';
+            }
+
             $activities[] = [
-                'activity_color' => 'info',
-                'activity_icon' => 'bi-info-circle',
-                'name' => (string) ($payload['title'] ?? 'Activity'),
+                'activity_color' => $activityColor,
+                'activity_icon' => $activityIcon,
+                'name' => (string) ($payload['title'] ?? $evt->entity_type . ' ' . $evt->event_type),
                 'change_detail_html' => (string) ($payload['message'] ?? ''),
-                'device_display' => '',
-                'formatted_job_number' => $evt->entity_type === 'job' ? (string) $evt->entity_id : '',
+                'device_display' => (string) ($payload['device'] ?? ''),
+                'formatted_job_number' => $evt->entity_type === 'job' ? (string) $evt->entity_id : ($evt->entity_id ?? ''),
                 'time_ago' => $evt->created_at->diffForHumans(),
                 'user_name' => $evt->actor?->name ?? 'System',
-                'badge_text' => (string) $evt->event_type,
-                'edit_url' => '#',
+                'badge_text' => ucwords(str_replace(['_', '-'], ' ', (string) $evt->event_type)),
+                'edit_url' => $editUrl,
             ];
         }
 

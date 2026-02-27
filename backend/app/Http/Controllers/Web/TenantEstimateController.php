@@ -691,6 +691,8 @@ class TenantEstimateController extends Controller
 
             /* audit event */
             RepairBuddyEvent::query()->create([
+                'tenant_id'     => (int) $tenant->id,
+                'branch_id'     => (int) $branch->id,
                 'actor_user_id' => $user->id,
                 'entity_type'   => 'estimate',
                 'entity_id'     => $estimate->id,
@@ -848,6 +850,8 @@ class TenantEstimateController extends Controller
 
             /* audit event */
             RepairBuddyEvent::query()->create([
+                'tenant_id'     => (int) $tenant->id,
+                'branch_id'     => (int) $branch->id,
                 'actor_user_id' => $user->id,
                 'entity_type'   => 'estimate',
                 'entity_id'     => $estimate->id,
@@ -904,7 +908,11 @@ class TenantEstimateController extends Controller
             'rejected_at' => now(),
         ])->save();
 
+        $branch = BranchContext::branch();
+
         RepairBuddyEvent::query()->create([
+            'tenant_id'     => (int) $tenant->id,
+            'branch_id'     => $branch ? (int) $branch->id : (int) $estimate->branch_id,
             'actor_user_id' => $user?->id,
             'entity_type'   => 'estimate',
             'entity_id'     => $estimate->id,
@@ -1012,6 +1020,8 @@ class TenantEstimateController extends Controller
         $estimate->forceFill(['sent_at' => now()])->save();
 
         RepairBuddyEvent::query()->create([
+            'tenant_id'     => (int) $tenant->id,
+            'branch_id'     => $branch ? (int) $branch->id : (int) $estimate->branch_id,
             'actor_user_id' => $user?->id,
             'entity_type'   => 'estimate',
             'entity_id'     => $estimate->id,
@@ -1036,11 +1046,13 @@ class TenantEstimateController extends Controller
         $tenant = TenantContext::tenant();
         $user   = $request->user();
 
-        DB::transaction(function () use ($estimate, $user) {
+        DB::transaction(function () use ($estimate, $tenant, $user) {
             RepairBuddyEstimateDevice::query()->where('estimate_id', $estimate->id)->delete();
             RepairBuddyEstimateItem::query()->where('estimate_id', $estimate->id)->delete();
 
             RepairBuddyEvent::query()->create([
+                'tenant_id'     => (int) $tenant->id,
+                'branch_id'     => (int) $estimate->branch_id,
                 'actor_user_id' => $user?->id,
                 'entity_type'   => 'estimate',
                 'entity_id'     => $estimate->id,
