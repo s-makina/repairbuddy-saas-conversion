@@ -55,7 +55,7 @@
     @if($step === 1)
       <div class="rb-booking-step" wire:key="step-1">
         <div class="rb-step-header">
-          <h2 class="rb-step-title">Select Device Type</h2>
+          <h2 class="rb-step-title">Select {{ $labelType }}</h2>
           <p class="rb-step-desc">What type of device needs repair?</p>
         </div>
 
@@ -87,12 +87,12 @@
     @if($step === 2)
       <div class="rb-booking-step" wire:key="step-2">
         <div class="rb-step-header">
-          <h2 class="rb-step-title">Select Brand</h2>
+          <h2 class="rb-step-title">Select {{ $labelBrand }}</h2>
           <p class="rb-step-desc">Which manufacturer or brand?</p>
         </div>
 
         <button class="btn rb-btn-back" wire:click="goBack(1)">
-          <i class="bi bi-arrow-left me-1"></i> Back to Device Types
+          <i class="bi bi-arrow-left me-1"></i> Back to {{ $labelType }}s
         </button>
 
         <div class="rb-selection-grid">
@@ -135,7 +135,7 @@
         @if($isOtherDevice)
           {{-- Other Device: custom label input --}}
           <div class="rb-step-header">
-            <h2 class="rb-step-title">Describe Your Device</h2>
+            <h2 class="rb-step-title">Describe Your {{ $labelDevice }}</h2>
             <p class="rb-step-desc">Enter the name or model of your device.</p>
           </div>
 
@@ -145,7 +145,7 @@
 
           <div class="rb-other-device-form">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Device Name <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{{ $labelDevice }} Name <span class="text-danger">*</span></label>
               <input
                 type="text"
                 class="form-control"
@@ -161,12 +161,12 @@
         @else
           {{-- Normal device list with search --}}
           <div class="rb-step-header">
-            <h2 class="rb-step-title">Select Devices</h2>
+            <h2 class="rb-step-title">Select {{ $labelDevice }}s</h2>
             <p class="rb-step-desc">Search and select the devices that need repair. You can add multiple devices.</p>
           </div>
 
           <button class="btn rb-btn-back" wire:click="goBack(2)">
-            <i class="bi bi-arrow-left me-1"></i> Back to Brands
+            <i class="bi bi-arrow-left me-1"></i> Back to {{ $labelBrand }}s
           </button>
 
           {{-- Search input --}}
@@ -219,7 +219,7 @@
         @if(count($deviceEntries) > 0)
           <div class="rb-selected-devices">
             <h6 class="rb-selected-devices-title">
-              <i class="bi bi-check2-circle me-2"></i>Selected Devices
+              <i class="bi bi-check2-circle me-2"></i>Selected {{ $labelDevice }}s
               <span class="rb-selected-devices-count">{{ count($deviceEntries) }}</span>
             </h6>
 
@@ -246,12 +246,12 @@
                     {{-- Serial / IMEI --}}
                     @if(! $turnOffIdImeiBooking)
                       <div class="rb-selected-device-field">
-                        <label class="form-label small fw-semibold">Serial / IMEI</label>
+                        <label class="form-label small fw-semibold">{{ $labelImei }}</label>
                         <input
                           type="text"
                           class="form-control form-control-sm"
                           wire:model.defer="deviceEntries.{{ $idx }}.serial"
-                          placeholder="Enter device ID or IMEI"
+                          placeholder="Enter {{ strtolower($labelImei) }}"
                         >
                       </div>
                     @endif
@@ -259,12 +259,12 @@
                     {{-- Pin Code --}}
                     @if($enablePinCodeField)
                       <div class="rb-selected-device-field">
-                        <label class="form-label small fw-semibold">Pin Code / Password</label>
+                        <label class="form-label small fw-semibold">{{ $labelPin }}</label>
                         <input
                           type="text"
                           class="form-control form-control-sm"
                           wire:model.defer="deviceEntries.{{ $idx }}.pin"
-                          placeholder="Enter pin code"
+                          placeholder="Enter {{ strtolower($labelPin) }}"
                         >
                       </div>
                     @endif
@@ -284,7 +284,7 @@
 
                     {{-- Device Notes --}}
                     <div class="rb-selected-device-field rb-selected-device-field-full">
-                      <label class="form-label small fw-semibold">Device Notes</label>
+                      <label class="form-label small fw-semibold">{{ $labelNote }}</label>
                       <input
                         type="text"
                         class="form-control form-control-sm"
@@ -319,7 +319,7 @@
         </div>
 
         <button class="btn rb-btn-back" wire:click="goBack(3)">
-          <i class="bi bi-arrow-left me-1"></i> Back to Devices
+          <i class="bi bi-arrow-left me-1"></i> Back to {{ $labelDevice }}s
         </button>
 
         @foreach($deviceEntries as $idx => $entry)

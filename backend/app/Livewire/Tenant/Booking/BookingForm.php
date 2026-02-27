@@ -36,6 +36,24 @@ class BookingForm extends Component
     public string $defaultBrandId = '';
     public string $defaultDeviceId = '';
 
+    /* ───────── Device & Brand Labels (from settings) ───────── */
+    public string $labelDevice = 'Device';
+    public string $labelBrand = 'Brand';
+    public string $labelType = 'Type';
+    public string $labelImei = 'ID / IMEI';
+    public string $labelPin = 'Pin Code / Password';
+    public string $labelNote = 'Note';
+
+    /* ───────── Pickup & Delivery (from settings) ───────── */
+    public bool $pickupDeliveryEnabled = false;
+    public string $pickupCharge = '0';
+    public string $deliveryCharge = '0';
+
+    /* ───────── Rental (from settings) ───────── */
+    public bool $rentalEnabled = false;
+    public string $rentalPerDay = '0';
+    public string $rentalPerWeek = '0';
+
     /* ───────── Dynamic field definitions ───────── */
     public array $bookingFieldDefinitions = [];
 
@@ -274,6 +292,25 @@ class BookingForm extends Component
         $this->defaultTypeId = (string) ($booking['defaultType'] ?? '');
         $this->defaultBrandId = (string) ($booking['defaultBrand'] ?? '');
         $this->defaultDeviceId = (string) ($booking['defaultDevice'] ?? '');
+
+        // Device & Brand labels from settings
+        $labels = is_array($devicesBrands['labels'] ?? null) ? $devicesBrands['labels'] : [];
+        $this->labelDevice = (string) ($labels['device'] ?? 'Device');
+        $this->labelBrand = (string) ($labels['deviceBrand'] ?? 'Brand');
+        $this->labelType = (string) ($labels['deviceType'] ?? 'Type');
+        $this->labelImei = (string) ($labels['imei'] ?? 'ID / IMEI');
+        $this->labelPin = (string) ($labels['pin'] ?? 'Pin Code / Password');
+        $this->labelNote = (string) ($labels['note'] ?? 'Note');
+
+        // Pickup & Delivery settings
+        $this->pickupDeliveryEnabled = (bool) ($devicesBrands['pickupDeliveryEnabled'] ?? false);
+        $this->pickupCharge = (string) ($devicesBrands['pickupCharge'] ?? '0');
+        $this->deliveryCharge = (string) ($devicesBrands['deliveryCharge'] ?? '0');
+
+        // Rental settings
+        $this->rentalEnabled = (bool) ($devicesBrands['rentalEnabled'] ?? false);
+        $this->rentalPerDay = (string) ($devicesBrands['rentalPerDay'] ?? '0');
+        $this->rentalPerWeek = (string) ($devicesBrands['rentalPerWeek'] ?? '0');
 
         // GDPR
         $general = is_array($settings['general'] ?? null) ? $settings['general'] : [];

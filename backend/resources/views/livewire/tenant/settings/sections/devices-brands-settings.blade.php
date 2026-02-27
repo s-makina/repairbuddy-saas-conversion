@@ -183,6 +183,7 @@
                                 <option value="select">Select</option>
                             </select>
                         </div>
+                        <div class="st-fg" style="flex: 1; margin-bottom: 0;">
                             <label>Booking Form</label>
                             <select wire:model.defer="additional_fields.{{ $index }}.show_in_booking">
                                 <option value="1">Display</option>

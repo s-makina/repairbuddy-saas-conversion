@@ -89,25 +89,26 @@ class DevicesBrandsSettings extends Component
     private function loadSettings(): void
     {
         $store = new TenantSettingsStore($this->tenant);
-        $settings = $store->get('devices_brands', []);
+        $settings = $store->get('devicesBrands', []);
         if (! is_array($settings)) {
             $settings = [];
         }
 
-        $this->enable_pin_code         = (bool) ($settings['enable_pin_code'] ?? false);
-        $this->show_pin_in_documents   = (bool) ($settings['show_pin_in_documents'] ?? false);
-        $this->label_note              = (string) ($settings['label_note'] ?? 'Note');
-        $this->label_pin               = (string) ($settings['label_pin'] ?? 'Pin Code / Password');
-        $this->label_device            = (string) ($settings['label_device'] ?? 'Device');
-        $this->label_brand             = (string) ($settings['label_brand'] ?? 'Brand');
-        $this->label_type              = (string) ($settings['label_type'] ?? 'Type');
-        $this->label_imei              = (string) ($settings['label_imei'] ?? 'ID / IMEI');
-        $this->pickup_delivery_enabled = (bool) ($settings['pickup_delivery_enabled'] ?? false);
-        $this->pickup_charge           = (string) ($settings['pickup_charge'] ?? '0');
-        $this->delivery_charge         = (string) ($settings['delivery_charge'] ?? '0');
-        $this->rental_enabled          = (bool) ($settings['rental_enabled'] ?? false);
-        $this->rental_per_day          = (string) ($settings['rental_per_day'] ?? '0');
-        $this->rental_per_week         = (string) ($settings['rental_per_week'] ?? '0');
+        // Read with both camelCase (new) and snake_case (legacy) keys for backwards compatibility
+        $this->enable_pin_code         = (bool) ($settings['enablePinCodeField'] ?? $settings['enable_pin_code'] ?? false);
+        $this->show_pin_in_documents   = (bool) ($settings['showPinCodeInDocuments'] ?? $settings['show_pin_in_documents'] ?? false);
+        $this->label_note              = (string) ($settings['labels']['note'] ?? $settings['label_note'] ?? 'Note');
+        $this->label_pin               = (string) ($settings['labels']['pin'] ?? $settings['label_pin'] ?? 'Pin Code / Password');
+        $this->label_device            = (string) ($settings['labels']['device'] ?? $settings['label_device'] ?? 'Device');
+        $this->label_brand             = (string) ($settings['labels']['deviceBrand'] ?? $settings['label_brand'] ?? 'Brand');
+        $this->label_type              = (string) ($settings['labels']['deviceType'] ?? $settings['label_type'] ?? 'Type');
+        $this->label_imei              = (string) ($settings['labels']['imei'] ?? $settings['label_imei'] ?? 'ID / IMEI');
+        $this->pickup_delivery_enabled = (bool) ($settings['pickupDeliveryEnabled'] ?? $settings['pickup_delivery_enabled'] ?? false);
+        $this->pickup_charge           = (string) ($settings['pickupCharge'] ?? $settings['pickup_charge'] ?? '0');
+        $this->delivery_charge         = (string) ($settings['deliveryCharge'] ?? $settings['delivery_charge'] ?? '0');
+        $this->rental_enabled          = (bool) ($settings['rentalEnabled'] ?? $settings['rental_enabled'] ?? false);
+        $this->rental_per_day          = (string) ($settings['rentalPerDay'] ?? $settings['rental_per_day'] ?? '0');
+        $this->rental_per_week         = (string) ($settings['rentalPerWeek'] ?? $settings['rental_per_week'] ?? '0');
 
         // Load additional fields from DB
         $this->additional_fields = RepairBuddyDeviceFieldDefinition::query()
@@ -164,21 +165,23 @@ class DevicesBrandsSettings extends Component
         // Save key-value settings
         $store = new TenantSettingsStore($this->tenant);
 
-        $store->merge('devices_brands', [
-            'enable_pin_code'         => $this->enable_pin_code,
-            'show_pin_in_documents'   => $this->show_pin_in_documents,
-            'label_note'              => $this->label_note,
-            'label_pin'               => $this->label_pin,
-            'label_device'            => $this->label_device,
-            'label_brand'             => $this->label_brand,
-            'label_type'              => $this->label_type,
-            'label_imei'              => $this->label_imei,
-            'pickup_delivery_enabled' => $this->pickup_delivery_enabled,
-            'pickup_charge'           => $this->pickup_charge,
-            'delivery_charge'         => $this->delivery_charge,
-            'rental_enabled'          => $this->rental_enabled,
-            'rental_per_day'          => $this->rental_per_day,
-            'rental_per_week'         => $this->rental_per_week,
+        $store->merge('devicesBrands', [
+            'enablePinCodeField'      => $this->enable_pin_code,
+            'showPinCodeInDocuments'  => $this->show_pin_in_documents,
+            'labels'                  => [
+                'note'        => $this->label_note,
+                'pin'         => $this->label_pin,
+                'device'      => $this->label_device,
+                'deviceBrand' => $this->label_brand,
+                'deviceType'  => $this->label_type,
+                'imei'        => $this->label_imei,
+            ],
+            'pickupDeliveryEnabled'   => $this->pickup_delivery_enabled,
+            'pickupCharge'            => $this->pickup_charge,
+            'deliveryCharge'          => $this->delivery_charge,
+            'rentalEnabled'           => $this->rental_enabled,
+            'rentalPerDay'            => $this->rental_per_day,
+            'rentalPerWeek'           => $this->rental_per_week,
         ]);
 
         $store->save();
