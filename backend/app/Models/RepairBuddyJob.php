@@ -96,4 +96,9 @@ class RepairBuddyJob extends Model
     {
         return $this->hasMany(RepairBuddySignatureRequest::class, 'job_id');
     }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(RepairBuddyAppointment::class, 'job_id');
+    }
 }

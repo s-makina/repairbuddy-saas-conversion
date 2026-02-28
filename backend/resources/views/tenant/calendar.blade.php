@@ -110,6 +110,7 @@
                         <option value="all">{{ __('All Items') }}</option>
                         <option value="jobs">{{ __('Jobs Only') }}</option>
                         <option value="estimates">{{ __('Estimates Only') }}</option>
+                        <option value="appointments">{{ __('Appointments Only') }}</option>
                         @if (in_array(($user?->role ?? ''), ['administrator', 'store_manager'], true))
                             <option value="my_assignments">{{ __('My Assignments') }}</option>
                         @endif
@@ -140,12 +141,10 @@
                 <span class="text-muted me-2">{{ __('Legend:') }}</span>
                 <span class="badge bg-primary">{{ __('Job') }}</span>
                 <span class="badge bg-warning text-dark">{{ __('Estimate') }}</span>
+                <span class="badge bg-info">{{ __('Appointment') }}</span>
                 <span class="badge bg-success">{{ __('New/Quote') }}</span>
-                <span class="badge bg-info">{{ __('In Process') }}</span>
                 <span class="badge bg-danger">{{ __('Cancelled') }}</span>
-                <span class="badge" style="background-color: #fd7e14; color: white;">{{ __('Ready') }}</span>
                 <span class="badge" style="background-color: #6f42c1; color: white;">{{ __('Completed') }}</span>
-                <span class="badge" style="background-color: #e83e8c; color: white;">{{ __('Delivered') }}</span>
             </div>
         </div>
 

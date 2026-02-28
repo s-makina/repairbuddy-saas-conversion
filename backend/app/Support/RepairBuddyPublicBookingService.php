@@ -2,6 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\Branch;
+use App\Models\RepairBuddyAppointment;
+use App\Models\RepairBuddyAppointmentSetting;
 use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyEstimate;
@@ -17,6 +20,7 @@ use App\Models\RepairBuddyService;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Notifications\AppointmentConfirmationNotification;
 use App\Support\Audit\PlatformAudit;
 use App\Support\RepairBuddyBookingTemplateService;
 use App\Support\RepairBuddyCaseNumberService;
@@ -248,11 +252,19 @@ class RepairBuddyPublicBookingService
                 $uploaded = $request->file('attachments');
                 $this->attachUploadsToJob($job, $uploaded);
 
+                $appointment = $this->createAppointmentIfProvided(
+                    appointmentData: is_array($validated['appointment'] ?? null) ? $validated['appointment'] : [],
+                    customerId: $customerId,
+                    jobId: $job->id,
+                    estimateId: null,
+                );
+
                 return [
                     'entity' => 'job',
                     'id' => $job->id,
                     'case_number' => $job->case_number,
                     'customer_id' => $customerId,
+                    'appointment_id' => $appointment?->id,
                 ];
             }
 
@@ -289,11 +301,19 @@ class RepairBuddyPublicBookingService
             $uploaded = $request->file('attachments');
             $this->attachUploadsToEstimate($estimate, $uploaded);
 
+            $appointment = $this->createAppointmentIfProvided(
+                appointmentData: is_array($validated['appointment'] ?? null) ? $validated['appointment'] : [],
+                customerId: $customerId,
+                jobId: null,
+                estimateId: $estimate->id,
+            );
+
             return [
                 'entity' => 'estimate',
                 'id' => $estimate->id,
                 'case_number' => $estimate->case_number,
                 'customer_id' => $customerId,
+                'appointment_id' => $appointment?->id,
             ];
         });
 
@@ -1040,5 +1060,137 @@ class RepairBuddyPublicBookingService
         }
 
         return '';
+    }
+
+    private function createAppointmentIfProvided(
+        array $appointmentData,
+        int $customerId,
+        ?int $jobId,
+        ?int $estimateId,
+    ): ?RepairBuddyAppointment {
+        $settingId = is_numeric($appointmentData['appointment_setting_id'] ?? null)
+            ? (int) $appointmentData['appointment_setting_id']
+            : null;
+
+        $date = is_string($appointmentData['date'] ?? null) && $appointmentData['date'] !== ''
+            ? trim($appointmentData['date'])
+            : null;
+
+        $timeSlot = is_string($appointmentData['time_slot'] ?? null) && $appointmentData['time_slot'] !== ''
+            ? trim($appointmentData['time_slot'])
+            : null;
+
+        if (! $settingId || ! $date || ! $timeSlot) {
+            return null;
+        }
+
+        $setting = RepairBuddyAppointmentSetting::query()
+            ->where('id', $settingId)
+            ->where('is_enabled', true)
+            ->first();
+
+        if (! $setting) {
+            Log::warning('booking.appointment_setting_not_found', [
+                'setting_id' => $settingId,
+            ]);
+
+            return null;
+        }
+
+        $branch = BranchContext::branch();
+        if (! $branch) {
+            return null;
+        }
+
+        $appointmentDate = \Carbon\Carbon::parse($date)->toDateString();
+
+        if ($appointmentDate < now()->toDateString()) {
+            Log::warning('booking.appointment_date_in_past', [
+                'date' => $appointmentDate,
+            ]);
+
+            return null;
+        }
+
+        $typeCount = RepairBuddyAppointment::query()
+            ->where('appointment_setting_id', $settingId)
+            ->where('appointment_date', $appointmentDate)
+            ->whereNotIn('status', [RepairBuddyAppointment::STATUS_CANCELLED])
+            ->count();
+
+        if ($setting->max_appointments_per_day && $typeCount >= $setting->max_appointments_per_day) {
+            Log::warning('booking.appointment_type_capacity_exceeded', [
+                'setting_id' => $settingId,
+                'date' => $appointmentDate,
+                'count' => $typeCount,
+                'max' => $setting->max_appointments_per_day,
+            ]);
+
+            return null;
+        }
+
+        if ($branch->max_appointments_per_day) {
+            $branchCount = RepairBuddyAppointment::query()
+                ->where('branch_id', $branch->id)
+                ->where('appointment_date', $appointmentDate)
+                ->whereNotIn('status', [RepairBuddyAppointment::STATUS_CANCELLED])
+                ->count();
+
+            if ($branchCount >= $branch->max_appointments_per_day) {
+                Log::warning('booking.appointment_branch_capacity_exceeded', [
+                    'branch_id' => $branch->id,
+                    'date' => $appointmentDate,
+                    'count' => $branchCount,
+                    'max' => $branch->max_appointments_per_day,
+                ]);
+
+                return null;
+            }
+        }
+
+        $duration = is_numeric($setting->slot_duration_minutes) ? (int) $setting->slot_duration_minutes : 30;
+        $timeSlotStart = \Carbon\Carbon::parse($timeSlot);
+        $timeSlotEnd = $timeSlotStart->copy()->addMinutes($duration);
+
+        $appointment = RepairBuddyAppointment::query()->create([
+            'appointment_setting_id' => $settingId,
+            'job_id' => $jobId,
+            'estimate_id' => $estimateId,
+            'customer_id' => $customerId,
+            'title' => $setting->title,
+            'appointment_date' => $appointmentDate,
+            'time_slot_start' => $timeSlotStart->format('H:i:s'),
+            'time_slot_end' => $timeSlotEnd->format('H:i:s'),
+            'status' => RepairBuddyAppointment::STATUS_SCHEDULED,
+            'created_by' => null,
+        ]);
+
+        Log::info('booking.appointment_created', [
+            'appointment_id' => $appointment->id,
+            'setting_id' => $settingId,
+            'date' => $appointmentDate,
+            'time_slot' => $timeSlot,
+            'customer_id' => $customerId,
+            'job_id' => $jobId,
+            'estimate_id' => $estimateId,
+        ]);
+
+        $customer = User::query()->where('id', $customerId)->first();
+        if ($customer && $tenant) {
+            try {
+                $customer->notify(new AppointmentConfirmationNotification(
+                    appointment: $appointment,
+                    tenant: $tenant,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('booking.appointment_confirmation_notification_failed', [
+                    'appointment_id' => $appointment->id,
+                    'customer_id' => $customerId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $appointment;
     }
 }

@@ -789,6 +789,12 @@ Route::prefix('t/{business}')
             ->name('tenant.estimates.destroy');
 
         /* ------------------------------------------------------------ */
+        /*  APPOINTMENTS – management listing                            */
+        /* ------------------------------------------------------------ */
+        Route::get('/appointments', \App\Livewire\Tenant\Appointments\AppointmentsList::class)
+            ->name('tenant.appointments.index');
+
+        /* ------------------------------------------------------------ */
         /*  TIME LOGS – admin listing                                    */
         /* ------------------------------------------------------------ */
         Route::get('/time-logs', [\App\Http\Controllers\Web\TenantTimeLogController::class, 'index'])

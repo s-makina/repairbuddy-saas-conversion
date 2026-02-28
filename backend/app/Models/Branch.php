@@ -26,12 +26,14 @@ class Branch extends Model
         'address_postal_code',
         'address_country',
         'is_active',
+        'max_appointments_per_day',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'max_appointments_per_day' => 'integer',
         ];
     }
 
