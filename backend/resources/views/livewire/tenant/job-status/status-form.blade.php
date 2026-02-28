@@ -358,7 +358,7 @@
         <span class="pp-badge st-badge--warning" style="margin: .75rem 0;">
           <span class="st-badge-dot"></span> {{ $estimate['status_label'] }}
         </span>
-        <p class="pp-success-hint">This is an estimate. You can approve or reject it via the link in your email, or through the customer portal.</p>
+        <!-- <p class="pp-success-hint">This is an estimate. You can approve or reject it via the link in your email, or through the customer portal.</p> -->
         <button type="button" class="pp-btn pp-btn-outline" wire:click="refresh" style="margin-top: .75rem;">
           <i class="bi bi-arrow-clockwise"></i> Refresh
         </button>
