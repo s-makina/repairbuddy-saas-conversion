@@ -59,6 +59,15 @@ class AppointmentForm extends Component
         $this->tenant = $tenant;
         $this->user = $user;
 
+        // Set tenant context
+        if ($tenant instanceof \App\Models\Tenant) {
+            TenantContext::set($tenant);
+            $branch = $tenant->defaultBranch ?? $tenant->branches->first();
+            if ($branch) {
+                BranchContext::set($branch);
+            }
+        }
+
         // Load enabled appointment types
         $this->appointmentTypes = RepairBuddyAppointmentSetting::query()
             ->where('tenant_id', (int) $tenant->id)
@@ -67,23 +76,36 @@ class AppointmentForm extends Component
             ->get();
     }
 
+    public function hydrate(): void
+    {
+        if ($this->tenant instanceof \App\Models\Tenant) {
+            TenantContext::set($this->tenant);
+            $branch = $this->tenant->defaultBranch ?? $this->tenant->branches->first();
+            if ($branch) {
+                BranchContext::set($branch);
+            }
+        }
+    }
+
     // Computed property for filtered customers
     public function getFilteredCustomersProperty()
     {
         $search = trim($this->customer_search);
-        if (strlen($search) < 2) {
-            return collect();
-        }
-
-        return User::query()
+        
+        $query = User::query()
             ->where('tenant_id', (int) $this->tenant->id)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'customer'))
-            ->where(function ($q) use ($search) {
+            ->where('role', 'customer');
+
+        if (strlen($search) >= 2) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%");
-            })
-            ->limit(20)
+            });
+        }
+
+        return $query->orderBy('name')
+            ->limit(strlen($search) >= 2 ? 10 : 5)
             ->get();
     }
 
@@ -91,18 +113,31 @@ class AppointmentForm extends Component
     public function getFilteredTechniciansProperty()
     {
         $search = trim($this->technician_search);
-        if (strlen($search) < 2) {
-            return collect();
+        
+        $query = User::query()
+            ->where('tenant_id', (int) $this->tenant->id)
+            ->where('is_admin', false)
+            ->where('status', 'active')
+            ->where(function ($q) {
+                // The legacy `role` column is NULL for staff/technicians created via
+                // UserController (role = null), but 'customer' for customer accounts.
+                $q->whereNull('role')
+                    ->orWhere('role', '!=', 'customer');
+            });
+
+        if ($this->technician_id) {
+            $query->where('id', '!=', $this->technician_id);
         }
 
-        return User::query()
-            ->where('tenant_id', (int) $this->tenant->id)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'technician'))
-            ->where(function ($q) use ($search) {
+        if (strlen($search) >= 2) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->limit(20)
+            });
+        }
+
+        return $query->orderBy('name')
+            ->limit(strlen($search) >= 2 ? 10 : 5)
             ->get();
     }
 
@@ -219,93 +254,120 @@ class AppointmentForm extends Component
         $this->availableTimeSlots = [];
 
         if (!$this->appointment_setting_id || !$this->appointment_date) {
+            \Log::debug('AppointmentForm: Missing setting_id or date', [
+                'setting_id' => $this->appointment_setting_id,
+                'date' => $this->appointment_date,
+            ]);
             return;
         }
 
         $setting = RepairBuddyAppointmentSetting::find($this->appointment_setting_id);
         if (!$setting || !$setting->is_enabled) {
+            \Log::debug('AppointmentForm: Setting not found or not enabled', [
+                'setting_id' => $this->appointment_setting_id,
+                'found' => $setting ? true : false,
+                'is_enabled' => $setting?->is_enabled,
+            ]);
             return;
         }
 
         $branch = BranchContext::branch();
         if (!$branch) {
-            return;
+            \Log::debug('AppointmentForm: No branch context');
+            // Continue anyway - branch is optional for time slot generation
         }
 
         $date = Carbon::parse($this->appointment_date);
-        $dayOfWeek = $date->dayOfWeekIso; // 1=Monday, 7=Sunday
+        $dayOfWeek = strtolower($date->englishDayOfWeek); // 'monday', 'tuesday', etc.
 
         // Get time slots from setting (stored as array)
         $timeSlots = is_array($setting->time_slots) ? $setting->time_slots : [];
+        
+        \Log::debug('AppointmentForm: Time slots data', [
+            'dayOfWeek' => $dayOfWeek,
+            'timeSlots' => $timeSlots,
+            'count' => count($timeSlots),
+        ]);
 
-        // Filter by day of week if slots have day restriction
-        $availableSlots = [];
-        foreach ($timeSlots as $slot) {
-            if (!is_array($slot)) {
-                continue;
-            }
+        // Filter by day of week and enabled status
+        $todaySlot = collect($timeSlots)
+            ->where('enabled', true)
+            ->firstWhere('day', $dayOfWeek);
 
-            $slotDay = $slot['day'] ?? null;
-            $slotTime = $slot['time'] ?? null;
-
-            // If no day restriction, or day matches
-            if ($slotDay === null || $slotDay === '' || (int) $slotDay === $dayOfWeek) {
-                if ($slotTime) {
-                    $availableSlots[] = $slotTime;
-                }
-            }
+        if (!$todaySlot) {
+            \Log::debug('AppointmentForm: No matching slot for day', [
+                'dayOfWeek' => $dayOfWeek,
+                'available_days' => collect($timeSlots)->pluck('day')->toArray(),
+            ]);
+            return;
         }
 
-        // If no slots configured, generate default slots based on working hours
-        if (empty($availableSlots)) {
-            $availableSlots = $this->generateDefaultSlots($setting);
-        }
+        \Log::debug('AppointmentForm: Found matching slot', ['todaySlot' => $todaySlot]);
 
-        // Check capacity and existing appointments
+        // Generate time slots from start to end
         $duration = is_numeric($setting->slot_duration_minutes) ? (int) $setting->slot_duration_minutes : 30;
-        $formattedSlots = [];
+        $buffer = is_numeric($setting->buffer_minutes) ? (int) $setting->buffer_minutes : 0;
 
-        foreach ($availableSlots as $slotTime) {
-            $slotStart = Carbon::parse($slotTime);
-            $slotEnd = $slotStart->copy()->addMinutes($duration);
+        $startStr = $todaySlot['start'] ?? null;
+        $endStr = $todaySlot['end'] ?? null;
+
+        if (!$startStr || !$endStr) {
+            \Log::debug('AppointmentForm: Missing start/end', [
+                'start' => $startStr,
+                'end' => $endStr,
+            ]);
+            return;
+        }
+
+        // Parse start and end times
+        $startMinutes = intval(substr($startStr, 0, 2)) * 60 + intval(substr($startStr, 3, 2));
+        $endMinutes = intval(substr($endStr, 0, 2)) * 60 + intval(substr($endStr, 3, 2));
+
+        $formattedSlots = [];
+        $current = $startMinutes;
+
+        while ($current + $duration <= $endMinutes) {
+            $h = str_pad((string) intdiv($current, 60), 2, '0', STR_PAD_LEFT);
+            $m = str_pad((string) ($current % 60), 2, '0', STR_PAD_LEFT);
+            $slotTime = "{$h}:{$m}";
 
             // Check if slot is in the past for today
-            if ($date->isToday() && $slotStart->lt(now())) {
-                continue;
+            if ($date->isToday()) {
+                $now = now();
+                $slotDateTime = $date->copy()->setTime($h, $m);
+                if ($slotDateTime->lt($now)) {
+                    $current += $duration + $buffer;
+                    continue;
+                }
             }
 
             // Check capacity for this appointment type
             $existingCount = RepairBuddyAppointment::query()
                 ->where('appointment_setting_id', $this->appointment_setting_id)
                 ->where('appointment_date', $this->appointment_date)
-                ->where('time_slot_start', $slotStart->format('H:i:s'))
+                ->where('time_slot_start', $slotTime . ':00')
                 ->whereNotIn('status', [RepairBuddyAppointment::STATUS_CANCELLED])
                 ->count();
 
             if ($setting->max_appointments_per_day && $existingCount >= $setting->max_appointments_per_day) {
+                $current += $duration + $buffer;
                 continue;
             }
 
-            // Check branch capacity
-            if ($branch->max_appointments_per_day) {
-                $branchCount = RepairBuddyAppointment::query()
-                    ->where('branch_id', $branch->id)
-                    ->where('appointment_date', $this->appointment_date)
-                    ->where('time_slot_start', $slotStart->format('H:i:s'))
-                    ->whereNotIn('status', [RepairBuddyAppointment::STATUS_CANCELLED])
-                    ->count();
-
-                if ($branchCount >= $branch->max_appointments_per_day) {
-                    continue;
-                }
-            }
+            $slotEnd = $current + $duration;
+            $endH = str_pad((string) intdiv($slotEnd, 60), 2, '0', STR_PAD_LEFT);
+            $endM = str_pad((string) ($slotEnd % 60), 2, '0', STR_PAD_LEFT);
 
             $formattedSlots[] = [
                 'value' => $slotTime,
-                'label' => $slotStart->format('H:i') . ' - ' . $slotEnd->format('H:i'),
+                'label' => "{$h}:{$m} - {$endH}:{$endM}",
             ];
+
+            $current += $duration + $buffer;
         }
 
+        \Log::debug('AppointmentForm: Generated slots', ['count' => count($formattedSlots), 'slots' => $formattedSlots]);
+        
         $this->availableTimeSlots = $formattedSlots;
     }
 

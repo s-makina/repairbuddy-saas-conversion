@@ -393,6 +393,46 @@
         background: var(--rb-brand-dark);
     }
 
+    /* ── Time Slot Chips ── */
+    .af-fg--timeslot {
+        margin-top: .75rem;
+    }
+    .af-time-slot-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-top: .25rem;
+    }
+    .af-time-slot {
+        padding: .5rem .875rem;
+        border: 1px solid var(--rb-border);
+        border-radius: var(--rb-radius-sm);
+        background: #fff;
+        color: var(--rb-text-2);
+        font-size: .82rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all .15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .af-time-slot:hover {
+        border-color: var(--rb-brand);
+        color: var(--rb-brand);
+        background: var(--rb-brand-soft);
+    }
+    .af-time-slot-selected {
+        background: var(--rb-brand);
+        border-color: var(--rb-brand);
+        color: #fff;
+    }
+    .af-time-slot-selected:hover {
+        background: var(--rb-brand-dark);
+        border-color: var(--rb-brand-dark);
+        color: #fff;
+    }
+
     /* ── Sidebar Cards ── */
     .af-sc {
         background: var(--rb-card);
@@ -644,24 +684,26 @@
                     </div>
 
                     {{-- Time Slot --}}
-                    <div class="af-fg">
+                    <div class="af-fg af-fg--timeslot">
                         <label><i class="bi bi-clock"></i> {{ __('Time Slot') }} <span class="text-danger">*</span></label>
                         @if($appointment_setting_id && $appointment_date && count($availableTimeSlots) > 0)
-                            <select class="form-select" wire:model="time_slot">
-                                <option value="">{{ __('Select a Time Slot...') }}</option>
+                            <div class="af-time-slot-grid">
                                 @foreach($availableTimeSlots as $slot)
-                                    <option value="{{ $slot['value'] }}">{{ $slot['label'] }}</option>
+                                    <button type="button"
+                                            class="af-time-slot {{ $time_slot === $slot['value'] ? 'af-time-slot-selected' : '' }}"
+                                            wire:click="$set('time_slot', '{{ $slot['value'] }}')"
+                                            wire:key="slot-{{ $slot['value'] }}">
+                                        {{ $slot['label'] }}
+                                    </button>
                                 @endforeach
-                            </select>
+                            </div>
                         @elseif($appointment_setting_id && $appointment_date)
                             <div class="alert alert-warning py-2 mb-0">
                                 <i class="bi bi-exclamation-triangle me-1"></i>
                                 {{ __('No available time slots for the selected date. Please choose another date.') }}
                             </div>
                         @else
-                            <select class="form-select" disabled>
-                                <option value="">{{ __('Select appointment type and date first...') }}</option>
-                            </select>
+                            <p class="text-muted small mb-0"><i class="bi bi-info-circle me-1"></i>{{ __('Select appointment type and date to see available times.') }}</p>
                         @endif
                         @error('time_slot')<div class="text-danger small">{{ $message }}</div>@enderror
                     </div>
