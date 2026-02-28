@@ -65,6 +65,11 @@
         Estimates
       </a>
 
+      <a class="nav-link {{ $activeNav === 'appointments' ? 'active' : '' }}" href="{{ $tenantSlug ? route('tenant.appointments.index', ['business' => $tenantSlug]) : '#' }}">
+        <i class="bi bi-calendar-check me-2" aria-hidden="true"></i>
+        Appointments
+      </a>
+
       <a class="nav-link {{ $activeNav === 'devices' ? 'active' : '' }}" href="{{ $nextTenantBase . '/devices' }}">
         <i class="bi bi-laptop me-2" aria-hidden="true"></i>
         Devices

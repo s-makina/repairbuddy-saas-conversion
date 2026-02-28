@@ -17,6 +17,9 @@ class AppointmentsList extends Component
     use WithPagination;
 
     public $tenant;
+    public $user;
+    public string $activeNav = 'appointments';
+    public string $pageTitle = 'Appointments';
 
     public string $search = '';
     public string $statusFilter = 'all';
@@ -40,9 +43,10 @@ class AppointmentsList extends Component
         'typeFilter' => ['except' => 'all'],
     ];
 
-    public function mount($tenant): void
+    public function mount(): void
     {
-        $this->tenant = $tenant;
+        $this->tenant = TenantContext::tenant();
+        $this->user = request()->user();
     }
 
     public function hydrate(): void

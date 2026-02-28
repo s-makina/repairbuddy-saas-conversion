@@ -1,10 +1,17 @@
+@php
+  $tenant = $tenant ?? null;
+  $user = $user ?? null;
+  $activeNav = $activeNav ?? null;
+  $title = $title ?? ($tenant?->name ?? 'RepairBuddy');
+@endphp
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>{{ $title ?? (($tenant && $tenant->name) ? $tenant->name : 'RepairBuddy') }}</title>
+    <title>{{ $title }}</title>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -47,9 +54,9 @@
   <body>
     <div class="d-flex">
       @include('tenant.partials.sidebar', [
-        'tenant' => $tenant ?? null,
-        'user' => $user ?? null,
-        'activeNav' => $activeNav ?? null,
+        'tenant' => $tenant,
+        'user' => $user,
+        'activeNav' => $activeNav,
       ])
 
       <main class="flex-grow-1">

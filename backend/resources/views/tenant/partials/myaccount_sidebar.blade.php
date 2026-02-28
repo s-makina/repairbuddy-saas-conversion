@@ -122,6 +122,13 @@
       'access' => ['all'],
     ],
     [
+      'id' => 'appointments',
+      'title' => 'Appointments',
+      'icon' => 'bi bi-calendar-check',
+      'url' => $tenantSlug ? route('tenant.appointments.index', ['business' => $tenantSlug]) : '#',
+      'access' => ['all'],
+    ],
+    [
       'id' => 'my-devices',
       'title' => 'My Devices',
       'icon' => 'bi bi-phone',

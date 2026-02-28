@@ -791,7 +791,7 @@ Route::prefix('t/{business}')
         /* ------------------------------------------------------------ */
         /*  APPOINTMENTS – management listing                            */
         /* ------------------------------------------------------------ */
-        Route::get('/appointments', \App\Livewire\Tenant\Appointments\AppointmentsList::class)
+        Route::get('/appointments', [\App\Http\Controllers\Web\TenantAppointmentController::class, 'index'])
             ->name('tenant.appointments.index');
 
         /* ------------------------------------------------------------ */
