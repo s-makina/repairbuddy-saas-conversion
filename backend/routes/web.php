@@ -789,6 +789,40 @@ Route::prefix('t/{business}')
             ->name('tenant.estimates.destroy');
 
         /* ------------------------------------------------------------ */
+        /*  EXPENSE CATEGORIES – standalone pages                        */
+        /* ------------------------------------------------------------ */
+        Route::get('/expense-categories', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'index'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.index');
+
+        Route::get('/expense-categories/datatable', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'datatable'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.datatable');
+
+        Route::get('/expense-categories/new', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'create'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.create');
+
+        Route::post('/expense-categories', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'store'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.store');
+
+        Route::get('/expense-categories/{category}/edit', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'edit'])
+            ->where(['category' => '[0-9]+'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.edit');
+
+        Route::post('/expense-categories/{category}/update', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'update'])
+            ->where(['category' => '[0-9]+'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.update');
+
+        Route::post('/expense-categories/{category}/delete', [\App\Http\Controllers\Web\Expenses\ExpenseCategoryController::class, 'delete'])
+            ->where(['category' => '[0-9]+'])
+            ->middleware('permission:expense_categories.view')
+            ->name('tenant.expense_categories.delete');
+
+        /* ------------------------------------------------------------ */
         /*  APPOINTMENTS – management listing                            */
         /* ------------------------------------------------------------ */
         Route::get('/appointments', [\App\Http\Controllers\Web\TenantAppointmentController::class, 'index'])

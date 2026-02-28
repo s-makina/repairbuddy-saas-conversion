@@ -446,60 +446,6 @@ HTML;
             ]);
         }
 
-        if ($screen === 'expense_categories') {
-            $baseDashboardUrl = $tenant?->slug
-                ? route('tenant.dashboard', ['business' => $tenant->slug])
-                : '#';
-
-            return view('tenant.expense_categories', [
-                'tenant' => $tenant,
-                'user' => $user,
-                'activeNav' => 'expense_categories',
-                'pageTitle' => 'Expense Categories',
-                'userRole' => is_string($user?->role) ? (string) $user->role : 'guest',
-                'licenseState' => true,
-                'categories' => [
-                    (object) [
-                        'category_id' => 1,
-                        'category_name' => 'Parts & Supplies',
-                        'category_description' => 'Consumables, screws, adhesives, cables, and small parts.',
-                        'color_code' => '#3498db',
-                        'is_active' => 1,
-                        'taxable' => 1,
-                        'tax_rate' => 15,
-                    ],
-                    (object) [
-                        'category_id' => 2,
-                        'category_name' => 'Tools',
-                        'category_description' => 'Equipment and tools purchased for repairs.',
-                        'color_code' => '#2ecc71',
-                        'is_active' => 1,
-                        'taxable' => 0,
-                        'tax_rate' => 0,
-                    ],
-                    (object) [
-                        'category_id' => 3,
-                        'category_name' => 'Utilities',
-                        'category_description' => 'Electricity, water, internet, and phone.',
-                        'color_code' => '#f39c12',
-                        'is_active' => 1,
-                        'taxable' => 1,
-                        'tax_rate' => 5,
-                    ],
-                    (object) [
-                        'category_id' => 4,
-                        'category_name' => 'Marketing',
-                        'category_description' => '',
-                        'color_code' => '#9b59b6',
-                        'is_active' => 0,
-                        'taxable' => 0,
-                        'tax_rate' => 0,
-                    ],
-                ],
-                'nonce' => csrf_token(),
-            ]);
-        }
-
         if ($screen === 'reviews') {
             $role = is_string($user?->role) ? (string) $user->role : 'guest';
             $userRoles = [$role];

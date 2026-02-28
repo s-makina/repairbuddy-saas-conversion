@@ -54,6 +54,8 @@
   $operationsServicesUrl = $tenantSlug ? route('tenant.operations.services.index', ['business' => $tenantSlug]) : '#';
   $operationsClientsUrl = $tenantSlug ? route('tenant.operations.clients.index', ['business' => $tenantSlug]) : '#';
 
+  $expenseCategoriesUrl = $tenantSlug ? route('tenant.expense_categories.index', ['business' => $tenantSlug]) : '#';
+
   $techniciansUrl = $tenantSlug ? route('tenant.technicians.index', ['business' => $tenantSlug]) : '#';
   $managersUrl = $tenantSlug ? route('tenant.managers.index', ['business' => $tenantSlug]) : '#';
 
@@ -177,7 +179,7 @@
       'title' => 'Expense Categories',
       'parent' => 'expenses_parent',
       'icon' => 'bi bi-tags',
-      'url' => $screenUrl('expense_categories'),
+      'url' => $expenseCategoriesUrl,
       'visible' => $isAuthed && ($user?->can('expense_categories.view') ?? false),
     ],
 
@@ -380,6 +382,8 @@
     $currentPage = 'operations_service_types';
   } elseif (request()->routeIs('tenant.operations.services.*')) {
     $currentPage = 'operations_services';
+  } elseif (request()->routeIs('tenant.expense_categories.*')) {
+    $currentPage = 'expense_categories';
   } elseif (request()->routeIs('tenant.operations.*')) {
     $currentPage = 'operations';
   } elseif (request()->routeIs('tenant.profile.*')) {
