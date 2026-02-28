@@ -1389,3 +1389,55 @@ table.dataTable thead > tr > th.dt-ordering-desc span.dt-column-order {
     background: rgba(100, 116, 139, 0.08);
     border-color: rgba(100, 116, 139, 0.18);
 }
+
+/* ── Quick Add Modals ── */
+.rb-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.rb-modal-backdrop[x-cloak] {
+    visibility: hidden;
+}
+.rb-modal-visible {
+    display: flex !important;
+    visibility: visible !important;
+}
+.rb-modal-container {
+    background: #fff;
+    width: 100%;
+    max-width: 550px;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+}
+.rb-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+}
+.rb-modal-body {
+    padding: 1.5rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.rb-modal-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+    gap: .75rem;
+}

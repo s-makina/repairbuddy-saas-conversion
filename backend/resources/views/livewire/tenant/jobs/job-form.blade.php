@@ -1071,13 +1071,16 @@
     $entityLabel = $isEstimate ? __('Estimate') : __('Job');
 @endphp
 
-<div class="container-fluid px-0 jf-page">
+<div>
+    {{-- Modals at root level for proper fixed positioning --}}
     @livewire('tenant.operations.quick-customer-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-technician-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-part-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-service-modal', ['tenant' => $tenant])
 
-    <form id="job-form" wire:submit.prevent="save" enctype="multipart/form-data">
+    <div class="container-fluid px-0 jf-page">
+
+        <form id="job-form" wire:submit.prevent="save" enctype="multipart/form-data">
     <div x-data="{
         sections: { details: true, devices: true, items: true, notes: false }
     }">
@@ -1241,7 +1244,7 @@
                                            @input="open = true"
                                            @keydown.escape="open = false" />
                                     <div wire:loading wire:target="customer_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
-                                    <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Customer') }}" wire:click="$dispatch('openQuickCustomerModal')">
+                                    <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Customer') }}" wire:click="$dispatchTo('tenant.operations.quick-customer-modal', 'openQuickCustomerModal')">
                                         <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </div>
@@ -1282,7 +1285,7 @@
                                        @input="open = true"
                                        @keydown.escape="open = false" />
                                 <div wire:loading wire:target="technician_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
-                                <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Technician') }}" wire:click="$dispatch('openQuickTechnicianModal')">
+                                <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Technician') }}" wire:click="$dispatchTo('tenant.operations.quick-technician-modal', 'openQuickTechnicianModal')">
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
@@ -1644,7 +1647,7 @@
                         <button type="button" class="jf-add-btn" wire:click="addPart" {{ !$selected_part_id ? 'disabled' : '' }}>
                             <i class="bi bi-plus-lg"></i> {{ __('Add') }}
                         </button>
-                        <button type="button" class="jf-create-btn" title="{{ __('Create New Part') }}" wire:click="$dispatch('openQuickPartModal')">
+                        <button type="button" class="jf-create-btn" title="{{ __('Create New Part') }}" wire:click="$dispatchTo('tenant.operations.quick-part-modal', 'openQuickPartModal')">
                             <i class="bi bi-plus-lg"></i>
                         </button>
                     </div>
@@ -1758,7 +1761,7 @@
                         <button type="button" class="jf-add-btn" wire:click="addService" {{ !$selected_service_id && strlen($service_search) < 2 ? 'disabled' : '' }}>
                             <i class="bi bi-plus-lg"></i> {{ __('Add') }}
                         </button>
-                        <button type="button" class="jf-create-btn" title="{{ __('Create New Service') }}" wire:click="$dispatch('openQuickServiceModal')">
+                        <button type="button" class="jf-create-btn" title="{{ __('Create New Service') }}" wire:click="$dispatchTo('tenant.operations.quick-service-modal', 'openQuickServiceModal')">
                             <i class="bi bi-plus-lg"></i>
                         </button>
                     </div>

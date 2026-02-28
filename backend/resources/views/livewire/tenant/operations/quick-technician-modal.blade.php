@@ -1,13 +1,10 @@
-<div>
-    <div x-data="{ show: @entangle('showModal').live }"
-         x-show="show"
-         x-bind:style="show ? 'display: flex !important' : ''"
-         x-cloak
-         x-on:keydown.escape.window="show = false"
-         @close-technician-modal.window="show = false"
-         class="rb-modal-backdrop">
+<div x-data="{ show: @entangle('showModal').live }"
+     x-bind:style="show ? 'display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 1.5rem;' : 'display: none !important;'"
+     x-transition
+     x-on:keydown.escape.window="show = false"
+     @close-technician-modal.window="show = false">
         
-        <div class="rb-modal-container" 
+        <div class="rb-modal-container"
              @click.away="show = false">
             
             <div class="rb-modal-header">
@@ -98,12 +95,4 @@
                 </div>
             </form>
         </div>
-    </div>
-
-    <style>
-        .fade-in { opacity: 1; transition: opacity 0.2s ease-out; }
-        .fade-out { opacity: 0; transition: opacity 0.2s ease-in; }
-        .slide-up { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
-        .slide-down { transform: translateY(20px); opacity: 0; transition: all 0.3s ease-in; }
-    </style>
 </div>

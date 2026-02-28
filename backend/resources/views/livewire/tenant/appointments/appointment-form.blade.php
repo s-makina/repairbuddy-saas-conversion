@@ -467,6 +467,37 @@
         margin: .55rem 0;
     }
 
+    /* ── Modal ── */
+    [x-cloak] { display: none !important; }
+    .rb-modal-backdrop {
+        display: none;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+        z-index: 2000; align-items: center; justify-content: center;
+        padding: 1.5rem; animation: fadeInModal .2s ease;
+    }
+    .rb-modal-backdrop[style*="display: flex"],
+    .rb-modal-backdrop[style*="display:flex"] {
+        display: flex !important;
+    }
+    .rb-modal-container {
+        background: #fff; width: 100%; max-width: 550px;
+        border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden; position: relative; animation: slideUpModal .3s ease;
+    }
+    .rb-modal-header {
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+        display: flex; align-items: center; justify-content: space-between;
+        background: #f8fafc;
+    }
+    .rb-modal-body { padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
+    .rb-modal-footer {
+        padding: 1.25rem 1.5rem; border-top: 1px solid #f1f5f9;
+        background: #f8fafc; display: flex; justify-content: flex-end; gap: .75rem;
+    }
+    @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
     /* ── Responsive ── */
     @media (max-width: 1024px) {
         .af-layout {
@@ -490,14 +521,17 @@
     $backUrl = route('tenant.appointments.index', ['business' => $tenant->slug]);
 @endphp
 
-<div class="container-fluid px-0 af-page">
+<div>
+    {{-- Modals at root level for proper fixed positioning --}}
     @livewire('tenant.operations.quick-customer-modal', ['tenant' => $tenant])
     @livewire('tenant.operations.quick-technician-modal', ['tenant' => $tenant])
 
-    <form id="appointment-form" wire:submit.prevent="save">
-    <div x-data="{
-        sections: { details: true, related: false, notes: false }
-    }">
+    <div class="container-fluid px-0 af-page">
+
+        <form id="appointment-form" wire:submit.prevent="save">
+        <div x-data="{
+            sections: { details: true, related: false, notes: false }
+        }">
 
     {{-- ══════ STICKY TOP BAR ══════ --}}
     <header class="af-top-bar">
@@ -584,7 +618,7 @@
                                            @input="open = true"
                                            @keydown.escape="open = false" />
                                     <div wire:loading wire:target="customer_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
-                                    <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Customer') }}" wire:click="$dispatch('openQuickCustomerModal')">
+                                    <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Customer') }}" wire:click="$dispatchTo('tenant.operations.quick-customer-modal', 'openQuickCustomerModal')">
                                         <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </div>
@@ -636,7 +670,7 @@
                                            @input="open = true"
                                            @keydown.escape="open = false" />
                                     <div wire:loading wire:target="technician_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
-                                    <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Technician') }}" wire:click="$dispatch('openQuickTechnicianModal')">
+                                    <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Technician') }}" wire:click="$dispatchTo('tenant.operations.quick-technician-modal', 'openQuickTechnicianModal')">
                                         <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </div>
@@ -911,7 +945,6 @@
             </div>
         </div>
 
-    </div>
     </div>
     </form>
 </div>

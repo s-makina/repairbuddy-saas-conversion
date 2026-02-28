@@ -1,6 +1,9 @@
 </div><!-- main content /-->
 </div><!-- dashboard-wrapper /-->
 
+{{-- Modals rendered outside containers for proper fixed positioning --}}
+@stack('modals')
+
 <script
   src="{{ asset('repairbuddy/my_account/js/jquery.min.js') }}"
   onerror="(function(){var s=document.createElement('script');s.src='https://code.jquery.com/jquery-3.7.1.min.js';document.head.appendChild(s);})()"
