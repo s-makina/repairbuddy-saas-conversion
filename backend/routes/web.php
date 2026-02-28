@@ -794,6 +794,18 @@ Route::prefix('t/{business}')
         Route::get('/appointments', [\App\Http\Controllers\Web\TenantAppointmentController::class, 'index'])
             ->name('tenant.appointments.index');
 
+        Route::get('/appointments/new', function (\Illuminate\Http\Request $request) {
+            $tenantSlug = $request->route('business');
+            $tenantModel = \App\Models\Tenant::where('slug', $tenantSlug)->firstOrFail();
+            $user = $request->user();
+
+            return view('tenant.appointments.create', [
+                'pageTitle' => __('Create Appointment'),
+                'tenant'    => $tenantModel,
+                'user'      => $user,
+            ]);
+        })->name('tenant.appointments.create');
+
         /* ------------------------------------------------------------ */
         /*  TIME LOGS – admin listing                                    */
         /* ------------------------------------------------------------ */

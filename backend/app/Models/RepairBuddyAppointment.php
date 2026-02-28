@@ -29,6 +29,7 @@ class RepairBuddyAppointment extends Model
         'job_id',
         'estimate_id',
         'customer_id',
+        'technician_id',
         'title',
         'appointment_date',
         'time_slot_start',
@@ -73,6 +74,11 @@ class RepairBuddyAppointment extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function technician(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'technician_id');
     }
 
     public function creator(): BelongsTo

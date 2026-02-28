@@ -25,6 +25,7 @@ $statusBadgeMap = [
 $apptColumns = [
     ['key' => 'datetime',    'label' => __('Date & Time'),    'width' => '140px', 'sortable' => true, 'nowrap' => true, 'html' => true],
     ['key' => 'customer',    'label' => __('Customer'),       'sortable' => true, 'filter' => true, 'html' => true],
+    ['key' => 'technician',  'label' => __('Technician'),    'sortable' => false, 'html' => true],
     ['key' => 'type',        'label' => __('Type'),           'sortable' => true, 'filter' => true],
     ['key' => 'related',     'label' => __('Related To'),     'sortable' => false, 'html' => true],
     ['key' => 'status',      'label' => __('Status'),         'width' => '110px', 'sortable' => true, 'badge' => true],
@@ -70,6 +71,7 @@ foreach ($appointments as $appt) {
         'id'          => $appt->id,
         'datetime'    => '<div class="fw-semibold">' . $appt->appointment_date->format('M d, Y') . '</div><small class="text-muted">' . e($appt->time_slot_display) . '</small>',
         'customer'    => '<div class="fw-semibold">' . e($appt->customer?->name ?? '—') . '</div><small class="text-muted">' . e($appt->customer?->email ?? '') . '</small>',
+        'technician'  => $appt->technician ? '<div class="fw-semibold">' . e($appt->technician->name) . '</div>' : '<span class="text-muted">—</span>',
         'type'        => $appt->title ?? $appt->appointmentSetting?->title ?? '—',
         'related'     => $relatedHtml,
         'status'      => ucfirst($appt->status),
@@ -203,20 +205,9 @@ foreach ($appointments as $appt) {
         :emptyMessage="__('No appointments found.')"
     >
         <x-slot:actions>
-            <!-- <div class="btn-group btn-group-sm" role="group">
-                <button wire:click="$set('statusFilter', 'all')" class="btn btn-sm btn-outline {{ $statusFilter === 'all' ? 'active' : '' }}">
-                    {{ __('All') }}
-                </button>
-                <button wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_SCHEDULED }}')" class="btn btn-outline-info {{ $statusFilter === RepairBuddyAppointment::STATUS_SCHEDULED ? 'active' : '' }}">
-                    {{ __('Scheduled') }}
-                </button>
-                <button wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_CONFIRMED }}')" class="btn btn-outline-success {{ $statusFilter === RepairBuddyAppointment::STATUS_CONFIRMED ? 'active' : '' }}">
-                    {{ __('Confirmed') }}
-                </button>
-                <button wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_COMPLETED }}')" class="btn btn-outline-secondary {{ $statusFilter === RepairBuddyAppointment::STATUS_COMPLETED ? 'active' : '' }}">
-                    {{ __('Completed') }}
-                </button>
-            </div> -->
+            <a href="{{ route('tenant.appointments.create', ['business' => $tenantSlug]) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> {{ __('New Appointment') }}
+            </a>
         </x-slot:actions>
 
         <x-slot:filters>

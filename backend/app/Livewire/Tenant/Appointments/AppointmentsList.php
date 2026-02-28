@@ -267,7 +267,7 @@ class AppointmentsList extends Component
         $branchId = BranchContext::branchId();
 
         $query = RepairBuddyAppointment::query()
-            ->with(['customer', 'appointmentSetting', 'job', 'estimate', 'branch'])
+            ->with(['customer', 'technician', 'appointmentSetting', 'job', 'estimate', 'branch'])
             ->where('tenant_id', $tenantId);
 
         if ($branchId) {
