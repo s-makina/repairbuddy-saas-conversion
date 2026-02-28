@@ -308,6 +308,9 @@
             var errorMsg = err.message || getText('save_error', 'Failed to save time entry. Please try again.');
             if (err.status === 403) {
                 errorMsg = getText('not_assigned', 'You are not assigned to this job.');
+                if (err.data && err.data.debug) {
+                    errorMsg += ' (debug: ' + JSON.stringify(err.data.debug) + ')';
+                }
             } else if (err.status === 404) {
                 errorMsg = getText('job_not_found', 'Job not found.');
             }

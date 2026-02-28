@@ -1157,6 +1157,13 @@
                         </a>
                     @endif
                 @endif
+                @if($errorMessage)
+                    <div class="alert alert-danger alert-dismissible fade show me-3" role="alert" style="max-width: 500px;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {{ $errorMessage }}
+                        <button type="button" class="btn-close" wire:click="$set('errorMessage', null)" aria-label="Close"></button>
+                    </div>
+                @endif
                 <button type="submit" class="jf-btn jf-btn-save" wire:loading.attr="disabled" wire:target="save">
                     <i class="bi bi-check-lg" wire:loading.remove wire:target="save"></i>
                     <span wire:loading wire:target="save" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -1666,12 +1673,17 @@
                                     </div>
                                 @endif
                             </div>
-                            <div class="jf-il-controls">
+                            <div class="jf-il-controls" style="position:relative;">
                                 <input type="number" min="1" class="qty-input" wire:model.live="items.{{ $i }}.qty" />
                                 <div class="price-group">
                                     <span class="cur">{{ $currency_symbol }}</span>
                                     <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
                                 </div>
+                                @error('items.' . $i . '.unit_price_cents')
+                                    <div class="text-danger small" style="position:absolute;top:100%;left:0;white-space:nowrap;z-index:10;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);">
+                                        <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                                    </div>
+                                @enderror
                                 @if($tax_enabled)
                                 <select class="jf-tax-sel{{ empty($row['tax_id']) ? ' tax-none' : '' }}" wire:model.defer="items.{{ $i }}.tax_id" title="{{ __('Tax override') }}">
                                     <option value="">{{ __('No tax') }}</option>
@@ -1770,12 +1782,17 @@
                                     @if(!empty($row['device_info']))<span><i class="bi bi-phone me-1"></i>{{ $row['device_info'] }}</span>@endif
                                 </div>
                             </div>
-                            <div class="jf-il-controls">
+                            <div class="jf-il-controls" style="position:relative;">
                                 <input type="number" min="1" class="qty-input" wire:model.live="items.{{ $i }}.qty" />
                                 <div class="price-group">
                                     <span class="cur">{{ $currency_symbol }}</span>
                                     <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
                                 </div>
+                                @error('items.' . $i . '.unit_price_cents')
+                                    <div class="text-danger small" style="position:absolute;top:100%;left:0;white-space:nowrap;z-index:10;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);">
+                                        <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                                    </div>
+                                @enderror
                                 @if($tax_enabled)
                                 <select class="jf-tax-sel{{ empty($row['tax_id']) ? ' tax-none' : '' }}" wire:model.defer="items.{{ $i }}.tax_id" title="{{ __('Tax override') }}">
                                     <option value="">{{ __('No tax') }}</option>
@@ -1838,12 +1855,17 @@
                                     @if(!empty($row['device_info']))<span><i class="bi bi-phone me-1"></i>{{ $row['device_info'] }}</span>@endif
                                 </div>
                             </div>
-                            <div class="jf-il-controls">
+                            <div class="jf-il-controls" style="position:relative;">
                                 <input type="number" min="1" class="qty-input" wire:model.live="items.{{ $i }}.qty" />
                                 <div class="price-group">
                                     <span class="cur">{{ $currency_symbol }}</span>
                                     <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
                                 </div>
+                                @error('items.' . $i . '.unit_price_cents')
+                                    <div class="text-danger small" style="position:absolute;top:100%;left:0;white-space:nowrap;z-index:10;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);">
+                                        <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                                    </div>
+                                @enderror
                                 @if($tax_enabled)
                                 <select class="jf-tax-sel{{ empty($row['tax_id']) ? ' tax-none' : '' }}" wire:model.defer="items.{{ $i }}.tax_id" title="{{ __('Tax override') }}">
                                     <option value="">{{ __('No tax') }}</option>
@@ -2286,3 +2308,13 @@
 
     </div>
 </div>
+
+@push('page-scripts')
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('show-error', ({ message }) => {
+            alert(message);
+        });
+    });
+</script>
+@endpush

@@ -30,6 +30,17 @@
     /* Alpine.js x-cloak - hide elements until Alpine loads */
     [x-cloak] { display: none !important; }
 
+    /* Livewire error dialog: ensure it's visible and dismissable when errors occur */
+    dialog#livewire-error {
+        display: block !important;
+        position: fixed !important;
+        z-index: 2147483647 !important;
+        pointer-events: all !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        overflow: visible !important;
+    }
+
     .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
       display: flex;
       flex-wrap: wrap;

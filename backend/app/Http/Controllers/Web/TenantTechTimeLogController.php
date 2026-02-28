@@ -402,7 +402,7 @@ class TenantTechTimeLogController extends Controller
         }
 
         $validated = $request->validate([
-            'job_id' => 'required|integer|exists:repairbuddy_jobs,id',
+            'job_id' => 'required|integer',
             'start_time' => 'required|date',
             'activity' => 'required|string',
             'work_description' => 'required|string',
@@ -421,9 +421,22 @@ class TenantTechTimeLogController extends Controller
             return response()->json(['message' => 'Job not found.'], 404);
         }
 
-        $assignedTechIds = $job->technicians()->pluck('users.id')->toArray();
-        if (! in_array($user->id, $assignedTechIds) && ! $user->hasRole(['admin', 'manager'])) {
-            return response()->json(['message' => 'You are not assigned to this job.'], 403);
+        // Check assignment via pivot table OR assigned_technician_id OR admin/manager role
+        $inPivot = $job->technicians()->where('users.id', $user->id)->exists();
+        $isAssignedTech = ((int) $job->assigned_technician_id === (int) $user->id);
+        $hasAdminRole = $user->hasRole(['admin', 'manager']);
+        if (! ($inPivot || $isAssignedTech || $hasAdminRole)) {
+            return response()->json([
+                'message' => 'You are not assigned to this job.',
+                'debug' => [
+                    'job_id' => $job->id,
+                    'user_id' => $user->id,
+                    'assigned_technician_id' => $job->assigned_technician_id,
+                    'in_pivot' => $inPivot,
+                    'is_assigned_tech' => $isAssignedTech,
+                    'has_admin_role' => $hasAdminRole,
+                ],
+            ], 403);
         }
 
         // Create running time log
@@ -521,7 +534,7 @@ class TenantTechTimeLogController extends Controller
         }
 
         $validated = $request->validate([
-            'job_id' => 'required|integer|exists:repairbuddy_jobs,id',
+            'job_id' => 'required|integer',
             'start_time' => 'required|date',
             'end_time' => 'required|date|after:start_time',
             'total_minutes' => 'required|integer|min:1',
@@ -542,8 +555,19 @@ class TenantTechTimeLogController extends Controller
             return response()->json(['message' => 'Job not found.'], 404);
         }
 
-        $assignedTechIds = $job->technicians()->pluck('users.id')->toArray();
-        if (! in_array($user->id, $assignedTechIds) && ! $user->hasRole(['admin', 'manager'])) {
+        // Check assignment via pivot table OR assigned_technician_id OR admin/manager role
+        $inPivot = $job->technicians()->where('users.id', $user->id)->exists();
+        $isAssignedTech = ((int) $job->assigned_technician_id === (int) $user->id);
+        $hasAdminRole = $user->hasRole(['admin', 'manager']);
+        \Log::debug('TimeLog entry assignment check', [
+            'job_id' => $job->id,
+            'user_id' => $user->id,
+            'assigned_technician_id' => $job->assigned_technician_id,
+            'in_pivot' => $inPivot,
+            'is_assigned_tech' => $isAssignedTech,
+            'has_admin_role' => $hasAdminRole,
+        ]);
+        if (! ($inPivot || $isAssignedTech || $hasAdminRole)) {
             return response()->json(['message' => 'You are not assigned to this job.'], 403);
         }
 

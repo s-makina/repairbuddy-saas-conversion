@@ -284,8 +284,9 @@ class RepairBuddyTimeLogController extends Controller
             abort(403, 'Forbidden.');
         }
 
-        // Validate technician is assigned to this job
-        $isAssigned = $job->technicians()->where('users.id', $technicianId)->exists();
+        // Validate technician is assigned to this job (via pivot table or assigned_technician_id)
+        $isAssigned = $job->technicians()->where('users.id', $technicianId)->exists()
+            || ((int) $job->assigned_technician_id === (int) $technicianId);
         if (! $isAssigned) {
             return response()->json([
                 'message' => 'You are not assigned to this job.',

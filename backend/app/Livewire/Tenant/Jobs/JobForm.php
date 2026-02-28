@@ -116,6 +116,7 @@ class JobForm extends Component
     public ?int $editingExtraIndex = null;
     public ?string $extra_occurred_at = null;
     public ?string $extra_label = null;
+    public ?string $errorMessage = null;
     public ?string $extra_data_text = null;
     public string $extra_visibility = 'public';
     public ?string $extra_description = null;
@@ -894,21 +895,37 @@ class JobForm extends Component
 
         $action = new UpsertRepairBuddyJob();
 
-        if (is_numeric($this->jobId) && (int) $this->jobId > 0 && $this->job instanceof RepairBuddyJob) {
-            $jobFile = $this->job_file instanceof \Illuminate\Http\UploadedFile ? $this->job_file : null;
-            $extraFiles = is_array($this->extra_item_files) ? $this->extra_item_files : [];
-            $job = $action->update($this->tenant, $this->user, $this->job, $validated, $jobFile, $extraFiles);
-        } else {
-            $branch = BranchContext::branch();
-            if (! $branch instanceof Branch) {
-                abort(400, 'Tenant or branch context is missing.');
+        try {
+            if (is_numeric($this->jobId) && (int) $this->jobId > 0 && $this->job instanceof RepairBuddyJob) {
+                $jobFile = $this->job_file instanceof \Illuminate\Http\UploadedFile ? $this->job_file : null;
+                $extraFiles = is_array($this->extra_item_files) ? $this->extra_item_files : [];
+                $job = $action->update($this->tenant, $this->user, $this->job, $validated, $jobFile, $extraFiles);
+            } else {
+                $branch = BranchContext::branch();
+                if (! $branch instanceof Branch) {
+                    abort(400, 'Tenant or branch context is missing.');
+                }
+                $jobFile = $this->job_file instanceof \Illuminate\Http\UploadedFile ? $this->job_file : null;
+                $extraFiles = is_array($this->extra_item_files) ? $this->extra_item_files : [];
+                $job = $action->create($this->tenant, $branch, $this->user, $validated, $jobFile, $extraFiles);
             }
-            $jobFile = $this->job_file instanceof \Illuminate\Http\UploadedFile ? $this->job_file : null;
-            $extraFiles = is_array($this->extra_item_files) ? $this->extra_item_files : [];
-            $job = $action->create($this->tenant, $branch, $this->user, $validated, $jobFile, $extraFiles);
-        }
 
-        return redirect()->route('tenant.jobs.show', ['business' => $this->tenant->slug, 'jobId' => $job->id]);
+            return redirect()->route('tenant.jobs.show', ['business' => $this->tenant->slug, 'jobId' => $job->id]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // Let Livewire handle validation errors
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error('Job save failed: ' . $e->getMessage(), [
+                'jobId' => $this->jobId,
+                'tenant_id' => $this->tenant->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // Set error message property and dispatch browser event
+            $this->errorMessage = __('Failed to save job: ') . $e->getMessage();
+            $this->dispatch('show-error', message: $this->errorMessage);
+            return null;
+        }
     }
 
     public function getFilteredCustomersProperty()
