@@ -3,49 +3,240 @@
 use App\Models\RepairBuddyAppointment;
 
 $tenantSlug = $tenant?->slug ?? '';
+
+// Count appointments by status for stats cards
+$countScheduled = $appointments->where('status', RepairBuddyAppointment::STATUS_SCHEDULED)->count();
+$countConfirmed = $appointments->where('status', RepairBuddyAppointment::STATUS_CONFIRMED)->count();
+$countCompleted = $appointments->where('status', RepairBuddyAppointment::STATUS_COMPLETED)->count();
+$countCancelled = $appointments->where('status', RepairBuddyAppointment::STATUS_CANCELLED)->count()
+    + $appointments->where('status', RepairBuddyAppointment::STATUS_NO_SHOW)->count();
+$countTotal = $appointments->count();
+
+// Status badge map
+$statusBadgeMap = [
+    RepairBuddyAppointment::STATUS_SCHEDULED => 'wcrb-pill--info',
+    RepairBuddyAppointment::STATUS_CONFIRMED => 'wcrb-pill--active',
+    RepairBuddyAppointment::STATUS_COMPLETED => 'wcrb-pill--secondary',
+    RepairBuddyAppointment::STATUS_CANCELLED => 'wcrb-pill--danger',
+    RepairBuddyAppointment::STATUS_NO_SHOW => 'wcrb-pill--warning',
+];
+
+// Build datatable columns
+$apptColumns = [
+    ['key' => 'datetime',    'label' => __('Date & Time'),    'width' => '140px', 'sortable' => true, 'nowrap' => true, 'html' => true],
+    ['key' => 'customer',    'label' => __('Customer'),       'sortable' => true, 'filter' => true, 'html' => true],
+    ['key' => 'type',        'label' => __('Type'),           'sortable' => true, 'filter' => true],
+    ['key' => 'related',     'label' => __('Related To'),     'sortable' => false, 'html' => true],
+    ['key' => 'status',      'label' => __('Status'),         'width' => '110px', 'sortable' => true, 'badge' => true],
+    ['key' => 'actions',     'label' => '',                   'width' => '160px', 'sortable' => false, 'align' => 'text-end', 'html' => true],
+];
+
+// Build datatable rows
+$apptRows = [];
+foreach ($appointments as $appt) {
+    // Build related link
+    $relatedHtml = '<span class="badge bg-secondary">' . __('Standalone') . '</span>';
+    if ($appt->job) {
+        $jobUrl = route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $appt->job->id]);
+        $relatedHtml = '<a href="' . e($jobUrl) . '" class="text-decoration-none">'
+            . '<span class="badge bg-primary"><i class="bi bi-tools me-1"></i>' . e($appt->job->case_number) . '</span></a>';
+    } elseif ($appt->estimate) {
+        $estUrl = route('tenant.estimates.show', ['business' => $tenantSlug, 'estimateId' => $appt->estimate->id]);
+        $relatedHtml = '<a href="' . e($estUrl) . '" class="text-decoration-none">'
+            . '<span class="badge bg-warning text-dark"><i class="bi bi-file-text me-1"></i>' . e($appt->estimate->case_number) . '</span></a>';
+    }
+
+    // Build actions dropdown
+    $actionHtml = '<div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap">'
+        . '<div class="dropdown position-static">'
+        . '<button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false" style="padding: .25rem .45rem;"><i class="bi bi-three-dots" style="font-size:.75rem;"></i></button>'
+        . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 160px;">';
+
+    if ($appt->status === RepairBuddyAppointment::STATUS_SCHEDULED) {
+        $actionHtml .= '<li><button class="dropdown-item py-2" type="button" wire:click="confirmAppointment(' . $appt->id . ')"><i class="bi bi-check-circle me-2 text-success"></i>' . e(__('Confirm')) . '</button></li>';
+    }
+
+    if (in_array($appt->status, [RepairBuddyAppointment::STATUS_SCHEDULED, RepairBuddyAppointment::STATUS_CONFIRMED])) {
+        $actionHtml .= '<li><button class="dropdown-item py-2" type="button" wire:click="openRescheduleModal(' . $appt->id . ')"><i class="bi bi-calendar-event me-2 text-primary"></i>' . e(__('Reschedule')) . '</button></li>';
+        $actionHtml .= '<li><button class="dropdown-item py-2" type="button" wire:click="markCompleted(' . $appt->id . ')"><i class="bi bi-check2-all me-2 text-secondary"></i>' . e(__('Mark Completed')) . '</button></li>';
+        $actionHtml .= '<li><button class="dropdown-item py-2" type="button" wire:click="markNoShow(' . $appt->id . ')"><i class="bi bi-person-x me-2 text-warning"></i>' . e(__('Mark No Show')) . '</button></li>';
+        $actionHtml .= '<li><hr class="dropdown-divider"></li>';
+        $actionHtml .= '<li><button class="dropdown-item py-2 text-danger" type="button" wire:click="openCancelModal(' . $appt->id . ')"><i class="bi bi-x-circle me-2"></i>' . e(__('Cancel')) . '</button></li>';
+    }
+
+    $actionHtml .= '</ul></div></div>';
+
+    $apptRows[] = [
+        'id'          => $appt->id,
+        'datetime'    => '<div class="fw-semibold">' . $appt->appointment_date->format('M d, Y') . '</div><small class="text-muted">' . e($appt->time_slot_display) . '</small>',
+        'customer'    => '<div class="fw-semibold">' . e($appt->customer?->name ?? '—') . '</div><small class="text-muted">' . e($appt->customer?->email ?? '') . '</small>',
+        'type'        => $appt->title ?? $appt->appointmentSetting?->title ?? '—',
+        'related'     => $relatedHtml,
+        'status'      => ucfirst($appt->status),
+        '_badgeClass_status' => $statusBadgeMap[$appt->status] ?? 'wcrb-pill--secondary',
+        'actions'     => $actionHtml,
+    ];
+}
 ?>
 
-<div>
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom py-3">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-                <h5 class="mb-0 fw-semibold">
-                    <i class="bi bi-calendar-check me-2 text-primary"></i>
-                    {{ __('Appointments') }}
-                </h5>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug, 'screen' => 'calendar']) }}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-calendar3 me-1"></i>
-                        {{ __('Calendar View') }}
-                    </a>
-                </div>
-            </div>
-        </div>
+<div class="container-fluid p-3">
 
-        <div class="card-body">
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-end-0">
-                            <i class="bi bi-search text-muted"></i>
-                        </span>
-                        <input
-                            type="text"
-                            wire:model.live.debounce.300ms="search"
-                            class="form-control border-start-0"
-                            placeholder="{{ __('Search by customer, case, or title...') }}"
-                        >
+    {{-- ═══════ Stats Cards ═══════ --}}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2">
+            <a href="#" wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_SCHEDULED }}')" class="text-decoration-none">
+                <div class="card stats-card bg-info text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Scheduled') }}</div>
+                                <h4 class="mb-0">{{ $countScheduled }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-calendar-event"></i></div>
+                        </div>
                     </div>
                 </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-2">
+            <a href="#" wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_CONFIRMED }}')" class="text-decoration-none">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Confirmed') }}</div>
+                                <h4 class="mb-0">{{ $countConfirmed }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-check-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-2">
+            <a href="#" wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_COMPLETED }}')" class="text-decoration-none">
+                <div class="card stats-card bg-secondary text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Completed') }}</div>
+                                <h4 class="mb-0">{{ $countCompleted }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-check2-all"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-2">
+            <a href="#" wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_CANCELLED }}')" class="text-decoration-none">
+                <div class="card stats-card bg-danger text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Cancelled') }}</div>
+                                <h4 class="mb-0">{{ $countCancelled }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-x-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-2">
+            <a href="#" wire:click="$set('statusFilter', 'all')" class="text-decoration-none">
+                <div class="card stats-card bg-primary text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Total') }}</div>
+                                <h4 class="mb-0">{{ $countTotal }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-calendar-check"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-2">
+            <a href="{{ route('tenant.dashboard', ['business' => $tenantSlug, 'screen' => 'calendar']) }}" class="text-decoration-none">
+                <div class="card stats-card bg-dark text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Calendar') }}</div>
+                                <h4 class="mb-0"><i class="bi bi-calendar3"></i></h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-arrow-right"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    {{-- ═══════ Flash Messages ═══════ --}}
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- ═══════ DataTable ═══════ --}}
+    <x-ui.datatable
+        wire:key="appointments-{{ $statusFilter }}-{{ $typeFilter }}-{{ $dateFilter }}-{{ $search }}"
+        tableId="appointmentsTable"
+        :title="__('Appointments')"
+        :columns="$apptColumns"
+        :rows="$apptRows"
+        :searchable="true"
+        :paginate="true"
+        :exportable="true"
+        :filterable="false"
+        :emptyMessage="__('No appointments found.')"
+    >
+        <x-slot:actions>
+            <!-- <div class="btn-group btn-group-sm" role="group">
+                <button wire:click="$set('statusFilter', 'all')" class="btn btn-sm btn-outline {{ $statusFilter === 'all' ? 'active' : '' }}">
+                    {{ __('All') }}
+                </button>
+                <button wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_SCHEDULED }}')" class="btn btn-outline-info {{ $statusFilter === RepairBuddyAppointment::STATUS_SCHEDULED ? 'active' : '' }}">
+                    {{ __('Scheduled') }}
+                </button>
+                <button wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_CONFIRMED }}')" class="btn btn-outline-success {{ $statusFilter === RepairBuddyAppointment::STATUS_CONFIRMED ? 'active' : '' }}">
+                    {{ __('Confirmed') }}
+                </button>
+                <button wire:click="$set('statusFilter', '{{ RepairBuddyAppointment::STATUS_COMPLETED }}')" class="btn btn-outline-secondary {{ $statusFilter === RepairBuddyAppointment::STATUS_COMPLETED ? 'active' : '' }}">
+                    {{ __('Completed') }}
+                </button>
+            </div> -->
+        </x-slot:actions>
+
+        <x-slot:filters>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" style="font-size: 0.75rem;">{{ __('Search') }}</label>
+                    <input type="text" class="form-control form-control-sm" wire:model.live.debounce.300ms="search"
+                           placeholder="{{ __('Customer, case, or title...') }}">
+                </div>
                 <div class="col-md-2">
-                    <select wire:model.live="statusFilter" class="form-select form-select-sm">
+                    <label class="form-label" style="font-size: 0.75rem;">{{ __('Status') }}</label>
+                    <select class="form-select form-select-sm" wire:model.live="statusFilter">
                         @foreach ($statusOptions as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <select wire:model.live="typeFilter" class="form-select form-select-sm">
+                    <label class="form-label" style="font-size: 0.75rem;">{{ __('Type') }}</label>
+                    <select class="form-select form-select-sm" wire:model.live="typeFilter">
                         <option value="all">{{ __('All Types') }}</option>
                         @foreach ($appointmentTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->title }}</option>
@@ -53,154 +244,24 @@ $tenantSlug = $tenant?->slug ?? '';
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <input
-                        type="date"
-                        wire:model.live="dateFilter"
-                        class="form-control form-control-sm"
-                        placeholder="{{ __('Filter by date') }}"
-                    >
+                    <label class="form-label" style="font-size: 0.75rem;">{{ __('Date') }}</label>
+                    <input type="date" class="form-control form-control-sm" wire:model.live="dateFilter">
                 </div>
-                <div class="col-md-3 text-end">
+                <div class="col-auto d-flex gap-2">
                     @if ($search || $statusFilter !== 'all' || $dateFilter || $typeFilter !== 'all')
-                        <button
-                            wire:click="$set('search', ''); $set('statusFilter', 'all'); $set('dateFilter', ''); $set('typeFilter', 'all')"
-                            class="btn btn-outline-secondary btn-sm"
-                        >
-                            <i class="bi bi-x-circle me-1"></i>
-                            {{ __('Clear Filters') }}
+                        <button wire:click="$set('search', ''); $set('statusFilter', 'all'); $set('dateFilter', ''); $set('typeFilter', 'all')"
+                                class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise"></i>
                         </button>
                     @endif
                 </div>
             </div>
+        </x-slot:filters>
+    </x-ui.datatable>
 
-            @if ($appointments->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>{{ __('Date & Time') }}</th>
-                                <th>{{ __('Customer') }}</th>
-                                <th>{{ __('Type') }}</th>
-                                <th>{{ __('Related To') }}</th>
-                                <th>{{ __('Status') }}</th>
-                                <th class="text-end">{{ __('Actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($appointments as $appointment)
-                                <tr>
-                                    <td>
-                                        <div class="fw-semibold">{{ $appointment->appointment_date->format('M d, Y') }}</div>
-                                        <small class="text-muted">{{ $appointment->time_slot_display }}</small>
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold">{{ $appointment->customer?->name ?? '—' }}</div>
-                                        <small class="text-muted">{{ $appointment->customer?->email ?? '' }}</small>
-                                    </td>
-                                    <td>
-                                        {{ $appointment->title ?? $appointment->appointmentSetting?->title ?? '—' }}
-                                    </td>
-                                    <td>
-                                        @if ($appointment->job)
-                                            <a href="{{ route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $appointment->job->id]) }}" class="text-decoration-none">
-                                                <span class="badge bg-primary">
-                                                    <i class="bi bi-tools me-1"></i>
-                                                    {{ $appointment->job->case_number }}
-                                                </span>
-                                            </a>
-                                        @elseif ($appointment->estimate)
-                                            <a href="{{ route('tenant.estimates.show', ['business' => $tenantSlug, 'estimateId' => $appointment->estimate->id]) }}" class="text-decoration-none">
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-file-text me-1"></i>
-                                                    {{ $appointment->estimate->case_number }}
-                                                </span>
-                                            </a>
-                                        @else
-                                            <span class="badge bg-secondary">{{ __('Standalone') }}</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @php
-                                            $statusClasses = [
-                                                RepairBuddyAppointment::STATUS_SCHEDULED => 'bg-info',
-                                                RepairBuddyAppointment::STATUS_CONFIRMED => 'bg-success',
-                                                RepairBuddyAppointment::STATUS_COMPLETED => 'bg-secondary',
-                                                RepairBuddyAppointment::STATUS_CANCELLED => 'bg-danger',
-                                                RepairBuddyAppointment::STATUS_NO_SHOW => 'bg-danger',
-                                            ];
-                                            $statusClass = $statusClasses[$appointment->status] ?? 'bg-secondary';
-                                        @endphp
-                                        <span class="badge {{ $statusClass }}">
-                                            {{ ucfirst($appointment->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="bi bi-three-dots"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                                @if ($appointment->status === RepairBuddyAppointment::STATUS_SCHEDULED)
-                                                    <li>
-                                                        <button class="dropdown-item py-2" wire:click="confirmAppointment({{ $appointment->id }})">
-                                                            <i class="bi bi-check-circle me-2 text-success"></i>
-                                                            {{ __('Confirm') }}
-                                                        </button>
-                                                    </li>
-                                                @endif
-                                                @if (in_array($appointment->status, [RepairBuddyAppointment::STATUS_SCHEDULED, RepairBuddyAppointment::STATUS_CONFIRMED]))
-                                                    <li>
-                                                        <button class="dropdown-item py-2" wire:click="openRescheduleModal({{ $appointment->id }})">
-                                                            <i class="bi bi-calendar-event me-2 text-primary"></i>
-                                                            {{ __('Reschedule') }}
-                                                        </button>
-                                                    </li>
-                                                    <li>
-                                                        <button class="dropdown-item py-2" wire:click="markCompleted({{ $appointment->id }})">
-                                                            <i class="bi bi-check2-all me-2 text-secondary"></i>
-                                                            {{ __('Mark Completed') }}
-                                                        </button>
-                                                    </li>
-                                                    <li>
-                                                        <button class="dropdown-item py-2" wire:click="markNoShow({{ $appointment->id }})">
-                                                            <i class="bi bi-person-x me-2 text-warning"></i>
-                                                            {{ __('Mark No Show') }}
-                                                        </button>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <button class="dropdown-item py-2 text-danger" wire:click="openCancelModal({{ $appointment->id }})">
-                                                            <i class="bi bi-x-circle me-2"></i>
-                                                            {{ __('Cancel') }}
-                                                        </button>
-                                                    </li>
-                                                @endif
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4">
-                    {{ $appointments->links() }}
-                </div>
-            @else
-                <div class="text-center py-5">
-                    <i class="bi bi-calendar-x display-4 text-muted"></i>
-                    <h5 class="text-muted mt-3">{{ __('No appointments found') }}</h5>
-                    <p class="text-muted small mb-0">
-                        @if ($search || $statusFilter !== 'all' || $dateFilter || $typeFilter !== 'all')
-                            {{ __('Try adjusting your filters.') }}
-                        @else
-                            {{ __('Appointments will appear here when created through bookings.') }}
-                        @endif
-                    </p>
-                </div>
-            @endif
-        </div>
+    {{-- ═══════ Pagination ═══════ --}}
+    <div class="mt-4">
+        {{ $appointments->links() }}
     </div>
 
     {{-- Cancel Modal --}}
@@ -294,3 +355,28 @@ $tenantSlug = $tenant?->slug ?? '';
         </div>
     @endif
 </div>
+
+@push('page-styles')
+<style>
+    .wcrb-pill--info     { color: #0369a1; background: rgba(14,165,233,.10); border-color: rgba(14,165,233,.25); }
+    .wcrb-pill--active   { color: #15803d; background: rgba(34,197,94,.10);  border-color: rgba(34,197,94,.25); }
+    .wcrb-pill--secondary{ color: #475569; background: rgba(100,116,139,.10);border-color: rgba(100,116,139,.25); }
+    .wcrb-pill--danger   { color: #991b1b; background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.25); }
+    .wcrb-pill--warning  { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+
+    [data-bs-theme="dark"] .wcrb-pill--info     { background: rgba(14,165,233,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--active   { background: rgba(34,197,94,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--secondary{ background: rgba(100,116,139,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--danger   { background: rgba(239,68,68,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--warning  { background: rgba(245,158,11,.20); }
+
+    .stats-card {
+        transition: transform .15s, box-shadow .15s;
+        cursor: pointer;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+</style>
+@endpush

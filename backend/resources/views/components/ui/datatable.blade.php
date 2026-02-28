@@ -52,6 +52,7 @@
         perPage: {{ $perPage }},
         columns: {{ json_encode(collect($columns)->map(fn ($c) => ['key' => $c['key'] ?? '', 'searchable' => $c['searchable'] ?? true])->values()) }},
     })"
+    x-init="$watch('rows', (newRows) => { allRows = newRows.map((r, i) => ({ _id: i, ...r })); currentPage = 1; })"
     x-cloak
     {{ $attributes->class(['rb-datatable-wrapper']) }}
 >
@@ -198,7 +199,7 @@
                                 @if($col['badge'] ?? false)
                                     <span class="wcrb-pill" :class="row['_badgeClass_{{ $col['key'] }}'] ?? 'wcrb-pill--active'" x-text="row['{{ $col['key'] }}']"></span>
                                 @elseif($col['html'] ?? false)
-                                    <span x-html="row['{{ $col['key'] }}']"></span>
+                                    <span x-html="row['{{ $col['key'] }}']" x-init="$nextTick(() => { const dropdowns = $el.querySelectorAll('[data-bs-toggle=dropdown]'); dropdowns.forEach(el => new bootstrap.Dropdown(el)); })"></span>
                                 @else
                                     <span x-text="row['{{ $col['key'] }}']"></span>
                                 @endif

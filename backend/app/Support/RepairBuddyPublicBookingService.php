@@ -257,6 +257,7 @@ class RepairBuddyPublicBookingService
                     customerId: $customerId,
                     jobId: $job->id,
                     estimateId: null,
+                    tenant: $tenant,
                 );
 
                 return [
@@ -306,6 +307,7 @@ class RepairBuddyPublicBookingService
                 customerId: $customerId,
                 jobId: null,
                 estimateId: $estimate->id,
+                tenant: $tenant,
             );
 
             return [
@@ -1067,6 +1069,7 @@ class RepairBuddyPublicBookingService
         int $customerId,
         ?int $jobId,
         ?int $estimateId,
+        Tenant $tenant,
     ): ?RepairBuddyAppointment {
         $settingId = is_numeric($appointmentData['appointment_setting_id'] ?? null)
             ? (int) $appointmentData['appointment_setting_id']
