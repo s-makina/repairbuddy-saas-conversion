@@ -1018,7 +1018,7 @@
     .rb-modal-backdrop {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
-        z-index: 2000; display: flex; align-items: center; justify-content: center;
+        z-index: 2000; align-items: center; justify-content: center;
         padding: 1.5rem; animation: fadeInModal .2s ease;
     }
     .rb-modal-container {
@@ -2216,7 +2216,18 @@
 
     {{-- ══════ Job Extra Modal (only for jobs) ══════ --}}
     @if(! $isEstimate)
-    <div x-data="{ show: @entangle('showExtraModal') }" x-show="show" x-cloak class="rb-modal-backdrop" @keydown.escape.window="show = false">
+    <div x-data="{ show: @entangle('showExtraModal').live }" 
+         x-show="show" 
+         x-bind:style="show ? 'display: flex !important' : ''"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak 
+         class="rb-modal-backdrop" 
+         @keydown.escape.window="show = false">
         <div class="rb-modal-container" @click.away="show = false">
             <div class="rb-modal-header">
                 <h5 class="mb-0 fw-bold">{{ $editingExtraIndex !== null ? __('Edit Job Extra') : __('Add Job Extra') }}</h5>

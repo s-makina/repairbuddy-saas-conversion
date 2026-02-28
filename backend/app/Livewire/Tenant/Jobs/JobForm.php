@@ -371,7 +371,7 @@ class JobForm extends Component
             'items.*.name' => ['nullable', 'string', 'max:255'],
             'items.*.code' => ['nullable', 'string', 'max:64'],
             'items.*.qty' => ['nullable', 'integer', 'min:1', 'max:9999'],
-            'items.*.unit_price_cents' => ['nullable', 'integer', 'min:-1000000000', 'max:1000000000'],
+            'items.*.unit_price_cents' => ['nullable', 'integer', 'min:-999999999999999', 'max:999999999999999'],
             'items.*.tax_id' => ['nullable', 'integer'],
             'items.*.meta_json' => ['nullable', 'string', 'max:2000'],
 

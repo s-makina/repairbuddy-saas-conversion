@@ -323,6 +323,29 @@ class TenantTechTimeLogController extends Controller
             }
         }
 
+        /* ─── Running Timer (for restoration after page load) ─── */
+        $runningTimer = RepairBuddyTimeLog::query()
+            ->where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
+            ->where('technician_id', $techId)
+            ->where('log_state', 'running')
+            ->first();
+
+        $runningTimerData = null;
+        if ($runningTimer) {
+            $runningTimerData = [
+                'id' => $runningTimer->id,
+                'job_id' => $runningTimer->job_id,
+                'start_time' => $runningTimer->start_time?->toIso8601String(),
+                'activity' => $runningTimer->activity,
+                'work_description' => $runningTimer->work_description,
+                'is_billable' => $runningTimer->is_billable,
+                'device_id' => $runningTimer->device_id,
+                'device_serial' => $runningTimer->device_serial,
+                'device_index' => $runningTimer->device_index,
+            ];
+        }
+
         return view('tenant.timelog', [
             'tenant'     => $tenant,
             'user'       => $user,
@@ -359,6 +382,190 @@ class TenantTechTimeLogController extends Controller
 
             // Recent logs
             'recent_time_logs_html' => $recentHtml,
+
+            // Running timer (for restoration)
+            'running_timer' => $runningTimerData,
         ]);
+    }
+
+    /**
+     * Start a running timer.
+     */
+    public function startTimer(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+        $branch = BranchContext::branch();
+
+        if (! $tenant || ! $branch || ! $user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'job_id' => 'required|integer|exists:repairbuddy_jobs,id',
+            'start_time' => 'required|date',
+            'activity' => 'required|string',
+            'work_description' => 'required|string',
+            'is_billable' => 'boolean',
+            'device_id' => 'nullable|string',
+            'device_serial' => 'nullable|string',
+            'device_index' => 'nullable|integer',
+        ]);
+
+        // Check technician assignment
+        $job = RepairBuddyJob::where('tenant_id', $tenant->id)
+            ->where('id', $validated['job_id'])
+            ->first();
+
+        if (! $job) {
+            return response()->json(['message' => 'Job not found.'], 404);
+        }
+
+        $assignedTechIds = $job->technicians()->pluck('users.id')->toArray();
+        if (! in_array($user->id, $assignedTechIds) && ! $user->hasRole(['admin', 'manager'])) {
+            return response()->json(['message' => 'You are not assigned to this job.'], 403);
+        }
+
+        // Create running time log
+        $timeLog = RepairBuddyTimeLog::create([
+            'tenant_id' => $tenant->id,
+            'branch_id' => $branch->id,
+            'job_id' => $validated['job_id'],
+            'technician_id' => $user->id,
+            'start_time' => $validated['start_time'],
+            'activity' => $validated['activity'],
+            'work_description' => $validated['work_description'],
+            'is_billable' => $validated['is_billable'] ?? true,
+            'device_id' => $validated['device_id'] ?? null,
+            'device_serial' => $validated['device_serial'] ?? null,
+            'device_index' => $validated['device_index'] ?? 0,
+            'time_type' => 'timer',
+            'log_state' => 'running',
+            'hourly_rate_cents' => $user->tech_hourly_rate_cents ?? 0,
+        ]);
+
+        return response()->json(['time_log' => $timeLog], 201);
+    }
+
+    /**
+     * Pause a running timer.
+     */
+    public function pauseTimer(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'time_log_id' => 'required|integer',
+        ]);
+
+        $timeLog = RepairBuddyTimeLog::where('tenant_id', $tenant->id)
+            ->where('id', $validated['time_log_id'])
+            ->where('technician_id', $user->id)
+            ->where('log_state', 'running')
+            ->first();
+
+        if (! $timeLog) {
+            return response()->json(['message' => 'Running timer not found.'], 404);
+        }
+
+        $timeLog->update(['log_state' => 'paused']);
+
+        return response()->json(['time_log' => $timeLog]);
+    }
+
+    /**
+     * Stop and complete a timer.
+     */
+    public function stopTimer(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'time_log_id' => 'required|integer',
+            'end_time' => 'required|date',
+            'total_minutes' => 'required|integer',
+        ]);
+
+        $timeLog = RepairBuddyTimeLog::where('tenant_id', $tenant->id)
+            ->where('id', $validated['time_log_id'])
+            ->where('technician_id', $user->id)
+            ->whereIn('log_state', ['running', 'paused'])
+            ->first();
+
+        if (! $timeLog) {
+            return response()->json(['message' => 'Active timer not found.'], 404);
+        }
+
+        $timeLog->update([
+            'end_time' => $validated['end_time'],
+            'total_minutes' => $validated['total_minutes'],
+            'log_state' => 'pending',
+        ]);
+
+        return response()->json(['time_log' => $timeLog]);
+    }
+
+    /**
+     * Save a manual time entry.
+     */
+    public function saveEntry(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+        $branch = BranchContext::branch();
+
+        if (! $tenant || ! $branch || ! $user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'job_id' => 'required|integer|exists:repairbuddy_jobs,id',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date|after:start_time',
+            'total_minutes' => 'required|integer|min:1',
+            'activity' => 'required|string',
+            'work_description' => 'required|string',
+            'is_billable' => 'boolean',
+            'device_id' => 'nullable|string',
+            'device_serial' => 'nullable|string',
+            'device_index' => 'nullable|integer',
+        ]);
+
+        // Check technician assignment
+        $job = RepairBuddyJob::where('tenant_id', $tenant->id)
+            ->where('id', $validated['job_id'])
+            ->first();
+
+        if (! $job) {
+            return response()->json(['message' => 'Job not found.'], 404);
+        }
+
+        $assignedTechIds = $job->technicians()->pluck('users.id')->toArray();
+        if (! in_array($user->id, $assignedTechIds) && ! $user->hasRole(['admin', 'manager'])) {
+            return response()->json(['message' => 'You are not assigned to this job.'], 403);
+        }
+
+        $timeLog = RepairBuddyTimeLog::create([
+            'tenant_id' => $tenant->id,
+            'branch_id' => $branch->id,
+            'job_id' => $validated['job_id'],
+            'technician_id' => $user->id,
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'total_minutes' => $validated['total_minutes'],
+            'activity' => $validated['activity'],
+            'work_description' => $validated['work_description'],
+            'is_billable' => $validated['is_billable'] ?? true,
+            'device_id' => $validated['device_id'] ?? null,
+            'device_serial' => $validated['device_serial'] ?? null,
+            'device_index' => $validated['device_index'] ?? 0,
+            'time_type' => 'manual',
+            'log_state' => 'pending',
+            'hourly_rate_cents' => $user->tech_hourly_rate_cents ?? 0,
+        ]);
+
+        return response()->json(['time_log' => $timeLog], 201);
     }
 }

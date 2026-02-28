@@ -27,6 +27,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
   <style>
+    /* Alpine.js x-cloak - hide elements until Alpine loads */
+    [x-cloak] { display: none !important; }
+
     .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
       display: flex;
       flex-wrap: wrap;

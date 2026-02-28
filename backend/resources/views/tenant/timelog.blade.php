@@ -443,6 +443,9 @@
     @endphp
     window.timelog_chart_data = @json($weekly_chart_data ?? $defaultChartData);
 
+    // Running timer data (passed from backend to avoid API auth issues)
+    window.timelog_running_timer = @json($running_timer ?? null);
+
     // Localization strings
     window.timelog_i18n = {
         hours_worked: @json(__('Hours Worked')),

@@ -1,10 +1,11 @@
 <div>
     <div x-data="{ show: @entangle('showModal').live }"
          x-show="show"
+         x-bind:style="show ? 'display: flex !important' : ''"
+         x-cloak
          x-on:keydown.escape.window="show = false"
          @close-service-modal.window="show = false"
-         class="rb-modal-backdrop"
-         style="display: none;">
+         class="rb-modal-backdrop">
         
         <div class="rb-modal-container" 
              @click.away="show = false"

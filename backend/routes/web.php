@@ -799,6 +799,20 @@ Route::prefix('t/{business}')
             ->middleware('permission:time_logs.view')
             ->name('tenant.time_log.dashboard');
 
+        // Timer API via web routes (session auth instead of Sanctum)
+        Route::post('/time-log/start', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'startTimer'])
+            ->middleware('permission:time_logs.manage')
+            ->name('tenant.time_log.start');
+        Route::post('/time-log/pause', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'pauseTimer'])
+            ->middleware('permission:time_logs.manage')
+            ->name('tenant.time_log.pause');
+        Route::post('/time-log/stop', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'stopTimer'])
+            ->middleware('permission:time_logs.manage')
+            ->name('tenant.time_log.stop');
+        Route::post('/time-log/entry', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'saveEntry'])
+            ->middleware('permission:time_logs.manage')
+            ->name('tenant.time_log.entry');
+
         /* ------------------------------------------------------------ */
         /*  PRINT / PDF – jobs & estimates                               */
         /* ------------------------------------------------------------ */

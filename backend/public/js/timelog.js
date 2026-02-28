@@ -65,9 +65,28 @@
         return '/api/v1';
     }
 
+    function getWebBase() {
+        // Get the base URL for web routes (session auth)
+        const path = window.location.pathname;
+        const match = path.match(/^\/(t\/[^\/]+|[^\/]+)/);
+        if (match) return '/' + match[1];
+        return '';
+    }
+
     function getCsrfToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         return meta ? meta.getAttribute('content') : '';
+    }
+
+    // Fetch Sanctum CSRF cookie for SPA authentication
+    function ensureCsrfCookie() {
+        return fetch('/sanctum/csrf-cookie', {
+            method: 'GET',
+            credentials: 'same-origin'
+        }).catch(function(err) {
+            // Ignore errors - might not be needed if already set
+            console.warn('CSRF cookie fetch failed (may be okay):', err);
+        });
     }
 
     function getSelectedJobDevice() {
@@ -172,7 +191,8 @@
         fetch(apiBase + '/time-logs/chart?period=' + (period || 'week'), {
             headers: {
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin'
         })
@@ -244,28 +264,25 @@
     }
 
     function createRunningTimeLog(sel) {
-        const apiBase = getApiBase();
+        const webBase = getWebBase();
         const data = {
             job_id: sel.jobId,
             start_time: timerStartTime.toISOString(),
             activity: activityTypeEl ? activityTypeEl.value : '',
             work_description: workDescriptionEl ? workDescriptionEl.value.trim() : '',
             is_billable: isBillableEl ? isBillableEl.value === '1' : true,
-            time_type: 'timer',
-            log_state: 'running',
-            device_data: {
-                device_id: sel.deviceId,
-                device_serial: sel.deviceSerial,
-                device_index: sel.deviceIndex
-            }
+            device_id: sel.deviceId,
+            device_serial: sel.deviceSerial,
+            device_index: sel.deviceIndex
         };
 
-        fetch(apiBase + '/time-logs', {
+        fetch(webBase + '/time-log/start', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin',
             body: JSON.stringify(data)
@@ -309,10 +326,14 @@
 
     function pauseTimer() {
         if (!timerRunning) return;
+
         timerRunning = false;
         timerPausedTime = new Date();
         clearInterval(timerInterval);
 
+        if (display) {
+            display.textContent = formatTimer(timerElapsed);
+        }
         if (statusBadge) {
             statusBadge.textContent = getText('paused', 'Paused');
             statusBadge.className = 'badge bg-warning text-dark float-end';
@@ -321,9 +342,28 @@
         if (btnPause) btnPause.disabled = true;
 
         // Update running time log with current elapsed time
-        if (activeTimeLogId) {
-            updateTimeLog(activeTimeLogId, { total_minutes: Math.floor(timerElapsed / 60) });
-        }
+        const webBase = getWebBase();
+        fetch(webBase + '/time-log/pause', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ time_log_id: activeTimeLogId })
+        })
+        .then(function(res) {
+            if (!res.ok) {
+                console.error('Pause time log failed with status:', res.status);
+            }
+            return res.json();
+        })
+        .catch(function(err) {
+            console.error('Failed to pause time log:', err);
+            // Non-critical - don't show alert for pause updates
+        });
     }
 
     function stopTimer() {
@@ -400,7 +440,8 @@
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin',
             body: JSON.stringify(updates)
@@ -418,19 +459,20 @@
     }
 
     function completeTimeLog(timeLogId, endTime, durationMinutes) {
-        const apiBase = getApiBase();
-        fetch(apiBase + '/time-logs/' + timeLogId, {
-            method: 'PATCH',
+        const webBase = getWebBase();
+        fetch(webBase + '/time-log/stop', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin',
             body: JSON.stringify({
+                time_log_id: timeLogId,
                 end_time: endTime.toISOString(),
-                total_minutes: durationMinutes,
-                log_state: 'pending'
+                total_minutes: durationMinutes
             })
         })
         .then(function(res) {
@@ -525,7 +567,7 @@
     function refreshStats() {
         const apiBase = getApiBase();
         fetch(apiBase + '/time-logs?per_page=1', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin'
         })
         .then(function(res) { return res.json(); })
@@ -557,7 +599,7 @@
     function refreshRecentLogs() {
         const apiBase = getApiBase();
         fetch(apiBase + '/time-logs?per_page=5', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin'
         })
         .then(function(res) { return res.json(); })
@@ -601,14 +643,15 @@
 
     /* ─── API Call ────────────────────────────────── */
     function saveTimeEntry(data) {
-        const apiBase = getApiBase();
+        const webBase = getWebBase();
 
-        fetch(apiBase + '/time-logs', {
+        fetch(webBase + '/time-log/entry', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin',
             body: JSON.stringify(data),
@@ -652,66 +695,56 @@
 
     /* ─── Timer Restoration (after page refresh) ─── */
     function restoreRunningTimer() {
-        const apiBase = getApiBase();
-        fetch(apiBase + '/time-logs/running', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
-            credentials: 'same-origin'
-        })
-        .then(function(res) {
-            if (!res.ok) return null;
-            return res.json();
-        })
-        .then(function(data) {
-            if (data && data.time_log) {
-                const log = data.time_log;
-                activeTimeLogId = log.id;
-                timerStartTime = new Date(log.start_time);
+        // Use data passed from backend instead of API call (avoids SPA auth issues)
+        const data = window.timelog_running_timer;
+        if (!data) return;
+        
+        activeTimeLogId = data.id;
+        timerStartTime = new Date(data.start_time);
 
-                // Calculate elapsed time
-                const now = new Date();
-                timerElapsed = Math.floor((now - timerStartTime) / 1000);
+        // Calculate elapsed time
+        const now = new Date();
+        timerElapsed = Math.floor((now - timerStartTime) / 1000);
 
-                // Update UI
-                if (startTimeEl) {
-                    startTimeEl.textContent = timerStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
-                if (display) {
-                    display.textContent = formatTimer(timerElapsed);
-                }
-                if (statusBadge) {
-                    statusBadge.textContent = getText('running', 'Running');
-                    statusBadge.className = 'badge bg-success float-end';
-                }
+        // Update UI
+        if (startTimeEl) {
+            startTimeEl.textContent = timerStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        if (display) {
+            display.textContent = formatTimer(timerElapsed);
+        }
+        if (statusBadge) {
+            statusBadge.textContent = getText('running', 'Running');
+            statusBadge.className = 'badge bg-success float-end';
+        }
 
-                // Disable form fields
-                if (workDescriptionEl) {
-                    workDescriptionEl.disabled = true;
-                    workDescriptionEl.value = log.work_description || '';
-                }
-                if (activityTypeEl) {
-                    activityTypeEl.disabled = true;
-                    activityTypeEl.value = log.activity || '';
-                }
-                if (isBillableEl) {
-                    isBillableEl.disabled = true;
-                    isBillableEl.value = log.is_billable ? '1' : '0';
-                }
-
-                // Start timer interval
-                timerRunning = true;
-                if (btnStart) btnStart.disabled = true;
-                if (btnPause) btnPause.disabled = false;
-                if (btnStop) btnStop.disabled = false;
-
-                timerInterval = setInterval(function () {
-                    timerElapsed++;
-                    if (display) display.textContent = formatTimer(timerElapsed);
-                }, 1000);
+        // Disable form fields
+        if (workDescriptionEl) {
+            workDescriptionEl.disabled = true;
+            workDescriptionEl.value = data.work_description || '';
+        }
+        if (activityTypeEl) {
+            activityTypeEl.disabled = true;
+            if (data.activity) {
+                activityTypeEl.value = data.activity.toLowerCase();
             }
-        })
-        .catch(function(err) {
-            console.error('Failed to restore timer:', err);
-        });
+        }
+        if (isBillableEl) {
+            isBillableEl.disabled = true;
+            isBillableEl.value = data.is_billable ? '1' : '0';
+        }
+
+        // Set timer as running
+        timerRunning = true;
+        if (btnStart) btnStart.disabled = true;
+        if (btnPause) btnPause.disabled = false;
+        if (btnStop) btnStop.disabled = false;
+
+        // Start the interval
+        timerInterval = setInterval(function () {
+            timerElapsed++;
+            if (display) display.textContent = formatTimer(timerElapsed);
+        }, 1000);
     }
 
     /* ─── Job/Device Selection ────────────────────── */
@@ -764,75 +797,10 @@
         if (noJobAlert) noJobAlert.style.display = 'none';
         if (quickNoJobAlert) quickNoJobAlert.style.display = 'none';
 
-        // Fetch job details and update UI
-        fetchJobDetails(jobId, deviceId, deviceSerial, deviceIndex);
-
-        // Update URL without reload
+        // Reload page with job parameter (simpler approach that works with session auth)
         const url = new URL(window.location.href);
         url.searchParams.set('job', val);
-        window.history.replaceState({}, '', url.toString());
-    }
-
-    function fetchJobDetails(jobId, deviceId, deviceSerial, deviceIndex) {
-        const apiBase = getApiBase();
-        
-        fetch(apiBase + '/jobs/' + jobId, {
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
-            },
-            credentials: 'same-origin'
-        })
-        .then(function(res) {
-            if (!res.ok) {
-                if (res.status === 404) {
-                    throw new Error(getText('job_not_found', 'Job not found.'));
-                }
-                throw new Error(getText('network_error', 'Network error. Please try again.'));
-            }
-            return res.json();
-        })
-        .then(function(data) {
-            const job = data.job || data;
-            
-            // Update display name
-            const displayNameEl = $('#jobDisplayName');
-            const jobInfoEl = $('#jobInfo');
-            
-            const caseNumber = job.case_number || ('JOB-' + job.id);
-            const title = job.title ? ' — ' + job.title : '';
-            const displayName = caseNumber + title;
-            
-            if (displayNameEl) displayNameEl.textContent = displayName;
-            if (jobInfoEl) jobInfoEl.innerHTML = '<strong>JOB-' + String(job.id).padStart(5, '0') + '</strong> | ' + escapeHtml(displayName);
-
-            // Get device label if applicable (API returns job_devices, not devices)
-            let deviceLabel = '';
-            const jobDevices = job.job_devices || job.devices || [];
-            if (jobDevices.length > deviceIndex) {
-                deviceLabel = jobDevices[deviceIndex].label || jobDevices[deviceIndex].label_snapshot || 'Device ' + (deviceIndex + 1);
-            }
-            
-            const deviceLabelEl = $('#deviceLabel');
-            const deviceLabelInfoEl = $('#deviceLabelInfo');
-            if (deviceLabelEl) deviceLabelEl.textContent = deviceLabel;
-            if (deviceLabelInfoEl && deviceLabel) {
-                deviceLabelInfoEl.innerHTML = '<i class="bi bi-device-hdd me-1"></i>' + escapeHtml(deviceLabel);
-            }
-
-            // Show timer sections
-            const timerSection = $('#currentTimeEntry');
-            const quickEntrySection = $('#quickTimeEntrySection');
-            if (timerSection) timerSection.style.display = 'block';
-            if (quickEntrySection) quickEntrySection.style.display = 'block';
-
-            // Re-validate timer fields
-            validateTimerFields();
-        })
-        .catch(function(err) {
-            console.error('Failed to fetch job details:', err);
-            showAlert(err.message || getText('job_not_found', 'Could not load job details.'), 'danger');
-        });
+        window.location.href = url.toString();
     }
 
     /* ─── Chart Period Buttons ───────────────────── */
