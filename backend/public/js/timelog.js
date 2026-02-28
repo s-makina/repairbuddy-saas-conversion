@@ -222,16 +222,21 @@
     function startTimer() {
         if (timerRunning) return;
 
-        // Validate required fields
-        if (!validateTimerFields()) {
-            showAlert(getText('description_activity_required', 'Please enter a work description and select an activity type.'), 'warning');
-            return;
-        }
+        // Check if resuming from paused state (activeTimeLogId already set from restoration)
+        const isResuming = activeTimeLogId !== null;
 
-        const sel = getSelectedJobDevice();
-        if (!sel.jobId) {
-            showAlert(getText('select_job_first', 'Please select a job/device before starting the timer.'), 'warning');
-            return;
+        if (!isResuming) {
+            // Validate required fields for new timer
+            if (!validateTimerFields()) {
+                showAlert(getText('description_activity_required', 'Please enter a work description and select an activity type.'), 'warning');
+                return;
+            }
+
+            const sel = getSelectedJobDevice();
+            if (!sel.jobId) {
+                showAlert(getText('select_job_first', 'Please select a job/device before starting the timer.'), 'warning');
+                return;
+            }
         }
 
         timerRunning = true;
@@ -254,13 +259,43 @@
         if (activityTypeEl) activityTypeEl.disabled = true;
         if (isBillableEl) isBillableEl.disabled = true;
 
-        // Create running time log entry for persistence
-        createRunningTimeLog(sel);
+        // Create new time log entry only if not resuming
+        if (!isResuming) {
+            const sel = getSelectedJobDevice();
+            createRunningTimeLog(sel);
+        } else {
+            // Resume existing timer - update backend state
+            resumeTimer();
+        }
 
         timerInterval = setInterval(function () {
             timerElapsed++;
             if (display) display.textContent = formatTimer(timerElapsed);
         }, 1000);
+    }
+
+    function resumeTimer() {
+        const webBase = getWebBase();
+        fetch(webBase + '/time-log/resume', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ time_log_id: activeTimeLogId })
+        })
+        .then(function(res) {
+            if (!res.ok) {
+                console.error('Resume time log failed with status:', res.status);
+            }
+            return res.json();
+        })
+        .catch(function(err) {
+            console.error('Failed to resume time log:', err);
+        });
     }
 
     function createRunningTimeLog(sel) {
@@ -355,7 +390,10 @@
                 'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ time_log_id: activeTimeLogId })
+            body: JSON.stringify({ 
+                time_log_id: activeTimeLogId,
+                accumulated_seconds: timerElapsed 
+            })
         })
         .then(function(res) {
             if (!res.ok) {
@@ -566,64 +604,20 @@
         form.reset();
     }
 
-    /* ─── Dynamic Updates (no page reload) ──────── */
+    /* ─── Dynamic Updates (page reload) ──────── */
     function refreshStats() {
-        const apiBase = getApiBase();
-        fetch(apiBase + '/time-logs?per_page=1', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
-            credentials: 'same-origin'
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.summary) {
-                // Update stats cards if they exist
-                const todayHours = $('#todayHours');
-                const weekHours = $('#weekHours');
-                const billableRate = $('#billableRate');
-                const monthEarnings = $('#monthEarnings');
-
-                if (todayHours && data.summary.today_hours !== undefined) {
-                    todayHours.textContent = data.summary.today_hours + 'h';
-                }
-                if (weekHours && data.summary.week_hours !== undefined) {
-                    weekHours.textContent = data.summary.week_hours + 'h';
-                }
-                if (billableRate && data.summary.billable_rate !== undefined) {
-                    billableRate.textContent = data.summary.billable_rate + '%';
-                }
-                if (monthEarnings && data.summary.month_earnings_formatted) {
-                    monthEarnings.textContent = data.summary.month_earnings_formatted;
-                }
-            }
-        })
-        .catch(function(err) { console.error('Stats refresh failed:', err); });
+        // Reload page to refresh stats (API requires Sanctum auth, but we use session auth)
+        const jobSelect = $('#timeLogJobDeviceSelect');
+        const jobValue = jobSelect ? jobSelect.value : '';
+        if (jobValue) {
+            window.location.href = window.location.pathname + '?job=' + encodeURIComponent(jobValue);
+        } else {
+            window.location.reload();
+        }
     }
 
     function refreshRecentLogs() {
-        const apiBase = getApiBase();
-        fetch(apiBase + '/time-logs?per_page=5', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
-            credentials: 'same-origin'
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.time_logs && data.time_logs.length > 0) {
-                const tbody = $('#todayLogsTable');
-                if (!tbody) return;
-
-                // Prepend new entries
-                data.time_logs.forEach(function(log) {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = '<td>' + (log.job ? '#' + log.job.case_number : '-') + '</td>' +
-                        '<td><span class="badge bg-info">' + escapeHtml(log.activity || '-') + '</span></td>' +
-                        '<td>' + formatTime(log.start_time) + '</td>' +
-                        '<td>' + Math.floor(log.total_minutes / 60) + 'h ' + (log.total_minutes % 60) + 'm</td>' +
-                        '<td class="text-end">' + formatCurrency(log.charged_amount) + '</td>';
-                    tbody.insertBefore(tr, tbody.firstChild);
-                });
-            }
-        })
-        .catch(function(err) { console.error('Logs refresh failed:', err); });
+        // Handled by refreshStats() which reloads the page
     }
 
     function escapeHtml(str) {
@@ -705,9 +699,18 @@
         activeTimeLogId = data.id;
         timerStartTime = new Date(data.start_time);
 
-        // Calculate elapsed time
         const now = new Date();
-        timerElapsed = Math.floor((now - timerStartTime) / 1000);
+        const isPaused = data.log_state === 'paused';
+
+        // Calculate elapsed time based on state
+        if (isPaused) {
+            // For paused timers, use the accumulated_seconds from when it was paused
+            timerElapsed = data.accumulated_seconds || 0;
+            timerPausedTime = data.paused_at ? new Date(data.paused_at) : now;
+        } else {
+            // For running timers, calculate elapsed from start time
+            timerElapsed = Math.floor((now - timerStartTime) / 1000);
+        }
 
         // Update UI
         if (startTimeEl) {
@@ -715,10 +718,6 @@
         }
         if (display) {
             display.textContent = formatTimer(timerElapsed);
-        }
-        if (statusBadge) {
-            statusBadge.textContent = getText('running', 'Running');
-            statusBadge.className = 'badge bg-success float-end';
         }
 
         // Disable form fields
@@ -737,17 +736,33 @@
             isBillableEl.value = data.is_billable ? '1' : '0';
         }
 
-        // Set timer as running
-        timerRunning = true;
-        if (btnStart) btnStart.disabled = true;
-        if (btnPause) btnPause.disabled = false;
-        if (btnStop) btnStop.disabled = false;
+        if (isPaused) {
+            // Timer is paused - show paused state
+            timerRunning = false;
+            if (statusBadge) {
+                statusBadge.textContent = getText('paused', 'Paused');
+                statusBadge.className = 'badge bg-warning text-dark float-end';
+            }
+            if (btnStart) btnStart.disabled = false;
+            if (btnPause) btnPause.disabled = true;
+            if (btnStop) btnStop.disabled = false;
+        } else {
+            // Timer is running - resume counting
+            timerRunning = true;
+            if (statusBadge) {
+                statusBadge.textContent = getText('running', 'Running');
+                statusBadge.className = 'badge bg-success float-end';
+            }
+            if (btnStart) btnStart.disabled = true;
+            if (btnPause) btnPause.disabled = false;
+            if (btnStop) btnStop.disabled = false;
 
-        // Start the interval
-        timerInterval = setInterval(function () {
-            timerElapsed++;
-            if (display) display.textContent = formatTimer(timerElapsed);
-        }, 1000);
+            // Start the interval
+            timerInterval = setInterval(function () {
+                timerElapsed++;
+                if (display) display.textContent = formatTimer(timerElapsed);
+            }, 1000);
+        }
     }
 
     /* ─── Job/Device Selection ────────────────────── */

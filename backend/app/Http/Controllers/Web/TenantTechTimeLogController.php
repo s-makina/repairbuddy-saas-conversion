@@ -323,26 +323,29 @@ class TenantTechTimeLogController extends Controller
             }
         }
 
-        /* ─── Running Timer (for restoration after page load) ─── */
-        $runningTimer = RepairBuddyTimeLog::query()
+        /* ─── Running/Paused Timer (for restoration after page load) ─── */
+        $activeTimer = RepairBuddyTimeLog::query()
             ->where('tenant_id', $tenantId)
             ->where('branch_id', $branchId)
             ->where('technician_id', $techId)
-            ->where('log_state', 'running')
+            ->whereIn('log_state', ['running', 'paused'])
             ->first();
 
         $runningTimerData = null;
-        if ($runningTimer) {
+        if ($activeTimer) {
             $runningTimerData = [
-                'id' => $runningTimer->id,
-                'job_id' => $runningTimer->job_id,
-                'start_time' => $runningTimer->start_time?->toIso8601String(),
-                'activity' => $runningTimer->activity,
-                'work_description' => $runningTimer->work_description,
-                'is_billable' => $runningTimer->is_billable,
-                'device_id' => $runningTimer->device_id,
-                'device_serial' => $runningTimer->device_serial,
-                'device_index' => $runningTimer->device_index,
+                'id' => $activeTimer->id,
+                'job_id' => $activeTimer->job_id,
+                'start_time' => $activeTimer->start_time?->toIso8601String(),
+                'activity' => $activeTimer->activity,
+                'work_description' => $activeTimer->work_description,
+                'is_billable' => $activeTimer->is_billable,
+                'device_id' => $activeTimer->device_id,
+                'device_serial' => $activeTimer->device_serial,
+                'device_index' => $activeTimer->device_index,
+                'log_state' => $activeTimer->log_state,
+                'paused_at' => $activeTimer->paused_at?->toIso8601String(),
+                'accumulated_seconds' => $activeTimer->accumulated_seconds ?? 0,
             ];
         }
 
@@ -470,6 +473,7 @@ class TenantTechTimeLogController extends Controller
 
         $validated = $request->validate([
             'time_log_id' => 'required|integer',
+            'accumulated_seconds' => 'nullable|integer',
         ]);
 
         $timeLog = RepairBuddyTimeLog::where('tenant_id', $tenant->id)
@@ -482,7 +486,41 @@ class TenantTechTimeLogController extends Controller
             return response()->json(['message' => 'Running timer not found.'], 404);
         }
 
-        $timeLog->update(['log_state' => 'paused']);
+        $timeLog->update([
+            'log_state' => 'paused',
+            'paused_at' => Carbon::now(),
+            'accumulated_seconds' => $validated['accumulated_seconds'] ?? 0,
+        ]);
+
+        return response()->json(['time_log' => $timeLog]);
+    }
+
+    /**
+     * Resume a paused timer.
+     */
+    public function resumeTimer(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'time_log_id' => 'required|integer',
+        ]);
+
+        $timeLog = RepairBuddyTimeLog::where('tenant_id', $tenant->id)
+            ->where('id', $validated['time_log_id'])
+            ->where('technician_id', $user->id)
+            ->where('log_state', 'paused')
+            ->first();
+
+        if (! $timeLog) {
+            return response()->json(['message' => 'Paused timer not found.'], 404);
+        }
+
+        $timeLog->update([
+            'log_state' => 'running',
+            'paused_at' => null,
+        ]);
 
         return response()->json(['time_log' => $timeLog]);
     }

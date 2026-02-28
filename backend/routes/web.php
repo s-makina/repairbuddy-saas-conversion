@@ -806,6 +806,9 @@ Route::prefix('t/{business}')
         Route::post('/time-log/pause', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'pauseTimer'])
             ->middleware('permission:time_logs.manage')
             ->name('tenant.time_log.pause');
+        Route::post('/time-log/resume', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'resumeTimer'])
+            ->middleware('permission:time_logs.manage')
+            ->name('tenant.time_log.resume');
         Route::post('/time-log/stop', [\App\Http\Controllers\Web\TenantTechTimeLogController::class, 'stopTimer'])
             ->middleware('permission:time_logs.manage')
             ->name('tenant.time_log.stop');
