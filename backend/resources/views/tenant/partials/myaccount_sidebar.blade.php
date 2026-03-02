@@ -55,6 +55,7 @@
   $operationsClientsUrl = $tenantSlug ? route('tenant.operations.clients.index', ['business' => $tenantSlug]) : '#';
 
   $expenseCategoriesUrl = $tenantSlug ? route('tenant.expense_categories.index', ['business' => $tenantSlug]) : '#';
+  $expensesUrl = $tenantSlug ? route('tenant.expenses.index', ['business' => $tenantSlug]) : '#';
 
   $techniciansUrl = $tenantSlug ? route('tenant.technicians.index', ['business' => $tenantSlug]) : '#';
   $managersUrl = $tenantSlug ? route('tenant.managers.index', ['business' => $tenantSlug]) : '#';
@@ -171,7 +172,7 @@
       'title' => 'Expenses',
       'parent' => 'expenses_parent',
       'icon' => 'bi bi-calculator',
-      'url' => $screenUrl('expenses'),
+      'url' => $expensesUrl,
       'visible' => $isAuthed && ($user?->can('expenses.view') ?? false),
     ],
     [
