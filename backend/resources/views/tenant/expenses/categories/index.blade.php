@@ -1,46 +1,5 @@
 @extends('tenant.layouts.myaccount', ['title' => $pageTitle ?? __('Expense Categories')])
 
-@push('page-styles')
-<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css" />
-@endpush
-
-@push('page-scripts')
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
-<script>
-  (function () {
-    if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
-      return;
-    }
-
-    var $table = window.jQuery('#categoriesTable');
-    if ($table.length === 0) {
-      return;
-    }
-
-    if (window.jQuery.fn.DataTable.isDataTable($table)) {
-      return;
-    }
-
-    $table.DataTable({
-      processing: true,
-      serverSide: true,
-      pageLength: 25,
-      ajax: "{{ route('tenant.expense_categories.datatable', ['business' => $tenant->slug]) }}",
-      order: [[3, 'asc']],
-      columns: [
-        { data: 'id', name: 'id', width: '70px' },
-        { data: 'color_display', name: 'color_code', width: '100px', orderable: false, searchable: false },
-        { data: 'category_name', name: 'category_name' },
-        { data: 'tax_display', name: 'taxable', width: '120px', orderable: false, searchable: false },
-        { data: 'status_display', name: 'is_active', width: '120px', orderable: false, searchable: false },
-        { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '160px' }
-      ]
-    });
-  })();
-</script>
-@endpush
-
 @section('content')
 	<div class="container-fluid p-3">
 		@if (session('status'))
@@ -63,20 +22,69 @@
 				</a>
 			</div>
 
-			<div class="mt-3 table-responsive">
-				<table class="table table-sm align-middle mb-0" id="categoriesTable">
-					<thead class="bg-light">
-						<tr>
-							<th style="width: 70px;">{{ __('ID') }}</th>
-							<th style="width: 100px;">{{ __('Color') }}</th>
-							<th>{{ __('Name') }}</th>
-							<th style="width: 120px;">{{ __('Tax') }}</th>
-							<th style="width: 120px;">{{ __('Status') }}</th>
-							<th class="text-end" style="width: 160px;">{{ __('Actions') }}</th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
+			<div class="mt-3">
+				@if (empty($categories) || count($categories) === 0)
+					<div class="text-center py-5">
+						<i class="bi bi-tags fs-1 text-muted"></i>
+						<p class="mt-3 text-muted">{{ __('No categories found') }}</p>
+					</div>
+				@else
+					<div class="row g-3">
+						@foreach ($categories as $category)
+							<div class="col-md-6 col-lg-4 col-xl-3">
+								<div class="card h-100">
+									<div class="card-body">
+										<div class="d-flex align-items-start">
+											<div class="me-3">
+													<div class="rounded-circle d-flex align-items-center justify-content-center"
+														 style="background-color: {{ $category->color_code ?? '#3498db' }}; width: 48px; height: 48px;">
+														<i class="bi bi-tag text-white"></i>
+													</div>
+											</div>
+											<div class="flex-grow-1 min-w-0">
+													<h6 class="card-title mb-1 text-truncate">{{ $category->category_name }}</h6>
+													<!-- <small class="text-muted">#{{ $category->id }}</small> -->
+													@if ($category->category_description)
+														<p class="card-text text-muted small mb-2 text-truncate">{{ $category->category_description }}</p>
+													@endif
+													<div class="d-flex flex-wrap gap-1">
+														<span class="badge {{ $category->is_active ? 'bg-success' : 'bg-secondary' }}">
+															{{ $category->is_active ? __('Active') : __('Inactive') }}
+														</span>
+														@if ($category->taxable)
+															<span class="badge bg-info">{{ $category->tax_rate }}%</span>
+														@endif
+													</div>
+											</div>
+											<div class="dropdown ms-auto">
+												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+													<i class="bi bi-three-dots"></i>
+												</button>
+												<ul class="dropdown-menu dropdown-menu-end shadow-sm">
+													<li>
+														<a class="dropdown-item" href="{{ route('tenant.expense_categories.edit', ['business' => $tenant->slug, 'category' => $category->id]) }}">
+															<i class="bi bi-pencil-square text-primary me-2"></i>
+															{{ __('Edit') }}
+														</a>
+													</li>
+													<li>
+														<form method="post" action="{{ route('tenant.expense_categories.delete', ['business' => $tenant->slug, 'category' => $category->id]) }}">
+															@csrf
+															<button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ __('Are you sure you want to delete this category?') }}')">
+																<i class="bi bi-trash text-danger me-2"></i>
+																{{ __('Delete') }}
+															</button>
+														</form>
+													</li>
+												</ul>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						@endforeach
+					</div>
+				@endif
 			</div>
 		</x-settings.card>
 	</div>

@@ -317,6 +317,41 @@ class DatabaseSeeder extends Seeder
             $this->call(RepairBuddyCatalogSeeder::class);
         }
 
+        // Seed default expense categories (matching WordPress plugin defaults)
+        if (Schema::hasTable('expense_categories')) {
+            $defaultCategories = [
+                ['name' => 'Parts & Components', 'color' => '#3498db', 'description' => 'Replacement parts and components', 'sort' => 1],
+                ['name' => 'Labor', 'color' => '#2ecc71', 'description' => 'Technician labor costs', 'sort' => 2],
+                ['name' => 'Shipping', 'color' => '#e74c3c', 'description' => 'Shipping and delivery costs', 'sort' => 3],
+                ['name' => 'Tools & Equipment', 'color' => '#9b59b6', 'description' => 'Tools and equipment purchases/rentals', 'sort' => 4],
+                ['name' => 'Software', 'color' => '#1abc9c', 'description' => 'Software licenses and subscriptions', 'sort' => 5],
+                ['name' => 'Rent & Utilities', 'color' => '#f39c12', 'description' => 'Shop rent and utility bills', 'sort' => 6],
+                ['name' => 'Marketing', 'color' => '#d35400', 'description' => 'Marketing and advertising expenses', 'sort' => 7],
+                ['name' => 'Office Supplies', 'color' => '#7f8c8d', 'description' => 'Office supplies and stationery', 'sort' => 8],
+                ['name' => 'Vehicle Expenses', 'color' => '#34495e', 'description' => 'Vehicle maintenance and fuel', 'sort' => 9],
+                ['name' => 'Miscellaneous', 'color' => '#95a5a6', 'description' => 'Other miscellaneous expenses', 'sort' => 10],
+            ];
+
+            foreach ($defaultCategories as $cat) {
+                DB::table('expense_categories')->updateOrInsert([
+                    'tenant_id' => $tenant->id,
+                    'category_name' => $cat['name'],
+                ], [
+                    'branch_id' => $demoBranchId,
+                    'category_description' => $cat['description'],
+                    'category_type' => 'expense',
+                    'color_code' => $cat['color'],
+                    'sort_order' => $cat['sort'],
+                    'is_active' => true,
+                    'taxable' => true,
+                    'tax_rate' => 0,
+                    'parent_category_id' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         if (! Schema::hasTable('billing_plans')
             || ! Schema::hasTable('billing_plan_versions')
             || ! Schema::hasTable('billing_prices')

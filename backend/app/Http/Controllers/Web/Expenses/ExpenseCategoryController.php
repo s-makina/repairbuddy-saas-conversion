@@ -17,16 +17,25 @@ class ExpenseCategoryController extends Controller
     public function index(Request $request, string $business)
     {
         $tenant = TenantContext::tenant();
+        $branchId = BranchContext::branchId();
 
         if (! $tenant instanceof Tenant) {
             abort(400, 'Tenant is missing.');
         }
+
+        $categories = ExpenseCategory::query()
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->orderByDesc('is_active')
+            ->orderBy('sort_order')
+            ->orderBy('category_name')
+            ->get();
 
         return view('tenant.expenses.categories.index', [
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'expense_categories',
             'pageTitle' => __('Expense Categories'),
+            'categories' => $categories,
         ]);
     }
 
