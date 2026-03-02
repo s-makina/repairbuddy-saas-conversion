@@ -260,6 +260,85 @@
     </div>
 </div>
 
+{{-- Edit Expense Modal --}}
+<div class="modal fade" id="editExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ __('Edit Expense') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editExpenseForm" method="post" action="">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="_method" value="PUT">
+                    <input type="hidden" id="edit_expense_id" name="expense_id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="edit_expense_date" class="form-label">{{ __('Date') }} <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="edit_expense_date" name="expense_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_category_id" class="form-label">{{ __('Category') }} <span class="text-danger">*</span></label>
+                            <select class="form-select" id="edit_category_id" name="category_id" required>
+                                <option value="">{{ __('Select Category') }}</option>
+                                @foreach ($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ e($cat->category_name) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_description" class="form-label">{{ __('Description') }} <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="edit_description" name="description" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_amount" class="form-label">{{ __('Amount') }} <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ e($currencySymbol) }}</span>
+                                <input type="number" class="form-control" id="edit_amount" name="amount" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_payment_method" class="form-label">{{ __('Payment Method') }}</label>
+                            <select class="form-select" id="edit_payment_method" name="payment_method">
+                                <option value="">{{ __('Select Method') }}</option>
+                                @foreach (\App\Models\Expense::PAYMENT_METHODS as $value => $label)
+                                    <option value="{{ $value }}">{{ e(__($label)) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_payment_status" class="form-label">{{ __('Payment Status') }}</label>
+                            <select class="form-select" id="edit_payment_status" name="payment_status">
+                                @foreach (\App\Models\Expense::PAYMENT_STATUSES as $value => $label)
+                                    <option value="{{ $value }}">{{ e(__($label)) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_receipt_number" class="form-label">{{ __('Receipt Number') }}</label>
+                            <input type="text" class="form-control" id="edit_receipt_number" name="receipt_number">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_expense_type" class="form-label">{{ __('Expense Type') }}</label>
+                            <select class="form-select" id="edit_expense_type" name="expense_type">
+                                @foreach (\App\Models\Expense::TYPES as $value => $label)
+                                    <option value="{{ $value }}">{{ e(__($label)) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Close') }}</button>
+                <button type="button" class="btn btn-primary" id="updateExpenseForm">{{ __('Update Expense') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('page-scripts')
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
@@ -342,8 +421,8 @@ $(document).ready(function() {
                     $form[0].reset();
                     // Refresh table
                     expensesTable.ajax.reload(null, false);
-                    // Show success toast
-                    toastr.success(response.message || '{{ __('Expense added successfully.') }}');
+                    // Show success message
+                    alert(response.message || '{{ __('Expense added successfully.') }}');
                 }
             },
             error: function(xhr) {
@@ -356,11 +435,99 @@ $(document).ready(function() {
                         $input.after('<div class="invalid-feedback">' + messages[0] + '</div>');
                     });
                 } else {
-                    toastr.error(xhr.responseJSON?.message || '{{ __('An error occurred. Please try again.') }}');
+                    alert(xhr.responseJSON?.message || '{{ __('An error occurred. Please try again.') }}');
                 }
             },
             complete: function() {
                 $btn.prop('disabled', false).html('{{ __('Add Expense') }}');
+            }
+        });
+    });
+
+    // Edit Expense Modal
+    $(document).on('click', '.edit-expense-btn', function() {
+        var expenseId = $(this).data('expense-id');
+        var $form = $('#editExpenseForm');
+        
+        // Clear previous errors
+        $form.find('.is-invalid').removeClass('is-invalid');
+        $form.find('.invalid-feedback').remove();
+
+        // Fetch expense data
+        $.ajax({
+            url: '{{ route('tenant.expenses.json', ['business' => $tenant->slug, 'expense' => 0]) }}'.replace('/0', '/' + expenseId),
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    var expense = response.expense;
+                    // Set form action
+                    $form.attr('action', '{{ route('tenant.expenses.update', ['business' => $tenant->slug, 'expense' => 0]) }}'.replace('/0', '/' + expenseId));
+                    // Populate form fields
+                    $('#edit_expense_id').val(expense.id);
+                    $('#edit_expense_date').val(expense.expense_date);
+                    $('#edit_category_id').val(expense.category_id);
+                    $('#edit_description').val(expense.description);
+                    $('#edit_amount').val(expense.amount);
+                    $('#edit_payment_method').val(expense.payment_method);
+                    $('#edit_payment_status').val(expense.payment_status);
+                    $('#edit_receipt_number').val(expense.receipt_number);
+                    $('#edit_expense_type').val(expense.expense_type);
+                    // Show modal
+                    $('#editExpenseModal').modal('show');
+                }
+            },
+            error: function() {
+                alert('{{ __('Failed to load expense data.') }}');
+            }
+        });
+    });
+
+    // Update Expense Form Submission
+    $('#updateExpenseForm').on('click', function() {
+        var $form = $('#editExpenseForm');
+        var $btn = $(this);
+        
+        // Clear previous errors
+        $form.find('.is-invalid').removeClass('is-invalid');
+        $form.find('.invalid-feedback').remove();
+
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>{{ __('Updating...') }}');
+
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: $form.serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Close modal
+                    $('#editExpenseModal').modal('hide');
+                    // Refresh table
+                    expensesTable.ajax.reload(null, false);
+                    // Show success message
+                    alert(response.message || '{{ __('Expense updated successfully.') }}');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    // Validation errors
+                    var errors = xhr.responseJSON.errors;
+                    $.each(errors, function(field, messages) {
+                        var $input = $form.find('[name="' + field + '"]');
+                        $input.addClass('is-invalid');
+                        $input.after('<div class="invalid-feedback">' + messages[0] + '</div>');
+                    });
+                } else {
+                    alert(xhr.responseJSON?.message || '{{ __('An error occurred. Please try again.') }}');
+                }
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('{{ __('Update Expense') }}');
             }
         });
     });

@@ -807,6 +807,9 @@ Route::prefix('t/{business}')
             Route::get('/expenses/{expense}/edit', [\App\Http\Controllers\Tenant\Expenses\ExpenseController::class, 'edit'])
                 ->where(['expense' => '[0-9]+'])
                 ->name('tenant.expenses.edit');
+            Route::get('/expenses/{expense}/json', [\App\Http\Controllers\Tenant\Expenses\ExpenseController::class, 'getExpenseJson'])
+                ->where(['expense' => '[0-9]+'])
+                ->name('tenant.expenses.json');
             Route::post('/expenses/{expense}/update', [\App\Http\Controllers\Tenant\Expenses\ExpenseController::class, 'update'])
                 ->where(['expense' => '[0-9]+'])
                 ->name('tenant.expenses.update');

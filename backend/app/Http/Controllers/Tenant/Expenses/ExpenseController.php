@@ -179,12 +179,11 @@ class ExpenseController extends Controller
                 return '<span class="badge bg-' . $class . '">' . e($label) . '</span>';
             })
             ->addColumn('actions_display', function (Expense $expense) use ($tenant) {
-                $editUrl = route('tenant.expenses.edit', ['business' => $tenant->slug, 'expense' => $expense->id]);
                 $deleteUrl = route('tenant.expenses.delete', ['business' => $tenant->slug, 'expense' => $expense->id]);
                 $csrf = csrf_field();
 
                 $buttons = '<div class="d-inline-flex gap-1">'
-                    . '<a class="btn btn-sm btn-outline-primary" href="' . e($editUrl) . '" title="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></a>';
+                    . '<button type="button" class="btn btn-sm btn-outline-primary edit-expense-btn" data-expense-id="' . $expense->id . '" title="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></button>';
 
                 if ($expense->status === 'active') {
                     $buttons .= '<form method="post" action="' . e($deleteUrl) . '" style="display:inline;">' . $csrf
@@ -401,9 +400,40 @@ class ExpenseController extends Controller
     }
 
     /**
+     * Get expense data for editing (JSON response for modal).
+     */
+    public function getExpenseJson(Request $request, string $business, int $expense)
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $expenseModel = Expense::query()
+            ->whereKey($expense)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'expense' => [
+                'id' => $expenseModel->id,
+                'expense_date' => $expenseModel->expense_date?->format('Y-m-d'),
+                'category_id' => $expenseModel->category_id,
+                'description' => $expenseModel->description,
+                'amount' => $expenseModel->amount,
+                'payment_method' => $expenseModel->payment_method,
+                'payment_status' => $expenseModel->payment_status,
+                'receipt_number' => $expenseModel->receipt_number,
+                'expense_type' => $expenseModel->expense_type,
+            ],
+        ]);
+    }
+
+    /**
      * Update the specified expense.
      */
-    public function update(UpdateExpenseRequest $request, string $business, int $expense): RedirectResponse
+    public function update(UpdateExpenseRequest $request, string $business, int $expense)
     {
         $tenant = TenantContext::tenant();
         $user = $request->user();
@@ -433,6 +463,20 @@ class ExpenseController extends Controller
             $expenseModel->calculateTotals();
             $expenseModel->save();
         });
+
+        // Return JSON for AJAX requests
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => __('Expense updated successfully.'),
+                'expense' => [
+                    'id' => $expenseModel->id,
+                    'expense_number' => $expenseModel->expense_number,
+                    'amount' => $expenseModel->amount,
+                    'total_amount' => $expenseModel->total_amount,
+                ],
+            ]);
+        }
 
         return redirect()
             ->route('tenant.expenses.index', ['business' => $tenant->slug])
