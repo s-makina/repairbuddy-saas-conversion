@@ -704,10 +704,10 @@
                                 <tbody>
                                 @foreach ($jobExpenses as $exp)
                                     <tr>
-                                        <td>{{ $exp->expense_date ?? $exp->created_at ?? '—' }}</td>
-                                        <td><span class="ja-status-pill" style="background:var(--rb-warning-soft); color:#92400e;">{{ $exp->category?->name ?? $exp->category_name ?? '—' }}</span></td>
+                                        <td>{{ $exp->expense_date?->format('M d, Y') ?? '—' }}</td>
+                                        <td><span class="ja-status-pill" style="background:var(--rb-warning-soft); color:#92400e;">{{ $exp->category?->category_name ?? '—' }}</span></td>
                                         <td>{{ $exp->description ?? '—' }}</td>
-                                        <td class="text-end fw-bold">{{ $formatMoney($exp->amount_cents ?? null) }} {{ $currency }}</td>
+                                        <td class="text-end fw-bold">{{ $formatMoney(($exp->amount ?? 0) * 100) }}</td>
                                         <td style="font-size:.78rem;">{{ $exp->creator?->name ?? '—' }}</td>
                                     </tr>
                                 @endforeach

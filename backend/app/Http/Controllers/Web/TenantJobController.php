@@ -785,7 +785,11 @@ class TenantJobController extends Controller
                 ->limit(200)
                 ->get(),
             'jobPayments' => $payments,
-            'jobExpenses' => collect(),
+            'jobExpenses' => \App\Models\Expense::query()
+                ->with(['category', 'creator'])
+                ->where('job_id', $job->id)
+                ->orderByDesc('expense_date')
+                ->get(),
             'jobFeedback' => collect(),
             'paymentStatuses' => $paymentStatuses,
             'expenseCategories' => $expenseCategories,
