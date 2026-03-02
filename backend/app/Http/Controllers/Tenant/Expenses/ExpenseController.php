@@ -320,6 +320,13 @@ class ExpenseController extends Controller
             ]);
         }
 
+        // If expense was added from job page, redirect back to job
+        if (!empty($validated['job_id'])) {
+            return redirect()
+                ->route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $validated['job_id']])
+                ->with('status', __('Expense added successfully.'));
+        }
+
         return redirect()
             ->route('tenant.expenses.index', ['business' => $tenant->slug])
             ->with('status', __('Expense added successfully.'));

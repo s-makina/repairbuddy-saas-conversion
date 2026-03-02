@@ -761,6 +761,12 @@ class TenantJobController extends Controller
             ->orderBy('label')
             ->get();
 
+        // Get expense categories for expense modal
+        $expenseCategories = \App\Models\ExpenseCategory::query()
+            ->where('is_active', true)
+            ->orderBy('category_name')
+            ->get(['id', 'category_name']);
+
         return view('tenant.job_show', [
             'tenant' => $tenant,
             'user' => $user,
@@ -782,6 +788,7 @@ class TenantJobController extends Controller
             'jobExpenses' => collect(),
             'jobFeedback' => collect(),
             'paymentStatuses' => $paymentStatuses,
+            'expenseCategories' => $expenseCategories,
         ]);
     }
 

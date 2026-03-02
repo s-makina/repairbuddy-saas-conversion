@@ -683,6 +683,11 @@
                     <div class="ja-section-icon ja-icon-yellow"><i class="bi bi-receipt-cutoff"></i></div>
                     <h3>{{ __('Job Expenses') }}</h3>
                     <span class="ja-tag ja-tag-yellow">{{ count($jobExpenses) }}</span>
+                    <button type="button" class="ja-btn ja-btn-primary" style="margin-left:auto; padding:.3rem .75rem; font-size:.76rem;"
+                        data-bs-toggle="modal" data-bs-target="#addExpenseModal"
+                        @click.stop>
+                        <i class="bi bi-plus-circle"></i> {{ __('Add Expense') }}
+                    </button>
                     <i class="bi ja-chevron" :class="open.expenses ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 </div>
                 <div class="ja-section-body" x-show="open.expenses" x-collapse>
@@ -1176,6 +1181,117 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
                     <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
                         <i class="bi bi-plus-circle me-1"></i>{{ __('Add Payment') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
+{{-- ── Add Expense Modal ── --}}
+@if (!$isEstimate && $record)
+@php
+    $expenseCurrency = is_string($tenant->currency ?? null) && $tenant->currency !== ''
+        ? strtoupper($tenant->currency)
+        : 'USD';
+    try {
+        $expenseFmt = new \NumberFormatter('en_US', \NumberFormatter::CURRENCY);
+        $expenseFmt->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $expenseCurrency);
+        $expenseCurrencySymbol = $expenseFmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL) ?: ($expenseCurrency . ' ');
+    } catch (\Exception $e) {
+        $expenseCurrencySymbol = $expenseCurrency . ' ';
+    }
+@endphp
+<div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ route('tenant.expenses.store', ['business' => $tenantSlug]) }}" id="jobAddExpenseForm">
+            @csrf
+            <input type="hidden" name="job_id" value="{{ $record->id }}">
+            <div class="modal-content" style="border-radius:14px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="addExpenseModalLabel">
+                        <i class="bi bi-receipt-cutoff me-2" style="color:var(--rb-warning);"></i>{{ __('Add Job Expense') }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        {{-- Date --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="exp_date">{{ __('Date') }} <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control form-control-sm" id="exp_date" name="expense_date"
+                                   value="{{ now()->format('Y-m-d') }}" required>
+                        </div>
+
+                        {{-- Category --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="exp_category">{{ __('Category') }} <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="exp_category" name="category_id" required>
+                                <option value="">{{ __('Select Category') }}</option>
+                                @foreach ($expenseCategories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->category_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Description --}}
+                        <div class="col-12">
+                            <label class="form-label fw-bold small" for="exp_description">{{ __('Description') }} <span class="text-danger">*</span></label>
+                            <textarea class="form-control form-control-sm" id="exp_description" name="description" rows="2" required></textarea>
+                        </div>
+
+                        {{-- Amount --}}
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small" for="exp_amount">{{ __('Amount') }} <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">{{ $expenseCurrencySymbol }}</span>
+                                <input type="number" step="0.01" min="0" class="form-control" id="exp_amount" name="amount" required>
+                            </div>
+                        </div>
+
+                        {{-- Payment Method --}}
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small" for="exp_payment_method">{{ __('Payment Method') }}</label>
+                            <select class="form-select form-select-sm" id="exp_payment_method" name="payment_method">
+                                <option value="">{{ __('Select Method') }}</option>
+                                @foreach (\App\Models\Expense::PAYMENT_METHODS as $value => $label)
+                                    <option value="{{ $value }}">{{ __($label) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Payment Status --}}
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small" for="exp_payment_status">{{ __('Payment Status') }}</label>
+                            <select class="form-select form-select-sm" id="exp_payment_status" name="payment_status">
+                                @foreach (\App\Models\Expense::PAYMENT_STATUSES as $value => $label)
+                                    <option value="{{ $value }}" {{ $value === 'paid' ? 'selected' : '' }}>{{ __($label) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Receipt Number --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="exp_receipt">{{ __('Receipt Number') }}</label>
+                            <input type="text" class="form-control form-control-sm" id="exp_receipt" name="receipt_number" placeholder="{{ __('Optional') }}">
+                        </div>
+
+                        {{-- Expense Type --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="exp_type">{{ __('Expense Type') }}</label>
+                            <select class="form-select form-select-sm" id="exp_type" name="expense_type">
+                                @foreach (\App\Models\Expense::TYPES as $value => $label)
+                                    <option value="{{ $value }}">{{ __($label) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add Expense') }}
                     </button>
                 </div>
             </div>

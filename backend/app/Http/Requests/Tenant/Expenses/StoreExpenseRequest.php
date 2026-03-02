@@ -29,7 +29,7 @@ class StoreExpenseRequest extends FormRequest
             'payment_method' => ['sometimes', 'string', 'in:' . implode(',', array_keys(Expense::PAYMENT_METHODS))],
             'payment_status' => ['sometimes', 'string', 'in:' . implode(',', array_keys(Expense::PAYMENT_STATUSES))],
             'receipt_number' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'job_id' => ['sometimes', 'nullable', 'integer', 'exists:repair_buddy_jobs,id'],
+            'job_id' => ['sometimes', 'nullable', 'integer', 'exists:rb_jobs,id'],
             'technician_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
         ];
     }
