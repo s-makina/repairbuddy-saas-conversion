@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Confirmation</title>
+    <title>Estimate Notification</title>
     <style>
         body {
             margin: 0;
@@ -54,7 +54,7 @@
             display: table-cell;
             font-weight: 600;
             padding: 4px 0;
-            width: 100px;
+            width: 120px;
             font-size: 13px;
             color: #667085;
         }
@@ -67,20 +67,33 @@
         .dynamic-content {
             font-size: 15px;
             line-height: 1.5;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            white-space: pre-wrap;
         }
-        .cta-container {
-            text-align: left;
+        .actions {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            display: flex;
+            gap: 12px;
         }
         .btn {
             display: inline-block;
-            background-color: #fd6742;
-            color: #ffffff;
             padding: 10px 20px;
             border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
+            text-align: center;
+        }
+        .btn-approve {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+        .btn-reject {
+            background-color: #ffffff;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
         }
         .footer {
             padding: 15px 20px;
@@ -100,31 +113,26 @@
             <div class="body">
                 <div class="info-grid">
                     <div class="info-row">
-                        <div class="info-label">Case Number:</div>
+                        <div class="info-label">Estimate Number:</div>
                         <div class="info-value"><strong>{{ $caseNumber }}</strong></div>
                     </div>
-                    <div class="info-row">
-                        <div class="info-label">Device:</div>
-                        <div class="info-value">{{ $customerDeviceLabel }}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Job ID:</div>
-                        <div class="info-value">#{{ $jobId }}</div>
-                    </div>
                 </div>
                 
-                <div class="dynamic-content">
-                    {!! $renderedBody !!}
-                </div>
+                <div class="dynamic-content">{{ $body }}</div>
                 
-                @if($trackingUrl)
-                <div class="cta-container">
-                    <a href="{{ $trackingUrl }}" class="btn">Track Repair</a>
+                @if($approveUrl || $rejectUrl)
+                <div class="actions">
+                    @if($approveUrl)
+                        <a href="{{ $approveUrl }}" class="btn btn-approve">Approve Estimate</a>
+                    @endif
+                    @if($rejectUrl)
+                        <a href="{{ $rejectUrl }}" class="btn btn-reject">Reject</a>
+                    @endif
                 </div>
                 @endif
             </div>
             <div class="footer">
-                &copy; {{ date('Y') }} {{ $tenantName }}. <a href="#" style="color: #98a2b3;">Unsubscribe</a>
+                &copy; {{ date('Y') }} {{ $tenantName }}.
             </div>
         </div>
     </div>

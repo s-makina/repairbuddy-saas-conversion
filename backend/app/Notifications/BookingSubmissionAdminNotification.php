@@ -13,6 +13,11 @@ class BookingSubmissionAdminNotification extends Notification
     public function __construct(
         public readonly string $subject,
         public readonly string $body,
+        public readonly string $jobId,
+        public readonly string $caseNumber,
+        public readonly string $customerName,
+        public readonly ?string $customerDeviceLabel = null,
+        public readonly ?string $jobUrl = null,
     ) {
     }
 
@@ -23,17 +28,15 @@ class BookingSubmissionAdminNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $msg = (new MailMessage)->subject($this->subject);
-
-        foreach (preg_split("/\r\n|\r|\n/", $this->body) as $line) {
-            $trim = trim((string) $line);
-            if ($trim === '') {
-                $msg->line(' ');
-            } else {
-                $msg->line($trim);
-            }
-        }
-
-        return $msg;
+        return (new MailMessage)
+            ->subject($this->subject)
+            ->view('emails.bookings.admin_notification', [
+                'body' => $this->body,
+                'jobId' => $this->jobId,
+                'caseNumber' => $this->caseNumber,
+                'customerName' => $this->customerName,
+                'customerDeviceLabel' => $this->customerDeviceLabel,
+                'jobUrl' => $this->jobUrl,
+            ]);
     }
 }

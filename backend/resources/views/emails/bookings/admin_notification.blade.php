@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Confirmation</title>
+    <title>New Booking Notification</title>
     <style>
         body {
             margin: 0;
@@ -26,25 +26,33 @@
             border: 1px solid #ededed;
         }
         .header {
-            background-color: #063e70;
-            padding: 15px 20px;
+            background-color: #fd6742;
+            padding: 10px 20px;
             text-align: left;
         }
         .header h1 {
             color: #ffffff;
             margin: 0;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         .body {
             padding: 20px;
         }
+        .title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #2c304d;
+        }
         .info-grid {
             display: table;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: #f9fafb;
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
         }
         .info-row {
@@ -53,20 +61,23 @@
         .info-label {
             display: table-cell;
             font-weight: 600;
-            padding: 4px 0;
-            width: 100px;
-            font-size: 13px;
+            padding: 3px 0;
+            width: 110px;
+            font-size: 12px;
             color: #667085;
         }
         .info-value {
             display: table-cell;
-            padding: 4px 0;
-            font-size: 13px;
+            padding: 3px 0;
+            font-size: 12px;
             color: #2c304d;
         }
-        .dynamic-content {
-            font-size: 15px;
-            line-height: 1.5;
+        .message-area {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #475467;
+            border-left: 3px solid #fd6742;
+            padding-left: 12px;
             margin-bottom: 20px;
         }
         .cta-container {
@@ -74,18 +85,17 @@
         }
         .btn {
             display: inline-block;
-            background-color: #fd6742;
+            background-color: #063e70;
             color: #ffffff;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
         }
         .footer {
-            padding: 15px 20px;
-            text-align: center;
-            font-size: 11px;
+            padding: 10px 20px;
+            font-size: 10px;
             color: #98a2b3;
             border-top: 1px solid #ededed;
         }
@@ -95,36 +105,40 @@
     <div class="wrapper">
         <div class="content">
             <div class="header">
-                <h1>{{ $tenantName }}</h1>
+                <h1>RepairBuddy Admin Alert</h1>
             </div>
             <div class="body">
+                <div class="title">New Booking: {{ $caseNumber }}</div>
+                
                 <div class="info-grid">
                     <div class="info-row">
-                        <div class="info-label">Case Number:</div>
-                        <div class="info-value"><strong>{{ $caseNumber }}</strong></div>
+                        <div class="info-label">Customer:</div>
+                        <div class="info-value">{{ $customerName }}</div>
                     </div>
+                    @if($customerDeviceLabel)
                     <div class="info-row">
                         <div class="info-label">Device:</div>
                         <div class="info-value">{{ $customerDeviceLabel }}</div>
                     </div>
+                    @endif
                     <div class="info-row">
                         <div class="info-label">Job ID:</div>
                         <div class="info-value">#{{ $jobId }}</div>
                     </div>
                 </div>
                 
-                <div class="dynamic-content">
-                    {!! $renderedBody !!}
+                <div class="message-area">
+                    {!! $body !!}
                 </div>
                 
-                @if($trackingUrl)
+                @if($jobUrl)
                 <div class="cta-container">
-                    <a href="{{ $trackingUrl }}" class="btn">Track Repair</a>
+                    <a href="{{ $jobUrl }}" class="btn">View in Dashboard</a>
                 </div>
                 @endif
             </div>
             <div class="footer">
-                &copy; {{ date('Y') }} {{ $tenantName }}. <a href="#" style="color: #98a2b3;">Unsubscribe</a>
+                Automated notification. RepairBuddy SaaS.
             </div>
         </div>
     </div>

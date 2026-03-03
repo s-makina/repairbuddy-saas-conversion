@@ -425,6 +425,7 @@ TEXT;
                     result: $result,
                     tenant: $tenant,
                     customerName: $fullName,
+                    customerDeviceLabel: $customerDeviceLabel,
                     statusCheckUrl: $statusCheckUrl,
                     renderedBody: $customerBody,
                     subject: $customerSubject,
@@ -445,9 +446,17 @@ TEXT;
 
         if ($adminTo) {
             try {
+                // Construct admin job URL
+                $jobUrl = $frontendBase . '/admin/jobs/' . $result['id'];
+
                 Notification::route('mail', $adminTo)->notify(new BookingSubmissionAdminNotification(
                     subject: $adminSubject,
                     body: $adminBody,
+                    jobId: (string) $result['id'],
+                    caseNumber: (string) $result['case_number'],
+                    customerName: $fullName,
+                    customerDeviceLabel: $customerDeviceLabel,
+                    jobUrl: $jobUrl,
                 ));
             } catch (\Throwable $e) {
                 Log::error('booking.admin_email_failed', [
@@ -515,6 +524,7 @@ TEXT;
         array $result,
         Tenant $tenant,
         string $customerName,
+        string $customerDeviceLabel,
         string $statusCheckUrl,
         string $renderedBody,
         string $subject,
@@ -527,7 +537,9 @@ TEXT;
 
         return new BookingConfirmationData(
             caseNumber: (string) $result['case_number'],
+            jobId: (string) $result['id'],
             customerName: $customerName,
+            customerDeviceLabel: $customerDeviceLabel,
             trackingUrl: $statusCheckUrl,
             tenantName: is_string($tenant->name) ? (string) $tenant->name : 'RepairBuddy',
             renderedBody: $renderedBody,

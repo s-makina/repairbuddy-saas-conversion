@@ -29,26 +29,18 @@ class EstimateToCustomerNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $tenant = \App\Support\Context\TenantContext::tenant();
+        $tenantName = $tenant?->name ?? 'RepairBuddy';
+
         $msg = (new MailMessage)
-            ->subject($this->subject);
-
-        foreach (preg_split("/\r\n|\r|\n/", $this->body) as $line) {
-            $trim = trim((string) $line);
-            if ($trim === '') {
-                $msg->line(' ');
-            } else {
-                $msg->line($trim);
-            }
-        }
-
-        if ($this->approveUrl) {
-            $msg->action('Approve estimate', $this->approveUrl);
-        }
-
-        if ($this->rejectUrl) {
-            $msg->line('If you do not approve, you can reject it here:');
-            $msg->action('Reject estimate', $this->rejectUrl);
-        }
+            ->subject($this->subject)
+            ->view('emails.estimates.customer_notification', [
+                'tenantName' => $tenantName,
+                'caseNumber' => $this->estimate->case_number,
+                'body' => $this->body,
+                'approveUrl' => $this->approveUrl,
+                'rejectUrl' => $this->rejectUrl,
+            ]);
 
         if ($this->attachPdf && $this->pdfPath) {
             $msg->attach($this->pdfPath, [

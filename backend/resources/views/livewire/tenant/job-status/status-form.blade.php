@@ -348,21 +348,140 @@
 
   {{-- ══════════ ESTIMATE RESULT ══════════ --}}
   @if($entityType === 'estimate' && $estimate)
-    <div class="st-result">
-      <div class="pp-success-panel">
-        <div class="pp-hero-icon" style="background: rgba(245,158,11,.12);">
-          <i class="bi bi-file-earmark-text-fill" style="color: #d97706;"></i>
+    <div class="st-result" wire:key="estimate-result-{{ $estimate['case_number'] }}">
+
+      {{-- ── Action Status Banners ── --}}
+      @if($actionStatus === 'success')
+        <div class="pp-alert pp-alert-success" style="margin-bottom: 1.5rem;">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{{ $actionMessage }}</span>
         </div>
-        <h2>{{ $estimate['title'] }}</h2>
-        <div class="pp-case-number">{{ $estimate['case_number'] }}</div>
-        <span class="pp-badge st-badge--warning" style="margin: .75rem 0;">
-          <span class="st-badge-dot"></span> {{ $estimate['status_label'] }}
-        </span>
-        <!-- <p class="pp-success-hint">This is an estimate. You can approve or reject it via the link in your email, or through the customer portal.</p> -->
-        <button type="button" class="pp-btn pp-btn-outline" wire:click="refresh" style="margin-top: .75rem;">
-          <i class="bi bi-arrow-clockwise"></i> Refresh
-        </button>
+      @elseif($actionStatus === 'already_processed')
+        <div class="pp-alert pp-alert-info" style="margin-bottom: 1.5rem;">
+          <i class="bi bi-info-circle-fill"></i>
+          <span>{{ $actionMessage }}</span>
+        </div>
+      @elseif($actionStatus === 'error')
+        <div class="pp-alert pp-alert-danger" style="margin-bottom: 1.5rem;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ $actionMessage }}</span>
+        </div>
+      @endif
+
+      {{-- ── Status Card ── --}}
+      <div class="st-job-card st-job-card--warning">
+        <div class="st-job-accent"></div>
+        <div class="st-job-body">
+          <div class="st-job-info">
+            <div class="st-job-case">{{ $estimate['case_number'] }}</div>
+            <div class="st-job-title">{{ $estimate['title'] }}</div>
+            <div class="st-job-meta">
+              <span><i class="bi bi-clock"></i> Updated {{ $estimate['updated_at'] }}</span>
+            </div>
+          </div>
+          <div class="st-job-right">
+            <div class="st-badge-group">
+              <span class="pp-badge st-badge--{{ $this->getStatusClass($estimate['status']) }}">
+                <span class="st-badge-dot"></span>{{ $estimate['status_label'] }}
+              </span>
+            </div>
+            <button type="button" class="pp-btn pp-btn-outline-sm" wire:click="refresh" title="Refresh">
+              <i class="bi bi-arrow-clockwise"></i>
+              <span wire:loading.remove wire:target="refresh">Refresh</span>
+              <span wire:loading wire:target="refresh">…</span>
+            </button>
+          </div>
+        </div>
       </div>
+
+      {{-- ── Estimate Body ── --}}
+      <div class="st-panel" style="margin-top: 1rem;">
+        <div class="st-tab-body" style="padding: 1.5rem;">
+
+          {{-- Devices --}}
+          @if(count($estimate['devices']) > 0)
+            <section class="st-section" style="margin-bottom: 1.5rem;">
+              <h3 class="st-section-title"><i class="bi bi-cpu"></i> Registered Devices</h3>
+              <div class="st-devices">
+                @foreach($estimate['devices'] as $device)
+                  <div class="st-device">
+                    <div class="st-device-thumb"><i class="bi bi-laptop"></i></div>
+                    <div class="st-device-data">
+                      <div class="st-device-name">{{ $device['label'] ?: 'Device' }}</div>
+                      @if($device['serial'])
+                        <div class="st-device-serial"><i class="bi bi-upc"></i> <code>{{ $device['serial'] }}</code></div>
+                      @endif
+                    </div>
+                  </div>
+                @endforeach
+              </div>
+            </section>
+          @endif
+
+          {{-- Items --}}
+          @if(count($estimate['items']) > 0)
+            <section class="st-section" style="margin-bottom: 1.5rem;">
+              <h3 class="st-section-title"><i class="bi bi-tools"></i> Estimated Services & Parts</h3>
+              <div class="st-items-list">
+                @foreach($estimate['items'] as $item)
+                  <div class="st-item-row">
+                    <div class="st-item-icon">
+                      <i class="bi {{ $item['item_type'] === 'part' ? 'bi-box-seam' : 'bi-wrench-adjustable' }}"></i>
+                    </div>
+                    <div class="st-item-name">{{ $item['name'] }}</div>
+                    <span class="pp-badge pp-badge-muted">{{ ucfirst($item['item_type']) }}</span>
+                    <div class="st-item-qty">&times;{{ $item['qty'] }}</div>
+                  </div>
+                @endforeach
+              </div>
+            </section>
+          @endif
+
+          {{-- Totals --}}
+          @if(($estimate['totals']['total_cents'] ?? 0) > 0)
+            <section class="st-section" style="border-top: 1px solid #edf2f7; padding-top: 1.5rem;">
+              <div style="max-width: 300px; margin-left: auto;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: .5rem; font-size: .9rem; color: #718096;">
+                  <span>Subtotal</span>
+                  <span>{{ number_format($estimate['totals']['subtotal_cents'] / 100, 2) }} {{ $estimate['totals']['currency'] }}</span>
+                </div>
+                @if($estimate['totals']['tax_cents'] > 0)
+                  <div style="display: flex; justify-content: space-between; margin-bottom: .5rem; font-size: .9rem; color: #718096;">
+                    <span>Tax</span>
+                    <span>{{ number_format($estimate['totals']['tax_cents'] / 100, 2) }} {{ $estimate['totals']['currency'] }}</span>
+                  </div>
+                @endif
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; color: #2d3748; margin-top: .75rem; border-top: 2px solid #2d3748; padding-top: .75rem;">
+                  <span>Grand Total</span>
+                  <span>{{ number_format($estimate['totals']['total_cents'] / 100, 2) }} {{ $estimate['totals']['currency'] }}</span>
+                </div>
+              </div>
+            </section>
+          @endif
+
+          {{-- Notes --}}
+          @if($estimate['case_detail'])
+            <section class="st-section" style="margin-top: 2rem;">
+              <h3 class="st-section-title"><i class="bi bi-file-text"></i> Additional Notes</h3>
+              <div class="st-notes" style="background: #f8fafc; padding: 1rem; border-radius: 8px; font-size: .9rem;">
+                {{ $estimate['case_detail'] }}
+              </div>
+            </section>
+          @endif
+
+          {{-- Action Hint (if still pending) --}}
+          @if($estimate['status'] === 'pending' && $actionStatus !== 'processing')
+            <div style="margin-top: 2rem; padding: 1.25rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; text-align: center;">
+              <p style="margin-bottom: 0; color: #92400e; font-size: .9rem;">
+                <i class="bi bi-info-circle-fill" style="margin-right: .5rem;"></i>
+                Ready to proceed? Please use the <strong>Approve</strong> or <strong>Reject</strong> buttons in the email we sent you.
+              </p>
+            </div>
+          @endif
+
+        </div>
+      </div>
+
     </div>
   @endif
 

@@ -39,7 +39,9 @@ class BookingConfirmationMail extends Mailable
             view: 'emails.bookings.confirmation',
             with: [
                 'caseNumber' => $this->data->caseNumber,
+                'jobId' => $this->data->jobId,
                 'customerName' => $this->data->customerName,
+                'customerDeviceLabel' => $this->data->customerDeviceLabel,
                 'trackingUrl' => $this->data->trackingUrl,
                 'tenantName' => $this->data->tenantName,
                 'tenantLogoUrl' => $this->data->tenantLogoUrl,

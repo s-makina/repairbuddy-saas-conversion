@@ -46,6 +46,12 @@ class StatusForm extends Component
     /* ───────── Active tab ───────── */
     public string $activeTab = 'timeline';
 
+    /* ───────── Estimate Action ───────── */
+    public ?string $estimateAction = null;
+    public ?string $token = null;
+    public string $actionStatus = ''; // 'processing', 'success', 'error', 'already_processed'
+    public string $actionMessage = '';
+
     /* ─────────── mount ─────────── */
 
     public function mount(?Tenant $tenant = null, string $business = '', string $initialCaseNumber = '')
@@ -62,10 +68,19 @@ class StatusForm extends Component
             $this->tenantName = (string) ($tenant->name ?? '');
         }
 
+        // Handle estimate actions from query params
+        $this->estimateAction = request()->query('estimateAction');
+        $this->token = request()->query('token');
+
         // If initial case number provided, search immediately
         if ($initialCaseNumber !== '') {
             $this->caseNumber = $initialCaseNumber;
             $this->searchCase();
+
+            // Process estimate action if searching for an estimate and action is present
+            if ($this->entityType === 'estimate' && $this->estimateAction && $this->token) {
+                $this->processEstimateAction();
+            }
         }
     }
 
@@ -245,6 +260,55 @@ class StatusForm extends Component
         }
     }
 
+    /* ─────────── Estimate Actions ─────────── */
+
+    public function processEstimateAction(): void
+    {
+        if (! $this->estimate || ! $this->estimateAction || ! $this->token) {
+            return;
+        }
+
+        $this->actionStatus = 'processing';
+        $this->errorMessage = '';
+
+        try {
+            // Call the public API logic via a controller or service
+            // Here we'll manually invoke the logic from RepairBuddyEstimateActionsController
+            $controller = app(\App\Http\Controllers\Api\Public\RepairBuddyEstimateActionsController::class);
+            $request = new \Illuminate\Http\Request([
+                'token' => $this->token,
+            ]);
+
+            $response = match ($this->estimateAction) {
+                'approve' => $controller->approve($request, $this->business, $this->caseNumber),
+                'reject' => $controller->reject($request, $this->business, $this->caseNumber),
+                default => null,
+            };
+
+            if ($response && $response->getStatusCode() === 200) {
+                $data = $response->getData(true);
+                if (($data['message'] ?? '') === 'Already processed.') {
+                    $this->actionStatus = 'already_processed';
+                    $this->actionMessage = 'This estimate has already been processed.';
+                } else {
+                    $this->actionStatus = 'success';
+                    $this->actionMessage = $this->estimateAction === 'approve'
+                        ? 'Estimate approved successfully! We are now preparing your repair job.'
+                        : 'Estimate rejected. We have noted your decision.';
+                }
+                // Refresh data to show final status
+                $this->searchCase();
+            } else {
+                $this->actionStatus = 'error';
+                $this->actionMessage = 'Failed to process action. The link may be invalid or expired.';
+            }
+        } catch (\Exception $e) {
+            Log::error('Estimate action processing error: ' . $e->getMessage());
+            $this->actionStatus = 'error';
+            $this->actionMessage = 'An error occurred. Please try again later.';
+        }
+    }
+
     /* ─────────── Serializers ─────────── */
 
     protected function serializeJobDetail(RepairBuddyJob $job): array
@@ -376,14 +440,63 @@ class StatusForm extends Component
         $statusKey = is_string($estimate->status) ? (string) $estimate->status : 'pending';
         $statusLabel = ucwords(str_replace('_', ' ', $statusKey));
 
+        // Get devices
+        $devices = $estimate->devices()->orderBy('id', 'asc')->get()->map(function ($d) {
+            return [
+                'id' => $d->id,
+                'label' => $d->label_snapshot,
+                'serial' => $d->serial_snapshot,
+            ];
+        })->values()->all();
+
+        // Get items (services/parts)
+        $items = $estimate->items()->with('tax')->orderBy('id', 'asc')->get();
+        $subtotalCents = 0;
+        $taxCents = 0;
+        $currency = (string) ($this->tenant->currency ?? 'USD');
+
+        $serializedItems = $items->map(function ($item) use (&$subtotalCents, &$taxCents, &$currency) {
+            $qty = (int) $item->qty;
+            $unit = (int) $item->unit_price_amount_cents;
+            $lineSubtotal = $qty * $unit;
+
+            $rate = $item->tax ? (float) $item->tax->rate : 0.0;
+            $lineTax = (int) round($lineSubtotal * ($rate / 100.0));
+
+            $subtotalCents += $lineSubtotal;
+            $taxCents += $lineTax;
+
+            if (is_string($item->unit_price_currency) && $item->unit_price_currency !== '') {
+                $currency = $item->unit_price_currency;
+            }
+
+            return [
+                'id' => $item->id,
+                'item_type' => $item->item_type,
+                'name' => $item->name_snapshot,
+                'qty' => $qty,
+                'unit_price' => $unit,
+                'total_price' => $lineSubtotal + $lineTax,
+            ];
+        })->values()->all();
+
         return [
             'id' => $estimate->id,
             'case_number' => $estimate->case_number,
             'title' => $estimate->title,
             'status' => $statusKey,
             'status_label' => $statusLabel,
+            'case_detail' => $estimate->case_detail,
             'created_at' => $estimate->created_at?->format('M j, Y g:i A'),
             'updated_at' => $estimate->updated_at?->format('M j, Y g:i A'),
+            'devices' => $devices,
+            'items' => $serializedItems,
+            'totals' => [
+                'currency' => $currency,
+                'subtotal_cents' => $subtotalCents,
+                'tax_cents' => $taxCents,
+                'total_cents' => $subtotalCents + $taxCents,
+            ],
         ];
     }
 
