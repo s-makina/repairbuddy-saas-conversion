@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\RepairBuddyJob;
+use App\Observers\RepairBuddyJobObserver;
 use App\Support\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -30,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register observers
+        RepairBuddyJob::observe(RepairBuddyJobObserver::class);
+
         Paginator::useBootstrapFive();
 
         RateLimiter::for('auth', function (Request $request) {

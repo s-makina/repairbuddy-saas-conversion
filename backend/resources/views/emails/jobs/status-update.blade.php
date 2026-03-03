@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Status Update</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f7f7f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .container { max-width: 520px; margin: 0 auto; padding: 24px 16px; }
+    .card { background: #ffffff; border-radius: 6px; padding: 24px; border-left: 4px solid {{ $statusColor }}; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .logo { font-size: 16px; font-weight: 700; color: #063e70; }
+    .status-badge { background: {{ $statusColor }}; color: #fff; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 4px; }
+    .title { font-size: 18px; font-weight: 600; color: #2c304d; margin: 0 0 4px 0; }
+    .subtitle { font-size: 13px; color: #667085; margin: 0 0 16px 0; }
+    .case-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #ededed; }
+    .case-label { color: #667085; }
+    .case-value { color: #063e70; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-bottom: 16px; }
+    .item { font-size: 12px; }
+    .item-label { color: #667085; margin: 0 0 1px 0; }
+    .item-value { color: #2c304d; font-weight: 500; margin: 0; }
+    .note { font-size: 11px; color: #667085; margin: 12px 0 0 0; padding: 10px; background: #fff8f5; border-radius: 4px; }
+    .button { display: inline-block; background: #fd6742; color: #ffffff; font-size: 12px; font-weight: 500; text-decoration: none; border-radius: 4px; padding: 8px 16px; margin-top: 12px; }
+    .footer { text-align: center; padding: 16px 0; }
+    .footer-text { font-size: 11px; color: #98a2b3; margin: 0; }
+    .footer-link { color: #667085; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <span class="logo">{{ $tenantName }}</span>
+        <span class="status-badge">{{ $status }}</span>
+      </div>
+      <h1 class="title">Your Repair is Underway</h1>
+      <p class="subtitle">Hi {{ $customerName }}, our technician has started working on your device.</p>
+      <div class="case-row">
+        <span><span class="case-label">Case: </span><span class="case-value">{{ $caseNumber }}</span></span>
+        <span><span class="case-label">Updated: </span><span class="case-value">{{ $updatedAt }}</span></span>
+      </div>
+      <div class="grid">
+        <div class="item">
+          <p class="item-label">Device</p>
+          <p class="item-value">{{ $device }}</p>
+        </div>
+        <div class="item">
+          <p class="item-label">Service</p>
+          <p class="item-value">{{ $service }}</p>
+        </div>
+        <div class="item">
+          <p class="item-label">Technician</p>
+          <p class="item-value">{{ $technician }}</p>
+        </div>
+        <div class="item">
+          <p class="item-label">Est. Completion</p>
+          <p class="item-value">{{ $estimatedCompletion }}</p>
+        </div>
+      </div>
+      @if($note)
+      <p class="note"><strong>Note:</strong> {{ $note }}</p>
+      @endif
+      <a href="{{ $trackingUrl }}" class="button">Track Your Repair →</a>
+    </div>
+    <div class="footer">
+      <p class="footer-text">© {{ date('Y') }} {{ $tenantName }} · <a href="#" class="footer-link">Unsubscribe</a></p>
+    </div>
+  </div>
+</body>
+</html>

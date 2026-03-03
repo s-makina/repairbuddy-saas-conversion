@@ -20,8 +20,10 @@ use App\Models\RepairBuddyService;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Data\Emails\BookingConfirmationData;
+use App\Mail\BookingConfirmationMail;
 use App\Notifications\AppointmentConfirmationNotification;
-use App\Support\Audit\PlatformAudit;
+use App\Support\PlatformAudit;
 use App\Support\RepairBuddyBookingTemplateService;
 use App\Support\RepairBuddyCaseNumberService;
 use App\Models\RepairBuddyServiceAvailabilityOverride;
@@ -29,6 +31,7 @@ use App\Models\RepairBuddyServicePriceOverride;
 use App\Notifications\BookingSubmissionAdminNotification;
 use App\Notifications\BookingSubmissionCustomerNotification;
 use App\Notifications\OneTimePasswordNotification;
+use Illuminate\Support\Facades\Mail;
 use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
@@ -373,16 +376,23 @@ class RepairBuddyPublicBookingService
 
         $customerSubject = $this->templates->render($customerSubject, $pairs);
         $customerBody = $this->templates->render($customerBody, $pairs);
+        $customerBody = nl2br($customerBody); // Convert newlines to HTML
         $adminSubject = $this->templates->render($adminSubject, $pairs);
         $adminBody = $this->templates->render($adminBody, $pairs);
 
         $customerUser = $createdCustomer instanceof User ? $createdCustomer : $existing;
         if ($customerUser instanceof User && is_string($customerUser->email) && trim((string) $customerUser->email) !== '') {
             try {
-                $customerUser->notify(new BookingSubmissionCustomerNotification(
+                // Send styled HTML email with configured content
+                $emailData = $this->buildBookingConfirmationData(
+                    result: $result,
+                    tenant: $tenant,
+                    customerName: $fullName,
+                    statusCheckUrl: $statusCheckUrl,
+                    renderedBody: $customerBody,
                     subject: $customerSubject,
-                    body: $customerBody,
-                ));
+                );
+                Mail::to($customerUser->email)->send(new BookingConfirmationMail($emailData));
             } catch (\Throwable $e) {
                 Log::error('booking.customer_email_failed', [
                     'tenant_id' => $tenant->id,
@@ -459,6 +469,34 @@ class RepairBuddyPublicBookingService
         }
 
         return 'neworder';
+    }
+
+    /**
+     * Build the data object for the booking confirmation email.
+     */
+    protected function buildBookingConfirmationData(
+        array $result,
+        Tenant $tenant,
+        string $customerName,
+        string $statusCheckUrl,
+        string $renderedBody,
+        string $subject,
+    ): BookingConfirmationData {
+        // Get tenant logo
+        $tenantLogoUrl = null;
+        if (is_string($tenant->logo_path) && trim($tenant->logo_path) !== '') {
+            $tenantLogoUrl = Storage::disk('public')->url($tenant->logo_path);
+        }
+
+        return new BookingConfirmationData(
+            caseNumber: (string) $result['case_number'],
+            customerName: $customerName,
+            trackingUrl: $statusCheckUrl,
+            tenantName: is_string($tenant->name) ? (string) $tenant->name : 'RepairBuddy',
+            renderedBody: $renderedBody,
+            subject: $subject,
+            tenantLogoUrl: $tenantLogoUrl,
+        );
     }
 
     protected function attachDevicesAndItemsToJob(
