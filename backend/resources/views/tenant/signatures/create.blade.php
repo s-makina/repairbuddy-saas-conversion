@@ -136,15 +136,15 @@
             <div class="card-body p-4">
                 <form action="{{ route('tenant.signatures.store', ['business' => $tenant->slug, 'jobId' => $job->id]) }}" method="POST">
                     @csrf
-                    <input type="hidden" name="type" id="type-hidden" value="{{ old('type', 'pickup') }}">
+                    <input type="hidden" name="signature_type" id="type-hidden" value="{{ old('signature_type', 'pickup') }}">
 
                     {{-- Signature type --}}
                     <div class="mb-1">
                         <label class="form-label fw-semibold">{{ __('Signature Type') }}</label>
 
-                        <label class="type-row pickup-row {{ old('type','pickup') === 'pickup' ? 'selected' : '' }}"
+                        <label class="type-row pickup-row {{ old('signature_type','pickup') === 'pickup' ? 'selected' : '' }}"
                                onclick="rowSelect(this, 'pickup', '{{ __('Pickup Signature') }}')">
-                            <input type="radio" name="_type_ui" value="pickup" class="d-none" {{ old('type','pickup') === 'pickup' ? 'checked' : '' }}>
+                            <input type="radio" name="_type_ui" value="pickup" class="d-none" {{ old('signature_type','pickup') === 'pickup' ? 'checked' : '' }}>
                             <span class="tr-icon pickup-icon"><i class="bi bi-box-arrow-up"></i></span>
                             <span class="tr-body">
                                 <span class="tr-name">{{ __('Pickup') }}</span>
@@ -153,9 +153,9 @@
                             <span class="tr-check"><i class="bi bi-check-lg"></i></span>
                         </label>
 
-                        <label class="type-row delivery-row {{ old('type') === 'delivery' ? 'selected' : '' }}"
+                        <label class="type-row delivery-row {{ old('signature_type') === 'delivery' ? 'selected' : '' }}"
                                onclick="rowSelect(this, 'delivery', '{{ __('Delivery Signature') }}')">
-                            <input type="radio" name="_type_ui" value="delivery" class="d-none" {{ old('type') === 'delivery' ? 'checked' : '' }}>
+                            <input type="radio" name="_type_ui" value="delivery" class="d-none" {{ old('signature_type') === 'delivery' ? 'checked' : '' }}>
                             <span class="tr-icon delivery-icon"><i class="bi bi-truck"></i></span>
                             <span class="tr-body">
                                 <span class="tr-name">{{ __('Delivery') }}</span>
@@ -164,9 +164,9 @@
                             <span class="tr-check"><i class="bi bi-check-lg"></i></span>
                         </label>
 
-                        <label class="type-row custom-row {{ old('type') === 'custom' ? 'selected' : '' }}"
+                        <label class="type-row custom-row {{ old('signature_type') === 'custom' ? 'selected' : '' }}"
                                onclick="rowSelect(this, 'custom', '')">
-                            <input type="radio" name="_type_ui" value="custom" class="d-none" {{ old('type') === 'custom' ? 'checked' : '' }}>
+                            <input type="radio" name="_type_ui" value="custom" class="d-none" {{ old('signature_type') === 'custom' ? 'checked' : '' }}>
                             <span class="tr-icon custom-icon"><i class="bi bi-pencil-square"></i></span>
                             <span class="tr-body">
                                 <span class="tr-name">{{ __('Custom') }}</span>
@@ -186,13 +186,13 @@
                             <span id="label-counter" class="text-muted" style="font-size:.72rem;white-space:nowrap;">0 / 255</span>
                         </div>
                         <input type="text"
-                               class="form-control @error('label') is-invalid @enderror"
+                               class="form-control @error('signature_label') is-invalid @enderror"
                                id="signature_label"
-                               name="label"
+                               name="signature_label"
                                placeholder="{{ __("e.g. Pickup Signature — John's iPhone 14") }}"
-                               value="{{ old('label', 'Pickup Signature') }}"
+                               value="{{ old('signature_label', 'Pickup Signature') }}"
                                maxlength="255">
-                        @error('label')
+                        @error('signature_label')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
