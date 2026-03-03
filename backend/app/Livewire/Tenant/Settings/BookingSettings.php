@@ -103,10 +103,45 @@ class BookingSettings extends Component
             $settings = [];
         }
 
-        $this->email_subject_customer       = (string) ($settings['email_subject_customer'] ?? '');
-        $this->email_body_customer          = (string) ($settings['email_body_customer'] ?? '');
-        $this->email_subject_admin          = (string) ($settings['email_subject_admin'] ?? '');
-        $this->email_body_admin             = (string) ($settings['email_body_admin'] ?? '');
+        // Default email templates (matching WordPress plugin)
+        $defaultCustomerSubject = 'We have received your booking order!';
+        $defaultCustomerBody = <<<'TEXT'
+Hello {{customer_full_name}},
+
+Thank you for booking. We have received your job id : {{job_id}} and assigned you case number : {{case_number}}
+
+For your device : {{customer_device_label}}
+
+Note: Job status page will not able to show your job details unless its approved from our side. During our working hours its done quickly.
+
+We will get in touch whenever its needed. You can always check your job status by clicking {{start_anch_status_check_link}} Check Status {{end_anch_status_check_link}}.
+
+Direct status check link : {{status_check_link}}
+
+Details which we have received from you are below.
+
+{{order_invoice_details}}
+
+Thank you again for your business!
+TEXT;
+
+        $defaultAdminSubject = 'You have new booking order';
+        $defaultAdminBody = <<<'TEXT'
+Hello,
+
+You have received a new booking job ID: {{job_id}} case number: {{case_number}}.
+
+From Customer : {{customer_full_name}}
+
+Job Details are listed below.
+
+{{order_invoice_details}}
+TEXT;
+
+        $this->email_subject_customer       = (string) ($settings['email_subject_customer'] ?? $defaultCustomerSubject);
+        $this->email_body_customer          = (string) ($settings['email_body_customer'] ?? $defaultCustomerBody);
+        $this->email_subject_admin          = (string) ($settings['email_subject_admin'] ?? $defaultAdminSubject);
+        $this->email_body_admin             = (string) ($settings['email_body_admin'] ?? $defaultAdminBody);
         $this->send_to_jobs                 = (bool) ($settings['send_to_jobs'] ?? false);
         $this->turn_off_other_device_brands = (bool) ($settings['turn_off_other_device_brands'] ?? false);
         $this->turn_off_other_service       = (bool) ($settings['turn_off_other_service'] ?? false);

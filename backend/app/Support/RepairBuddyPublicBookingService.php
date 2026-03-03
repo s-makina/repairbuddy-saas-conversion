@@ -354,24 +354,61 @@ class RepairBuddyPublicBookingService
             'entity' => (string) $result['entity'],
             'entity_id' => (string) $result['id'],
             'customer_email' => $email,
+            'start_anch_status_check_link' => '<a href="' . $statusCheckUrl . '" target="_blank">',
+            'end_anch_status_check_link' => '</a>',
         ];
 
-        $customerSubject = is_string($booking['customerEmailSubject'] ?? null) ? (string) $booking['customerEmailSubject'] : '';
-        $customerBody = is_string($booking['customerEmailBody'] ?? null) ? (string) $booking['customerEmailBody'] : '';
-        $adminSubject = is_string($booking['adminEmailSubject'] ?? null) ? (string) $booking['adminEmailSubject'] : '';
-        $adminBody = is_string($booking['adminEmailBody'] ?? null) ? (string) $booking['adminEmailBody'] : '';
+        // Read from tenant settings (bookings section)
+        $bookingsSettings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings.bookings', []);
+        if (!is_array($bookingsSettings)) {
+            $bookingsSettings = [];
+        }
 
+        $customerSubject = (string) ($bookingsSettings['email_subject_customer'] ?? '');
+        $customerBody = (string) ($bookingsSettings['email_body_customer'] ?? '');
+        $adminSubject = (string) ($bookingsSettings['email_subject_admin'] ?? '');
+        $adminBody = (string) ($bookingsSettings['email_body_admin'] ?? '');
+
+        // Fallback defaults matching WordPress plugin
         if (trim($customerSubject) === '') {
-            $customerSubject = 'We received your booking';
+            $customerSubject = 'We have received your booking order!';
         }
         if (trim($customerBody) === '') {
-            $customerBody = "Hello,\n\nWe have received your booking request.\n\nCase: {{case_number}}\nStatus check: {{status_check_link}}\n\n{{order_invoice_details}}\n";
+            $customerBody = <<<'TEXT'
+Hello {{customer_full_name}},
+
+Thank you for booking. We have received your job id : {{job_id}} and assigned you case number : {{case_number}}
+
+For your device : {{customer_device_label}}
+
+Note: Job status page will not able to show your job details unless its approved from our side. During our working hours its done quickly.
+
+We will get in touch whenever its needed. You can always check your job status by clicking {{start_anch_status_check_link}} Check Status {{end_anch_status_check_link}}.
+
+Direct status check link : {{status_check_link}}
+
+Details which we have received from you are below.
+
+{{order_invoice_details}}
+
+Thank you again for your business!
+TEXT;
         }
         if (trim($adminSubject) === '') {
-            $adminSubject = 'New booking received';
+            $adminSubject = 'You have new booking order';
         }
         if (trim($adminBody) === '') {
-            $adminBody = "A new booking was submitted.\n\nCase: {{case_number}}\nCustomer: {{customer_full_name}} ({{customer_email}})\nStatus check: {{status_check_link}}\n\n{{order_invoice_details}}\n";
+            $adminBody = <<<'TEXT'
+Hello,
+
+You have received a new booking job ID: {{job_id}} case number: {{case_number}}.
+
+From Customer : {{customer_full_name}}
+
+Job Details are listed below.
+
+{{order_invoice_details}}
+TEXT;
         }
 
         $customerSubject = $this->templates->render($customerSubject, $pairs);

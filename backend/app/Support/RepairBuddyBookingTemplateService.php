@@ -15,14 +15,14 @@ class RepairBuddyBookingTemplateService
 
             $replacement = is_scalar($value) || $value === null ? (string) ($value ?? '') : '';
 
-            $simple = '{'.$key.'}';
-            $mustache = '{{'.$key.'}}';
-
-            $out = str_replace($simple, $replacement, $out);
-            $out = str_replace($mustache, $replacement, $out);
-
+            // Replace {{key}} and {key} - handle spaces inside braces too
             $quoted = preg_quote($key, '/');
-            $out = preg_replace('/{{\s*'.$quoted.'\s*}}/u', $replacement, $out) ?? $out;
+            
+            // {{key}} with optional spaces
+            $out = preg_replace('/\{\{\s*' . $quoted . '\s*\}\}/u', $replacement, $out) ?? $out;
+            
+            // {key}
+            $out = preg_replace('/\{\s*' . $quoted . '\s*\}/u', $replacement, $out) ?? $out;
         }
 
         return $out;
