@@ -239,9 +239,10 @@ class ExpenseController extends Controller
             ->get(['id', 'category_name', 'color_code', 'taxable', 'tax_rate']);
 
         $jobs = RepairBuddyJob::query()
+            ->with('customer:id,name')
             ->orderByDesc('id')
             ->limit(100)
-            ->get(['id', 'case_number', 'title']);
+            ->get(['id', 'case_number', 'customer_id']);
 
         $technicians = User::query()
             ->where('tenant_id', $tenant->id)
@@ -379,9 +380,10 @@ class ExpenseController extends Controller
             ->get(['id', 'category_name', 'color_code', 'taxable', 'tax_rate']);
 
         $jobs = RepairBuddyJob::query()
+            ->with('customer:id,name')
             ->orderByDesc('id')
             ->limit(100)
-            ->get(['id', 'case_number', 'title']);
+            ->get(['id', 'case_number', 'customer_id']);
 
         $technicians = User::query()
             ->where('tenant_id', $tenant->id)

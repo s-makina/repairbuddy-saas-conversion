@@ -175,7 +175,7 @@
                                     <option value="">{{ __('None') }}</option>
                                     @foreach ($jobs as $job)
                                         <option value="{{ $job->id }}" {{ old('job_id') == $job->id ? 'selected' : '' }}>
-                                            {{ e($job->case_number ?? '#' . $job->id) }} @if($job->title) - {{ e($job->title) }} @endif
+                                            {{ e($job->case_number ?? '#' . $job->id) }}@if($job->customer) - {{ e($job->customer->name) }}@endif
                                         </option>
                                     @endforeach
                                 </select>

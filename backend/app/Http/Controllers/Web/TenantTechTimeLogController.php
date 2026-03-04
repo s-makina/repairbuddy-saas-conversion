@@ -176,7 +176,7 @@ class TenantTechTimeLogController extends Controller
 
         /* ─── Eligible Jobs Dropdown ──────────────────────── */
         $jobQuery = RepairBuddyJob::query()
-            ->with(['jobDevices'])
+            ->with(['jobDevices', 'customer'])
             ->where('tenant_id', $tenantId)
             ->where('branch_id', $branchId);
 
@@ -201,10 +201,10 @@ class TenantTechTimeLogController extends Controller
 
         foreach ($eligibleJobs as $ej) {
             $case = $ej->case_number ?: 'JOB-' . $ej->id;
-            $title = $ej->title ? ' — ' . \Illuminate\Support\Str::limit($ej->title, 40) : '';
+            $customerName = $ej->customer ? ' — ' . $ej->customer->name : '';
 
             if ($ej->jobDevices && $ej->jobDevices->count() > 0) {
-                $jobDropdownHtml .= '<optgroup label="' . e($case . $title) . '">';
+                $jobDropdownHtml .= '<optgroup label="' . e($case . $customerName) . '">';
                 foreach ($ej->jobDevices as $idx => $dev) {
                     $devLabel = $dev->label_snapshot ?: 'Device ' . ($idx + 1);
                     $val = $ej->id . '|' . ($dev->customer_device_id ?? '') . '|' . ($dev->serial_snapshot ?? '') . '|' . $idx;
@@ -215,7 +215,7 @@ class TenantTechTimeLogController extends Controller
             } else {
                 $val = $ej->id . '|||0';
                 $selected = ($val === $selectedValue) ? ' selected' : '';
-                $jobDropdownHtml .= '<option value="' . e($val) . '"' . $selected . '>' . e($case . $title) . '</option>';
+                $jobDropdownHtml .= '<option value="' . e($val) . '"' . $selected . '>' . e($case . $customerName) . '</option>';
             }
         }
 

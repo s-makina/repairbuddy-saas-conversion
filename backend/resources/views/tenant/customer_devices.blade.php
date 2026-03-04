@@ -340,6 +340,24 @@ function viewCustomerDevice(id) {
             html += '</div></div></div>';
         }
         
+        // Time Logs
+        const timeLogs = cd.time_logs || [];
+        if (timeLogs.length > 0) {
+            html += '<div class="col-12"><div class="card"><div class="card-body p-2">';
+            html += '<h6 class="text-muted mb-2" style="font-size: 0.7rem; text-transform: uppercase;">{{ __('Time Logs') }} <span class="badge bg-secondary">' + timeLogs.length + '</span></h6>';
+            html += '<div class="table-responsive"><table class="table table-sm mb-0" style="font-size: 0.8rem;">';
+            html += '<thead><tr><th>{{ __('Date') }}</th><th>{{ __('Technician') }}</th><th>{{ __('Activity') }}</th><th>{{ __('Minutes') }}</th><th>{{ __('Billable') }}</th></tr></thead><tbody>';
+            timeLogs.forEach(function(log) {
+                const date = log.start_time ? new Date(log.start_time).toLocaleDateString() : '—';
+                const tech = log.technician ? log.technician.name : '—';
+                const activity = log.activity || log.work_description || '—';
+                const mins = log.total_minutes || 0;
+                const billable = log.is_billable ? '<span class="text-success">✓</span>' : '<span class="text-muted">—</span>';
+                html += '<tr><td>' + date + '</td><td>' + tech + '</td><td>' + activity + '</td><td>' + mins + '</td><td>' + billable + '</td></tr>';
+            });
+            html += '</tbody></table></div></div></div></div>';
+        }
+        
         html += '</div>';
         contentEl.innerHTML = html;
     })

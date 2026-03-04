@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyCustomerDevice;
 use App\Models\RepairBuddyDevice;
+use App\Models\RepairBuddyTimeLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -39,6 +40,33 @@ class CustomerDevicesController extends Controller
             ];
         }
 
+        // Get time logs from all jobs associated with this device
+        $jobIds = $cd->jobDevices->pluck('job_id')->unique()->filter();
+        $timeLogs = RepairBuddyTimeLog::query()
+            ->with('technician')
+            ->whereIn('job_id', $jobIds)
+            ->orderBy('start_time', 'desc')
+            ->limit(20)
+            ->get();
+
+        $timeLogsData = $timeLogs->map(function ($log) {
+            return [
+                'id' => $log->id,
+                'job_id' => $log->job_id,
+                'technician' => $log->technician ? [
+                    'id' => $log->technician->id,
+                    'name' => $log->technician->name,
+                ] : null,
+                'start_time' => $log->start_time?->toISOString(),
+                'end_time' => $log->end_time?->toISOString(),
+                'total_minutes' => $log->total_minutes,
+                'activity' => $log->activity,
+                'work_description' => $log->work_description,
+                'is_billable' => $log->is_billable,
+                'time_type' => $log->time_type,
+            ];
+        })->values();
+
         return response()->json([
             'customer_device' => array_merge($this->serialize($cd), [
                 'customer' => $cd->customer ? [
@@ -60,6 +88,7 @@ class CustomerDevicesController extends Controller
                     ] : null,
                 ] : null,
                 'latest_job' => $latestJob,
+                'time_logs' => $timeLogsData,
             ]),
         ]);
     }
