@@ -689,6 +689,9 @@ Route::prefix('t/{business}')
             ->where(['setting' => '[0-9]+' ])
             ->name('tenant.settings.appointments.delete');
 
+        Route::get('/jobs', [\App\Http\Controllers\Web\TenantJobController::class, 'index'])
+            ->name('tenant.jobs.index');
+
         Route::get('/jobs/new', [\App\Http\Controllers\Web\TenantJobController::class, 'create'])
             ->name('tenant.jobs.create');
 

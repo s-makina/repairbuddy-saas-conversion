@@ -40,7 +40,7 @@
     $tenantSlug = is_string($tenant?->slug) ? (string) $tenant->slug : '';
     $listUrl    = $isEstimate
         ? route('tenant.estimates.index', ['business' => $tenantSlug])
-        : (route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs');
+        : route('tenant.jobs.index', ['business' => $tenantSlug]);
     $editUrl    = ($record && $tenantSlug)
         ? ($isEstimate
             ? route('tenant.estimates.edit', ['business' => $tenantSlug, 'estimateId' => $record->id])
@@ -333,24 +333,6 @@
 
 {{-- ═══════════════ STICKY TOP BAR ═══════════════ --}}
 <div class="ja-page">
-
-    {{-- Flash messages --}}
-    @if (session('success') || session('error'))
-    <div style="max-width:1440px; margin:0 auto; padding:.75rem 2rem 0;">
-        @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show mb-2" role="alert" style="border-radius:var(--rb-radius);">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        @endif
-        @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert" style="border-radius:var(--rb-radius);">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        @endif
-    </div>
-    @endif
 
     {{-- Estimate status banners --}}
     @if ($isEstimate)

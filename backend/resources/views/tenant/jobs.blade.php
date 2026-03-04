@@ -19,7 +19,7 @@
 
     $tenantSlug  = is_string($tenant?->slug) ? (string) $tenant->slug : '';
     $createUrl   = $tenantSlug ? route('tenant.jobs.create', ['business' => $tenantSlug]) : '#';
-    $baseUrl     = $tenantSlug ? route('tenant.dashboard', ['business' => $tenantSlug]) . '?screen=jobs' : '#';
+    $baseUrl     = $tenantSlug ? route('tenant.jobs.index', ['business' => $tenantSlug]) : '#';
 
     // ── Columns for <x-ui.datatable>
     $jobColumns = [
@@ -52,19 +52,68 @@
 <div class="container-fluid p-3">
 
     {{-- ═══════ Stats Cards ═══════ --}}
-    <!-- @if (!empty($_job_status))
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        @foreach ($_job_status as $_jobsstatus)
-            @php $tc = $_jobsstatus['color'] ?? 'secondary'; @endphp
-            <a href="{{ $_jobsstatus['url'] ?? '#' }}" class="text-decoration-none">
-                <div class="stat-tile stat-tile--{{ $tc }}">
-                    <span class="stat-tile__count">{{ $_jobsstatus['jobs_count'] ?? 0 }}</span>
-                    <span class="stat-tile__label">{{ $_jobsstatus['status_name'] ?? '' }}</span>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <a href="{{ $baseUrl }}?job_status=new" class="text-decoration-none">
+                <div class="card stats-card bg-warning text-dark">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('New') }}</div>
+                                <h4 class="mb-0">{{ $jobStats['new'] ?? 0 }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-plus-circle"></i></div>
+                        </div>
+                    </div>
                 </div>
             </a>
-        @endforeach
+        </div>
+        <div class="col-6 col-lg-3">
+            <a href="{{ $baseUrl }}?job_status=in_process" class="text-decoration-none">
+                <div class="card stats-card bg-primary text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('In Process') }}</div>
+                                <h4 class="mb-0">{{ $jobStats['in_process'] ?? 0 }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-gear-wide-connected"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-3">
+            <a href="{{ $baseUrl }}?job_status=completed" class="text-decoration-none">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Completed') }}</div>
+                                <h4 class="mb-0">{{ $jobStats['completed'] ?? 0 }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-check-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-3">
+            <a href="{{ $baseUrl }}" class="text-decoration-none">
+                <div class="card stats-card bg-secondary text-white">
+                    <div class="card-body py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="card-title mb-1" style="font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .85;">{{ __('Total') }}</div>
+                                <h4 class="mb-0">{{ $jobStats['total'] ?? 0 }}</h4>
+                            </div>
+                            <div style="font-size: 1.5rem; opacity: .4;"><i class="bi bi-briefcase-fill"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
-    @endif -->
 
     {{-- ═══════ DataTable ═══════ --}}
     <x-ui.datatable
@@ -84,7 +133,6 @@
     >
         <x-slot:filters>
             <form method="get" action="{{ $baseUrl }}">
-                <input type="hidden" name="screen" value="jobs" />
                 <div class="row g-2 align-items-end">
                     <div class="col-md-2">
                         <label class="form-label" style="font-size: 0.75rem;">{{ __('Job Status') }}</label>
@@ -135,11 +183,6 @@
                 </div>
             </form>
         </x-slot:filters>
-
-        <x-slot:bulkActions>
-            <button class="btn btn-sm btn-outline-primary" style="font-size: 0.75rem;"><i class="bi bi-printer me-1"></i>{{ __('Print') }}</button>
-            <button class="btn btn-sm btn-outline-danger" style="font-size: 0.75rem;"><i class="bi bi-trash me-1"></i>{{ __('Delete') }}</button>
-        </x-slot:bulkActions>
     </x-ui.datatable>
 
 </div>

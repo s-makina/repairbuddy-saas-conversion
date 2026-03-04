@@ -54,6 +54,8 @@
   $operationsServicesUrl = $tenantSlug ? route('tenant.operations.services.index', ['business' => $tenantSlug]) : '#';
   $operationsClientsUrl = $tenantSlug ? route('tenant.operations.clients.index', ['business' => $tenantSlug]) : '#';
 
+  $jobsUrl = $tenantSlug ? route('tenant.jobs.index', ['business' => $tenantSlug]) : '#';
+
   $expenseCategoriesUrl = $tenantSlug ? route('tenant.expense_categories.index', ['business' => $tenantSlug]) : '#';
   $expensesUrl = $tenantSlug ? route('tenant.expenses.index', ['business' => $tenantSlug]) : '#';
 
@@ -85,7 +87,7 @@
       'id' => 'jobs',
       'title' => 'Jobs',
       'icon' => 'bi bi-wrench',
-      'url' => $screenUrl('jobs'),
+      'url' => $jobsUrl,
       'access' => ['all'],
     ],
 
@@ -355,7 +357,9 @@
     return true;
   };
 
-  if (request()->routeIs('tenant.settings')) {
+  if (request()->routeIs('tenant.jobs.*')) {
+    $currentPage = 'jobs';
+  } elseif (request()->routeIs('tenant.settings')) {
     $currentPage = 'settings';
   } elseif (request()->routeIs('tenant.settings.section')) {
     $currentPage = 'settings';

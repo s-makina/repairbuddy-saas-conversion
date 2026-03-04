@@ -39,6 +39,287 @@ use Yajra\DataTables\Facades\DataTables;
 
 class TenantJobController extends Controller
 {
+    /**
+     * Jobs list page (standalone route /jobs)
+     */
+    public function index(Request $request, string $business)
+    {
+        $tenant = TenantContext::tenant();
+        $user = $request->user();
+
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        $branch = BranchContext::branch();
+        if (! $tenant || ! $branch instanceof Branch) {
+            abort(400, 'Tenant or branch context is missing.');
+        }
+
+        /* ── Build jobs query ── */
+        $jobQuery = RepairBuddyJob::query()
+            ->with(['customer', 'technicians', 'jobDevices'])
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->orderByDesc('id');
+
+        /* search */
+        $searchInput = is_string($request->query('searchinput'))
+            ? trim((string) $request->query('searchinput')) : '';
+        if ($searchInput !== '') {
+            $jobQuery->where(function ($q) use ($searchInput) {
+                $q->where('case_number', 'like', "%{$searchInput}%")
+                  ->orWhere('title', 'like', "%{$searchInput}%")
+                  ->orWhere('case_detail', 'like', "%{$searchInput}%")
+                  ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', "%{$searchInput}%"));
+            });
+        }
+
+        /* status filter */
+        $statusFilter = is_string($request->query('job_status'))
+            ? trim((string) $request->query('job_status')) : '';
+        if ($statusFilter !== '' && $statusFilter !== 'all') {
+            $jobQuery->where('status_slug', $statusFilter);
+        }
+
+        /* payment status filter */
+        $paymentFilter = is_string($request->query('wc_payment_status'))
+            ? trim((string) $request->query('wc_payment_status')) : '';
+        if ($paymentFilter !== '' && $paymentFilter !== 'all') {
+            $jobQuery->where('payment_status_slug', $paymentFilter);
+        }
+
+        /* priority filter */
+        $priorityFilter = is_string($request->query('wc_job_priority'))
+            ? trim((string) $request->query('wc_job_priority')) : '';
+        if ($priorityFilter !== '' && $priorityFilter !== 'all') {
+            $jobQuery->where('priority', $priorityFilter);
+        }
+
+        /* device filter */
+        $deviceFilter = $request->query('device_post_id');
+        if (is_numeric($deviceFilter) && (int) $deviceFilter > 0) {
+            $jobQuery->whereHas('jobDevices', fn ($dq) => $dq->where('customer_device_id', (int) $deviceFilter));
+        }
+
+        $jobs = $jobQuery->limit(500)->get();
+
+        /* ── Format rows for <x-ui.datatable> ── */
+        $priorityBadgeMap = [
+            'high'   => 'wcrb-pill--high',
+            'urgent' => 'wcrb-pill--danger',
+            'normal' => 'wcrb-pill--low',
+        ];
+
+        $statusBadgeMap = [
+            'new'          => 'wcrb-pill--pending',
+            'in_process'   => 'wcrb-pill--progress',
+            'inprocess'    => 'wcrb-pill--progress',
+            'completed'    => 'wcrb-pill--active',
+            'delivered'    => 'wcrb-pill--active',
+            'waiting_parts'=> 'wcrb-pill--warning',
+        ];
+
+        $paymentBadgeMap = [
+            'unpaid'  => 'wcrb-pill--danger',
+            'partial' => 'wcrb-pill--warning',
+            'paid'    => 'wcrb-pill--active',
+        ];
+
+        $jobRows = [];
+        foreach ($jobs as $job) {
+            $num = is_numeric($job->job_number) ? (int) $job->job_number : (int) $job->id;
+            $jobId = str_pad((string) $num, 5, '0', STR_PAD_LEFT);
+            $caseNumber = is_string($job->case_number) ? (string) $job->case_number : '';
+
+            $customerName = $job->customer?->name ?? '—';
+            $tech = $job->technicians->first();
+            $techName = $tech?->name ?? '—';
+
+            $devices = $job->jobDevices
+                ->map(fn ($d) => is_string($d->label_snapshot ?? null) ? trim((string) $d->label_snapshot) : '')
+                ->filter()
+                ->take(3)
+                ->implode(', ') ?: '—';
+
+            $statusSlug = is_string($job->status_slug) ? trim((string) $job->status_slug) : '';
+            $statusLabel = $statusSlug !== '' ? ucwords(str_replace(['_', '-'], ' ', $statusSlug)) : '—';
+
+            $priorityLabel = is_string($job->priority) ? ucfirst((string) $job->priority) : '—';
+            $paymentLabel = is_string($job->payment_status_slug) ? ucfirst((string) $job->payment_status_slug) : '—';
+
+            $pickup = $job->pickup_date?->format('M d, Y') ?? '';
+            $delivery = $job->delivery_date?->format('M d, Y') ?? '';
+
+            $showUrl = route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id]);
+
+            $actions = '<div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap">'
+                . '<a href="' . e($showUrl) . '" class="btn btn-sm btn-primary" style="padding: .25rem .65rem; font-size: .78rem;" title="' . e(__('View')) . '"><i class="bi bi-eye me-1"></i>' . e(__('View')) . '</a>'
+                . '<div class="dropdown">'
+                . '<button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false" title="' . e(__('More actions')) . '" style="padding: .25rem .45rem;"><i class="bi bi-three-dots" style="font-size:.75rem;"></i></button>'
+                . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 160px;">'
+                . '<li><button class="dropdown-item py-2" type="button" onclick="openDocPreview(\'job\',' . (int) $job->id . ')"><i class="bi bi-printer me-2 text-muted"></i>' . e(__('Print / Preview')) . '</button></li>'
+                . '<li><a class="dropdown-item py-2" href="' . e(route('tenant.jobs.edit', ['business' => $tenant->slug, 'jobId' => $job->id])) . '"><i class="bi bi-pencil me-2 text-muted"></i>' . e(__('Edit Job')) . '</a></li>'
+                . '</ul>'
+                . '</div>'
+                . '</div>';
+
+            $jobRows[] = [
+                'job_id'     => $jobId,
+                'case_number'=> $caseNumber,
+                'customer'   => $customerName,
+                'device'     => $devices,
+                'technician' => $techName,
+                'status'     => $statusLabel,
+                '_badgeClass_status' => $statusBadgeMap[strtolower($statusSlug)] ?? 'wcrb-pill--inactive',
+                'priority'   => $priorityLabel,
+                '_badgeClass_priority' => $priorityBadgeMap[strtolower($job->priority ?? '')] ?? 'wcrb-pill--inactive',
+                'payment'    => $paymentLabel,
+                '_badgeClass_payment' => $paymentBadgeMap[strtolower($job->payment_status_slug ?? '')] ?? 'wcrb-pill--inactive',
+                'pickup_date'  => $pickup,
+                'delivery_date'=> $delivery,
+                'actions'    => $actions,
+            ];
+        }
+
+        /* ── Stats Overview ── */
+        $totalJobs = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->count();
+
+        $statusCounts = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->selectRaw('status_slug, COUNT(*) as cnt')
+            ->groupBy('status_slug')
+            ->pluck('cnt', 'status_slug')
+            ->toArray();
+
+        $paymentCounts = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->selectRaw('payment_status_slug, COUNT(*) as cnt')
+            ->groupBy('payment_status_slug')
+            ->pluck('cnt', 'payment_status_slug')
+            ->toArray();
+
+        $priorityCounts = RepairBuddyJob::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->selectRaw('priority, COUNT(*) as cnt')
+            ->groupBy('priority')
+            ->pluck('cnt', 'priority')
+            ->toArray();
+
+        $statusColors = [
+            'new'           => 'warning',
+            'in_process'    => 'primary',
+            'inprocess'     => 'primary',
+            'completed'     => 'success',
+            'delivered'     => 'info',
+            'waiting_parts' => 'secondary',
+        ];
+
+        $jobStatusTiles = [];
+        foreach ($statusCounts as $slug => $count) {
+            if ((int) $count <= 0) {
+                continue;
+            }
+            $jobStatusTiles[] = [
+                'status_slug' => $slug,
+                'status_name' => ucwords(str_replace(['_', '-'], ' ', (string) $slug)),
+                'jobs_count'  => $count,
+                'color'       => $statusColors[$slug] ?? 'secondary',
+                'url'         => route('tenant.jobs.index', ['business' => $tenant->slug, 'job_status' => urlencode((string) $slug)]),
+            ];
+        }
+
+        $jobStats = [
+            'total'       => $totalJobs,
+            'new'         => $statusCounts['new'] ?? 0,
+            'in_process'  => ($statusCounts['in_process'] ?? 0) + ($statusCounts['inprocess'] ?? 0),
+            'completed'   => $statusCounts['completed'] ?? 0,
+            'delivered'   => $statusCounts['delivered'] ?? 0,
+            'by_status'   => $jobStatusTiles,
+            'unpaid'      => $paymentCounts['unpaid'] ?? 0,
+            'partial'     => $paymentCounts['partial'] ?? 0,
+            'paid'        => $paymentCounts['paid'] ?? 0,
+            'urgent'      => $priorityCounts['urgent'] ?? 0,
+            'high'        => $priorityCounts['high'] ?? 0,
+            'normal'      => $priorityCounts['normal'] ?? 0,
+        ];
+
+        /* ── Look-ups for filter dropdowns ── */
+        $jobStatuses = Status::query()
+            ->where('status_type', 'Job')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get(['id', 'code', 'label']);
+
+        $paymentStatuses = Status::query()
+            ->where('status_type', 'Payment')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get(['id', 'code', 'label']);
+
+        $customers = User::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('role', 'customer')
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name']);
+
+        $technicianRoleId = Role::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('name', 'Technician')
+            ->value('id');
+        $technicianRoleId = is_numeric($technicianRoleId) ? (int) $technicianRoleId : null;
+
+        $technicians = User::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('is_admin', false)
+            ->where('status', 'active')
+            ->where(function ($q) use ($technicianRoleId) {
+                if ($technicianRoleId) {
+                    $q->where('role_id', $technicianRoleId);
+                }
+                $q->orWhereHas('roles', fn ($rq) => $rq->where('name', 'Technician'))
+                  ->orWhere('role', 'technician');
+            })
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name']);
+
+        $devices = RepairBuddyCustomerDevice::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('branch_id', (int) $branch->id)
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get(['id', 'label', 'serial']);
+
+        return view('tenant.jobs', [
+            'tenant'          => $tenant,
+            'user'            => $user,
+            'activeNav'       => 'jobs',
+            'pageTitle'       => 'Jobs',
+            'role'            => is_string($user?->role) ? (string) $user->role : null,
+            'jobRows'         => $jobRows,
+            'jobStats'        => $jobStats,
+            '_job_status'     => $jobStatusTiles,
+            'jobStatuses'     => $jobStatuses,
+            'paymentStatuses' => $paymentStatuses,
+            'customers'       => $customers,
+            'technicians'     => $technicians,
+            'devices'         => $devices,
+            'searchInput'     => $searchInput,
+            'statusFilter'    => $statusFilter,
+            'paymentFilter'   => $paymentFilter,
+            'priorityFilter'  => $priorityFilter,
+            'deviceFilter'    => $deviceFilter,
+        ]);
+    }
+
     public function datatable(Request $request, string $business)
     {
         $tenant = TenantContext::tenant();

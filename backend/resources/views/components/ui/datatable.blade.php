@@ -124,30 +124,11 @@
         </div>
         @endif
 
-        {{-- ═══════ Bulk Actions ═══════ --}}
-        <div x-show="selectedRows.length > 0" x-transition.duration.150ms class="d-flex align-items-center gap-2 mb-2 p-2 rounded-2" style="background: #eff6ff; border: 1px solid #bfdbfe;">
-            <span class="text-primary fw-medium" style="font-size: 0.8rem;">
-                <i class="bi bi-check2-square me-1"></i>
-                <span x-text="selectedRows.length"></span> {{ __('selected') }}
-            </span>
-            {{ $bulkActions ?? '' }}
-            <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" @click="selectedRows = []" style="font-size: 0.75rem;">
-                {{ __('Clear') }}
-            </button>
-        </div>
-
         {{-- ═══════ Table ═══════ --}}
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0" id="{{ $tableId }}">
                 <thead class="bg-light">
                     <tr>
-                        {{-- Checkbox column --}}
-                        @if(isset($bulkActions))
-                        <th style="width: 40px;">
-                            <input type="checkbox" class="form-check-input" @click="toggleSelectAll($event)" :checked="isAllSelected" :indeterminate.prop="isIndeterminate">
-                        </th>
-                        @endif
-
                         @foreach($columns as $col)
                         <th
                             class="{{ $col['align'] ?? '' }} {{ ($col['sortable'] ?? true) ? 'rb-sortable' : '' }}"
@@ -167,7 +148,6 @@
                     {{-- Column filter row --}}
                     @if($filterable)
                     <tr x-show="showFilters" class="rb-col-filters">
-                        @if(isset($bulkActions))<th></th>@endif
                         @foreach($columns as $col)
                         <th style="padding: 0.35rem 0.5rem;">
                             @if($col['filter'] ?? false)
@@ -187,13 +167,7 @@
                 </thead>
                 <tbody>
                     <template x-for="(row, idx) in paginatedRows" :key="row._id ?? idx">
-                        <tr :class="{ 'table-primary': selectedRows.includes(row._id ?? idx) }">
-                            @if(isset($bulkActions))
-                            <td>
-                                <input type="checkbox" class="form-check-input" :value="row._id ?? idx" x-model="selectedRows">
-                            </td>
-                            @endif
-
+                        <tr>
                             @foreach($columns as $col)
                             <td class="{{ $col['align'] ?? '' }} {{ ($col['nowrap'] ?? false) ? 'text-nowrap' : '' }}">
                                 @if($col['badge'] ?? false)
@@ -211,7 +185,7 @@
                     {{-- Empty state --}}
                     <template x-if="filteredRows.length === 0">
                         <tr>
-                            <td colspan="{{ count($columns) + (isset($bulkActions) ? 1 : 0) }}" class="text-center py-5">
+                            <td colspan="{{ count($columns) }}" class="text-center py-5">
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <i class="bi bi-inbox" style="font-size: 2rem; color: #cbd5e1;"></i>
                                     <span class="text-muted" style="font-size: 0.85rem;">{{ $emptyMessage }}</span>
@@ -286,7 +260,6 @@ document.addEventListener('alpine:init', () => {
         currentPage: 1,
         sortCol: '',
         sortDir: 'asc',
-        selectedRows: [],
         showFilters: false,
         colFilters: {},
         columns: config.columns || [],
@@ -361,14 +334,6 @@ document.addEventListener('alpine:init', () => {
             return pages;
         },
 
-        get isAllSelected() {
-            return this.paginatedRows.length > 0 && this.paginatedRows.every(r => this.selectedRows.includes(r._id));
-        },
-
-        get isIndeterminate() {
-            return this.selectedRows.length > 0 && !this.isAllSelected;
-        },
-
         get activeFilterCount() {
             return Object.values(this.colFilters).filter(v => (v || '').trim()).length;
         },
@@ -386,15 +351,6 @@ document.addEventListener('alpine:init', () => {
         goToPage(page) {
             if (page < 1 || page > this.totalPages) return;
             this.currentPage = page;
-        },
-
-        toggleSelectAll(event) {
-            if (event.target.checked) {
-                this.selectedRows = [...new Set([...this.selectedRows, ...this.paginatedRows.map(r => r._id)])];
-            } else {
-                const pageIds = this.paginatedRows.map(r => r._id);
-                this.selectedRows = this.selectedRows.filter(id => !pageIds.includes(id));
-            }
         },
 
         exportCSV() {

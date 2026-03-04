@@ -42,13 +42,6 @@
     </div>
     <div class="card-body p-4">
 
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
         {{-- Existing Appointment Options --}}
         @forelse($appointmentSettings as $setting)
             <div class="appointment-card card mb-3 border {{ $setting->is_enabled ? 'border-success' : 'border-secondary' }}">
