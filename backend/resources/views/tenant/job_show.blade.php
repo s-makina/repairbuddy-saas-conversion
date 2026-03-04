@@ -52,6 +52,7 @@
     $estIsPending  = $estStatus === 'pending';
     $estIsApproved = $estStatus === 'approved';
     $estIsRejected = $estStatus === 'rejected';
+    $estRejector   = $isEstimate ? $record?->rejector : null;
     $convertedJobUrl = null;
     if ($isEstimate && $record?->converted_job_id && $tenantSlug) {
         $convertedJobUrl = route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $record->converted_job_id]);
@@ -367,6 +368,19 @@
             <i class="bi bi-x-circle-fill fs-5"></i>
             <div>{{ __('This estimate was rejected') }}
                 @if ($record?->rejected_at) {{ __('on') }} {{ $record->rejected_at->format('M d, Y \a\t H:i') }} @endif
+                @if ($estRejector)
+                    @php
+                        $rejectorRole = $estRejector->roleModel?->name ?? $estRejector->role ?? null;
+                        $rejectorRoleLabel = $rejectorRole ? ucfirst($rejectorRole) : null;
+                    @endphp
+                    {{ __('by') }} <strong>{{ $estRejector->name }}</strong>
+                    @if ($rejectorRoleLabel)
+                        <span style="color:#6b7280;">({{ $rejectorRoleLabel }})</span>
+                    @endif
+                @endif
+                @if ($record?->rejection_reason)
+                    <div class="mt-2 small" style="white-space: pre-wrap;"><strong>Reason:</strong> {{ $record->rejection_reason }}</div>
+                @endif
             </div>
         </div>
         @endif
@@ -979,12 +993,9 @@
                                     <i class="bi bi-check-circle"></i> {{ __('Approve Estimate') }}
                                 </button>
                             </form>
-                            <form method="POST" action="{{ route('tenant.estimates.reject', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}" onsubmit="return confirm('{{ __('Reject this estimate?') }}')">
-                                @csrf
-                                <button type="submit" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%; color:var(--rb-warning); border-color:#fde68a;">
-                                    <i class="bi bi-x-circle"></i> {{ __('Reject Estimate') }}
-                                </button>
-                            </form>
+                            <button type="button" class="ja-btn ja-btn-outline" style="justify-content:center; width:100%; color:var(--rb-warning); border-color:#fde68a;" data-bs-toggle="modal" data-bs-target="#rejectEstimateModal">
+                                <i class="bi bi-x-circle"></i> {{ __('Reject Estimate') }}
+                            </button>
                             @endif
 
                             <form method="POST" action="{{ route('tenant.estimates.destroy', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}" onsubmit="return confirm('{{ __('Delete this estimate permanently?') }}')">
@@ -1073,6 +1084,39 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
                     <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
                         <i class="bi bi-send me-1"></i>{{ __('Send Email') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
+{{-- ── Reject Estimate Modal ── --}}
+@if ($isEstimate && $estIsPending && $record)
+<div class="modal fade" id="rejectEstimateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ route('tenant.estimates.reject', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}">
+            @csrf
+            <div class="modal-content" style="border-radius:14px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-x-circle me-2 text-danger"></i>{{ __('Reject Estimate') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        {{ __('Rejecting this estimate will send an email notification to the customer. This action cannot be easily undone.') }}
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{{ __('Rejection Reason') }}</label>
+                        <textarea class="form-control" name="rejection_reason" rows="4" placeholder="Optional: Explain why this estimate is being rejected..."></textarea>
+                        <div class="form-text">{{ __('This reason will be included in the email sent to the customer.') }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">
+                        <i class="bi bi-x-lg me-1"></i>{{ __('Reject Estimate') }}
                     </button>
                 </div>
             </div>

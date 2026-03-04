@@ -31,6 +31,7 @@ class RepairBuddyEstimate extends Model
         'approved_at',
         'rejected_at',
         'rejected_by',
+        'rejection_reason',
         'converted_job_id',
     ];
 

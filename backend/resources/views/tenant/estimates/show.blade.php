@@ -171,13 +171,16 @@
             @endif
             @if ($rejector)
                 @php
-                    $rejectorRole = $rejector->roleModel?->name ?? null;
+                    $rejectorRole = $rejector->roleModel?->name ?? $rejector->role ?? null;
                     $rejectorRoleLabel = $rejectorRole ? ucfirst($rejectorRole) : null;
                 @endphp
                 {{ __('by') }} <strong>{{ $rejector->name }}</strong>
                 @if ($rejectorRoleLabel)
                     <span class="text-muted">({{ $rejectorRoleLabel }})</span>
                 @endif
+            @endif
+            @if ($estimate?->rejection_reason)
+                <div class="mt-2 small" style="white-space: pre-wrap;"><strong>Reason:</strong> {{ $estimate->rejection_reason }}</div>
             @endif
         </div>
     </div>
@@ -534,13 +537,9 @@
 
                 {{-- Reject --}}
                 @if ($isPending)
-                    <form method="POST" action="{{ route('tenant.estimates.reject', ['business' => $tenantSlug, 'estimateId' => $estimate->id]) }}"
-                          onsubmit="return confirm('Reject this estimate? This cannot be undone easily.')">
-                        @csrf
-                        <button type="submit" class="est-action-btn warning">
-                            <i class="bi bi-x-circle"></i>{{ __('Reject Estimate') }}
-                        </button>
-                    </form>
+                    <button type="button" class="est-action-btn warning" data-bs-toggle="modal" data-bs-target="#rejectEstimateModal">
+                        <i class="bi bi-x-circle"></i>{{ __('Reject Estimate') }}
+                    </button>
                 @endif
 
                 {{-- Print --}}
@@ -620,6 +619,40 @@ Thank you,
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
                     <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
                         <i class="bi bi-send me-1"></i>{{ __('Send Email') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
+{{-- ======================== REJECT ESTIMATE MODAL ======================== --}}
+@if ($isPending && $estimate)
+<div class="modal fade" id="rejectEstimateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ route('tenant.estimates.reject', ['business' => $tenantSlug, 'estimateId' => $estimate->id]) }}">
+            @csrf
+            <div class="modal-content" style="border-radius:14px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-x-circle me-2 text-danger"></i>{{ __('Reject Estimate') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        {{ __('Rejecting this estimate will send an email notification to the customer. This action cannot be easily undone.') }}
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{{ __('Rejection Reason') }}</label>
+                        <textarea class="form-control" name="rejection_reason" rows="4" placeholder="Optional: Explain why this estimate is being rejected..."></textarea>
+                        <div class="form-text">{{ __('This reason will be included in the email sent to the customer.') }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">
+                        <i class="bi bi-x-lg me-1"></i>{{ __('Reject Estimate') }}
                     </button>
                 </div>
             </div>

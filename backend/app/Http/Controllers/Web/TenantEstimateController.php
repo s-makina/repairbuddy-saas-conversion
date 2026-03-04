@@ -903,14 +903,24 @@ class TenantEstimateController extends Controller
     /** POST /t/{business}/estimates/{estimateId}/reject */
     public function reject(Request $request, string $business, $estimateId)
     {
+        $validated = $request->validate([
+            'rejection_reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+
         $estimate = $this->findOwnEstimate($estimateId);
         $tenant = TenantContext::tenant();
         $user   = $request->user();
 
+        $rejectionReason = is_string($validated['rejection_reason'] ?? null) ? trim($validated['rejection_reason']) : null;
+        if ($rejectionReason === '') {
+            $rejectionReason = null;
+        }
+
         $estimate->forceFill([
-            'status'      => 'rejected',
-            'rejected_at' => now(),
-            'rejected_by' => $user?->id,
+            'status'           => 'rejected',
+            'rejected_at'      => now(),
+            'rejected_by'      => $user?->id,
+            'rejection_reason' => $rejectionReason,
         ])->save();
 
         $branch = BranchContext::branch();
@@ -924,14 +934,31 @@ class TenantEstimateController extends Controller
             'visibility'    => 'private',
             'event_type'    => 'estimate.rejected',
             'payload_json'  => [
-                'title'       => 'Estimate rejected by admin',
-                'case_number' => (string) $estimate->case_number,
+                'title'            => 'Estimate rejected by admin',
+                'case_number'      => (string) $estimate->case_number,
+                'rejection_reason' => $rejectionReason,
             ],
         ]);
 
+        // Send rejection email to customer
+        if ($estimate->customer && $estimate->customer->email) {
+            try {
+                $estimate->customer->notify(new \App\Notifications\EstimateRejectedNotification(
+                    $estimate,
+                    $rejectionReason
+                ));
+            } catch (\Throwable $e) {
+                \Log::error('estimate.rejection_email_failed', [
+                    'estimate_id' => $estimate->id,
+                    'customer_id' => $estimate->customer_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return redirect()->route('tenant.estimates.show', [
             'business' => $tenant->slug, 'estimateId' => $estimate->id,
-        ])->with('success', 'Estimate rejected.');
+        ])->with('success', 'Estimate rejected. Customer has been notified via email.');
     }
 
     /** POST /t/{business}/estimates/{estimateId}/convert */
