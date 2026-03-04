@@ -29,24 +29,18 @@ class SignatureRequestNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $businessName = $this->tenant->name ?? 'RepairBuddy';
-        $lines = array_filter(explode("\n", $this->body));
+        $tenantName = $this->tenant->name ?? 'RepairBuddy';
+        $caseNumber = $this->job->case_number ?? 'N/A';
+        $signatureLabel = $this->signatureRequest->signature_label;
 
-        $mail = (new MailMessage())
+        return (new MailMessage())
             ->subject($this->subject)
-            ->greeting("Hello {$notifiable->name},");
-
-        foreach ($lines as $line) {
-            $trimmed = trim($line);
-            if ($trimmed !== '' && ! str_starts_with($trimmed, 'Hello ')) {
-                $mail->line($trimmed);
-            }
-        }
-
-        $mail->action('Sign Now', $this->signatureUrl)
-            ->line('This link will expire in 7 days.')
-            ->salutation("Thank you,\n{$businessName}");
-
-        return $mail;
+            ->view('emails.signatures.request', [
+                'tenantName' => $tenantName,
+                'caseNumber' => $caseNumber,
+                'signatureLabel' => $signatureLabel,
+                'body' => $this->body,
+                'signatureUrl' => $this->signatureUrl,
+            ]);
     }
 }

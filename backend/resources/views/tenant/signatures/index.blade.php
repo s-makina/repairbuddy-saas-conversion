@@ -145,7 +145,7 @@
                                 <th class="fw-semibold border-0 pb-2" style="width:110px;">{{ __('Status') }}</th>
                                 <th class="fw-semibold border-0 pb-2" style="width:140px;">{{ __('Generated') }}</th>
                                 <th class="fw-semibold border-0 pb-2" style="width:140px;">{{ __('Completed') }}</th>
-                                <th class="fw-semibold border-0 pb-2 text-end pe-3" style="width:120px;">{{ __('Actions') }}</th>
+                                <th class="fw-semibold border-0 pb-2 text-end pe-3" style="width:160px;">{{ __('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
