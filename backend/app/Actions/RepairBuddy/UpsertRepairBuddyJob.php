@@ -80,7 +80,7 @@ class UpsertRepairBuddyJob
 
         $paymentStatusSlug = is_string($validated['payment_status_slug'] ?? null) && trim((string) $validated['payment_status_slug']) !== ''
             ? trim((string) $validated['payment_status_slug'])
-            : 'nostatus';
+            : 'pending';
 
         $priority = is_string($validated['priority'] ?? null) && trim((string) $validated['priority']) !== ''
             ? trim((string) $validated['priority'])
