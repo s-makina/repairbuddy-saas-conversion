@@ -17,6 +17,7 @@
 
     $customer   = $estimate?->customer;
     $technician = $estimate?->assignedTechnician;
+    $rejector   = $estimate?->rejector;
     $status     = $estimate?->status ?? 'pending';
     $isPending  = $status === 'pending';
     $isApproved = $status === 'approved';
@@ -167,6 +168,16 @@
             {{ __('This estimate was rejected') }}
             @if ($estimate?->rejected_at)
                 {{ __('on') }} {{ $estimate->rejected_at->format('M d, Y \a\t H:i') }}
+            @endif
+            @if ($rejector)
+                @php
+                    $rejectorRole = $rejector->roleModel?->name ?? null;
+                    $rejectorRoleLabel = $rejectorRole ? ucfirst($rejectorRole) : null;
+                @endphp
+                {{ __('by') }} <strong>{{ $rejector->name }}</strong>
+                @if ($rejectorRoleLabel)
+                    <span class="text-muted">({{ $rejectorRoleLabel }})</span>
+                @endif
             @endif
         </div>
     </div>

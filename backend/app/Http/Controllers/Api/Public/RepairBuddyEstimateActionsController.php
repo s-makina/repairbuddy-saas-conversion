@@ -113,6 +113,7 @@ class RepairBuddyEstimateActionsController extends Controller
                     $estimate->forceFill([
                         'status' => 'rejected',
                         'rejected_at' => $estimate->rejected_at ?: now(),
+                        'rejected_by' => $estimate->customer_id,
                         'approved_at' => null,
                     ])->save();
 

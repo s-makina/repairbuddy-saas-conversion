@@ -30,6 +30,7 @@ class RepairBuddyEstimate extends Model
         'sent_at',
         'approved_at',
         'rejected_at',
+        'rejected_by',
         'converted_job_id',
     ];
 
@@ -44,6 +45,7 @@ class RepairBuddyEstimate extends Model
             'sent_at' => 'datetime',
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
+            'rejected_by' => 'integer',
             'converted_job_id' => 'integer',
         ];
     }
@@ -66,6 +68,11 @@ class RepairBuddyEstimate extends Model
     public function convertedJob(): BelongsTo
     {
         return $this->belongsTo(RepairBuddyJob::class, 'converted_job_id');
+    }
+
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     public function items(): HasMany

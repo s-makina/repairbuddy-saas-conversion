@@ -273,7 +273,7 @@ class TenantEstimateController extends Controller
         }
 
         $estimate = RepairBuddyEstimate::query()
-            ->with(['customer', 'assignedTechnician', 'devices', 'items.tax', 'attachments'])
+            ->with(['customer', 'assignedTechnician', 'rejector.roleModel', 'devices', 'items.tax', 'attachments'])
             ->where('tenant_id', (int) $tenant->id)
             ->where('branch_id', (int) $branch->id)
             ->whereKey((int) $estimateId)
@@ -910,6 +910,7 @@ class TenantEstimateController extends Controller
         $estimate->forceFill([
             'status'      => 'rejected',
             'rejected_at' => now(),
+            'rejected_by' => $user?->id,
         ])->save();
 
         $branch = BranchContext::branch();
