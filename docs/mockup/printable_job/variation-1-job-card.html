@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Card - #RB-8842</title>
+    <style>
+        :root {
+            --primary: #fd6742;
+            --secondary: #063e70;
+            --text-main: #2c304d;
+            --text-muted: #667085;
+            --border: #ededed;
+            --bg-light: #f9fafb;
+        }
+
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.4;
+            font-size: 13px;
+        }
+
+        .document {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .shop-info h1 {
+            color: var(--secondary);
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .shop-info p {
+            margin: 2px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .job-id-badge {
+            background: var(--bg-light);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: right;
+            border: 1px solid var(--border);
+        }
+
+        .job-id-badge span {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .job-id-badge strong {
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        /* Grid Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        section {
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--secondary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .data-row {
+            display: flex;
+            margin-bottom: 6px;
+        }
+
+        .label {
+            width: 100px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .value {
+            flex: 1;
+        }
+
+        /* Tech Area */
+        .work-box {
+            border: 1px dashed #ccc;
+            height: 150px;
+            border-radius: 4px;
+            background: #fff;
+            margin-top: 5px;
+        }
+
+        .checkbox-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .checkbox-list li {
+            display: flex;
+            align-items: center;
+        }
+
+        .box {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--text-muted);
+            margin-right: 8px;
+        }
+
+        /* Parts/Labor Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th {
+            background: var(--bg-light);
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .note-area {
+            background: #fffbea;
+            border: 1px solid #f9ebbe;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #856404;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                -webkit-print-color-adjust: exact;
+            }
+
+            .document {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="document">
+        <header>
+            <div class="shop-info">
+                <h1>RepairBuddy Tech</h1>
+                <p>123 Repair Street, Tech City, 55432</p>
+                <p>+1 (555) 012-3456 | shop@repairbuddy.com</p>
+            </div>
+            <div class="job-id-badge">
+                <span>Work Order</span>
+                <strong>#RB-8842</strong>
+            </div>
+        </header>
+
+        <div class="grid-2">
+            <section>
+                <h2>Customer Information</h2>
+                <div class="data-row">
+                    <div class="label">Name:</div>
+                    <div class="value">John Doe</div>
+                </div>
+                <div class="data-row">
+                    <div class="label">Phone:</div>
+                    <div class="value">(555) 987-6543</div>
+                </div>
+                <div class="data-row">
+                    <div class="label">Email:</div>
+                    <div class="value">j.doe@example.com</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>Device Details</h2>
+                <div class="data-row">
+                    <div class="label">Model:</div>
+                    <div class="value">iPhone 14 Pro Max (Space Black)</div>
+                </div>
+                <div class="data-row">
+                    <div class="label">Serial/IMEI:</div>
+                    <div class="value">IMEI: 356712399012345</div>
+                </div>
+                <div class="data-row">
+                    <div class="label">Passcode:</div>
+                    <div class="value">123456</div>
+                </div>
+            </section>
+        </div>
+
+        <section>
+            <h2>Issue Description</h2>
+            <p>Customer reports screen is flickering and there is a circular black spot in the lower right corner. Touch
+                responsiveness is intermittent. Front camera appears clear.</p>
+        </section>
+
+        <section>
+            <h2>Pre-Repair Checklist</h2>
+            <ul class="checkbox-list">
+                <li>
+                    <div class="box"></div> FaceID / TouchID
+                </li>
+                <li>
+                    <div class="box"></div> Front/Rear Cameras
+                </li>
+                <li>
+                    <div class="box"></div> Wifi / Bluetooth Connectivity
+                </li>
+                <li>
+                    <div class="box"></div> Charging Port Functionality
+                </li>
+                <li>
+                    <div class="box"></div> Physical Damage (Dents/Scratches)
+                </li>
+                <li>
+                    <div class="box"></div> Proximity Sensor
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Technician Notes & Actions Taken</h2>
+            <div class="work-box"></div>
+        </section>
+
+        <section>
+            <h2>Parts & Labor Used</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Item Description</th>
+                        <th>Qty</th>
+                        <th>Part Serial / Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>OLED Assembly for iPhone 14 Pro Max</td>
+                        <td>1</td>
+                        <td>____________________</td>
+                    </tr>
+                    <tr>
+                        <td>Waterproof Adhesive Seal</td>
+                        <td>1</td>
+                        <td>____________________</td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <div class="note-area">
+            <strong>Internal Note:</strong> Customer requested express service. Check if screen protector is in stock
+            for upselling at collection.
+        </div>
+
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Note & Release - #RB-8842</title>
+    <style>
+        :root {
+            --primary: #fd6742;
+            --secondary: #063e70;
+            --text-main: #2c304d;
+            --text-muted: #667085;
+            --border: #ededed;
+            --bg-light: #f9fafb;
+        }
+
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.6;
+            font-size: 13px;
+        }
+
+        .document {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: var(--secondary);
+            margin: 0;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .meta-strip {
+            display: flex;
+            justify-content: space-between;
+            background: var(--bg-light);
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            font-size: 12px;
+        }
+
+        /* Content Sections */
+        section {
+            margin-bottom: 35px;
+        }
+
+        h2 {
+            font-size: 14px;
+            color: var(--secondary);
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+            margin-bottom: 15px;
+        }
+
+        .device-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .info-box {
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .info-box span {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .info-box strong {
+            font-size: 14px;
+        }
+
+        /* Terms Box */
+        .terms-box {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 20px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .terms-box ol {
+            padding-left: 20px;
+        }
+
+        .terms-box li {
+            margin-bottom: 8px;
+        }
+
+        /* Signature Area */
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            margin-top: 50px;
+        }
+
+        .sig-container {
+            border-top: 1px solid #000;
+            padding-top: 10px;
+            position: relative;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .sig-label {
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .sig-date {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* Checklist */
+        .post-repair-checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .post-repair-checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--bg-light);
+            display: flex;
+            align-items: center;
+        }
+
+        .tick {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: 900;
+            font-size: 10px;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+            }
+
+            .document {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="document">
+        <header>
+            <h1>Device Delivery & Release Form</h1>
+            <p style="font-size: 11px; color: var(--text-muted);">RepairBuddy SaaS - Technical Services Division</p>
+        </header>
+
+        <div class="meta-strip">
+            <div><strong>Job ID:</strong> #RB-8842</div>
+            <div><strong>Date:</strong> March 04, 2024</div>
+            <div><strong>Location:</strong> Main Street Branch</div>
+        </div>
+
+        <section>
+            <h2>Customer & Device Verification</h2>
+            <div class="device-info">
+                <div class="info-box">
+                    <span>Customer Name</span>
+                    <strong>John Doe</strong>
+                </div>
+                <div class="info-box">
+                    <span>Device Model</span>
+                    <strong>iPhone 14 Pro Max</strong>
+                </div>
+                <div class="info-box">
+                    <span>Serial Number</span>
+                    <strong>IMEI: 356712399012345</strong>
+                </div>
+                <div class="info-box">
+                    <span>Repair Type</span>
+                    <strong>Screen Replacement</strong>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Quality Assurance Checklist</h2>
+            <p style="font-size: 12px; margin-bottom: 10px;">The following functions have been tested in the presence of
+                the customer:</p>
+            <ul class="post-repair-checklist">
+                <li>
+                    <div class="tick">✔</div> Display Brightness & Touch Sensitivity
+                </li>
+                <li>
+                    <div class="tick">✔</div> FaceID / Biometrics Functionality
+                </li>
+                <li>
+                    <div class="tick">✔</div> Proximity & Ambient Light Sensors
+                </li>
+                <li>
+                    <div class="tick">✔</div> Speaker & Microphone Clarity
+                </li>
+                <li>
+                    <div class="tick">✔</div> Final Cosmetic Condition (Cleaned)
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Terms of Release & Warranty</h2>
+            <div class="terms-box">
+                <ol>
+                    <li><strong>Acceptance of Work:</strong> By signing this document, the customer acknowledges that
+                        the device has been returned in satisfactory working condition and the repair has been completed
+                        as requested.</li>
+                    <li><strong>Limited Warranty:</strong> A 12-month warranty is provided on parts replaced. This
+                        warranty covers manufacturing defects ONLY.</li>
+                    <li><strong>Warranty Exclusions:</strong> Warranty is void if the device shows signs of supplemental
+                        physical damage, liquid exposure, or unauthorized opening after release.</li>
+                    <li><strong>Data Responsibility:</strong> RepairBuddy is not responsible for data loss. Customers
+                        are advised to maintain current backups.</li>
+                    <li><strong>Unclaimed Devices:</strong> Devices not collected within 90 days of notification will be
+                        disposed of to recover costs.</li>
+                </ol>
+            </div>
+        </section>
+
+        <div class="signature-grid">
+            <div class="sig-container">
+                <div class="sig-label">Technician Signature</div>
+                <div class="sig-date">Date: _______________</div>
+            </div>
+            <div class="sig-container">
+                <div class="sig-label">Customer Signature</div>
+                <div class="sig-date">Date: _______________</div>
+            </div>
+        </div>
+
+        <footer style="margin-top: 40px; text-align: center; color: var(--text-muted); font-size: 10px;">
+            Thank you for choosing RepairBuddy. For support, visit support.repairbuddy.com
+        </footer>
+    </div>
+</body>
+
+</html>

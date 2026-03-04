@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - #INV-2024-001</title>
+    <style>
+        :root {
+            --primary: #fd6742;
+            --secondary: #063e70;
+            --text-main: #2c304d;
+            --text-muted: #667085;
+            --border: #ededed;
+            --bg-light: #f9fafb;
+            --success: #10b981;
+        }
+
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.5;
+            font-size: 13px;
+            background: #fff;
+        }
+
+        .document {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        /* Branding & Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 50px;
+        }
+
+        .logo-area h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .logo-area p {
+            margin: 0;
+            color: var(--secondary);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .invoice-title {
+            text-align: right;
+        }
+
+        .invoice-title h2 {
+            margin: 0;
+            font-size: 32px;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #ecfdf5;
+            color: var(--success);
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        .address p {
+            margin: 2px 0;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th {
+            background: var(--bg-light);
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--secondary);
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .item-desc strong {
+            display: block;
+            color: var(--secondary);
+        }
+
+        .item-desc span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* Totals */
+        .totals-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .totals-table {
+            width: 300px;
+        }
+
+        .totals-table tr td {
+            padding: 8px 15px;
+            border: none;
+        }
+
+        .total-row {
+            border-top: 2px solid var(--secondary) !important;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--secondary);
+        }
+
+        /* Bottom section */
+        .footer-note {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .payment-info h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .qr-placeholder {
+            width: 100px;
+            height: 100px;
+            background: #000;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+            }
+
+            .document {
+                padding: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="document">
+        <header>
+            <div class="logo-area">
+                <h1>RepairBuddy</h1>
+                <p>Premium Tech Solutions</p>
+                <div style="margin-top: 15px; font-size: 12px; color: var(--text-muted);">
+                    123 Repair Street<br>
+                    Tech City, NY 10001<br>
+                    +1 (555) 012-3456
+                </div>
+            </div>
+            <div class="invoice-title">
+                <h2>Invoice</h2>
+                <div class="status-badge">Paid</div>
+                <div style="margin-top: 15px; font-size: 12px;">
+                    <strong>Invoice #:</strong> INV-2024-001<br>
+                    <strong>Date:</strong> March 04, 2024<br>
+                    <strong>Job Ref:</strong> #RB-8842
+                </div>
+            </div>
+        </header>
+
+        <div class="info-grid">
+            <div class="address">
+                <h3>Bill To</h3>
+                <p><strong>John Doe</strong></p>
+                <p>456 Residential Ave</p>
+                <p>Suburbia, NY 10002</p>
+                <p>j.doe@example.com</p>
+            </div>
+            <div class="payment-summary">
+                <h3>Payment Summary</h3>
+                <p><strong>Method:</strong> Credit Card (Visa)</p>
+                <p><strong>Transaction ID:</strong> TXN_987654321</p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 60%;">Description</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="item-desc">
+                        <strong>iPhone 14 Pro Max Screen Replacement</strong>
+                        <span>Original quality OLED panel with 12-month warranty</span>
+                    </td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">$249.00</td>
+                    <td class="text-right">$249.00</td>
+                </tr>
+                <tr>
+                    <td class="item-desc">
+                        <strong>Labor - Specialized Repair</strong>
+                        <span>Dust-free installation and water-resistance seal</span>
+                    </td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">$45.00</td>
+                    <td class="text-right">$45.00</td>
+                </tr>
+                <tr>
+                    <td class="item-desc">
+                        <strong>Tempered Glass Screen Protector</strong>
+                        <span>9H Hardness rating (Complimentary fitting)</span>
+                    </td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">$15.00</td>
+                    <td class="text-right">$15.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="totals-container">
+            <table class="totals-table">
+                <tr>
+                    <td class="text-right">Subtotal:</td>
+                    <td class="text-right">$309.00</td>
+                </tr>
+                <tr>
+                    <td class="text-right">Tax (8%):</td>
+                    <td class="text-right">$24.72</td>
+                </tr>
+                <tr class="total-row">
+                    <td class="text-right">Total:</td>
+                    <td class="text-right">$333.72</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer-note">
+            <div class="payment-info">
+                <h4>Thank you for your business!</h4>
+                <p style="color: var(--text-muted); font-size: 11px; max-width: 400px;">
+                    Warranty: All screen repairs come with a 12-month manufacturer defect warranty.
+                    Physical or liquid damage after repair is not covered.
+                </p>
+            </div>
+            <div class="qr-code">
+                <div class="qr-placeholder">
+                    View Digital<br>History
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
