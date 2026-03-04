@@ -160,6 +160,8 @@ class TenantJobController extends Controller
                 . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 160px;">'
                 . '<li><button class="dropdown-item py-2" type="button" onclick="openDocPreview(\'job\',' . (int) $job->id . ')"><i class="bi bi-printer me-2 text-muted"></i>' . e(__('Print / Preview')) . '</button></li>'
                 . '<li><a class="dropdown-item py-2" href="' . e(route('tenant.jobs.edit', ['business' => $tenant->slug, 'jobId' => $job->id])) . '"><i class="bi bi-pencil me-2 text-muted"></i>' . e(__('Edit Job')) . '</a></li>'
+                . '<li><hr class="dropdown-divider"></li>'
+                . '<li><a class="dropdown-item py-2 text-success" href="' . e($showUrl) . '#payments"><i class="bi bi-credit-card me-2"></i>' . e(__('Add Payment')) . '</a></li>'
                 . '</ul>'
                 . '</div>'
                 . '</div>';

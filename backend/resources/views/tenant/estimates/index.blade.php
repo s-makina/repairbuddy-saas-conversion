@@ -78,15 +78,61 @@
             ? route('tenant.estimates.edit', ['business' => $tenantSlug, 'estimateId' => $est->id])
             : null;
 
+        $estStatus = $est->status ?? 'pending';
+        $estIsPending = $estStatus === 'pending';
+        $estIsApproved = $estStatus === 'approved';
+        $hasCustomerEmail = $est->customer && $est->customer->email;
+        $csrfToken = csrf_token();
+
+        // View Job URL if converted
+        $convertedJobUrl = null;
+        if ($estIsApproved && $est->converted_job_id && $tenantSlug) {
+            $convertedJobUrl = route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $est->converted_job_id]);
+        }
+
         $actionHtml = '<div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap">'
             . '<a href="' . e($showUrl) . '" class="btn btn-sm btn-primary" style="padding: .25rem .65rem; font-size: .78rem;" title="' . e(__('View')) . '"><i class="bi bi-eye me-1"></i>' . e(__('View')) . '</a>'
             . '<div class="dropdown">'
             . '<button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false" style="padding: .25rem .45rem;"><i class="bi bi-three-dots" style="font-size:.75rem;"></i></button>'
-            . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 160px;">'
+            . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 180px;">'
             . '<li><button class="dropdown-item py-2" type="button" onclick="Livewire.dispatch(\'openDocumentPreview\', { type: \'estimate\', id: ' . (int) $est->id . ' })"><i class="bi bi-printer me-2 text-muted"></i>' . e(__('Print / Preview')) . '</button></li>';
 
         if ($editUrl) {
             $actionHtml .= '<li><a class="dropdown-item py-2" href="' . e($editUrl) . '"><i class="bi bi-pencil me-2 text-muted"></i>' . e(__('Edit Estimate')) . '</a></li>';
+        }
+
+        // Send Estimate Email
+        if ($hasCustomerEmail && $tenantSlug) {
+            $sendUrl = route('tenant.estimates.send', ['business' => $tenantSlug, 'estimateId' => $est->id]);
+            $actionHtml .= '<li><form method="POST" action="' . e($sendUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Send this estimate to the customer?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><button type="submit" class="dropdown-item py-2"><i class="bi bi-envelope me-2 text-muted"></i>' . e(__('Send Estimate')) . '</button></form></li>';
+        }
+
+        // View Repair Job (if converted)
+        if ($convertedJobUrl) {
+            $actionHtml .= '<li><a class="dropdown-item py-2 text-success" href="' . e($convertedJobUrl) . '"><i class="bi bi-briefcase me-2"></i>' . e(__('View Repair Job')) . '</a></li>';
+        }
+
+        // Convert to Job (if pending and not converted)
+        if ($estIsPending && !$convertedJobUrl && $tenantSlug) {
+            $convertUrl = route('tenant.estimates.convert', ['business' => $tenantSlug, 'estimateId' => $est->id]);
+            $actionHtml .= '<li><form method="POST" action="' . e($convertUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Convert this estimate to a repair job?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><button type="submit" class="dropdown-item py-2 text-success"><i class="bi bi-arrow-right-circle me-2"></i>' . e(__('Convert to Job')) . '</button></form></li>';
+        }
+
+        // Approve Estimate (if pending)
+        if ($estIsPending && $tenantSlug) {
+            $approveUrl = route('tenant.estimates.approve', ['business' => $tenantSlug, 'estimateId' => $est->id]);
+            $actionHtml .= '<li><form method="POST" action="' . e($approveUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Approve this estimate?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><button type="submit" class="dropdown-item py-2 text-success"><i class="bi bi-check-circle me-2"></i>' . e(__('Approve')) . '</button></form></li>';
+        }
+
+        // Reject Estimate (if pending) - opens modal
+        if ($estIsPending) {
+            $actionHtml .= '<li><button type="button" class="dropdown-item py-2 text-warning" data-bs-toggle="modal" data-bs-target="#rejectEstimateModal-' . (int) $est->id . '"><i class="bi bi-x-circle me-2"></i>' . e(__('Reject')) . '</button></li>';
+        }
+
+        // Delete Estimate
+        if ($tenantSlug) {
+            $deleteUrl = route('tenant.estimates.destroy', ['business' => $tenantSlug, 'estimateId' => $est->id]);
+            $actionHtml .= '<li><hr class="dropdown-divider"></li><li><form method="POST" action="' . e($deleteUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Delete this estimate permanently?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><input type="hidden" name="_method" value="DELETE"><button type="submit" class="dropdown-item py-2 text-danger"><i class="bi bi-trash3 me-2"></i>' . e(__('Delete')) . '</button></form></li>';
         }
 
         $actionHtml .= '</ul></div></div>';
@@ -261,6 +307,41 @@
 
 {{-- ── Document Preview Modal ── --}}
 @livewire('tenant.operations.document-preview-modal', ['tenant' => $tenant ?? null])
+
+{{-- ── Reject Estimate Modals (one per pending estimate) ── --}}
+@foreach ($estimates as $est)
+    @if (($est->status ?? 'pending') === 'pending')
+    <div class="modal fade" id="rejectEstimateModal-{{ $est->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('tenant.estimates.reject', ['business' => $tenantSlug, 'estimateId' => $est->id]) }}">
+                @csrf
+                <div class="modal-content" style="border-radius:14px;">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-x-circle me-2 text-danger"></i>{{ __('Reject Estimate') }} #{{ $est->id }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            {{ __('Rejecting this estimate will send an email notification to the customer. This action cannot be easily undone.') }}
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">{{ __('Rejection Reason') }}</label>
+                            <textarea class="form-control" name="rejection_reason" rows="4" placeholder="{{ __('Optional: Explain why this estimate is being rejected...') }}"></textarea>
+                            <div class="form-text">{{ __('This reason will be included in the email sent to the customer.') }}</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">
+                            <i class="bi bi-x-lg me-1"></i>{{ __('Reject Estimate') }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+@endforeach
 @endsection
 
 @push('page-styles')
