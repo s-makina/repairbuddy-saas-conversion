@@ -17,7 +17,7 @@ class TenantSettingsController extends Controller
         $tenantId = TenantContext::tenantId();
 
         if (! $request->user()) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if (is_int($tenantId) && $tenantId > 0) {
@@ -38,7 +38,7 @@ class TenantSettingsController extends Controller
         $tenant = TenantContext::tenant();
 
         if (! $request->user()) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if (! $tenant instanceof Tenant) {
@@ -59,7 +59,7 @@ class TenantSettingsController extends Controller
         $tenantId = TenantContext::tenantId();
 
         if (! $request->user()) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if (is_int($tenantId) && $tenantId > 0) {

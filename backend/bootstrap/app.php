@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->throttleApi('60,1');
 
+        $middleware->redirectGuestsTo('/login');
+
         $middleware->appendToGroup('api', [
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);

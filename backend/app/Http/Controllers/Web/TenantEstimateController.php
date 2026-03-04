@@ -37,7 +37,7 @@ class TenantEstimateController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -264,7 +264,7 @@ class TenantEstimateController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -417,7 +417,7 @@ class TenantEstimateController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -498,7 +498,7 @@ class TenantEstimateController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -586,7 +586,7 @@ class TenantEstimateController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -728,7 +728,7 @@ class TenantEstimateController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();

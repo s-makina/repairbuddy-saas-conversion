@@ -26,7 +26,7 @@ class TenantProfileController extends Controller
         }
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if ((int) $user->tenant_id !== (int) $tenantId) {
@@ -69,7 +69,7 @@ class TenantProfileController extends Controller
         }
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if ((int) $user->tenant_id !== (int) $tenantId) {
@@ -133,7 +133,7 @@ class TenantProfileController extends Controller
         }
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if ((int) $user->tenant_id !== (int) $tenantId) {
@@ -172,7 +172,7 @@ class TenantProfileController extends Controller
         }
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if ((int) $user->tenant_id !== (int) $tenantId) {

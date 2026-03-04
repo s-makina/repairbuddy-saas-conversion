@@ -35,9 +35,15 @@ class RepairBuddyEstimateActionsController extends Controller
             ->where('case_number', $caseNumber)
             ->first();
 
+        $tenant = \App\Support\TenantContext::tenant();
+
         if (! $estimate) {
-            return response()->json([
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
                 'message' => 'Estimate not found.',
+                'estimate' => (object)['case_number' => 'N/A', 'status' => 'Not Found'],
             ], 404);
         }
 
@@ -48,14 +54,22 @@ class RepairBuddyEstimateActionsController extends Controller
             ->first();
 
         if (! $tokenRow) {
-            return response()->json([
-                'message' => 'Invalid token.',
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Invalid or signature already processed.',
+                'estimate' => $estimate,
             ], 403);
         }
 
         if ($tokenRow->expires_at && $tokenRow->expires_at->isPast()) {
-            return response()->json([
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
                 'message' => 'Token expired.',
+                'estimate' => $estimate,
             ], 403);
         }
 
@@ -123,9 +137,12 @@ class RepairBuddyEstimateActionsController extends Controller
             return 'ok';
         });
 
-        return response()->json([
-            'message' => $result === 'token_used' ? 'Already processed.' : 'OK',
-            'status' => $estimate->fresh()->status,
+        return view('tenant.estimates.public_action_result', [
+            'tenant' => $tenant,
+            'business' => $business,
+            'purpose' => $purpose,
+            'estimate' => $estimate->fresh(),
+            'message' => $result === 'token_used' ? 'Already processed.' : 'Success',
         ]);
     }
 }

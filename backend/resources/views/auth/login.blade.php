@@ -10,7 +10,7 @@
 
       <div class="card rb-auth-card">
         <div class="card-body p-4">
-          <form method="POST" action="{{ route('web.login') }}">
+          <form method="POST" action="{{ route('login') }}">
             @csrf
 
             <div class="mb-3">

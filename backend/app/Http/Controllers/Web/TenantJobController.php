@@ -204,7 +204,7 @@ class TenantJobController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -326,7 +326,7 @@ class TenantJobController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -472,7 +472,7 @@ class TenantJobController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -534,7 +534,7 @@ class TenantJobController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -613,7 +613,7 @@ class TenantJobController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()
@@ -809,7 +809,7 @@ class TenantJobController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()->whereKey((int) $jobId)->firstOrFail();

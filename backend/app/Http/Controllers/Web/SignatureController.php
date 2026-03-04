@@ -29,7 +29,7 @@ class SignatureController extends Controller
         $tenant = TenantContext::tenant();
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()
@@ -59,7 +59,7 @@ class SignatureController extends Controller
         $tenant = TenantContext::tenant();
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()
@@ -96,7 +96,7 @@ class SignatureController extends Controller
         $tenant = TenantContext::tenant();
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $validated = $request->validate([
@@ -142,7 +142,7 @@ class SignatureController extends Controller
         $tenant = TenantContext::tenant();
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()
@@ -176,7 +176,7 @@ class SignatureController extends Controller
         $tenant = TenantContext::tenant();
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()
@@ -234,7 +234,7 @@ class SignatureController extends Controller
         $tenant = TenantContext::tenant();
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $job = RepairBuddyJob::query()

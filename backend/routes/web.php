@@ -12,7 +12,7 @@ Route::get('/', function () {
 Route::middleware('web')->group(function () {
     Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
         ->middleware('guest')
-        ->name('web.login');
+        ->name('login');
 
     Route::post('/login', [\App\Http\Controllers\Web\AuthController::class, 'login'])
         ->middleware('guest');

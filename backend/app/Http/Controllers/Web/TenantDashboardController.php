@@ -31,7 +31,7 @@ class TenantDashboardController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $screen = is_string($request->query('screen')) && $request->query('screen') !== ''

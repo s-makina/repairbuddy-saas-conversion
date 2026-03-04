@@ -14,7 +14,7 @@ class TenantAppointmentController extends Controller
         $tenant = TenantContext::tenant();
 
         if (! $request->user()) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         if (! $tenant instanceof Tenant) {

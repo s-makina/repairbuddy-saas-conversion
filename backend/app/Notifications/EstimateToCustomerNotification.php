@@ -29,8 +29,36 @@ class EstimateToCustomerNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $tenant = \App\Support\Context\TenantContext::tenant();
+        $tenant = \App\Support\TenantContext::tenant();
         $tenantName = $tenant?->name ?? 'RepairBuddy';
+
+        $this->estimate->load(['items.tax']);
+
+        $subtotalCents = 0;
+        $taxTotalCents = 0;
+        $itemsData = [];
+
+        foreach ($this->estimate->items as $item) {
+            $itemSubtotal = $item->qty * $item->unit_price_amount_cents;
+            $itemTax = 0;
+
+            if ($item->tax) {
+                $itemTax = (int) round($itemSubtotal * ((float) $item->tax->rate / 100));
+            }
+
+            $subtotalCents += $itemSubtotal;
+            $taxTotalCents += $itemTax;
+
+            $itemsData[] = [
+                'name' => $item->name_snapshot,
+                'qty' => $item->qty,
+                'unit_price' => $item->unit_price_amount_cents / 100,
+                'total' => $itemSubtotal / 100,
+                'currency' => $item->unit_price_currency,
+            ];
+        }
+
+        $grandTotalCents = $subtotalCents + $taxTotalCents;
 
         $msg = (new MailMessage)
             ->subject($this->subject)
@@ -40,6 +68,11 @@ class EstimateToCustomerNotification extends Notification
                 'body' => $this->body,
                 'approveUrl' => $this->approveUrl,
                 'rejectUrl' => $this->rejectUrl,
+                'items' => $itemsData,
+                'subtotal' => $subtotalCents / 100,
+                'taxTotal' => $taxTotalCents / 100,
+                'grandTotal' => $grandTotalCents / 100,
+                'currency' => $this->estimate->items->first()?->unit_price_currency ?? 'USD',
             ]);
 
         if ($this->attachPdf && $this->pdfPath) {

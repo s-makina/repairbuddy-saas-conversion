@@ -31,7 +31,7 @@ class PrintDocumentController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -99,7 +99,7 @@ class PrintDocumentController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -168,7 +168,7 @@ class PrintDocumentController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
@@ -236,7 +236,7 @@ class PrintDocumentController extends Controller
         $user   = $request->user();
 
         if (! $user) {
-            return redirect()->route('web.login');
+            return redirect()->route('login');
         }
 
         $branch = BranchContext::branch();
