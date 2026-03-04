@@ -139,6 +139,22 @@ Route::prefix('t/{business}')
         Route::post('/branch/active', [\App\Http\Controllers\Web\TenantBranchController::class, 'setActive'])
             ->name('tenant.branch.active');
 
+        // Customer devices web routes (session auth)
+        Route::get('/customer-devices/{id}', [\App\Http\Controllers\Web\CustomerDevicesController::class, 'show'])
+            ->where(['id' => '[0-9]+'])
+            ->middleware('permission:customer_devices.view')
+            ->name('tenant.customer-devices.show');
+
+        Route::post('/customer-devices/{id}/update', [\App\Http\Controllers\Web\CustomerDevicesController::class, 'update'])
+            ->where(['id' => '[0-9]+'])
+            ->middleware('permission:customer_devices.manage')
+            ->name('tenant.customer-devices.update');
+
+        Route::post('/customer-devices/{id}/delete', [\App\Http\Controllers\Web\CustomerDevicesController::class, 'destroy'])
+            ->where(['id' => '[0-9]+'])
+            ->middleware('permission:customer_devices.manage')
+            ->name('tenant.customer-devices.destroy');
+
         Route::get('/settings/users/datatable', [\App\Http\Controllers\Web\Settings\UsersController::class, 'datatable'])
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.datatable');

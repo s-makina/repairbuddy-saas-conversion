@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenantAndBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RepairBuddyCustomerDevice extends Model
 {
@@ -41,5 +42,10 @@ class RepairBuddyCustomerDevice extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(RepairBuddyDevice::class, 'device_id');
+    }
+
+    public function jobDevices(): HasMany
+    {
+        return $this->hasMany(RepairBuddyJobDevice::class, 'customer_device_id');
     }
 }

@@ -318,83 +318,174 @@ class TenantDashboardController extends Controller
         }
 
         if ($screen === 'customer-devices') {
-            $mockStatsHtml = <<<'HTML'
-<div class="row g-3 mb-4">
-    <div class="col">
-        <div class="card stats-card bg-primary text-white">
-            <div class="card-body text-center p-3">
-                <h6 class="card-title text-white-50 mb-1">Devices</h6>
-                <h4 class="mb-0">12</h4>
-                <small class="text-white-50">Total</small>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="card stats-card bg-success text-white">
-            <div class="card-body text-center p-3">
-                <h6 class="card-title text-white-50 mb-1">Active</h6>
-                <h4 class="mb-0">9</h4>
-                <small class="text-white-50">In use</small>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="card stats-card bg-warning text-dark">
-            <div class="card-body text-center p-3">
-                <h6 class="card-title mb-1">Needs Attention</h6>
-                <h4 class="mb-0">2</h4>
-                <small class="text-muted">Flagged</small>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="card stats-card bg-secondary text-white">
-            <div class="card-body text-center p-3">
-                <h6 class="card-title text-white-50 mb-1">Archived</h6>
-                <h4 class="mb-0">1</h4>
-                <small class="text-white-50">Old</small>
-            </div>
-        </div>
-    </div>
-</div>
-HTML;
+            $branch = BranchContext::branch();
 
-            $mockFiltersHtml = <<<'HTML'
-<div class="card mb-4"><div class="card-body"></div></div>
-HTML;
+            if (! $tenant || ! $branch instanceof Branch) {
+                abort(400, 'Tenant or branch context is missing.');
+            }
 
-            $mockRowsHtml = <<<'HTML'
-HTML;
-
-            $mockPaginationHtml = <<<'HTML'
-HTML;
-
-            $mockAddDeviceFormHtml = <<<'HTML'
-HTML;
-
+            // Determine if user is admin/store manager
             $isAdminUser = (bool) ($user?->is_admin ?? false);
             $role = is_string($user?->role) ? (string) $user->role : '';
             if ($role !== '' && $role !== 'customer' && $role !== 'guest') {
                 $isAdminUser = true;
             }
 
+            // Build customer devices query
+            $deviceQuery = RepairBuddyCustomerDevice::query()
+                ->with(['customer', 'device.brand', 'device.type', 'jobDevices.job.technicians'])
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('branch_id', (int) $branch->id)
+                ->orderByDesc('id');
+
+            // Search filter
+            $searchInput = is_string($request->query('searchinput'))
+                ? trim((string) $request->query('searchinput')) : '';
+            if ($searchInput !== '') {
+                $deviceQuery->where(function ($q) use ($searchInput) {
+                    $q->where('label', 'like', "%{$searchInput}%")
+                      ->orWhere('serial', 'like', "%{$searchInput}%")
+                      ->orWhere('pin', 'like', "%{$searchInput}%")
+                      ->orWhere('id', $searchInput)
+                      ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', "%{$searchInput}%"));
+                });
+            }
+
+            // Customer filter
+            $customerFilter = $request->query('customer_id');
+            if (is_numeric($customerFilter) && (int) $customerFilter > 0) {
+                $deviceQuery->where('customer_id', (int) $customerFilter);
+            }
+
+            // Device type filter
+            $deviceTypeFilter = $request->query('device_type_id');
+            if (is_numeric($deviceTypeFilter) && (int) $deviceTypeFilter > 0) {
+                $deviceQuery->whereHas('device', fn ($dq) => $dq->where('device_type_id', (int) $deviceTypeFilter));
+            }
+
+            // Device brand filter
+            $deviceBrandFilter = $request->query('device_brand_id');
+            if (is_numeric($deviceBrandFilter) && (int) $deviceBrandFilter > 0) {
+                $deviceQuery->whereHas('device', fn ($dq) => $dq->where('device_brand_id', (int) $deviceBrandFilter));
+            }
+
+            $customerDevices = $deviceQuery->limit(500)->get();
+
+            // Build stats
+            $totalDevices = $customerDevices->count();
+            $devicesWithSerial = $customerDevices->whereNotNull('serial')->where('serial', '!=', '')->count();
+            $devicesWithDevice = $customerDevices->whereNotNull('device_id')->count();
+            $devicesWithoutDevice = $totalDevices - $devicesWithDevice;
+
+            // Build rows for datatable
+            $rows = [];
+            foreach ($customerDevices as $cd) {
+                $deviceLabel = $cd->label ?? '—';
+                if ($cd->device) {
+                    $brandName = $cd->device->brand?->name ?? '';
+                    $model = $cd->device->model ?? '';
+                    $deviceLabel = trim("{$brandName} {$model}") ?: $cd->label;
+                }
+
+                $typeName = $cd->device?->type?->name ?? '—';
+                $customerName = $cd->customer?->name ?? '—';
+
+                // Get latest job info for this device
+                $latestJobDevice = $cd->jobDevices->sortByDesc('id')->first();
+                $jobInfo = '—';
+                $assignedTo = '—';
+                if ($latestJobDevice && $latestJobDevice->job) {
+                    $job = $latestJobDevice->job;
+                    $caseNumber = is_string($job->case_number) ? $job->case_number : '#' . $job->id;
+                    $jobInfo = '<a href="' . e(route('tenant.jobs.show', ['business' => $tenant->slug, 'jobId' => $job->id])) . '" class="text-decoration-none">' . e($caseNumber) . '</a>';
+                    $tech = $job->technicians->first();
+                    $assignedTo = $tech?->name ?? '—';
+                }
+
+                $actions = '<div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap">';
+                if ($isAdminUser) {
+                    $actions .= '<button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editCustomerDevice(' . (int) $cd->id . ')" title="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></button>';
+                    $actions .= '<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCustomerDevice(' . (int) $cd->id . ')" title="' . e(__('Delete')) . '"><i class="bi bi-trash"></i></button>';
+                } else {
+                    $actions .= '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="viewCustomerDevice(' . (int) $cd->id . ')" title="' . e(__('View')) . '"><i class="bi bi-eye"></i></button>';
+                }
+                $actions .= '</div>';
+
+                $rows[] = [
+                    'id' => $cd->id,
+                    'device' => $deviceLabel,
+                    'type' => $typeName,
+                    'serial' => $cd->serial ?? '—',
+                    'pin' => $cd->pin ?? '—',
+                    'notes' => $cd->notes ? \Illuminate\Support\Str::limit($cd->notes, 50) : '—',
+                    'customer' => $customerName,
+                    'job' => $jobInfo,
+                    'assigned_to' => $assignedTo,
+                    'actions' => $actions,
+                ];
+            }
+
+            // Build columns for datatable
+            $columns = [
+                ['key' => 'id', 'label' => '#', 'width' => '60px', 'sortable' => true],
+                ['key' => 'device', 'label' => __('Device'), 'sortable' => true, 'filter' => true],
+                ['key' => 'type', 'label' => __('Type'), 'width' => '120px', 'sortable' => true],
+                ['key' => 'serial', 'label' => __('ID/IMEI'), 'width' => '130px', 'sortable' => true],
+                ['key' => 'pin', 'label' => __('Pin Code'), 'width' => '100px', 'sortable' => true],
+                ['key' => 'notes', 'label' => __('Notes'), 'width' => '150px'],
+            ];
+
+            if ($isAdminUser) {
+                $columns[] = ['key' => 'customer', 'label' => __('Customer'), 'sortable' => true, 'filter' => true];
+            }
+
+            $columns[] = ['key' => 'job', 'label' => __('Job'), 'width' => '100px', 'html' => true];
+            $columns[] = ['key' => 'assigned_to', 'label' => __('Assigned To'), 'width' => '120px', 'sortable' => true];
+
+            $columns[] = ['key' => 'actions', 'label' => '', 'width' => '120px', 'align' => 'text-end', 'html' => true];
+
+            // Build filters
+            $customers = User::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('role', 'customer')
+                ->orderBy('name')
+                ->limit(500)
+                ->get(['id', 'name']);
+
+            $deviceTypes = \App\Models\RepairBuddyDeviceType::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            $deviceBrands = \App\Models\RepairBuddyDeviceBrand::query()
+                ->where('tenant_id', (int) $tenant->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            $baseUrl = route('tenant.dashboard', ['business' => $tenant->slug]) . '?screen=customer-devices';
+
             return view('tenant.customer_devices', [
                 'tenant' => $tenant,
                 'user' => $user,
                 'activeNav' => 'customer-devices',
-                'pageTitle' => 'Devices',
-                'is_admin_user' => $isAdminUser,
-                'wc_device_label' => 'Devices',
-                'sing_device_label' => 'Device',
-                'wc_device_id_imei_label' => 'ID/IMEI',
-                'wc_pin_code_label' => 'Pin Code/Password',
-                'devices_data' => [
-                    'stats' => $mockStatsHtml,
-                    'filters' => $mockFiltersHtml,
-                    'rows' => $mockRowsHtml,
-                    'pagination' => $mockPaginationHtml,
-                ],
-                'add_device_form_html' => $mockAddDeviceFormHtml,
+                'pageTitle' => 'Customer Devices',
+                'role' => $role,
+                'isAdminUser' => $isAdminUser,
+                'rows' => $rows,
+                'columns' => $columns,
+                'totalDevices' => $totalDevices,
+                'devicesWithSerial' => $devicesWithSerial,
+                'devicesWithoutDevice' => $devicesWithoutDevice,
+                'customers' => $customers,
+                'deviceTypes' => $deviceTypes,
+                'deviceBrands' => $deviceBrands,
+                'searchInput' => $searchInput,
+                'customerFilter' => $customerFilter,
+                'deviceTypeFilter' => $deviceTypeFilter,
+                'deviceBrandFilter' => $deviceBrandFilter,
+                'baseUrl' => $baseUrl,
             ]);
         }
 

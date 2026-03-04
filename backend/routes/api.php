@@ -663,11 +663,13 @@ Route::prefix('{business}')
                         ->whereNumber('overrideId');
                 });
 
-                Route::prefix('repairbuddy')->middleware('permission:customer_devices.view')->group(function () {
+                Route::prefix('repairbuddy')->middleware(['permission:customer_devices.view', 'branch.active'])->group(function () {
                     Route::get('/customer-devices', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'index']);
+                    Route::get('/customer-devices/{customerDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'show'])
+                        ->whereNumber('customerDeviceId');
                 });
 
-                Route::prefix('repairbuddy')->middleware('permission:customer_devices.manage')->group(function () {
+                Route::prefix('repairbuddy')->middleware(['permission:customer_devices.manage', 'branch.active'])->group(function () {
                     Route::post('/customer-devices', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'store']);
 
                     Route::patch('/customer-devices/{customerDeviceId}', [\App\Http\Controllers\Api\App\RepairBuddyCustomerDeviceController::class, 'update'])

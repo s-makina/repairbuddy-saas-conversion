@@ -186,6 +186,64 @@ class RepairBuddyCustomerDeviceController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $business, $customerDeviceId)
+    {
+        if (! is_numeric($customerDeviceId)) {
+            return response()->json([
+                'message' => 'Customer device not found.',
+            ], 404);
+        }
+
+        $cd = RepairBuddyCustomerDevice::query()
+            ->with(['customer', 'device.brand', 'device.type', 'jobDevices.job.technicians'])
+            ->whereKey((int) $customerDeviceId)
+            ->first();
+
+        if (! $cd) {
+            return response()->json([
+                'message' => 'Customer device not found.',
+            ], 404);
+        }
+
+        // Get latest job info
+        $latestJobDevice = $cd->jobDevices->sortByDesc('id')->first();
+        $latestJob = null;
+        if ($latestJobDevice && $latestJobDevice->job) {
+            $job = $latestJobDevice->job;
+            $latestJob = [
+                'id' => $job->id,
+                'case_number' => $job->case_number,
+                'title' => $job->title,
+                'status_slug' => $job->status_slug,
+                'technicians' => $job->technicians->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values(),
+            ];
+        }
+
+        return response()->json([
+            'customer_device' => array_merge($this->serialize($cd), [
+                'customer' => $cd->customer ? [
+                    'id' => $cd->customer->id,
+                    'name' => $cd->customer->name,
+                    'email' => $cd->customer->email,
+                    'phone' => $cd->customer->phone,
+                ] : null,
+                'device' => $cd->device ? [
+                    'id' => $cd->device->id,
+                    'model' => $cd->device->model,
+                    'brand' => $cd->device->brand ? [
+                        'id' => $cd->device->brand->id,
+                        'name' => $cd->device->brand->name,
+                    ] : null,
+                    'type' => $cd->device->type ? [
+                        'id' => $cd->device->type->id,
+                        'name' => $cd->device->type->name,
+                    ] : null,
+                ] : null,
+                'latest_job' => $latestJob,
+            ]),
+        ]);
+    }
+
     private function serialize(RepairBuddyCustomerDevice $d): array
     {
         return [
