@@ -309,8 +309,8 @@ class TenantTechTimeLogController extends Controller
                 if ($selectedJob) {
                     $formaJobId = str_pad((string) $jobId, 5, '0', STR_PAD_LEFT);
                     $displayName = $selectedJob->case_number ?: 'JOB-' . $jobId;
-                    if ($selectedJob->title) {
-                        $displayName .= ' — ' . $selectedJob->title;
+                    if ($selectedJob->customer) {
+                        $displayName .= ' — ' . $selectedJob->customer->name;
                     }
 
                     if ($selectedJob->jobDevices && $selectedJob->jobDevices->count() > 0) {

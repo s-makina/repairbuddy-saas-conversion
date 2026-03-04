@@ -26,6 +26,8 @@ return new class extends Migration
                 'estimates.view',
                 'clients.view',
                 'customer_devices.view',
+                'time_logs.view',
+                'time_logs.manage',
                 'profile.manage',
                 'security.manage',
             ];
