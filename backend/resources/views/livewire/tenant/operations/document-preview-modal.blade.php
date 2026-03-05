@@ -115,6 +115,7 @@
                         'technician'    => $technician,
                         'items'         => $items,
                         'devices'       => $devices,
+                        'deviceFields'  => $deviceFields,
                         'backUrl'       => '#',
                         'pdfUrl'        => $pdfUrl,
                     ])

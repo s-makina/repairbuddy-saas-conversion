@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Tenant\Operations;
 
+use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyEstimateDevice;
 use App\Models\RepairBuddyEstimateItem;
@@ -38,6 +39,7 @@ class DocumentPreviewModal extends Component
     public $warrantyLines = [];
     public $pdfUrl        = '#';
     public $printUrl      = '#';
+    public $deviceFields  = [];
 
     public function mount($tenant = null)
     {
@@ -245,6 +247,7 @@ class DocumentPreviewModal extends Component
         $this->resolveShopInfo();
         $this->warrantyLines = $this->resolveWarranty($job);
         $this->resolveUrls($job);
+        $this->deviceFields = $this->resolveDeviceFields();
 
         Log::debug('[DocumentPreviewModal] loadJob scalars resolved', [
             'docNumber'   => $this->docNumber,
@@ -275,6 +278,7 @@ class DocumentPreviewModal extends Component
         $this->resolveShopInfo();
         $this->warrantyLines = [];
         $this->resolveUrls($estimate);
+        $this->deviceFields = $this->resolveDeviceFields();
 
         Log::debug('[DocumentPreviewModal] loadEstimate scalars resolved', [
             'docNumber' => $this->docNumber,
@@ -351,10 +355,38 @@ class DocumentPreviewModal extends Component
                 }
             }
         }
-        if (empty($lines)) {
-            $lines = ['Parts: 90 days', 'Labour: 30 days'];
-        }
         return $lines;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Private — device fields                                            */
+    /* ------------------------------------------------------------------ */
+
+    private function resolveDeviceFields(): array
+    {
+        $tenantId = TenantContext::tenantId();
+        $branchId = BranchContext::branchId();
+
+        if (!$tenantId) {
+            return [];
+        }
+
+        $query = RepairBuddyDeviceFieldDefinition::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->where('show_in_invoice', true);
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $fields = $query->orderBy('id')->get();
+
+        return $fields->map(fn ($f) => [
+            'key'   => $f->key,
+            'label' => $f->label,
+            'type'  => $f->type,
+        ])->toArray();
     }
 
     /* ------------------------------------------------------------------ */
@@ -397,5 +429,6 @@ class DocumentPreviewModal extends Component
         $this->warrantyLines = [];
         $this->pdfUrl        = '#';
         $this->printUrl      = '#';
+        $this->deviceFields  = [];
     }
 }

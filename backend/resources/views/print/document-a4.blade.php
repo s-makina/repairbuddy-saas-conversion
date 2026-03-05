@@ -151,6 +151,8 @@ body {
     padding: 10px; border-bottom: 1px solid var(--rb-border);
     font-size: .85rem; vertical-align: top;
 }
+.tbl tbody td.r { text-align: right; }
+.tbl tbody td.c { text-align: center; }
 .tbl tbody tr:last-child td { border-bottom: none; }
 .it-name { font-weight: 700; color: var(--rb-text); }
 .it-sub  { font-size: .7rem; color: var(--rb-text-3); margin-top: 2px; }
@@ -324,18 +326,23 @@ body {
 
   {{-- ════ BODY ════ --}}
   <div class="bd">
-    {{-- ── DEVICES & CONDITION  ── --}}
+    {{-- ── DEVICES  ── --}}
     @if($devices->isNotEmpty())
+    @php
+      $fields = $deviceFields ?? [];
+      $fieldCount = count($fields);
+      $deviceWidth = $fieldCount > 0 ? max(10, (int) (60 / $fieldCount)) : 15;
+    @endphp
     <div class="sec">
-      <div class="sec-lbl">Device Details & Dropped Condition</div>
+      <div class="sec-lbl">Devices</div>
       <table class="dtbl">
         <thead>
           <tr>
             <th style="width:40%">Device / Model</th>
-            <th style="width:15%">Power On</th>
-            <th style="width:15%">Screen OK</th>
-            <th style="width:15%">Charging</th>
-            <th style="width:15%">Serial / SN</th>
+            @foreach($fields as $field)
+              <th style="width:{{ $deviceWidth }}%">{{ $field['label'] }}</th>
+            @endforeach
+            <th style="width:{{ max(10, 60 - ($deviceWidth * $fieldCount)) }}%">Serial / SN</th>
           </tr>
         </thead>
         <tbody>
@@ -343,18 +350,27 @@ body {
             @php
               $label  = $dev->label_snapshot ?? $dev->customerDevice?->device?->name ?? 'Device';
               $extras = is_string($dev->extra_fields_snapshot_json) ? json_decode($dev->extra_fields_snapshot_json, true) : (is_array($dev->extra_fields_snapshot_json) ? $dev->extra_fields_snapshot_json : []);
-              $power  = $extras['power_on']    ?? null;
-              $screen = $extras['screen_ok']   ?? null;
-              $charge = $extras['charging_ok'] ?? null;
             @endphp
             <tr>
               <td>
                 <div style="font-weight:700;">{{ $label }}</div>
                 @if($dev->notes_snapshot)<div style="font-size:10px;color:var(--rb-text-3);">{{ $dev->notes_snapshot }}</div>@endif
               </td>
-              <td>@if(!is_null($power))<span class="ctag {{ $power ? 'ctag-ok' : 'ctag-bad' }}">{{ $power ? 'OK' : 'Fault' }}</span>@else &mdash; @endif</td>
-              <td>@if(!is_null($screen))<span class="ctag {{ $screen ? 'ctag-ok' : 'ctag-bad' }}">{{ $screen ? 'OK' : 'Fault' }}</span>@else &mdash; @endif</td>
-              <td>@if(!is_null($charge))<span class="ctag {{ $charge ? 'ctag-ok' : 'ctag-bad' }}">{{ $charge ? 'OK' : 'Fault' }}</span>@else &mdash; @endif</td>
+              @foreach($fields as $field)
+                @php
+                  $fKey = $field['key'];
+                  $fVal = $extras[$fKey] ?? null;
+                @endphp
+                <td>
+                  @if(is_bool($fVal))
+                    <span class="ctag {{ $fVal ? 'ctag-ok' : 'ctag-bad' }}">{{ $fVal ? 'OK' : 'Fault' }}</span>
+                  @elseif(!is_null($fVal))
+                    {{ $fVal }}
+                  @else
+                    &mdash;
+                  @endif
+                </td>
+              @endforeach
               <td><small style="font-family:monospace;">{{ $dev->serial_snapshot ?? '—' }}</small></td>
             </tr>
           @endforeach
@@ -378,9 +394,9 @@ body {
       <table class="tbl">
         <thead>
           <tr>
-            <th style="width:50%">Description</th>
+            <th style="width:45%">Description</th>
             <th style="width:10%">Qty</th>
-            <th class="r" style="width:15%">Price</th>
+            <th class="r" style="width:20%">Price</th>
             <th class="r" style="width:25%">Total</th>
           </tr>
         </thead>
@@ -442,8 +458,7 @@ body {
                     @forelse($warrantyLines as $w)
                         <div class="w-item"><strong>✓</strong> {{ $w }}</div>
                     @empty
-                        <div class="w-item"><strong>✓</strong> Parts: 90 Days</div>
-                        <div class="w-item"><strong>✓</strong> Labor: 30 Days</div>
+                        <div class="w-item" style="color:var(--rb-text-3);font-style:italic;">No warranty specified</div>
                     @endforelse
                 </div>
             @else

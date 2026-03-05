@@ -12,22 +12,21 @@ use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyDevice;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddyJobDevice;
+use App\Models\RepairBuddyJobExtraItem;
+use App\Models\RepairBuddyJobItem;
 use App\Models\RepairBuddyPayment;
 use App\Models\RepairBuddyPaymentStatus;
 use App\Models\RepairBuddyTax;
-use App\Services\TenantSettings\TenantSettingsStore;
-use App\Models\RepairBuddyJobExtraItem;
-use App\Models\RepairBuddyJobCounter;
-use App\Models\RepairBuddyJobItem;
-use App\Models\RepairBuddyPart;
 use App\Models\RepairBuddyService;
 use App\Models\RepairBuddyEvent;
+use App\Models\RepairBuddyPart;
 use App\Models\RepairBuddyTimeLog;
 use App\Models\Role;
 use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\RepairBuddyCaseNumberService;
+use App\Services\TenantSettings\TenantSettingsStore;
 use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
@@ -55,6 +54,9 @@ class TenantJobController extends Controller
         if (! $tenant || ! $branch instanceof Branch) {
             abort(400, 'Tenant or branch context is missing.');
         }
+
+        // Ensure default statuses exist
+        app(\App\Services\TenantBootstrap\EnsureDefaultRepairBuddyStatuses::class)->ensure((int) $tenant->id);
 
         /* ── Build jobs query ── */
         $jobQuery = RepairBuddyJob::query()
@@ -168,15 +170,19 @@ class TenantJobController extends Controller
 
             $jobRows[] = [
                 'job_id'     => $jobId,
+                'job_id_numeric' => (int) $job->id,
                 'case_number'=> $caseNumber,
                 'customer'   => $customerName,
                 'device'     => $devices,
                 'technician' => $techName,
                 'status'     => $statusLabel,
+                'status_slug'=> $statusSlug,
                 '_badgeClass_status' => $statusBadgeMap[strtolower($statusSlug)] ?? 'wcrb-pill--inactive',
                 'priority'   => $priorityLabel,
+                'priority_slug' => $job->priority ?? 'normal',
                 '_badgeClass_priority' => $priorityBadgeMap[strtolower($job->priority ?? '')] ?? 'wcrb-pill--inactive',
                 'payment'    => $paymentLabel,
+                'payment_status_slug' => $job->payment_status_slug ?? '',
                 '_badgeClass_payment' => $paymentBadgeMap[strtolower($job->payment_status_slug ?? '')] ?? 'wcrb-pill--inactive',
                 'pickup_date'  => $pickup,
                 'delivery_date'=> $delivery,
@@ -252,18 +258,36 @@ class TenantJobController extends Controller
             'normal'      => $priorityCounts['normal'] ?? 0,
         ];
 
-        /* ── Look-ups for filter dropdowns ── */
+        /* ── Look-ups for filter dropdowns (from statuses table) ── */
+        // Uses Status model with status_type filter, code field (not slug)
         $jobStatuses = Status::query()
             ->where('status_type', 'Job')
             ->where('is_active', true)
             ->orderBy('id')
             ->get(['id', 'code', 'label']);
 
+        $jobStatusesJson = $jobStatuses->map(fn ($s) => [
+            'code' => $s->code,
+            'label' => $s->label,
+        ])->toJson();
+
         $paymentStatuses = Status::query()
             ->where('status_type', 'Payment')
             ->where('is_active', true)
             ->orderBy('id')
             ->get(['id', 'code', 'label']);
+
+        $paymentStatusesJson = $paymentStatuses->map(fn ($s) => [
+            'code' => $s->code,
+            'label' => $s->label,
+        ])->toJson();
+
+        // Priority options (hardcoded)
+        $prioritiesJson = json_encode([
+            ['code' => 'normal', 'label' => 'Normal'],
+            ['code' => 'high', 'label' => 'High'],
+            ['code' => 'urgent', 'label' => 'Urgent'],
+        ]);
 
         $customers = User::query()
             ->where('tenant_id', (int) $tenant->id)
@@ -310,7 +334,10 @@ class TenantJobController extends Controller
             'jobStats'        => $jobStats,
             '_job_status'     => $jobStatusTiles,
             'jobStatuses'     => $jobStatuses,
+            'jobStatusesJson' => $jobStatusesJson,
             'paymentStatuses' => $paymentStatuses,
+            'paymentStatusesJson' => $paymentStatusesJson,
+            'prioritiesJson'  => $prioritiesJson,
             'customers'       => $customers,
             'technicians'     => $technicians,
             'devices'         => $devices,
@@ -1044,6 +1071,37 @@ class TenantJobController extends Controller
             ->orderBy('label')
             ->get();
 
+        $jobStatuses = Status::query()
+            ->where('status_type', 'Job')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get();
+
+        // Load payment methods from tenant settings
+        $settingsStore = new TenantSettingsStore($tenant);
+        $paymentMethods = [];
+
+        // Primary: check for explicit list saved by settings form (payment_methods_active)
+        $paymentMethodsActive = $settingsStore->get('payment_methods_active', []);
+        if (is_array($paymentMethodsActive) && !empty($paymentMethodsActive)) {
+            $paymentMethods = $paymentMethodsActive;
+        }
+
+        // Fallback: check for boolean flags (used by PaymentStatusSettings Livewire component)
+        if (empty($paymentMethods)) {
+            $methodFlags = $settingsStore->get('payment_methods', []);
+            if (is_array($methodFlags)) {
+                if (filter_var($methodFlags['cash'] ?? false, FILTER_VALIDATE_BOOLEAN)) $paymentMethods[] = 'cash';
+                if (filter_var($methodFlags['card'] ?? false, FILTER_VALIDATE_BOOLEAN)) $paymentMethods[] = 'card';
+                if (filter_var($methodFlags['bank'] ?? $methodFlags['bank_transfer'] ?? false, FILTER_VALIDATE_BOOLEAN)) $paymentMethods[] = 'bank';
+            }
+        }
+
+        // Final fallback defaults
+        if (empty($paymentMethods)) {
+            $paymentMethods = ['cash', 'bank', 'card'];
+        }
+
         // Get expense categories for expense modal
         $expenseCategories = \App\Models\ExpenseCategory::query()
             ->where('is_active', true)
@@ -1075,6 +1133,8 @@ class TenantJobController extends Controller
                 ->get(),
             'jobFeedback' => collect(),
             'paymentStatuses' => $paymentStatuses,
+            'jobStatuses' => $jobStatuses,
+            'paymentMethods' => $paymentMethods,
             'expenseCategories' => $expenseCategories,
         ]);
     }
@@ -1104,7 +1164,13 @@ class TenantJobController extends Controller
             'transaction_id' => 'nullable|string|max:200',
             'notes'          => 'nullable|string|max:2000',
             'paid_at'        => 'nullable|date',
+            'job_status'     => 'nullable|string|max:64',
         ]);
+
+        // Update job status if provided
+        if (!empty($validated['job_status'])) {
+            $job->update(['status_slug' => $validated['job_status']]);
+        }
 
         $amountCents = (int) round($validated['amount'] * 100);
 

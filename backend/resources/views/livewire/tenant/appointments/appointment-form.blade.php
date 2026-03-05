@@ -608,28 +608,28 @@
                                 </button>
                             </div>
                         @else
-                            <div class="af-search-container" x-data="{ open: false }" @click.away="open = false">
+                            <div class="af-search-container" x-data="{ isOpen: false }" @click.away="isOpen = false">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
                                            placeholder="{{ __('Search by name, email or phone...') }}"
                                            wire:model.live.debounce.300ms="customer_search"
                                            autocomplete="off"
-                                           @focus="open = true"
-                                           @input="open = true"
-                                           @keydown.escape="open = false" />
+                                           @focus="isOpen = true"
+                                           @input="isOpen = true"
+                                           @keydown.escape="isOpen = false" />
                                     <div wire:loading wire:target="customer_search" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-5" style="z-index: 5;"></div>
                                     <button type="button" class="btn btn-gradient" title="{{ __('Quick Add Customer') }}" wire:click="$dispatchTo('tenant.operations.quick-customer-modal', 'openQuickCustomerModal')">
                                         <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </div>
-                                <div class="af-search-dropdown" x-show="open" x-cloak>
+                                <div class="af-search-dropdown" x-show="isOpen" x-cloak>
                                     <div wire:loading wire:target="customer_search" class="p-3 text-center">
                                         <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                                         <span class="text-muted small">{{ __('Searching customers...') }}</span>
                                     </div>
                                     <div wire:loading.remove wire:target="customer_search">
                                         @forelse($this->filtered_customers as $c)
-                                            <div class="af-search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="open = false">
+                                            <div class="af-search-item" wire:key="cust-res-{{ $c->id }}" wire:click="selectCustomer({{ $c->id }})" @click="isOpen = false">
                                                 <div>
                                                     <div class="af-item-title">{{ $c->name }}</div>
                                                     <div class="af-item-meta">{{ $c->email }} | {{ $c->phone }}</div>

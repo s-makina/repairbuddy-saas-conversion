@@ -1116,7 +1116,6 @@
     $paymentGrandTotal = $totals['grand_total_cents'] ?? $totals['total_cents'] ?? 0;
     $paymentPaidSoFar  = collect($jobPayments)->sum('amount_cents');
     $paymentBalance    = $paymentGrandTotal - $paymentPaidSoFar;
-    $defaultMethods    = ['cash', 'bank-transfer', 'check', 'card-swipe', 'mobile-payment', 'credit-card', 'debit-card'];
 @endphp
 <div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -1152,8 +1151,8 @@
                             <label class="form-label fw-bold small" for="pmt_method">{{ __('Payment Method') }} <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm" id="pmt_method" name="method" required>
                                 <option value="">{{ __('Select Method') }}</option>
-                                @foreach ($defaultMethods as $m)
-                                    <option value="{{ $m }}">{{ ucwords(str_replace('-', ' ', $m)) }}</option>
+                                @foreach ($paymentMethods as $m)
+                                    <option value="{{ $m }}">{{ ucwords(str_replace(['-', '_'], ' ', $m)) }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -1172,6 +1171,25 @@
                                     <option value="pending">{{ __('Pending') }}</option>
                                     <option value="partial">{{ __('Partial') }}</option>
                                     <option value="refunded">{{ __('Refunded') }}</option>
+                                @endif
+                            </select>
+                        </div>
+
+                        {{-- Job Status --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small" for="pmt_job_status">{{ __('Update Job Status') }}</label>
+                            <select class="form-select form-select-sm" id="pmt_job_status" name="job_status">
+                                <option value="">{{ __('Keep Current Status') }}</option>
+                                @if (isset($jobStatuses) && $jobStatuses->count() > 0)
+                                    @foreach ($jobStatuses as $js)
+                                        <option value="{{ $js->code ?? $js->slug ?? $js->label }}" {{ ($record?->status_slug ?? '') === ($js->code ?? $js->slug ?? '') ? 'selected' : '' }}>{{ $js->label }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="open" {{ ($record?->status_slug ?? '') === 'open' ? 'selected' : '' }}>{{ __('Open') }}</option>
+                                    <option value="in_process" {{ ($record?->status_slug ?? '') === 'in_process' ? 'selected' : '' }}>{{ __('In Process') }}</option>
+                                    <option value="completed" {{ ($record?->status_slug ?? '') === 'completed' ? 'selected' : '' }}>{{ __('Completed') }}</option>
+                                    <option value="delivered" {{ ($record?->status_slug ?? '') === 'delivered' ? 'selected' : '' }}>{{ __('Delivered') }}</option>
+                                    <option value="cancelled" {{ ($record?->status_slug ?? '') === 'cancelled' ? 'selected' : '' }}>{{ __('Cancelled') }}</option>
                                 @endif
                             </select>
                         </div>

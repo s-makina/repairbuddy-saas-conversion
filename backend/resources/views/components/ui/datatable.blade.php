@@ -27,6 +27,10 @@
   │   'width'  => '120px'                                            │
   │   'nowrap' => true                                               │
   │   'badge'  => true  (renders value as .wcrb-pill)               │
+  │   'dropdown' => 'callbackFn'  (renders badge as dropdown)       │
+  │   'dropdownOptions' => 'globalVarName' (JS var with options)     │
+  │   'dropdownIdKey' => 'id_column' (row key for dropdown ID)       │
+  │   'dropdownValueKey' => 'status_slug' (row key for current val)  │
   │   'html'   => true  (render raw HTML from row value)            │
   └──────────────────────────────────────────────────────────────────┘
 --}}
@@ -167,11 +171,34 @@
                 </thead>
                 <tbody>
                     <template x-for="(row, idx) in paginatedRows" :key="row._id ?? idx">
-                        <tr>
+                        <tr x-data="{ row: row }">
                             @foreach($columns as $col)
                             <td class="{{ $col['align'] ?? '' }} {{ ($col['nowrap'] ?? false) ? 'text-nowrap' : '' }}">
-                                @if($col['badge'] ?? false)
-                                    <span class="wcrb-pill" :class="row['_badgeClass_{{ $col['key'] }}'] ?? 'wcrb-pill--active'" x-text="row['{{ $col['key'] }}']"></span>
+                                @if($col['dropdown'] ?? false)
+                                    @php
+                                        $dropdownOpts = $col['dropdownOptions'] ?? 'window.rbJobStatuses';
+                                        $dropdownIdKey = $col['dropdownIdKey'] ?? 'job_id_numeric';
+                                        $dropdownValueKey = $col['dropdownValueKey'] ?? null;
+                                        $dropdownType = $col['dropdownType'] ?? 'status';
+                                    @endphp
+                                    <div class="dropdown rb-status-dropdown"
+                                        :data-job-id="row['{{ $dropdownIdKey }}']"
+                                        :data-current-value="row['{{ $dropdownValueKey ?? $col['key'] }}']"
+                                        data-dropdown-type="{{ $dropdownType }}"
+                                    >
+                                        <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <span class="wcrb-pill" :class="row['_badgeClass_{{ $col['key'] }}'] || 'wcrb-pill--active'">
+                                                <span x-text="row['{{ $col['key'] }}']"></span>
+                                                <i class="bi bi-chevron-down ms-1" style="font-size: 0.65rem; opacity: 0.6;"></i>
+                                            </span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 160px; font-size: 0.85rem;">
+                                            <li class="dropdown-header" style="font-size: 0.72rem; padding: 0.4rem 0.75rem;">{{ __('Change status') }}</li>
+                                            <li><hr class="dropdown-divider"></li>
+                                        </ul>
+                                    </div>
+                                @elseif($col['badge'] ?? false)
+                                    <span class="wcrb-pill" :class="row['_badgeClass_{{ $col['key'] }}'] || 'wcrb-pill--active'" x-text="row['{{ $col['key'] }}']"></span>
                                 @elseif($col['html'] ?? false)
                                     <span x-html="row['{{ $col['key'] }}']" x-init="$nextTick(() => { const dropdowns = $el.querySelectorAll('[data-bs-toggle=dropdown]'); dropdowns.forEach(el => new bootstrap.Dropdown(el)); })"></span>
                                 @else
@@ -183,21 +210,17 @@
                     </template>
 
                     {{-- Empty state --}}
-                    <template x-if="filteredRows.length === 0">
-                        <tr>
-                            <td colspan="{{ count($columns) }}" class="text-center py-5">
-                                <div class="d-flex flex-column align-items-center gap-2">
-                                    <i class="bi bi-inbox" style="font-size: 2rem; color: #cbd5e1;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">{{ $emptyMessage }}</span>
-                                    <template x-if="search.length > 0">
-                                        <button type="button" class="btn btn-sm btn-outline-primary mt-1" @click="search = ''" style="font-size: 0.78rem;">
-                                            <i class="bi bi-x-circle me-1"></i>{{ __('Clear search') }}
-                                        </button>
-                                    </template>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
+                    <tr x-show="filteredRows.length === 0">
+                        <td colspan="{{ count($columns) }}" class="text-center py-5">
+                            <div class="d-flex flex-column align-items-center gap-2">
+                                <i class="bi bi-inbox" style="font-size: 2rem; color: #cbd5e1;"></i>
+                                <span class="text-muted" style="font-size: 0.85rem;">{{ $emptyMessage }}</span>
+                                <button x-show="search.length > 0" type="button" class="btn btn-sm btn-outline-primary mt-1" @click="search = ''" style="font-size: 0.78rem;">
+                                    <i class="bi bi-x-circle me-1"></i>{{ __('Clear search') }}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

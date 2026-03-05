@@ -28,9 +28,9 @@
         ['key' => 'customer',      'label' => __('Customer'),    'width' => '160px', 'sortable' => true,  'filter' => true],
         ['key' => 'device',        'label' => __('Device'),      'width' => '160px', 'sortable' => true,  'filter' => true],
         ['key' => 'technician',    'label' => __('Technician'),  'width' => '130px', 'sortable' => true,  'filter' => true],
-        ['key' => 'status',        'label' => __('Status'),      'width' => '120px', 'sortable' => true,  'badge' => true],
-        ['key' => 'priority',      'label' => __('Priority'),    'width' => '100px', 'sortable' => true,  'badge' => true],
-        ['key' => 'payment',       'label' => __('Payment'),     'width' => '100px', 'sortable' => true,  'badge' => true],
+        ['key' => 'status',        'label' => __('Status'),      'width' => '120px', 'sortable' => true,  'dropdown' => true, 'dropdownOptions' => 'window.rbJobStatuses', 'dropdownIdKey' => 'job_id_numeric', 'dropdownValueKey' => 'status_slug', 'dropdownType' => 'status'],
+        ['key' => 'priority',      'label' => __('Priority'),    'width' => '100px', 'sortable' => true,  'dropdown' => true, 'dropdownOptions' => 'window.rbPriorities', 'dropdownIdKey' => 'job_id_numeric', 'dropdownValueKey' => 'priority_slug', 'dropdownType' => 'priority'],
+        ['key' => 'payment',       'label' => __('Payment'),     'width' => '100px', 'sortable' => true,  'dropdown' => true, 'dropdownOptions' => 'window.rbPaymentStatuses', 'dropdownIdKey' => 'job_id_numeric', 'dropdownValueKey' => 'payment_status_slug', 'dropdownType' => 'payment'],
         ['key' => 'pickup_date',   'label' => __('Pickup'),      'width' => '110px', 'sortable' => true,  'nowrap' => true],
         ['key' => 'delivery_date', 'label' => __('Delivery'),    'width' => '110px', 'sortable' => true,  'nowrap' => true],
         ['key' => 'actions',       'label' => '',                 'width' => '160px', 'sortable' => false, 'align' => 'text-end', 'html' => true],
@@ -39,11 +39,173 @@
 
 @push('page-scripts')
 <script>
+  /* ── Global options for dropdowns ── */
+  window.rbJobStatuses = {{ $jobStatusesJson ?? '[]' }};
+  window.rbPaymentStatuses = {{ $paymentStatusesJson ?? '[]' }};
+  window.rbPriorities = {{ $prioritiesJson ?? '[]' }};
+
   /* ── openDocPreview: opens DocumentPreviewModal via Livewire dispatch ── */
   function openDocPreview(type, id) {
     if (window.Livewire) {
       window.Livewire.dispatch('openDocumentPreview', { type: type, id: id });
     }
+  }
+
+  /* ── Badge class mappings ── */
+  const rbBadgeClass = {
+    status: {
+      'new': 'wcrb-pill--pending',
+      'neworder': 'wcrb-pill--pending',
+      'in_process': 'wcrb-pill--progress',
+      'inprocess': 'wcrb-pill--progress',
+      'completed': 'wcrb-pill--active',
+      'delivered': 'wcrb-pill--active',
+      'waiting_parts': 'wcrb-pill--warning',
+      'cancelled': 'wcrb-pill--danger',
+    },
+    payment: {
+      'unpaid': 'wcrb-pill--danger',
+      'partial': 'wcrb-pill--warning',
+      'paid': 'wcrb-pill--active',
+    },
+    priority: {
+      'normal': 'wcrb-pill--low',
+      'high': 'wcrb-pill--high',
+      'urgent': 'wcrb-pill--danger',
+    }
+  };
+
+  /* ── Get options array by type ── */
+  function rbGetOptions(type) {
+    switch(type) {
+      case 'status': return window.rbJobStatuses || [];
+      case 'payment': return window.rbPaymentStatuses || [];
+      case 'priority': return window.rbPriorities || [];
+      default: return [];
+    }
+  }
+
+  /* ── Populate dropdowns when they open ── */
+  document.addEventListener('DOMContentLoaded', function() {
+    document.body.addEventListener('show.bs.dropdown', function(e) {
+      const dropdown = e.target.closest('.rb-status-dropdown');
+      if (!dropdown) return;
+
+      const btn = dropdown.querySelector('button');
+      const menu = dropdown.querySelector('.dropdown-menu');
+      if (!menu || menu.dataset.populated) return;
+
+      // Get Alpine.js data directly from the element
+      let jobId, currentValue, dropdownType;
+      try {
+        const alpineEl = Alpine.findClosest(dropdown);
+        if (alpineEl && alpineEl._x_dataStack && alpineEl._x_dataStack[0]) {
+          const data = alpineEl._x_dataStack[0];
+          jobId = data.jobId;
+          currentValue = data.currentVal;
+          dropdownType = data.dropdownType || 'status';
+        }
+      } catch(err) {
+        // Fallback to dataset
+      }
+
+      // Fallback to dataset
+      if (!jobId) jobId = dropdown.dataset.jobId;
+      if (!currentValue) currentValue = dropdown.dataset.currentValue;
+      if (!dropdownType) dropdownType = dropdown.dataset.dropdownType || 'status';
+
+      const options = rbGetOptions(dropdownType);
+      if (!options.length) {
+        console.warn('No options for dropdown type:', dropdownType);
+        return;
+      }
+
+      // Clear existing items except header
+      const header = menu.querySelector('.dropdown-header')?.parentElement;
+      const divider = menu.querySelector('.dropdown-divider')?.parentElement;
+      menu.innerHTML = '';
+      if (header) menu.appendChild(header);
+      if (divider) menu.appendChild(divider);
+
+      // Add options
+      options.forEach(function(opt) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'dropdown-item py-2 d-flex align-items-center gap-2' + (opt.code === currentValue ? ' active' : '');
+        a.href = '#';
+        const badgeClass = rbBadgeClass[dropdownType]?.[opt.code] || 'wcrb-pill--inactive';
+        a.innerHTML = '<span class="wcrb-pill ' + badgeClass + '" style="font-size: 0.75rem;">' +
+          '<span>' + opt.label + '</span></span>' +
+          (opt.code === currentValue ? '<i class="bi bi-check2 ms-auto text-success"></i>' : '');
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          rbChangeJobField(jobId, dropdownType, opt.code, dropdown);
+        });
+        li.appendChild(a);
+        menu.appendChild(li);
+      });
+
+      menu.dataset.populated = '1';
+    });
+  });
+
+  /* ── Change job field via AJAX ── */
+  function rbChangeJobField(jobId, fieldType, newValue, dropdownEl) {
+    const tenantSlug = '{{ $tenant->slug ?? '' }}';
+    if (!tenantSlug) return;
+
+    const btn = dropdownEl.querySelector('button');
+    const badge = dropdownEl.querySelector('.wcrb-pill');
+    const originalContent = badge.innerHTML;
+
+    // Show loading state
+    badge.innerHTML = '<i class="bi bi-arrow-repeat spin"></i>';
+    btn.disabled = true;
+
+    // Build request body based on field type
+    const body = {};
+    if (fieldType === 'status') body.status_slug = newValue;
+    else if (fieldType === 'payment') body.payment_status_slug = newValue;
+    else if (fieldType === 'priority') body.priority = newValue;
+
+    fetch('/api/' + encodeURIComponent(tenantSlug) + '/app/repairbuddy/jobs/' + jobId, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Request failed');
+      return res.json();
+    })
+    .then(function(data) {
+      // Update badge
+      const options = rbGetOptions(fieldType);
+      const opt = options.find(o => o.code === newValue);
+      const badgeClass = rbBadgeClass[fieldType]?.[newValue] || 'wcrb-pill--inactive';
+      badge.innerHTML = '<span>' + (opt?.label || newValue) + '</span><i class="bi bi-chevron-down ms-1" style="font-size: 0.65rem; opacity: 0.6;"></i>';
+      badge.className = 'wcrb-pill ' + badgeClass;
+      btn.dataset.currentValue = newValue;
+
+      // Mark dropdown as needing repopulation
+      dropdownEl.querySelector('.dropdown-menu').dataset.populated = '';
+
+      // Close dropdown
+      const inst = bootstrap.Dropdown.getInstance(btn);
+      if (inst) inst.hide();
+    })
+    .catch(function(err) {
+      badge.innerHTML = originalContent;
+      console.error('Failed to update:', err);
+      alert('Failed to update. Please try again.');
+    })
+    .finally(function() {
+      btn.disabled = false;
+    });
   }
 </script>
 @endpush
@@ -201,12 +363,25 @@
     .wcrb-pill--high     { color: #991b1b; background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.25); }
     .wcrb-pill--medium   { color: #92400e; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
     .wcrb-pill--low      { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.25); }
+    .wcrb-pill--active   { color: #065f46; background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.25); }
+    .wcrb-pill--inactive { color: #64748b; background: rgba(100,116,139,.10); border-color: rgba(100,116,139,.25); }
     [data-bs-theme="dark"] .wcrb-pill--progress { background: rgba(59,130,246,.20); }
     [data-bs-theme="dark"] .wcrb-pill--pending  { background: rgba(245,158,11,.20); }
     [data-bs-theme="dark"] .wcrb-pill--warning  { background: rgba(245,158,11,.20); }
     [data-bs-theme="dark"] .wcrb-pill--danger   { background: rgba(239,68,68,.20); }
     [data-bs-theme="dark"] .wcrb-pill--high     { background: rgba(239,68,68,.20); }
     [data-bs-theme="dark"] .wcrb-pill--low      { background: rgba(16,185,129,.20); }
+    [data-bs-theme="dark"] .wcrb-pill--active   { background: rgba(16,185,129,.20); }
+
+    /* ── status dropdown ── */
+    .rb-status-dropdown .wcrb-pill { cursor: pointer; transition: filter 0.15s; }
+    .rb-status-dropdown .wcrb-pill:hover { filter: brightness(0.95); }
+    .rb-status-dropdown .dropdown-menu { z-index: 1050; }
+    .rb-status-dropdown .dropdown-item.active { background-color: rgba(59,130,246,0.1); }
+
+    /* ── spin animation ── */
+    @keyframes rb-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .bi-arrow-repeat.spin { animation: rb-spin 0.8s linear infinite; }
 
     /* ── status summary tiles ── */
     .stat-tile {
