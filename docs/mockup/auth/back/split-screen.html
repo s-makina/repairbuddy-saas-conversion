@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | 99SmartX Split Screen</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --rb-blue: #063e70;
+            --rb-orange: #fd6742;
+            --rb-dark: #021a2f;
+            --rb-bg-light: #f8fafc;
+            --rb-text-main: #0f172a;
+            --rb-text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            background-color: #fff;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .auth-container {
+            display: flex;
+            width: 100%;
+        }
+
+        /* Side Panel */
+        .auth-side {
+            width: 50%;
+            background: linear-gradient(135deg, var(--rb-blue) 0%, var(--rb-dark) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 80px;
+            position: relative;
+            color: #fff;
+        }
+
+        .auth-side::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        .auth-side::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle at 20% 30%, rgba(253, 103, 66, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(6, 62, 112, 0.6) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .side-content {
+            position: relative;
+            z-index: 2;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-side h2 {
+            font-weight: 800;
+            font-size: 3.8rem;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+
+        .auth-side h2 span {
+            color: var(--rb-orange);
+            position: relative;
+        }
+
+        .auth-side p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 520px;
+            margin-bottom: 48px;
+            font-weight: 300;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 1.15rem;
+            font-weight: 500;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 18px;
+            color: var(--rb-orange);
+            font-size: 1.4rem;
+        }
+
+        /* Form Panel */
+        .auth-form-panel {
+            width: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            background-color: var(--rb-bg-light);
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .auth-form-panel::before {
+            content: "";
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 300px;
+            height: 300px;
+            background: rgba(253, 103, 66, 0.03);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .form-wrapper {
+            width: 100%;
+            max-width: 460px;
+            position: relative;
+            z-index: 1;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .form-card {
+            background: #fff;
+            padding: 48px;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .brand-logo-mobile {
+            display: none;
+            margin-bottom: 40px;
+        }
+
+        .welcome-text h3 {
+            font-weight: 800;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            color: var(--rb-dark);
+            letter-spacing: -0.5px;
+        }
+
+        .welcome-text p {
+            color: var(--rb-text-muted);
+            margin-bottom: 40px;
+            font-size: 1.05rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            color: var(--rb-text-main);
+        }
+
+        .input-group-custom {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-group-custom i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--rb-text-muted);
+            pointer-events: none;
+            transition: color 0.3s;
+        }
+
+        .form-control {
+            border-radius: 16px;
+            padding: 14px 16px 14px 48px;
+            background-color: #fcfdfe;
+            border: 1.5px solid #e2e8f0;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            background-color: #fff;
+            border-color: var(--rb-blue);
+            box-shadow: 0 0 0 4px rgba(6, 62, 112, 0.08);
+        }
+
+        .form-control:focus+i {
+            color: var(--rb-blue);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--rb-blue) 0%, #0a569a 100%);
+            color: #fff;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.4s;
+            margin-top: 20px;
+            box-shadow: 0 10px 20px rgba(6, 62, 112, 0.15);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(6, 62, 112, 0.25);
+            filter: brightness(1.1);
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 1rem;
+            color: var(--rb-text-muted);
+        }
+
+        .footer-links a {
+            color: var(--rb-blue);
+            text-decoration: none;
+            font-weight: 700;
+            margin-left: 5px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Mobile View */
+        @media (max-width: 992px) {
+            .auth-side {
+                display: none;
+            }
+
+            .auth-form-panel {
+                width: 100%;
+                padding: 30px 20px;
+            }
+
+            .brand-logo-mobile {
+                display: block;
+            }
+
+            .auth-container {
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="auth-container">
+        <!-- Side Panel -->
+        <div class="auth-side">
+            <div class="side-content">
+                <div class="mb-5">
+                    <h1 style="font-weight: 800; color: #fff; font-size: 2.5rem; letter-spacing: -1px;">99<span
+                            style="color: var(--rb-orange);">SmartX</span></h1>
+                </div>
+                <h2>The smartest way to <span>manage</span> workshop repairs.</h2>
+                <p>Empowering workshop owners with modern digital tools to streamline operations and delight customers.
+                </p>
+
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
+                        <span>Real-time workflow monitoring</span>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="bi bi-magic"></i></div>
+                        <span>Automated customer notifications</span>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                        <span>Comprehensive Business Analytics</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Panel -->
+        <div class="auth-form-panel">
+            <div class="form-wrapper">
+                <div class="brand-logo-mobile text-center">
+                    <h1 style="font-weight: 800; color: var(--rb-blue); font-size: 2.2rem; letter-spacing: -1px;">
+                        99<span style="color: var(--rb-orange);">SmartX</span></h1>
+                </div>
+
+                <div class="form-card">
+                    <div class="welcome-text text-center">
+                        <h3>Welcome Back</h3>
+                        <p>Sign in to your repair dashboard</p>
+                    </div>
+
+                    <form>
+                        <div class="input-group-custom">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-control" placeholder="Enter your business email">
+                            <i class="bi bi-envelope"></i>
+                        </div>
+                        <div class="input-group-custom">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" placeholder="••••••••">
+                            <i class="bi bi-lock"></i>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remember">
+                                <label class="form-check-label small font-weight-500" for="remember">Stay signed
+                                    in</label>
+                            </div>
+                            <a href="#" class="small text-decoration-none fw-bold"
+                                style="color: var(--rb-blue);">Recover Password</a>
+                        </div>
+                        <button type="submit" class="btn btn-submit">Sign Into Terminal</button>
+                    </form>
+                </div>
+
+                <div class="footer-links">
+                    Don't have a workspace? <a href="#">Create Workshop</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
