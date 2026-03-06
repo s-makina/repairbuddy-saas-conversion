@@ -31,12 +31,12 @@
       </div>
     @enderror
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.login', ['business' => $tenantSlug]) : route('login') }}">
+    <form method="POST" action="{{ $tenantSlug ? route('tenant.login', ['business' => $tenantSlug]) : route('login') }}" onsubmit="handleSubmit(this)">
       @csrf
 
       <div class="input-group-modern">
         <label for="email" class="form-label">Email Address</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="email"
             name="email"
@@ -48,10 +48,10 @@
             required
           />
           <i class="bi bi-envelope"></i>
-          @error('email')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-          @enderror
         </div>
+        @error('email')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
       </div>
 
       <div class="input-group-modern">
@@ -59,7 +59,7 @@
           <label for="password" class="form-label">Password</label>
           <a href="{{ $tenantSlug ? route('tenant.password.request', ['business' => $tenantSlug]) : route('password.request') }}" class="forgot-password">Forgot?</a>
         </div>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="password"
             name="password"
@@ -73,10 +73,10 @@
           <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
             <i class="bi bi-eye" style="position: static; font-size: 0.9rem;"></i>
           </button>
-          @error('password')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-          @enderror
         </div>
+        @error('password')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
       </div>
 
       <div class="d-flex align-items-center justify-content-between mb-4">
@@ -112,6 +112,14 @@
         input.type = 'password';
         icon.classList.remove('bi-eye-slash');
         icon.classList.add('bi-eye');
+      }
+    }
+
+    function handleSubmit(form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
       }
     }
   </script>

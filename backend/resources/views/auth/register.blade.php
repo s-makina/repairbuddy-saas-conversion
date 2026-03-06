@@ -25,14 +25,14 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.register', ['business' => $tenantSlug]) : route('register') }}">
+    <form method="POST" action="{{ $tenantSlug ? route('tenant.register', ['business' => $tenantSlug]) : route('register') }}" onsubmit="handleSubmit(this)">
       @csrf
 
       <div class="row">
         <div class="col-md-6">
           <div class="input-group-modern">
             <label for="first_name" class="form-label">First Name</label>
-            <div style="position: relative;">
+            <div class="input-wrapper">
               <input
                 type="text"
                 name="first_name"
@@ -43,16 +43,16 @@
                 required
               />
               <i class="bi bi-person"></i>
-              @error('first_name')
-                <div class="invalid-feedback d-block">{{ $message }}</div>
-              @enderror
             </div>
+            @error('first_name')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
           </div>
         </div>
         <div class="col-md-6">
           <div class="input-group-modern">
             <label for="last_name" class="form-label">Last Name</label>
-            <div style="position: relative;">
+            <div class="input-wrapper">
               <input
                 type="text"
                 name="last_name"
@@ -63,17 +63,17 @@
                 required
               />
               <i class="bi bi-person"></i>
-              @error('last_name')
-                <div class="invalid-feedback d-block">{{ $message }}</div>
-              @enderror
             </div>
+            @error('last_name')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
           </div>
         </div>
       </div>
 
       <div class="input-group-modern">
         <label for="email" class="form-label">Email Address</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="email"
             name="email"
@@ -85,15 +85,15 @@
             required
           />
           <i class="bi bi-envelope"></i>
-          @error('email')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-          @enderror
         </div>
+        @error('email')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
       </div>
 
       <div class="input-group-modern">
         <label for="password" class="form-label">Password</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="password"
             name="password"
@@ -107,15 +107,15 @@
           <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
             <i class="bi bi-eye" style="position: static; font-size: 0.9rem;"></i>
           </button>
-          @error('password')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-          @enderror
         </div>
+        @error('password')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
       </div>
 
       <div class="input-group-modern">
         <label for="password_confirmation" class="form-label">Confirm Password</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="password"
             name="password_confirmation"
@@ -159,6 +159,14 @@
         input.type = 'password';
         icon.classList.remove('bi-eye-slash');
         icon.classList.add('bi-eye');
+      }
+    }
+
+    function handleSubmit(form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating account...';
       }
     }
   </script>

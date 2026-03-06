@@ -133,11 +133,11 @@
     <div class="wrapper">
         <div class="content">
             <div class="header">
-                @if($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="{{ $tenantName ?? 'RepairBuddy' }}" />
+                @isset($tenantLogoUrl)
+                    <img src="{{ $tenantLogoUrl }}" alt="{{ $tenantName ?? 'RepairBuddy' }}" />
                 @else
                     <h1>{{ $tenantName ?? 'RepairBuddy' }}</h1>
-                @endif
+                @endisset
             </div>
             <div class="body">
                 @isset($greeting)

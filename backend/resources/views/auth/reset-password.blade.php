@@ -21,14 +21,14 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.password.update', ['business' => $tenantSlug]) : route('password.update') }}">
+    <form method="POST" action="{{ $tenantSlug ? route('tenant.password.update', ['business' => $tenantSlug]) : route('password.update') }}" onsubmit="handleSubmit(this)">
       @csrf
       <input type="hidden" name="token" value="{{ $token ?? request('token') }}">
       <input type="hidden" name="email" value="{{ $email ?? old('email') ?? request('email') }}">
 
       <div class="input-group-modern">
         <label for="password" class="form-label">Password</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="password"
             name="password"
@@ -42,15 +42,15 @@
           <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
             <i class="bi bi-eye" style="position: static; font-size: 0.9rem;"></i>
           </button>
-          @error('password')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-          @enderror
         </div>
+        @error('password')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
       </div>
 
       <div class="input-group-modern">
         <label for="password_confirmation" class="form-label">Confirm Password</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="password"
             name="password_confirmation"
@@ -80,6 +80,14 @@
         input.type = 'password';
         icon.classList.remove('bi-eye-slash');
         icon.classList.add('bi-eye');
+      }
+    }
+
+    function handleSubmit(form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Resetting...';
       }
     }
   </script>

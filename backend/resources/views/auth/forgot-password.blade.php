@@ -21,12 +21,12 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.password.email', ['business' => $tenantSlug]) : route('password.email') }}">
+    <form method="POST" action="{{ $tenantSlug ? route('tenant.password.email', ['business' => $tenantSlug]) : route('password.email') }}" onsubmit="handleSubmit(this)">
       @csrf
 
       <div class="input-group-modern">
         <label for="email" class="form-label">Email Address</label>
-        <div style="position: relative;">
+        <div class="input-wrapper">
           <input
             type="email"
             name="email"
@@ -38,10 +38,10 @@
             required
           />
           <i class="bi bi-envelope"></i>
-          @error('email')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-          @enderror
         </div>
+        @error('email')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
       </div>
 
       <button type="submit" class="btn btn-modern">Reset password</button>
@@ -51,4 +51,15 @@
       <a href="{{ $tenantSlug ? route('tenant.login', ['business' => $tenantSlug]) : route('login') }}"><i class="bi bi-arrow-left me-2"></i>Back to log in</a>
     </div>
   </div>
+@push('scripts')
+  <script>
+    function handleSubmit(form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sending...';
+      }
+    }
+  </script>
+@endpush
 @endsection

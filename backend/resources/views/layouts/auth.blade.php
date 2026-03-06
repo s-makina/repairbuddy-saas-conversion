@@ -114,6 +114,10 @@
         margin-bottom: 20px;
       }
 
+      .input-wrapper {
+        position: relative;
+      }
+
       .input-group-modern i {
         position: absolute;
         left: 16px;
