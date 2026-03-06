@@ -10,6 +10,7 @@ Route::get('/', function () {
 });
 
 Route::middleware('web')->group(function () {
+    // Login
     Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
         ->middleware('guest')
         ->name('login');
@@ -17,6 +18,46 @@ Route::middleware('web')->group(function () {
     Route::post('/login', [\App\Http\Controllers\Web\AuthController::class, 'login'])
         ->middleware('guest');
 
+    // Register
+    Route::get('/register', [\App\Http\Controllers\Web\AuthController::class, 'showRegister'])
+        ->middleware('guest')
+        ->name('register');
+
+    Route::post('/register', [\App\Http\Controllers\Web\AuthController::class, 'register'])
+        ->middleware('guest');
+
+    // Forgot Password
+    Route::get('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'showForgotPassword'])
+        ->middleware('guest')
+        ->name('password.request');
+
+    Route::post('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'sendResetLink'])
+        ->middleware('guest')
+        ->name('password.email');
+
+    // Reset Password
+    Route::get('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'showResetPassword'])
+        ->middleware('guest')
+        ->name('password.reset');
+
+    Route::post('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'resetPassword'])
+        ->middleware('guest')
+        ->name('password.update');
+
+    // 2FA Verification
+    Route::get('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'show2FA'])
+        ->middleware('auth')
+        ->name('2fa.show');
+
+    Route::post('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'verify2FA'])
+        ->middleware('auth')
+        ->name('2fa.verify');
+
+    Route::post('/2fa/resend', [\App\Http\Controllers\Web\AuthController::class, 'resend2FA'])
+        ->middleware('auth')
+        ->name('2fa.resend');
+
+    // Logout
     Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
         ->middleware('auth')
         ->name('web.logout');
@@ -38,6 +79,64 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
 
     return redirect()->away($frontendUrl.'/verify-email?verified=1');
 })->middleware(['signed'])->name('verification.verify');
+
+// Tenant-scoped Authentication (guest routes)
+Route::prefix('t/{business}')
+    ->where(['business' => '[A-Za-z0-9\-]+' ])
+    ->middleware(['web', 'tenant'])
+    ->group(function () {
+        // Login
+        Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
+            ->middleware('guest')
+            ->name('tenant.login');
+
+        Route::post('/login', [\App\Http\Controllers\Web\AuthController::class, 'login'])
+            ->middleware('guest');
+
+        // Register
+        Route::get('/register', [\App\Http\Controllers\Web\AuthController::class, 'showRegister'])
+            ->middleware('guest')
+            ->name('tenant.register');
+
+        Route::post('/register', [\App\Http\Controllers\Web\AuthController::class, 'register'])
+            ->middleware('guest');
+
+        // Forgot Password
+        Route::get('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'showForgotPassword'])
+            ->middleware('guest')
+            ->name('tenant.password.request');
+
+        Route::post('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'sendResetLink'])
+            ->middleware('guest')
+            ->name('tenant.password.email');
+
+        // Reset Password
+        Route::get('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'showResetPassword'])
+            ->middleware('guest')
+            ->name('tenant.password.reset');
+
+        Route::post('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'resetPassword'])
+            ->middleware('guest')
+            ->name('tenant.password.update');
+
+        // 2FA Verification (requires auth)
+        Route::get('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'show2FA'])
+            ->middleware('auth')
+            ->name('tenant.2fa.show');
+
+        Route::post('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'verify2FA'])
+            ->middleware('auth')
+            ->name('tenant.2fa.verify');
+
+        Route::post('/2fa/resend', [\App\Http\Controllers\Web\AuthController::class, 'resend2FA'])
+            ->middleware('auth')
+            ->name('tenant.2fa.resend');
+
+        // Logout
+        Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
+            ->middleware('auth')
+            ->name('tenant.logout');
+    });
 
 // Public pages (no auth required)
 Route::prefix('t/{business}')

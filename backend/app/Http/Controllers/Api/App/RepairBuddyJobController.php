@@ -842,8 +842,14 @@ class RepairBuddyJobController extends Controller
         });
 
         if ($createdCustomer instanceof User && is_string($createdCustomerOneTimePassword) && $createdCustomerOneTimePassword !== '') {
+            $tenant = \App\Models\Tenant::find($tenantId);
+            $tenantName = $tenant?->name;
+            $tenantLogoUrl = null;
+            if ($tenant && $tenant->logo_path) {
+                $tenantLogoUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($tenant->logo_path);
+            }
             try {
-                $createdCustomer->notify(new OneTimePasswordNotification($createdCustomerOneTimePassword, 60 * 24));
+                $createdCustomer->notify(new OneTimePasswordNotification($createdCustomerOneTimePassword, 60 * 24, $tenantName, $tenantLogoUrl));
             } catch (\Throwable $e) {
                 Log::error('customer.onetime_password_notification_failed', [
                     'user_id' => $createdCustomer->id,

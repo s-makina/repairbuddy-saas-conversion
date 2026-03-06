@@ -1,64 +1,119 @@
 @extends('layouts.auth', ['title' => 'Login'])
 
+@php
+  $tenantSlug = $tenantSlug ?? null;
+  $tenant = $tenant ?? null;
+@endphp
+
 @section('content')
-  <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-5">
-      <div class="text-center mb-4">
-        <div class="fw-bold fs-3 rb-brand">RepairBuddy</div>
-        <div class="text-muted">Sign in to continue</div>
+  <div class="auth-card">
+    <div class="text-center">
+      @if($tenant)
+        <div class="tenant-brand mb-2">{{ $tenant->name }}</div>
+      @endif
+      <a href="/" class="brand-logo">Repair<span>Buddy</span></a>
+    </div>
+
+    <div class="auth-header text-center">
+      <h1>Welcome back</h1>
+      <p>Please enter your details to sign in.</p>
+    </div>
+
+    @if(session('status'))
+      <div class="alert alert-success mb-4">
+        {{ session('status') }}
       </div>
+    @endif
 
-      <div class="card rb-auth-card">
-        <div class="card-body p-4">
-          <form method="POST" action="{{ route('login') }}">
-            @csrf
+    @error('auth')
+      <div class="alert alert-danger mb-4">
+        {{ $message }}
+      </div>
+    @enderror
 
-            <div class="mb-3">
-              <label class="form-label">Email</label>
-              <input
-                type="email"
-                name="email"
-                value="{{ old('email') }}"
-                class="form-control @error('email') is-invalid @enderror"
-                autocomplete="email"
-                required
-              />
-              @error('email')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
+    <form method="POST" action="{{ $tenantSlug ? route('tenant.login', ['business' => $tenantSlug]) : route('login') }}">
+      @csrf
 
-            <div class="mb-3">
-              <label class="form-label">Password</label>
-              <input
-                type="password"
-                name="password"
-                class="form-control @error('password') is-invalid @enderror"
-                autocomplete="current-password"
-                required
-              />
-              @error('password')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <div class="d-flex align-items-center justify-content-between mb-3">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="remember" id="remember" />
-                <label class="form-check-label" for="remember">Remember me</label>
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-rb w-100">
-              Login
-            </button>
-          </form>
+      <div class="input-group-modern">
+        <label for="email" class="form-label">Email Address</label>
+        <div style="position: relative;">
+          <input
+            type="email"
+            name="email"
+            id="email"
+            value="{{ old('email') }}"
+            class="form-control @error('email') is-invalid @enderror"
+            placeholder="name@company.com"
+            autocomplete="email"
+            required
+          />
+          <i class="bi bi-envelope"></i>
+          @error('email')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+          @enderror
         </div>
       </div>
 
-      <div class="text-center text-muted small mt-3">
-        Tip: for now this is only for the Blade tenant dashboard.
+      <div class="input-group-modern">
+        <div class="d-flex justify-content-between">
+          <label for="password" class="form-label">Password</label>
+          <a href="{{ $tenantSlug ? route('tenant.password.request', ['business' => $tenantSlug]) : route('password.request') }}" class="forgot-password">Forgot?</a>
+        </div>
+        <div style="position: relative;">
+          <input
+            type="password"
+            name="password"
+            id="password"
+            class="form-control @error('password') is-invalid @enderror"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          />
+          <i class="bi bi-shield-lock"></i>
+          <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
+            <i class="bi bi-eye" style="position: static; font-size: 0.9rem;"></i>
+          </button>
+          @error('password')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+          @enderror
+        </div>
       </div>
+
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="remember" id="remember" style="cursor: pointer;">
+          <label class="form-check-label small text-muted" for="remember" style="cursor: pointer; font-weight: 500;">
+            Stay logged in
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-modern">Sign In</button>
+    </form>
+
+    <div class="footer-link">
+      @if($tenantSlug)
+        Need an account? <a href="{{ route('tenant.register', ['business' => $tenantSlug]) }}">Register</a>
+      @else
+        Need a workspace? <a href="{{ route('register') }}">Get Started</a>
+      @endif
     </div>
   </div>
+@push('scripts')
+  <script>
+    function togglePassword(inputId, button) {
+      const input = document.getElementById(inputId);
+      const icon = button.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    }
+  </script>
+@endpush
 @endsection

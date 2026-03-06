@@ -57,6 +57,10 @@ class UsersController extends Controller
                     return '<span class="wcrb-pill wcrb-pill--active">' . e(__('Active')) . '</span>';
                 }
 
+                if ($status === 'pending') {
+                    return '<span class="wcrb-pill wcrb-pill--pending" style="background-color: #fef3c7; color: #92400e;">' . e(__('Pending')) . '</span>';
+                }
+
                 return '<span class="wcrb-pill wcrb-pill--inactive">' . e(__('Inactive')) . '</span>';
             })
             ->addColumn('actions_display', function (User $u) use ($tenant) {
@@ -112,6 +116,7 @@ class UsersController extends Controller
 
         $statusOptions = [
             'active' => __('Active'),
+            'pending' => __('Pending'),
             'inactive' => __('Inactive'),
         ];
 
@@ -158,6 +163,7 @@ class UsersController extends Controller
 
         $statusOptions = [
             'active' => __('Active'),
+            'pending' => __('Pending'),
             'inactive' => __('Inactive'),
         ];
 
@@ -209,7 +215,7 @@ class UsersController extends Controller
             'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
             'address_country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
-            'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'inactive'])],
+            'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'pending', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', $tenant->id))],
             'branch_ids' => ['required', 'array', 'min:1'],
             'branch_ids.*' => ['integer'],
@@ -295,7 +301,7 @@ class UsersController extends Controller
             'address_state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_postal_code' => ['sometimes', 'nullable', 'string', 'max:64'],
             'address_country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
-            'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'inactive'])],
+            'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'pending', 'inactive'])],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', $tenant->id))],
             'branch_ids' => ['required', 'array', 'min:1'],
             'branch_ids.*' => ['integer'],
@@ -383,7 +389,7 @@ class UsersController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+            'status' => ['required', 'string', Rule::in(['active', 'pending', 'inactive'])],
         ]);
 
         $editUser->forceFill([

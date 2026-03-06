@@ -13,6 +13,8 @@ class OneTimePasswordNotification extends Notification
     public function __construct(
         protected string $oneTimePassword,
         protected int $expiresInMinutes = 1440,
+        protected ?string $tenantName = null,
+        protected ?string $tenantLogoUrl = null,
     ) {
     }
 
@@ -25,14 +27,19 @@ class OneTimePasswordNotification extends Notification
     {
         $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
 
+        $userName = $notifiable->first_name ?? $notifiable->name ?? null;
+
         return (new MailMessage)
             ->subject('Your one-time password')
-            ->greeting('Welcome!')
-            ->line('A new account was created for you.')
-            ->line('Use this one-time password to sign in:')
-            ->line($this->oneTimePassword)
-            ->line('This one-time password expires in '.$this->expiresInMinutes.' minutes and will be invalidated after the first successful sign-in.')
-            ->action('Sign in', $frontendUrl.'/login')
-            ->line('After signing in, please set a new password using the "Forgot password" link on the sign-in page, or from your Profile page.');
+            ->view('emails.auth.one-time-password', [
+                'otpCode' => $this->oneTimePassword,
+                'expiresInMinutes' => $this->expiresInMinutes,
+                'userName' => $userName,
+                'loginUrl' => $frontendUrl.'/login',
+                'introText' => 'A new account was created for you. Use this one-time password to sign in:',
+                'additionalMessage' => 'After signing in, please set a new password using the "Forgot password" link on the sign-in page, or from your Profile page.',
+                'tenantName' => $this->tenantName ?? 'RepairBuddy',
+                'tenantLogoUrl' => $this->tenantLogoUrl,
+            ]);
     }
 }

@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
  use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
  use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
+use App\Notifications\Auth\ResetPasswordNotification;
+use App\Notifications\Auth\VerifyEmailNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -119,5 +121,42 @@ class User extends Authenticatable implements MustVerifyEmailContract
         }
 
         return Storage::disk('public')->url($this->avatar_path);
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $tenant = $this->tenant;
+        $tenantName = $tenant?->name;
+        $tenantLogoUrl = null;
+
+        if ($tenant && $tenant->logo_path) {
+            $tenantLogoUrl = Storage::disk('public')->url($tenant->logo_path);
+        }
+
+        $this->notify(new ResetPasswordNotification($token, $tenantName, $tenantLogoUrl));
+    }
+
+    /**
+     * Send the email verification notification.
+     *
+     * @return void
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $tenant = $this->tenant;
+        $tenantName = $tenant?->name;
+        $tenantLogoUrl = null;
+
+        if ($tenant && $tenant->logo_path) {
+            $tenantLogoUrl = Storage::disk('public')->url($tenant->logo_path);
+        }
+
+        $this->notify(new VerifyEmailNotification($tenantName, $tenantLogoUrl));
     }
 }

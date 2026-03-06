@@ -325,7 +325,12 @@ class RepairBuddyPublicBookingService
         if ($createdCustomer instanceof User && is_string($createdCustomerOneTimePassword) && $createdCustomerOneTimePassword !== '') {
             if ($creationBehavior === 'send_login_credentials') {
                 try {
-                    $createdCustomer->notify(new OneTimePasswordNotification($createdCustomerOneTimePassword, 60 * 24));
+                    $tenantName = $tenant->name ?? null;
+                    $tenantLogoUrl = null;
+                    if ($tenant && $tenant->logo_path) {
+                        $tenantLogoUrl = Storage::disk('public')->url($tenant->logo_path);
+                    }
+                    $createdCustomer->notify(new OneTimePasswordNotification($createdCustomerOneTimePassword, 60 * 24, $tenantName, $tenantLogoUrl));
                 } catch (\Throwable $e) {
                     Log::error('customer.onetime_password_notification_failed', [
                         'user_id' => $createdCustomer->id,

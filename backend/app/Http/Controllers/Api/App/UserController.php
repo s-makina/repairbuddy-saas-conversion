@@ -345,8 +345,15 @@ class UserController extends Controller
 
         $user->branches()->sync($sync);
 
+        $tenant = \App\Models\Tenant::find($tenantId);
+        $tenantName = $tenant?->name;
+        $tenantLogoUrl = null;
+        if ($tenant && $tenant->logo_path) {
+            $tenantLogoUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($tenant->logo_path);
+        }
+
         try {
-            $user->notify(new OneTimePasswordNotification($oneTimePassword, 60 * 24));
+            $user->notify(new OneTimePasswordNotification($oneTimePassword, 60 * 24, $tenantName, $tenantLogoUrl));
         } catch (\Throwable $e) {
             Log::error('user.onetime_password_notification_failed', [
                 'user_id' => $user->id,
