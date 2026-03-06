@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class BranchesController extends Controller
         }
 
         $branches = Branch::query()
+            ->withCount('users')
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
@@ -47,12 +49,22 @@ class BranchesController extends Controller
             ->limit(8)
             ->get();
 
+        $userOptions = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->mapWithKeys(fn (User $u) => [(string) $u->id => $u->name . ' (' . $u->email . ')'])
+            ->all();
+
         return view('tenant.settings.shops.create', [
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'settings',
             'pageTitle' => __('Add Shop'),
             'recentBranches' => $recentBranches,
+            'userOptions' => $userOptions,
         ]);
     }
 
@@ -68,12 +80,29 @@ class BranchesController extends Controller
             ->whereKey($branch)
             ->firstOrFail();
 
+        $userOptions = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->mapWithKeys(fn (User $u) => [(string) $u->id => $u->name . ' (' . $u->email . ')'])
+            ->all();
+
+        $selectedUserIds = $model->users()
+            ->pluck('users.id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
         return view('tenant.settings.shops.edit', [
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'settings',
             'pageTitle' => __('Edit Shop'),
             'branch' => $model,
+            'userOptions' => $userOptions,
+            'selectedUserIds' => $selectedUserIds,
         ]);
     }
 
@@ -106,7 +135,24 @@ class BranchesController extends Controller
 
         $validated['code'] = strtoupper(trim((string) $validated['code']));
 
-        Branch::query()->create($validated);
+        $branch = Branch::query()->create($validated);
+
+        // Sync users if provided
+        $userIds = array_values(array_unique(array_map('intval', $request->input('user_ids', []))));
+        if (count($userIds) > 0) {
+            $validUserIds = User::query()
+                ->where('tenant_id', $tenant->id)
+                ->whereIn('id', $userIds)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $sync = [];
+            foreach ($validUserIds as $id) {
+                $sync[$id] = ['tenant_id' => $tenant->id];
+            }
+            $branch->users()->sync($sync);
+        }
 
         return redirect()
             ->route('tenant.settings.shops.index', ['business' => $tenant->slug])
@@ -147,6 +193,21 @@ class BranchesController extends Controller
         $validated['code'] = strtoupper(trim((string) $validated['code']));
 
         $model->forceFill($validated)->save();
+
+        // Sync users
+        $userIds = array_values(array_unique(array_map('intval', $request->input('user_ids', []))));
+        $validUserIds = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->whereIn('id', $userIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $sync = [];
+        foreach ($validUserIds as $id) {
+            $sync[$id] = ['tenant_id' => $tenant->id];
+        }
+        $model->users()->sync($sync);
 
         return redirect()
             ->route('tenant.settings.shops.index', ['business' => $tenant->slug])

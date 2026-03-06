@@ -51,12 +51,20 @@ class UsersController extends Controller
         $query = User::query()
             ->where('tenant_id', $tenant->id)
             ->where('is_admin', false)
+            ->with('branches:id,code,name')
             ->orderBy('name');
 
         return DataTables::eloquent($query)
             ->addColumn('roles_display', function (User $u) {
                 $roles = $u->getRoleNames()->map(fn ($n) => (string) $n)->filter(fn ($n) => trim($n) !== '')->values()->all();
                 return e(implode(', ', $roles));
+            })
+            ->addColumn('shops_display', function (User $u) {
+                $branches = $u->branches->map(fn ($b) => $b->code ? $b->code : $b->name)->values()->all();
+                if (count($branches) === 0) {
+                    return '<span class="text-muted">—</span>';
+                }
+                return e(implode(', ', $branches));
             })
             ->addColumn('status_display', function (User $u) {
                 $status = (string) ($u->status ?? 'active');
@@ -73,46 +81,54 @@ class UsersController extends Controller
             ->addColumn('actions_display', function (User $u) use ($tenant) {
                 $csrf = csrf_field();
                 $status = (string) ($u->status ?? 'active');
+                $dropdownId = 'userActions' . $u->id;
 
-                // For pending users, show approve/reject buttons
+                // For pending users, show approve/reject dropdown
                 if ($status === 'pending') {
                     $approveUrl = route('tenant.settings.users.approve', ['business' => $tenant->slug, 'user' => $u->id]);
                     $rejectUrl = route('tenant.settings.users.reject', ['business' => $tenant->slug, 'user' => $u->id]);
 
-                    return '<div class="d-inline-flex gap-2">'
-                        . '<form method="post" action="' . e($approveUrl) . '">' . $csrf
-                        . '<button type="submit" class="btn btn-sm btn-success" title="' . e(__('Approve')) . '" aria-label="' . e(__('Approve')) . '"><i class="bi bi-check-lg"></i></button>'
-                        . '</form>'
-                        . '<form method="post" action="' . e($rejectUrl) . '">' . $csrf
-                        . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('Reject')) . '" aria-label="' . e(__('Reject')) . '"><i class="bi bi-x-lg"></i></button>'
-                        . '</form>'
-                        . '</div>';
+                    return '<div class="dropdown">'
+                        . '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots-vertical"></i></button>'
+                        . '<ul class="dropdown-menu dropdown-menu-end">'
+                        . '<li><form method="post" action="' . e($approveUrl) . '">' . $csrf
+                        . '<button type="submit" class="dropdown-item text-success"><i class="bi bi-check-lg me-2"></i>' . e(__('Approve')) . '</button>'
+                        . '</form></li>'
+                        . '<li><form method="post" action="' . e($rejectUrl) . '">' . $csrf
+                        . '<button type="submit" class="dropdown-item text-danger"><i class="bi bi-x-lg me-2"></i>' . e(__('Reject')) . '</button>'
+                        . '</form></li>'
+                        . '</ul></div>';
                 }
 
-                // For active/inactive users, show regular actions
+                // For active/inactive users, show regular actions dropdown
                 $editUrl = route('tenant.settings.users.edit', ['business' => $tenant->slug, 'user' => $u->id]);
                 $statusUrl = route('tenant.settings.users.status', ['business' => $tenant->slug, 'user' => $u->id]);
                 $resetUrl = route('tenant.settings.users.password_reset', ['business' => $tenant->slug, 'user' => $u->id]);
                 $deleteUrl = route('tenant.settings.users.delete', ['business' => $tenant->slug, 'user' => $u->id]);
                 $nextStatus = ($status === 'active') ? 'inactive' : 'active';
                 $statusLabel = $nextStatus === 'inactive' ? __('Block') : __('Unblock');
-                $statusIcon = $nextStatus === 'inactive' ? '<i class="bi bi-slash-circle"></i>' : '<i class="bi bi-check-circle"></i>';
+                $statusIcon = $nextStatus === 'inactive' ? 'bi-slash-circle' : 'bi-check-circle';
 
-                return '<div class="d-inline-flex gap-2">'
-                    . '<a class="btn btn-sm btn-outline-primary" href="' . e($editUrl) . '" title="' . e(__('Edit')) . '" aria-label="' . e(__('Edit')) . '"><i class="bi bi-pencil"></i></a>'
-                    . '<form method="post" action="' . e($resetUrl) . '">' . $csrf
-                    . '<button type="submit" class="btn btn-sm btn-outline-secondary" title="' . e(__('Send password reset')) . '" aria-label="' . e(__('Send password reset')) . '"><i class="bi bi-envelope"></i></button>'
-                    . '</form>'
-                    . '<form method="post" action="' . e($statusUrl) . '">' . $csrf
+                return '<div class="dropdown">'
+                    . '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots-vertical"></i></button>'
+                    . '<ul class="dropdown-menu dropdown-menu-end">'
+                    . '<li><a class="dropdown-item" href="' . e($editUrl) . '"><i class="bi bi-pencil me-2"></i>' . e(__('Edit')) . '</a></li>'
+                    . '<li><a class="dropdown-item" href="' . e($editUrl) . '#shops"><i class="bi bi-shop me-2"></i>' . e(__('Assign shops')) . '</a></li>'
+                    . '<li><hr class="dropdown-divider"></li>'
+                    . '<li><form method="post" action="' . e($resetUrl) . '">' . $csrf
+                    . '<button type="submit" class="dropdown-item"><i class="bi bi-envelope me-2"></i>' . e(__('Send password reset')) . '</button>'
+                    . '</form></li>'
+                    . '<li><form method="post" action="' . e($statusUrl) . '">' . $csrf
                     . '<input type="hidden" name="status" value="' . e($nextStatus) . '" />'
-                    . '<button type="submit" class="btn btn-sm btn-outline-warning" title="' . e($statusLabel) . '" aria-label="' . e($statusLabel) . '">' . $statusIcon . '</button>'
-                    . '</form>'
-                    . '<form method="post" action="' . e($deleteUrl) . '">' . $csrf
-                    . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('Delete')) . '" aria-label="' . e(__('Delete')) . '"><i class="bi bi-trash"></i></button>'
-                    . '</form>'
-                    . '</div>';
+                    . '<button type="submit" class="dropdown-item"><i class="bi ' . $statusIcon . ' me-2"></i>' . e($statusLabel) . '</button>'
+                    . '</form></li>'
+                    . '<li><hr class="dropdown-divider"></li>'
+                    . '<li><form method="post" action="' . e($deleteUrl) . '">' . $csrf
+                    . '<button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>' . e(__('Delete')) . '</button>'
+                    . '</form></li>'
+                    . '</ul></div>';
             })
-            ->rawColumns(['status_display', 'actions_display'])
+            ->rawColumns(['status_display', 'shops_display', 'actions_display'])
             ->toJson();
     }
 

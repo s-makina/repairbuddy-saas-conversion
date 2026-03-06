@@ -173,6 +173,23 @@
 								</div>
 
 								<div class="col-12">
+									<div class="row align-items-start">
+										<label for="user_ids" class="col-sm-3 col-form-label">{{ __('Assigned Users') }}</label>
+										<div class="col-sm-9">
+											@php
+												$oldUserIds = array_map('intval', old('user_ids', []));
+											@endphp
+											<select name="user_ids[]" id="user_ids" class="form-select w-100" multiple>
+												@foreach (($userOptions ?? []) as $k => $v)
+													<option value="{{ $k }}" @selected(in_array((int) $k, $oldUserIds, true))>{{ $v }}</option>
+												@endforeach
+											</select>
+											<div class="form-text">{{ __('Assign users to this shop. Users can be assigned to multiple shops.') }}</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-12">
 									<div class="d-flex justify-content-end gap-2">
 										<a class="btn btn-outline-secondary" href="{{ route('tenant.settings.shops.index', ['business' => $tenant->slug]) }}">{{ __('Cancel') }}</a>
 										<button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
@@ -216,3 +233,23 @@
 		</div>
 	</div>
 @endsection
+
+@push('page-scripts')
+	<script>
+		(function () {
+			if (!window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== 'function') {
+				return;
+			}
+
+			var $users = window.jQuery('#user_ids');
+			if ($users.length) {
+				$users.select2({
+					width: '100%',
+					theme: 'bootstrap-5',
+					placeholder: @json(__('Select users')),
+					closeOnSelect: false,
+				});
+			}
+		})();
+	</script>
+@endpush

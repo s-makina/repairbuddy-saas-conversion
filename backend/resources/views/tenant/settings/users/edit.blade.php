@@ -174,7 +174,7 @@
 									</div>
 								</div>
 
-								<div class="col-12">
+								<div class="col-12" id="shops">
 									<div class="row align-items-start">
 										<label for="branch_ids" class="col-sm-3 col-form-label">{{ __('Shops') }} *</label>
 										<div class="col-sm-9">

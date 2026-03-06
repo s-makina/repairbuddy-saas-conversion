@@ -28,6 +28,7 @@
 							<th style="width: 140px;">{{ __('Code') }}</th>
 							<th style="width: 170px;">{{ __('Status') }}</th>
 							<th style="width: 170px;">{{ __('Default') }}</th>
+							<th style="width: 100px;">{{ __('Users') }}</th>
 							<th class="text-end" style="width: 220px;">{{ __('Actions') }}</th>
 						</tr>
 					</thead>
@@ -57,6 +58,9 @@
 										<span class="text-muted">—</span>
 									@endif
 								</td>
+								<td>
+									<span class="badge text-bg-secondary">{{ $b->users_count ?? 0 }}</span>
+								</td>
 								<td class="text-end">
 									<div class="d-inline-flex gap-2">
 										<a class="btn btn-sm btn-outline-primary" href="{{ $editUrl }}" title="{{ __('Edit') }}" aria-label="{{ __('Edit') }}">
@@ -84,7 +88,7 @@
 							</tr>
 						@empty
 							<tr>
-								<td colspan="6">
+								<td colspan="7">
 									<div class="text-muted">{{ __('No shops yet.') }}</div>
 								</td>
 							</tr>

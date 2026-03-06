@@ -32,9 +32,10 @@
         { data: 'id', name: 'id', width: '90px' },
         { data: 'name', name: 'name' },
         { data: 'email', name: 'email' },
-        { data: 'roles_display', name: 'roles_display', width: '260px', orderable: false, searchable: false },
-        { data: 'status_display', name: 'status', width: '140px', orderable: false, searchable: false },
-        { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '240px' }
+        { data: 'roles_display', name: 'roles_display', width: '180px', orderable: false, searchable: false },
+        { data: 'shops_display', name: 'shops_display', width: '160px', orderable: false, searchable: false },
+        { data: 'status_display', name: 'status', width: '120px', orderable: false, searchable: false },
+        { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '200px' }
       ]
     });
   })();
@@ -80,9 +81,10 @@
 							<th style="width: 90px;">{{ __('ID') }}</th>
 							<th>{{ __('Name') }}</th>
 							<th>{{ __('Email') }}</th>
-							<th style="width: 260px;">{{ __('Roles') }}</th>
-							<th style="width: 140px;">{{ __('Status') }}</th>
-							<th class="text-end" style="width: 240px;">{{ __('Actions') }}</th>
+							<th style="width: 180px;">{{ __('Roles') }}</th>
+							<th style="width: 160px;">{{ __('Shops') }}</th>
+							<th style="width: 120px;">{{ __('Status') }}</th>
+							<th class="text-end" style="width: 200px;">{{ __('Actions') }}</th>
 						</tr>
 					</thead>
 					<tbody></tbody>
