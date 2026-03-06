@@ -1,6 +1,6 @@
 @extends('emails.layouts.auth-email', [
     'subject' => 'Verify Email Address',
-    'tenantName' => $tenantName ?? 'RepairBuddy',
+    'tenantName' => $tenantName ?? '99SmartX',
     'tenantLogoUrl' => $tenantLogoUrl ?? null,
 ])
 
@@ -23,7 +23,7 @@
     @endisset
 
     <div class="cta-container">
-        <a href="{{ $verificationUrl }}" class="btn btn-accent">Verify Email Address</a>
+        <a href="{{ $verificationUrl }}" class="btn btn-accent" style="color: #ffffff;">Verify Email Address</a>
     </div>
 
     <div class="message" style="margin-top: 16px;">

@@ -55,6 +55,19 @@
 			</div>
 		@endif
 
+		@if (($pendingCount ?? 0) > 0)
+			<div class="alert alert-warning d-flex align-items-center justify-content-between mb-3">
+				<div class="d-flex align-items-center">
+					<i class="bi bi-clock-history me-2 fs-5"></i>
+					<div>
+						<strong>{{ __('Pending Approvals') }}</strong>
+						<span class="ms-2">{{ __(':count user(s) are waiting for approval.', ['count' => $pendingCount]) }}</span>
+					</div>
+				</div>
+				<a href="#usersTable" class="btn btn-sm btn-warning">{{ __('Review') }}</a>
+			</div>
+		@endif
+
 		<x-settings.card :title="__('Users')">
 			<div class="d-flex justify-content-end">
 				<a class="btn btn-primary" href="{{ route('tenant.settings.users.create', ['business' => $tenant->slug]) }}">{{ __('Add User') }}</a>

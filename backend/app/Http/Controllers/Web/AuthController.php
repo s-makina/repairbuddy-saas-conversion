@@ -112,7 +112,7 @@ class AuthController extends Controller
         // Validate user belongs to the tenant from URL
         if ($tenant && $user->tenant_id !== $tenant->id) {
             throw ValidationException::withMessages([
-                'email' => ['This account is not authorized for this business.'],
+                'auth' => ['This account is not authorized for this business.'],
             ]);
         }
 
@@ -120,13 +120,13 @@ class AuthController extends Controller
         $status = $user->status ?? 'active';
         if ($status === 'pending') {
             throw ValidationException::withMessages([
-                'email' => ['Your account is pending activation. Please wait for an administrator to approve your account.'],
+                'auth' => ['Your account is pending activation. Please wait for an administrator to approve your account.'],
             ]);
         }
 
         if ($status === 'inactive') {
             throw ValidationException::withMessages([
-                'email' => ['Your account has been deactivated. Please contact an administrator.'],
+                'auth' => ['Your account has been deactivated. Please contact an administrator.'],
             ]);
         }
 
@@ -186,6 +186,9 @@ class AuthController extends Controller
             'terms' => ['required', 'accepted'],
         ]);
 
+        $tenant = $this->getCurrentTenant();
+        $tenantId = $tenant?->id;
+
         $user = User::create([
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
@@ -193,6 +196,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'status' => 'pending',
+            'tenant_id' => $tenantId,
         ]);
 
         event(new Registered($user));
@@ -349,7 +353,13 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $user = $request->user();
         $tenantSlug = $this->getTenantSlugFromRequest($request);
+
+        // If no tenant slug in URL, try to get it from the user's tenant
+        if (!$tenantSlug && $user && $user->tenant_id) {
+            $tenantSlug = Tenant::query()->where('id', $user->tenant_id)->value('slug');
+        }
 
         Auth::logout();
 

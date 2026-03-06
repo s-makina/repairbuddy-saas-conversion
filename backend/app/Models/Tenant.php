@@ -74,6 +74,11 @@ class Tenant extends Model
         return $this->hasMany(Branch::class);
     }
 
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
     public function getLogoUrlAttribute(): ?string
     {
         if (! is_string($this->logo_path) || $this->logo_path === '') {

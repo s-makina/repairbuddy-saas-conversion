@@ -25,11 +25,18 @@ class UsersController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
+        $pendingCount = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->where('status', 'pending')
+            ->count();
+
         return view('tenant.settings.users.index', [
             'tenant' => $tenant,
             'user' => $request->user(),
             'activeNav' => 'settings',
             'pageTitle' => __('Users'),
+            'pendingCount' => $pendingCount,
         ]);
     }
 
@@ -64,12 +71,30 @@ class UsersController extends Controller
                 return '<span class="wcrb-pill wcrb-pill--inactive">' . e(__('Inactive')) . '</span>';
             })
             ->addColumn('actions_display', function (User $u) use ($tenant) {
+                $csrf = csrf_field();
+                $status = (string) ($u->status ?? 'active');
+
+                // For pending users, show approve/reject buttons
+                if ($status === 'pending') {
+                    $approveUrl = route('tenant.settings.users.approve', ['business' => $tenant->slug, 'user' => $u->id]);
+                    $rejectUrl = route('tenant.settings.users.reject', ['business' => $tenant->slug, 'user' => $u->id]);
+
+                    return '<div class="d-inline-flex gap-2">'
+                        . '<form method="post" action="' . e($approveUrl) . '">' . $csrf
+                        . '<button type="submit" class="btn btn-sm btn-success" title="' . e(__('Approve')) . '" aria-label="' . e(__('Approve')) . '"><i class="bi bi-check-lg"></i></button>'
+                        . '</form>'
+                        . '<form method="post" action="' . e($rejectUrl) . '">' . $csrf
+                        . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . e(__('Reject')) . '" aria-label="' . e(__('Reject')) . '"><i class="bi bi-x-lg"></i></button>'
+                        . '</form>'
+                        . '</div>';
+                }
+
+                // For active/inactive users, show regular actions
                 $editUrl = route('tenant.settings.users.edit', ['business' => $tenant->slug, 'user' => $u->id]);
                 $statusUrl = route('tenant.settings.users.status', ['business' => $tenant->slug, 'user' => $u->id]);
                 $resetUrl = route('tenant.settings.users.password_reset', ['business' => $tenant->slug, 'user' => $u->id]);
                 $deleteUrl = route('tenant.settings.users.delete', ['business' => $tenant->slug, 'user' => $u->id]);
-                $csrf = csrf_field();
-                $nextStatus = ((string) ($u->status ?? 'active') === 'active') ? 'inactive' : 'active';
+                $nextStatus = ($status === 'active') ? 'inactive' : 'active';
                 $statusLabel = $nextStatus === 'inactive' ? __('Block') : __('Unblock');
                 $statusIcon = $nextStatus === 'inactive' ? '<i class="bi bi-slash-circle"></i>' : '<i class="bi bi-check-circle"></i>';
 
@@ -448,5 +473,62 @@ class UsersController extends Controller
         return redirect()
             ->route('tenant.settings.users.index', ['business' => $tenant->slug])
             ->with('status', __('User deleted.'));
+    }
+
+    public function approve(Request $request, string $business, int $user): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $editUser = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->whereKey($user)
+            ->firstOrFail();
+
+        if ((string) ($editUser->status ?? 'active') !== 'pending') {
+            return redirect()
+                ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+                ->with('status', __('Only pending users can be approved.'));
+        }
+
+        $editUser->forceFill([
+            'status' => 'active',
+        ])->save();
+
+        return redirect()
+            ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+            ->with('status', __('User approved.'));
+    }
+
+    public function reject(Request $request, string $business, int $user): RedirectResponse
+    {
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant instanceof Tenant) {
+            abort(400, 'Tenant is missing.');
+        }
+
+        $editUser = User::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_admin', false)
+            ->whereKey($user)
+            ->firstOrFail();
+
+        if ((string) ($editUser->status ?? 'active') !== 'pending') {
+            return redirect()
+                ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+                ->with('status', __('Only pending users can be rejected.'));
+        }
+
+        $editUser->syncRoles([]);
+        $editUser->delete();
+
+        return redirect()
+            ->route('tenant.settings.users.index', ['business' => $tenant->slug])
+            ->with('status', __('User rejected and deleted.'));
     }
 }

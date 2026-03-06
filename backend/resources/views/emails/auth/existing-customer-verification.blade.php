@@ -1,6 +1,6 @@
 @extends('emails.layouts.auth-email', [
-    'subject' => 'Verify Your Account — ' . ($tenantName ?? 'RepairBuddy'),
-    'tenantName' => $tenantName ?? 'RepairBuddy',
+    'subject' => 'Verify Your Account — ' . ($tenantName ?? '99SmartX'),
+    'tenantName' => $tenantName ?? '99SmartX',
     'tenantLogoUrl' => $tenantLogoUrl ?? null,
 ])
 
@@ -36,7 +36,7 @@
 
     @isset($portalUrl)
         <div class="cta-container">
-            <a href="{{ $portalUrl }}" class="btn btn-accent">Log In & Book Repair</a>
+            <a href="{{ $portalUrl }}" class="btn btn-accent" style="color: #ffffff;">Log In & Book Repair</a>
         </div>
     @endisset
 

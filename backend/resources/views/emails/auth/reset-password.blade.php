@@ -1,6 +1,6 @@
 @extends('emails.layouts.auth-email', [
     'subject' => 'Reset Password Notification',
-    'tenantName' => $tenantName ?? 'RepairBuddy',
+    'tenantName' => $tenantName ?? '99SmartX',
     'tenantLogoUrl' => $tenantLogoUrl ?? null,
 ])
 
@@ -23,7 +23,7 @@
     @endisset
 
     <div class="cta-container">
-        <a href="{{ $resetUrl }}" class="btn btn-accent">Reset Password</a>
+        <a href="{{ $resetUrl }}" class="btn btn-accent" style="color: #ffffff;">Reset Password</a>
     </div>
 
     <div class="subtext">

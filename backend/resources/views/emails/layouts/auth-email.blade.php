@@ -134,9 +134,9 @@
         <div class="content">
             <div class="header">
                 @isset($tenantLogoUrl)
-                    <img src="{{ $tenantLogoUrl }}" alt="{{ $tenantName ?? 'RepairBuddy' }}" />
+                    <img src="{{ $tenantLogoUrl }}" alt="{{ $tenantName ?? '99SmartX' }}" />
                 @else
-                    <h1>{{ $tenantName ?? 'RepairBuddy' }}</h1>
+                    <h1>{{ $tenantName ?? '99SmartX' }}</h1>
                 @endisset
             </div>
             <div class="body">
@@ -172,7 +172,7 @@
                 @yield('content')
             </div>
             <div class="footer">
-                &copy; {{ date('Y') }} {{ $tenantName ?? 'RepairBuddy' }}.
+                &copy; {{ date('Y') }} {{ $tenantName ?? '99SmartX' }}.
                 @isset($footerLink)
                     <a href="{{ $footerLink['url'] }}">{{ $footerLink['text'] }}</a>
                 @endisset

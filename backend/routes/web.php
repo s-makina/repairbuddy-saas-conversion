@@ -291,6 +291,16 @@ Route::prefix('t/{business}')
             ->middleware('permission:users.manage')
             ->name('tenant.settings.users.delete');
 
+        Route::post('/settings/users/{user}/approve', [\App\Http\Controllers\Web\Settings\UsersController::class, 'approve'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.approve');
+
+        Route::post('/settings/users/{user}/reject', [\App\Http\Controllers\Web\Settings\UsersController::class, 'reject'])
+            ->where(['user' => '[0-9]+' ])
+            ->middleware('permission:users.manage')
+            ->name('tenant.settings.users.reject');
+
         Route::get('/technicians', [\App\Http\Controllers\Web\TechniciansController::class, 'index'])
             ->middleware('permission:technicians.view')
             ->name('tenant.technicians.index');

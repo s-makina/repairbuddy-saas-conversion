@@ -1,6 +1,6 @@
 @extends('emails.layouts.auth-email', [
     'subject' => 'Your One-Time Password',
-    'tenantName' => $tenantName ?? 'RepairBuddy',
+    'tenantName' => $tenantName ?? '99SmartX',
     'tenantLogoUrl' => $tenantLogoUrl ?? null,
 ])
 
@@ -21,7 +21,7 @@
 
     @isset($loginUrl)
         <div class="cta-container">
-            <a href="{{ $loginUrl }}" class="btn btn-accent">Sign In</a>
+            <a href="{{ $loginUrl }}" class="btn btn-accent" style="color: #ffffff;">Sign In</a>
         </div>
     @endisset
 

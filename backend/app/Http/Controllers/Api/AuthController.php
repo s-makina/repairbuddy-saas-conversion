@@ -550,6 +550,11 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
+        $tenantSlug = null;
+        if ($user && $user->tenant_id) {
+            $tenantSlug = Tenant::query()->where('id', $user->tenant_id)->value('slug');
+        }
+
         if ($user) {
             $user->currentAccessToken()?->delete();
             $this->logAuthEvent($request, 'logout', $user, $user->email, $user->tenant);
@@ -557,6 +562,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'ok',
+            'tenant_slug' => $tenantSlug,
         ]);
     }
 
