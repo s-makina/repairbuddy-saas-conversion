@@ -159,10 +159,6 @@
                     <div class="otp-code">{{ $otpCode }}</div>
                 @endisset
 
-                @isset($message)
-                    <div class="message">{!! $message !!}</div>
-                @endisset
-
                 @isset($actionUrl)
                     <div class="cta-container">
                         <a href="{{ $actionUrl }}" class="btn {{ $buttonStyle ?? '' }}">{{ $actionText }}</a>
@@ -173,7 +169,7 @@
                     <div class="subtext">{{ $subtext }}</div>
                 @endisset
 
-                {{ $slot }}
+                @yield('content')
             </div>
             <div class="footer">
                 &copy; {{ date('Y') }} {{ $tenantName ?? 'RepairBuddy' }}.

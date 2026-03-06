@@ -22,6 +22,13 @@ class ResetPasswordNotification extends Notification
     public $token;
 
     /**
+     * The tenant slug for URLs.
+     *
+     * @var string|null
+     */
+    protected $tenantSlug;
+
+    /**
      * The tenant name for branding.
      *
      * @var string|null
@@ -38,9 +45,10 @@ class ResetPasswordNotification extends Notification
     /**
      * Create a notification instance.
      */
-    public function __construct(string $token, ?string $tenantName = null, ?string $tenantLogoUrl = null)
+    public function __construct(string $token, ?string $tenantSlug = null, ?string $tenantName = null, ?string $tenantLogoUrl = null)
     {
         $this->token = $token;
+        $this->tenantSlug = $tenantSlug;
         $this->tenantName = $tenantName;
         $this->tenantLogoUrl = $tenantLogoUrl;
     }
@@ -89,6 +97,11 @@ class ResetPasswordNotification extends Notification
     protected function resetUrl($notifiable)
     {
         $frontendUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+
+        // Include tenant slug in URL for tenant users
+        if ($this->tenantSlug) {
+            return $frontendUrl.'/t/'.$this->tenantSlug.'/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
+        }
 
         return $frontendUrl.'/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
     }

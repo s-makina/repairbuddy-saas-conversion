@@ -132,6 +132,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function sendPasswordResetNotification($token): void
     {
         $tenant = $this->tenant;
+        $tenantSlug = $tenant?->slug;
         $tenantName = $tenant?->name;
         $tenantLogoUrl = null;
 
@@ -139,7 +140,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             $tenantLogoUrl = Storage::disk('public')->url($tenant->logo_path);
         }
 
-        $this->notify(new ResetPasswordNotification($token, $tenantName, $tenantLogoUrl));
+        $this->notify(new ResetPasswordNotification($token, $tenantSlug, $tenantName, $tenantLogoUrl));
     }
 
     /**
