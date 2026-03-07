@@ -238,6 +238,11 @@ Route::prefix('t/{business}')
         Route::post('/branch/active', [\App\Http\Controllers\Web\TenantBranchController::class, 'setActive'])
             ->name('tenant.branch.active');
 
+        // Security settings (Livewire)
+        Route::get('/settings/security', \App\Livewire\Tenant\Settings\SecurityPage::class)
+            ->middleware('permission:security.manage')
+            ->name('tenant.settings.security.index');
+
         // Customer devices web routes (session auth)
         Route::get('/customer-devices/{id}', [\App\Http\Controllers\Web\CustomerDevicesController::class, 'show'])
             ->where(['id' => '[0-9]+'])
