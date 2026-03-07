@@ -278,6 +278,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::get('/impersonation', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'index'])
         ->middleware('permission:admin.impersonation.read');
 
+    // ── Activity Feed ─────────────────────────────────────────────────────
+    Route::get('/activity-feed', [\App\Http\Controllers\Api\Admin\ActivityFeedController::class, 'index'])
+        ->middleware('permission:admin.access');
+    Route::get('/activity-feed/unread-count', [\App\Http\Controllers\Api\Admin\ActivityFeedController::class, 'unreadCount'])
+        ->middleware('permission:admin.access');
+
     // ── Platform audit log ──────────────────────────────────────────────────
     Route::get('/audit', [\App\Http\Controllers\Api\Admin\AdminAuditController::class, 'index'])
         ->middleware('permission:admin.access');

@@ -135,6 +135,7 @@ export interface PlatformAuditLog {
   created_at?: string;
   updated_at?: string;
   actor?: User | null;
+  tenant?: { id: number; name: string; slug: string; status?: string; plan_id?: number | null; plan?: { id: number; name: string } | null } | null;
 }
 
 export interface AuthEvent {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { getAdminBusinessStats } from "@/lib/superadmin";
+import { getAdminBusinessStats, getActivityFeedUnreadCount } from "@/lib/superadmin";
 import { useAuth } from "@/lib/auth";
 
 /* ── SVG Icon Paths ── */
@@ -96,6 +96,7 @@ type NavItem = {
   icon: keyof typeof icons;
   href: string;
   badge?: number;
+  badgeAlert?: boolean;
   count?: string;
 };
 
@@ -109,6 +110,8 @@ export function SASidebar() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [businessCount, setBusinessCount] = useState<string | undefined>(undefined);
+  const [activityBadge, setActivityBadge] = useState<number | undefined>(undefined);
+  const [activityHasAlerts, setActivityHasAlerts] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -139,6 +142,15 @@ export function SASidebar() {
         // Silent failure — sidebar remains functional without a count
       });
 
+    getActivityFeedUnreadCount()
+      .then((res) => {
+        if (!controller.signal.aborted) {
+          if (res.count > 0) setActivityBadge(res.count);
+          if (res.alerts > 0) setActivityHasAlerts(true);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       controller.abort();
     };
@@ -149,7 +161,7 @@ export function SASidebar() {
       label: "Overview",
       items: [
         { label: "Dashboard", icon: "dashboard", href: "/superadmin" },
-        { label: "Activity Feed", icon: "activity", href: "/superadmin/activity", badge: 4 },
+        { label: "Activity Feed", icon: "activity", href: "/superadmin/activity", badge: activityBadge, badgeAlert: activityHasAlerts },
       ],
     },
     {
@@ -216,7 +228,11 @@ export function SASidebar() {
                 >
                   <Icon name={item.icon} />
                   {item.label}
-                  {item.badge != null && <span className="sa-nv-badge">{item.badge}</span>}
+                  {item.badge != null && (
+                    <span className={item.badgeAlert ? "sa-nv-badge" : "sa-nv-badge sa-nv-badge--activity"}>
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
                   {item.count != null && <span className="sa-nv-count">{item.count}</span>}
                 </Link>
               );

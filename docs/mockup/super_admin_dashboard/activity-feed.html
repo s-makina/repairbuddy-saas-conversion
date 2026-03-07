@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activity Feed — RepairBuddy Superadmin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #faf9f7;
+            --surface: #fff;
+            --surface-2: #f5f3f0;
+            --border: #ebe8e3;
+            --border-2: #d9d4cd;
+            --text: #1a1714;
+            --text-2: #6b6560;
+            --text-3: #a09890;
+            --orange: #e8590c;
+            --orange-bg: #fff4ed;
+            --green: #2b8a3e;
+            --green-bg: #f0fdf4;
+            --blue: #1971c2;
+            --blue-bg: #eff6ff;
+            --purple: #7048e8;
+            --purple-bg: #f5f3ff;
+            --red: #e03131;
+            --red-bg: #fff1f2;
+            --amber: #e67700;
+            --amber-bg: #fffbeb;
+            --sw: 256px;
+            --r: 10px;
+            --r-sm: 6px;
+            --sh: 0 1px 3px rgba(0, 0, 0, .06);
+            --sh-md: 0 4px 12px rgba(0, 0, 0, .08)
+        }
+
+        html,
+        body {
+            height: 100vh;
+            overflow: hidden
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-2);
+            border-radius: 20px;
+            border: 2px solid var(--surface)
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--orange)
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-2) transparent
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: var(--sw);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            flex-shrink: 0;
+            overflow-y: auto
+        }
+
+        .s-brand {
+            height: 64px;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 10;
+            flex-shrink: 0
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .2)
+        }
+
+        .logo-mark svg {
+            width: 16px;
+            height: 16px;
+            color: #fff
+        }
+
+        .brand-txt {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text)
+        }
+
+        .s-search {
+            margin: 14px 14px 6px;
+            position: relative
+        }
+
+        .s-search input {
+            width: 100%;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface-2);
+            outline: none;
+            color: var(--text);
+            transition: all .15s
+        }
+
+        .s-search input:focus {
+            border-color: var(--orange);
+            background: var(--surface)
+        }
+
+        .s-search svg {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 15px;
+            color: var(--text-3)
+        }
+
+        .nav-sec {
+            padding: 12px 12px 4px
+        }
+
+        .nav-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-3);
+            padding: 0 8px;
+            margin-bottom: 4px
+        }
+
+        .nv {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: var(--r-sm);
+            text-decoration: none;
+            color: var(--text-2);
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all .15s;
+            position: relative
+        }
+
+        .nv:hover {
+            background: var(--surface-2);
+            color: var(--text)
+        }
+
+        .nv.active {
+            background: var(--orange-bg);
+            color: var(--orange);
+            font-weight: 600
+        }
+
+        .nv.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            bottom: 20%;
+            width: 3px;
+            background: var(--orange);
+            border-radius: 0 3px 3px 0
+        }
+
+        .nv svg {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0
+        }
+
+        .nv-count {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--surface-2);
+            color: var(--text-3);
+            padding: 1px 7px;
+            border-radius: 99px
+        }
+
+        .nv-badge {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--red);
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 99px;
+            line-height: 1.5
+        }
+
+        .s-hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 6px 14px
+        }
+
+        .s-user {
+            margin-top: auto;
+            padding: 14px;
+            margin: auto 12px 12px;
+            background: var(--surface-2);
+            border-radius: var(--r-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+            position: sticky;
+            bottom: 0;
+            z-index: 10
+        }
+
+        .s-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff
+        }
+
+        .s-uname {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .s-urole {
+            font-size: 11px;
+            color: var(--text-3)
+        }
+
+        /* MAIN */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            height: 100vh;
+            min-width: 0
+        }
+
+        .topbar {
+            height: 64px;
+            min-height: 64px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 30
+        }
+
+        .tb-left {
+            display: flex;
+            flex-direction: column
+        }
+
+        .tb-bc {
+            font-size: 11.5px;
+            color: var(--text-3)
+        }
+
+        .tb-bc b {
+            color: var(--text);
+            font-weight: 600
+        }
+
+        .tb-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 1px
+        }
+
+        .tb-right {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .ib {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: background .15s
+        }
+
+        .ib:hover {
+            background: var(--surface-2)
+        }
+
+        .ib svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-2)
+        }
+
+        .ndot {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            width: 6px;
+            height: 6px;
+            background: var(--red);
+            border: 1.5px solid var(--surface);
+            border-radius: 50%
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .15s
+        }
+
+        .btn-primary {
+            background: var(--orange);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .25)
+        }
+
+        .btn-primary:hover {
+            background: #cf4c08
+        }
+
+        .btn-ghost {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-2)
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface-2)
+        }
+
+        .btn svg {
+            width: 14px;
+            height: 14px
+        }
+
+        /* CONTENT */
+        .content {
+            padding: 26px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px
+        }
+
+        /* KPI */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px
+        }
+
+        .kc {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 20px 22px;
+            box-shadow: var(--sh);
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            transition: box-shadow .2s, transform .2s;
+            position: relative;
+            overflow: hidden
+        }
+
+        .kc:hover {
+            box-shadow: var(--sh-md);
+            transform: translateY(-1px)
+        }
+
+        .kc-stripe {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 0 3px 3px 0
+        }
+
+        .kc-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .kc-icon svg {
+            width: 20px;
+            height: 20px
+        }
+
+        .kc-val {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -.4px
+        }
+
+        .kc-lbl {
+            font-size: 12px;
+            color: var(--text-3);
+            font-weight: 500;
+            margin-top: 2px
+        }
+
+        /* FILTER */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 180px
+        }
+
+        .search-wrap svg {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 15px;
+            color: var(--text-3)
+        }
+
+        .filter-bar input {
+            flex: 1;
+            min-width: 180px;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface);
+            outline: none;
+            color: var(--text);
+            transition: all .15s
+        }
+
+        .filter-bar input:focus {
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
+        }
+
+        .filter-bar select {
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text-2);
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px
+        }
+
+        .filter-bar select:focus {
+            border-color: var(--orange)
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 10.5px;
+            font-weight: 700
+        }
+
+        .b-green {
+            background: var(--green-bg);
+            color: var(--green)
+        }
+
+        .b-blue {
+            background: var(--blue-bg);
+            color: var(--blue)
+        }
+
+        .b-amber {
+            background: var(--amber-bg);
+            color: var(--amber)
+        }
+
+        .b-red {
+            background: var(--red-bg);
+            color: var(--red)
+        }
+
+        .b-gray {
+            background: var(--surface-2);
+            color: var(--text-3)
+        }
+
+        .b-purple {
+            background: var(--purple-bg);
+            color: var(--purple)
+        }
+
+        .b-orange {
+            background: var(--orange-bg);
+            color: var(--orange)
+        }
+
+        /* PANEL */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            box-shadow: var(--sh);
+            overflow: hidden
+        }
+
+        .ph {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .ph-t {
+            font-size: 14px;
+            font-weight: 700
+        }
+
+        .ph-s {
+            font-size: 11.5px;
+            color: var(--text-3);
+            margin-top: 2px
+        }
+
+        /* FEED */
+        .feed-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 22px;
+            align-items: start
+        }
+
+        .feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0
+        }
+
+        .day-group {
+            margin-bottom: 4px
+        }
+
+        .day-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-3);
+            padding: 12px 20px 8px;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 2
+        }
+
+        .feed-item {
+            display: flex;
+            gap: 14px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            transition: background .15s;
+            cursor: pointer
+        }
+
+        .feed-item:hover {
+            background: var(--surface-2)
+        }
+
+        .feed-item:last-child {
+            border-bottom: none
+        }
+
+        .fi-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .fi-icon svg {
+            width: 16px;
+            height: 16px
+        }
+
+        .fi-body {
+            flex: 1;
+            min-width: 0
+        }
+
+        .fi-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 3px
+        }
+
+        .fi-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .fi-title a {
+            color: var(--orange);
+            text-decoration: none
+        }
+
+        .fi-title a:hover {
+            text-decoration: underline
+        }
+
+        .fi-time {
+            font-size: 11px;
+            color: var(--text-3);
+            white-space: nowrap;
+            flex-shrink: 0
+        }
+
+        .fi-desc {
+            font-size: 12.5px;
+            color: var(--text-2);
+            line-height: 1.5
+        }
+
+        .fi-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            flex-wrap: wrap
+        }
+
+        /* SIDEBAR WIDGETS */
+        .widget {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            box-shadow: var(--sh);
+            overflow: hidden;
+            margin-bottom: 16px
+        }
+
+        .wh {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .wh svg {
+            width: 15px;
+            height: 15px;
+            color: var(--orange)
+        }
+
+        .wb {
+            padding: 14px 16px
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 12.5px
+        }
+
+        .stat-row:not(:last-child) {
+            border-bottom: 1px solid var(--border)
+        }
+
+        .stat-lbl {
+            color: var(--text-2)
+        }
+
+        .stat-val {
+            font-weight: 700;
+            color: var(--text)
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .4
+            }
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .tab {
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-3);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+            text-decoration: none
+        }
+
+        .tab:hover {
+            color: var(--text)
+        }
+
+        .tab.active {
+            color: var(--orange);
+            border-bottom-color: var(--orange)
+        }
+
+        .tab-count {
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--surface-2);
+            color: var(--text-3);
+            padding: 1px 6px;
+            border-radius: 99px;
+            margin-left: 4px
+        }
+
+        /* PAGINATION */
+        .pager {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-3)
+        }
+
+        .pager-btns {
+            display: flex;
+            gap: 4px
+        }
+
+        .pg-btn {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--surface);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-2);
+            transition: all .15s
+        }
+
+        .pg-btn:hover {
+            background: var(--surface-2)
+        }
+
+        .pg-btn.active {
+            background: var(--orange);
+            color: #fff;
+            border-color: var(--orange)
+        }
+
+        @media(max-width:1200px) {
+            .feed-layout {
+                grid-template-columns: 1fr
+            }
+
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        @media(max-width:768px) {
+            .sidebar {
+                display: none
+            }
+
+            .kpi-row {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="s-brand">
+            <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                </svg></div>
+            <div>
+                <div class="brand-txt">RepairBuddy</div>
+            </div>
+        </div>
+        <div class="s-search"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg><input type="text" placeholder="Quick search…" /></div>
+        <div class="nav-sec">
+            <div class="nav-lbl">Overview</div>
+            <a href="design4.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
+                </svg>Dashboard</a>
+            <a href="activity-feed.html" class="nv active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>Activity Feed<span class="nv-badge">4</span></a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <div class="nav-lbl">Business Management</div>
+            <a href="all-businesses.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>All Businesses<span class="nv-count">1,248</span></a>
+            <a href="users-directory.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>Users Directory</a>
+            <a href="impersonation-log.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>Impersonation Log</a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <div class="nav-lbl">Billing &amp; Subscriptions</div>
+            <a href="billing-plans.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>Billing Plans</a>
+            <a href="plan-builder.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>Plan Builder</a>
+            <a href="entitlements.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>Entitlements</a>
+            <a href="currencies.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>Currencies</a>
+            <a href="billing-intervals.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>Billing Intervals</a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <div class="nav-lbl">Platform</div>
+            <a href="audit-logs.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>Audit Logs</a>
+            <a href="analytics.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>Analytics</a>
+            <a href="settings.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>Settings</a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec"><a href="#" class="nv" style="color:var(--red)"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>Sign Out</a></div>
+        <div class="s-user">
+            <div class="s-avatar">SA</div>
+            <div>
+                <div class="s-uname">Super Admin</div>
+                <div class="s-urole">Platform Owner</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+        <div class="topbar">
+            <div class="tb-left">
+                <div class="tb-bc">Overview / <b>Activity Feed</b></div>
+                <div class="tb-title">Activity Feed</div>
+            </div>
+            <div class="tb-right">
+                <button class="btn btn-ghost"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>Refresh</button>
+                <div class="ib"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg><span class="ndot"></span></div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- KPI ROW -->
+            <div class="kpi-row">
+                <div class="kc">
+                    <div class="kc-stripe" style="background:var(--orange)"></div>
+                    <div class="kc-icon" style="background:var(--orange-bg);color:var(--orange)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg></div>
+                    <div>
+                        <div class="kc-val">847</div>
+                        <div class="kc-lbl">Events Today</div>
+                    </div>
+                </div>
+                <div class="kc">
+                    <div class="kc-stripe" style="background:var(--green)"></div>
+                    <div class="kc-icon" style="background:var(--green-bg);color:var(--green)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg></div>
+                    <div>
+                        <div class="kc-val">12</div>
+                        <div class="kc-lbl">New Signups</div>
+                    </div>
+                </div>
+                <div class="kc">
+                    <div class="kc-stripe" style="background:var(--blue)"></div>
+                    <div class="kc-icon" style="background:var(--blue-bg);color:var(--blue)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg></div>
+                    <div>
+                        <div class="kc-val">8</div>
+                        <div class="kc-lbl">Plan Changes</div>
+                    </div>
+                </div>
+                <div class="kc">
+                    <div class="kc-stripe" style="background:var(--red)"></div>
+                    <div class="kc-icon" style="background:var(--red-bg);color:var(--red)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg></div>
+                    <div>
+                        <div class="kc-val">3</div>
+                        <div class="kc-lbl">Alerts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTER BAR -->
+            <div class="filter-bar">
+                <div class="search-wrap">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" placeholder="Search events…" />
+                </div>
+                <select>
+                    <option>All Types</option>
+                    <option>Signups</option>
+                    <option>Plan Changes</option>
+                    <option>Cancellations</option>
+                    <option>Payments</option>
+                    <option>Settings</option>
+                    <option>Alerts</option>
+                </select>
+                <select>
+                    <option>All Businesses</option>
+                    <option>QuickFix Electronics</option>
+                    <option>MobileFix Pro</option>
+                    <option>TechRepair Hub</option>
+                </select>
+                <select>
+                    <option>Today</option>
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option>Custom range</option>
+                </select>
+            </div>
+
+            <!-- FEED LAYOUT -->
+            <div class="feed-layout">
+                <!-- FEED LIST -->
+                <div class="panel">
+                    <div class="tabs">
+                        <a class="tab active">All Activity<span class="tab-count">847</span></a>
+                        <a class="tab">Signups<span class="tab-count">12</span></a>
+                        <a class="tab">Billing<span class="tab-count">23</span></a>
+                        <a class="tab">Alerts<span class="tab-count">3</span></a>
+                    </div>
+                    <div class="feed-list">
+                        <div class="day-group">
+                            <div class="day-label">Today — March 7, 2026</div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--green-bg);color:var(--green)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title">New business registered: <a
+                                                href="business-detail.html">AutoCare Masters</a></span><span
+                                            class="fi-time">5 min ago</span></div>
+                                    <div class="fi-desc">Mark Rivera signed up for the Professional plan. Location:
+                                        Dallas, TX.</div>
+                                    <div class="fi-meta"><span class="badge b-green">Signup</span><span
+                                            class="badge b-blue">Professional</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--red-bg);color:var(--red)"><svg fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title">Payment failed for <a
+                                                href="business-detail.html">GadgetFix Pro</a></span><span
+                                            class="fi-time">23 min ago</span></div>
+                                    <div class="fi-desc">Recurring payment of $79.00 failed due to expired credit card.
+                                        Auto-retry scheduled in 24h.</div>
+                                    <div class="fi-meta"><span class="badge b-red">Alert</span><span
+                                            class="badge b-amber">Payment Failed</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--blue-bg);color:var(--blue)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title"><a href="business-detail.html">QuickFix
+                                                Electronics</a> upgraded to Enterprise</span><span class="fi-time">1 hr
+                                            ago</span></div>
+                                    <div class="fi-desc">Plan changed from Professional ($79/mo) to Enterprise
+                                        ($149/mo). Prorated charge of $47.00 applied.</div>
+                                    <div class="fi-meta"><span class="badge b-blue">Plan Upgrade</span><span
+                                            class="badge b-purple">Enterprise</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--green-bg);color:var(--green)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title">Payment received from <a
+                                                href="business-detail.html">MobileFix Pro</a></span><span
+                                            class="fi-time">2 hrs ago</span></div>
+                                    <div class="fi-desc">Monthly subscription payment of $79.00 processed successfully
+                                        via Stripe.</div>
+                                    <div class="fi-meta"><span class="badge b-green">Payment</span><span
+                                            class="badge b-gray">$79.00</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--green-bg);color:var(--green)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title">New business registered: <a
+                                                href="business-detail.html">TechRepair Hub</a></span><span
+                                            class="fi-time">3 hrs ago</span></div>
+                                    <div class="fi-desc">Sarah Chen signed up for the Starter plan. Location: San
+                                        Francisco, CA.</div>
+                                    <div class="fi-meta"><span class="badge b-green">Signup</span><span
+                                            class="badge b-gray">Starter</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--orange-bg);color:var(--orange)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title"><a
+                                                href="business-detail.html">DeviceCare Plus</a> updated business
+                                            settings</span><span class="fi-time">4 hrs ago</span></div>
+                                    <div class="fi-desc">Updated working hours (Mon–Fri: 8AM–7PM) and added 3 new
+                                        services.</div>
+                                    <div class="fi-meta"><span class="badge b-orange">Settings</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-group">
+                            <div class="day-label">Yesterday — March 6, 2026</div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--red-bg);color:var(--red)"><svg fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title"><a
+                                                href="business-detail.html">PhoneDoctor</a> cancelled
+                                            subscription</span><span class="fi-time">Yesterday, 6:12 PM</span></div>
+                                    <div class="fi-desc">Professional plan cancelled. Account remains active until March
+                                        28, 2026. Reason: "Switching to another platform".</div>
+                                    <div class="fi-meta"><span class="badge b-red">Cancellation</span><span
+                                            class="badge b-gray">Professional</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--purple-bg);color:var(--purple)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title">New staff added at <a
+                                                href="business-detail.html">QuickFix Electronics</a></span><span
+                                            class="fi-time">Yesterday, 2:45 PM</span></div>
+                                    <div class="fi-desc">Admin John Doe added 2 new technicians: Alice Park
+                                        (Technician), Bob Kim (Manager).</div>
+                                    <div class="fi-meta"><span class="badge b-purple">Team</span><span
+                                            class="badge b-gray">+2 members</span></div>
+                                </div>
+                            </div>
+
+                            <div class="feed-item">
+                                <div class="fi-icon" style="background:var(--green-bg);color:var(--green)"><svg
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg></div>
+                                <div class="fi-body">
+                                    <div class="fi-head"><span class="fi-title">Trial converted: <a
+                                                href="business-detail.html">SmartRepair NYC</a></span><span
+                                            class="fi-time">Yesterday, 11:30 AM</span></div>
+                                    <div class="fi-desc">Free trial converted to paid Professional plan ($79/mo, annual
+                                        billing at $63/mo).</div>
+                                    <div class="fi-meta"><span class="badge b-green">Conversion</span><span
+                                            class="badge b-blue">Professional</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGINATION -->
+                    <div class="pager">
+                        <span>Showing 1–9 of 847 events</span>
+                        <div class="pager-btns">
+                            <button class="pg-btn active">1</button>
+                            <button class="pg-btn">2</button>
+                            <button class="pg-btn">3</button>
+                            <button class="pg-btn">…</button>
+                            <button class="pg-btn">85</button>
+                            <button class="pg-btn">→</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT SIDEBAR WIDGETS -->
+                <div>
+                    <div class="widget">
+                        <div class="wh">
+                            <div class="live-dot"></div>Live Status
+                        </div>
+                        <div class="wb">
+                            <div class="stat-row"><span class="stat-lbl">Active Users (now)</span><span class="stat-val"
+                                    style="color:var(--green)">342</span></div>
+                            <div class="stat-row"><span class="stat-lbl">Open Repairs</span><span
+                                    class="stat-val">1,856</span></div>
+                            <div class="stat-row"><span class="stat-lbl">API Requests/min</span><span
+                                    class="stat-val">4,291</span></div>
+                            <div class="stat-row"><span class="stat-lbl">Server Load</span><span class="stat-val"
+                                    style="color:var(--green)">23%</span></div>
+                        </div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="wh"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>Today's Summary</div>
+                        <div class="wb">
+                            <div class="stat-row"><span class="stat-lbl">New Signups</span><span class="stat-val"
+                                    style="color:var(--green)">12</span></div>
+                            <div class="stat-row"><span class="stat-lbl">Trial Conversions</span><span class="stat-val"
+                                    style="color:var(--green)">4</span></div>
+                            <div class="stat-row"><span class="stat-lbl">Cancellations</span><span class="stat-val"
+                                    style="color:var(--red)">1</span></div>
+                            <div class="stat-row"><span class="stat-lbl">Revenue Today</span><span class="stat-val"
+                                    style="color:var(--green)">$2,847</span></div>
+                            <div class="stat-row"><span class="stat-lbl">Failed Payments</span><span class="stat-val"
+                                    style="color:var(--red)">2</span></div>
+                        </div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="wh"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>Recent Signups</div>
+                        <div class="wb" style="display:flex;flex-direction:column;gap:10px">
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div
+                                    style="width:30px;height:30px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">
+                                    AC</div>
+                                <div>
+                                    <div style="font-size:12.5px;font-weight:600">AutoCare Masters</div>
+                                    <div style="font-size:11px;color:var(--text-3)">5 min ago · Professional</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div
+                                    style="width:30px;height:30px;border-radius:50%;background:var(--blue-bg);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">
+                                    TR</div>
+                                <div>
+                                    <div style="font-size:12.5px;font-weight:600">TechRepair Hub</div>
+                                    <div style="font-size:11px;color:var(--text-3)">3 hrs ago · Starter</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div
+                                    style="width:30px;height:30px;border-radius:50%;background:var(--purple-bg);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">
+                                    SM</div>
+                                <div>
+                                    <div style="font-size:12.5px;font-weight:600">SmartRepair NYC</div>
+                                    <div style="font-size:11px;color:var(--text-3)">Yesterday · Professional</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

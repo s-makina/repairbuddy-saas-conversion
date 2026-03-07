@@ -565,3 +565,70 @@ export async function listEntitlementDefinitions(): Promise<{
     "/api/admin/billing/entitlement-definitions"
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Activity Feed
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ListActivityFeedParams = {
+  q?: string;
+  type?: string;
+  tenant_id?: number;
+  range?: "today" | "7d" | "30d" | "90d" | "all";
+  tab?: "all" | "signups" | "billing" | "alerts";
+  sort?: string;
+  dir?: "asc" | "desc";
+  page?: number;
+  per_page?: number;
+};
+
+export type ActivityFeedKpis = {
+  events_today: number;
+  signups_today: number;
+  plan_changes_today: number;
+  alerts_today: number;
+};
+
+export type ActivityFeedTabCounts = {
+  all: number;
+  signups: number;
+  billing: number;
+  alerts: number;
+};
+
+export type ActivityFeedRecentSignup = {
+  tenant_id: number;
+  tenant_name: string;
+  tenant_slug: string;
+  plan_name: string | null;
+  created_at: string;
+};
+
+export type ActivityFeedResponse = PaginatedResponse<import("@/lib/types").PlatformAuditLog> & {
+  kpis: ActivityFeedKpis;
+  tab_counts: ActivityFeedTabCounts;
+  recent_signups: ActivityFeedRecentSignup[];
+};
+
+export async function listActivityFeed(
+  params: ListActivityFeedParams = {}
+): Promise<ActivityFeedResponse> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.type) qs.set("type", params.type);
+  if (params.tenant_id) qs.set("tenant_id", String(params.tenant_id));
+  if (params.range) qs.set("range", params.range);
+  if (params.tab) qs.set("tab", params.tab);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.dir) qs.set("dir", params.dir);
+  if (params.page) qs.set("page", String(params.page));
+  if (params.per_page) qs.set("per_page", String(params.per_page));
+
+  return apiFetch<ActivityFeedResponse>(
+    `/api/admin/activity-feed${qs.toString() ? `?${qs.toString()}` : ""}`
+  );
+}
+
+export async function getActivityFeedUnreadCount(): Promise<{ count: number; alerts: number }> {
+  return apiFetch<{ count: number; alerts: number }>("/api/admin/activity-feed/unread-count");
+}
