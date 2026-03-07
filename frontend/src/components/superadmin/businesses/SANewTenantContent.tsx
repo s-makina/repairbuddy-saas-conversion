@@ -354,6 +354,8 @@ export default function SANewTenantContent() {
       <div className="sa-content" style={{ maxWidth: 860 }}>
         <div className="sa-form-panel">
 
+        <div className="sa-fp-body">
+
           {/* ── Global error banner ── */}
           {fieldErrors._global && (
             <div
@@ -382,10 +384,11 @@ export default function SANewTenantContent() {
             <div className="sa-fs-desc">Enter the details for the new tenant business.</div>
 
             <div className="sa-form-group">
-              <label>
+              <label className="sa-label">
                 Business Name <span className="sa-req">*</span>
               </label>
               <input
+                className="sa-input"
                 type="text"
                 placeholder="e.g. QuickFix Electronics"
                 value={form.businessName}
@@ -397,7 +400,7 @@ export default function SANewTenantContent() {
             </div>
 
             <div className="sa-form-group">
-              <label>
+              <label className="sa-label">
                 Subdomain <span className="sa-req">*</span>
               </label>
               <div className="sa-subdomain-preview">
@@ -430,8 +433,9 @@ export default function SANewTenantContent() {
 
             <div className="sa-form-row">
               <div className="sa-form-group">
-                <label>Industry</label>
+                <label className="sa-label">Industry</label>
                 <select
+                  className="sa-select"
                   value={form.industry}
                   onChange={e => set('industry', e.target.value)}
                   disabled={submitting}
@@ -447,19 +451,20 @@ export default function SANewTenantContent() {
                 </select>
               </div>
               <div className="sa-form-group">
-                <label>Country</label>
+                <label className="sa-label">Country</label>
                 <select
+                  className="sa-select"
                   value={form.country}
                   onChange={e => set('country', e.target.value)}
                   disabled={submitting}
                   style={fieldErrors.country ? { borderColor: '#ef4444' } : undefined}
                 >
                   <option value="">Select country&hellip;</option>
-                  <option value="us">United States</option>
-                  <option value="gb">United Kingdom</option>
-                  <option value="ca">Canada</option>
-                  <option value="au">Australia</option>
-                  <option value="de">Germany</option>
+                  <option value="US">United States</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="CA">Canada</option>
+                  <option value="AU">Australia</option>
+                  <option value="DE">Germany</option>
                 </select>
                 {fieldError('country')}
               </div>
@@ -475,10 +480,11 @@ export default function SANewTenantContent() {
 
             <div className="sa-form-row">
               <div className="sa-form-group">
-                <label>
+                <label className="sa-label">
                   First Name <span className="sa-req">*</span>
                 </label>
                 <input
+                  className="sa-input"
                   type="text"
                   placeholder="First name"
                   value={form.firstName}
@@ -489,10 +495,11 @@ export default function SANewTenantContent() {
                 {fieldError('firstName')}
               </div>
               <div className="sa-form-group">
-                <label>
+                <label className="sa-label">
                   Last Name <span className="sa-req">*</span>
                 </label>
                 <input
+                  className="sa-input"
                   type="text"
                   placeholder="Last name"
                   value={form.lastName}
@@ -505,10 +512,11 @@ export default function SANewTenantContent() {
             </div>
 
             <div className="sa-form-group">
-              <label>
+              <label className="sa-label">
                 Email Address <span className="sa-req">*</span>
               </label>
               <input
+                className="sa-input"
                 type="email"
                 placeholder="owner@example.com"
                 value={form.email}
@@ -527,10 +535,11 @@ export default function SANewTenantContent() {
 
             <div className="sa-form-row">
               <div className="sa-form-group">
-                <label>
+                <label className="sa-label">
                   Temporary Password <span className="sa-req">*</span>
                 </label>
                 <input
+                  className="sa-input"
                   type="text"
                   value={form.password}
                   onChange={e => set('password', e.target.value)}
@@ -546,8 +555,9 @@ export default function SANewTenantContent() {
                 )}
               </div>
               <div className="sa-form-group">
-                <label>Phone</label>
+                <label className="sa-label">Phone</label>
                 <input
+                  className="sa-input"
                   type="text"
                   placeholder="+1 (555) 000-0000"
                   value={form.phone}
@@ -567,9 +577,10 @@ export default function SANewTenantContent() {
 
             <div className="sa-form-row">
               <div className="sa-form-group">
-                <label>Billing Plan</label>
+                <label className="sa-label">Billing Plan</label>
                 {billingPlans.length > 0 ? (
                   <select
+                    className="sa-select"
                     value={form.billingPlan}
                     onChange={e => set('billingPlan', e.target.value)}
                     disabled={submitting}
@@ -583,12 +594,12 @@ export default function SANewTenantContent() {
                 ) : (
                   <div
                     style={{
-                      padding: '8px 12px',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 6,
-                      color: '#94a3b8',
-                      fontSize: 14,
+                      padding: '10px 14px',
+                      background: 'var(--sa-surface-2)',
+                      border: '1px solid var(--sa-border)',
+                      borderRadius: 'var(--sa-r-sm)',
+                      color: 'var(--sa-text-3)',
+                      fontSize: 13.5,
                     }}
                   >
                     No plans configured
@@ -596,8 +607,9 @@ export default function SANewTenantContent() {
                 )}
               </div>
               <div className="sa-form-group">
-                <label>Currency</label>
+                <label className="sa-label">Currency</label>
                 <select
+                  className="sa-select"
                   value={form.currency}
                   onChange={e => set('currency', e.target.value)}
                   disabled={submitting}
@@ -614,8 +626,9 @@ export default function SANewTenantContent() {
             </div>
 
             <div className="sa-form-group" style={{ maxWidth: '50%' }}>
-              <label>Trial Duration (days)</label>
+              <label className="sa-label">Trial Duration (days)</label>
               <input
+                className="sa-input"
                 type="number"
                 min={0}
                 max={365}
@@ -683,8 +696,10 @@ export default function SANewTenantContent() {
             </div>
           </div>
 
-          {/* ── Footer ── */}
-          <div className="sa-fp-footer">
+        </div>{/* /sa-fp-body */}
+
+        {/* ── Footer ── */}
+        <div className="sa-fp-footer">
             <SAButton variant="ghost" onClick={handleCancel} disabled={submitting}>
               Cancel
             </SAButton>

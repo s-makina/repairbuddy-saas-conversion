@@ -70,7 +70,7 @@ class AdminAnalyticsController extends Controller
 
         // ── Revenue breakdown by billing plan ─────────────────────────────────
         $planRevRows = DB::table('invoices as i')
-            ->join('tenant_subscriptions as ts', 'ts.id', '=', 'i.subscription_id')
+            ->join('tenant_subscriptions as ts', 'ts.id', '=', 'i.tenant_subscription_id')
             ->join('billing_plan_versions as bpv', 'bpv.id', '=', 'ts.billing_plan_version_id')
             ->join('billing_plans as bp', 'bp.id', '=', 'bpv.billing_plan_id')
             ->selectRaw("bp.name as plan_name, i.currency, SUM(i.total_cents) as total_cents, COUNT(i.id) as invoice_count")

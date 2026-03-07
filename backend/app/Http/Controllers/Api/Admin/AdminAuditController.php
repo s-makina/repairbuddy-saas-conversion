@@ -37,7 +37,7 @@ class AdminAuditController extends Controller
         ];
 
         $query = PlatformAuditLog::query()
-            ->with(['actor:id,name,email,avatar_url,is_admin', 'tenant:id,name,slug']);
+            ->with(['actor:id,name,email,is_admin', 'tenant:id,name,slug']);
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {

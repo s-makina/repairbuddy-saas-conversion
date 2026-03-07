@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getAdminBusinessStats } from "@/lib/superadmin";
+import { useAuth } from "@/lib/auth";
 
 /* ── SVG Icon Paths ── */
 const icons = {
@@ -105,7 +106,25 @@ type NavSection = {
 
 export function SASidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const [businessCount, setBusinessCount] = useState<string | undefined>(undefined);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      router.replace("/superadmin/login");
+    }
+  };
+
+  // Derive initials from user name
+  const initials = user?.name
+    ? user.name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+    : "SA";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -209,18 +228,24 @@ export function SASidebar() {
 
       {/* Sign out */}
       <div className="sa-nav-sec">
-        <button className="sa-nv sa-nv-signout" type="button">
+        <button
+          className="sa-nv sa-nv-signout"
+          type="button"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          style={{ opacity: loggingOut ? 0.6 : 1, cursor: loggingOut ? "wait" : "pointer" }}
+        >
           <Icon name="signout" />
-          Sign Out
+          {loggingOut ? "Signing out…" : "Sign Out"}
         </button>
       </div>
 
       {/* User card */}
       <div className="sa-user">
-        <div className="sa-avatar">SA</div>
+        <div className="sa-avatar">{initials}</div>
         <div>
-          <div className="sa-uname">Super Admin</div>
-          <div className="sa-urole">Platform Administrator</div>
+          <div className="sa-uname">{user?.name ?? "Super Admin"}</div>
+          <div className="sa-urole">{user?.email ?? "Platform Administrator"}</div>
         </div>
       </div>
     </aside>

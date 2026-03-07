@@ -2146,6 +2146,9 @@
 @keyframes sa-spin {
   to { transform: rotate(360deg); }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .sa-login-footer {
   margin-top: 16px;
