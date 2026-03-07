@@ -54,6 +54,20 @@ class EnforceOnboardingGate
         }
 
         if ($subscriptionStatus === 'pending_checkout') {
+            // Allow setup-related routes during checkout phase
+            if (preg_match('#^(?:api/)?[^/]+/app/setup(?:/complete)?$#', $path)) {
+                return $next($request);
+            }
+
+            if (preg_match('#^(?:api/)?[^/]+/app/branches(?:/.*)?$#', $path)) {
+                return $next($request);
+            }
+
+            // Allow repairbuddy taxes and settings during checkout phase
+            if (preg_match('#^(?:api/)?[^/]+/app/repairbuddy/(?:taxes|settings)(?:/.*)?$#', $path)) {
+                return $next($request);
+            }
+
             return $this->deny('Checkout is required.', 'checkout_required', '/'.$business.'/checkout');
         }
 

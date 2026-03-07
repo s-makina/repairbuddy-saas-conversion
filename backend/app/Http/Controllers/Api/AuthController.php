@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\Permissions;
 use App\Models\Tenant;
 use App\Models\AuthEvent;
 use App\Models\TenantSecuritySetting;

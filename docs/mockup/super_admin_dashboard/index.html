@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Superadmin — RepairBuddy Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ─── RESET & BASE ─────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --sidebar-bg: #0f1623;
+            --sidebar-border: rgba(255, 255, 255, .07);
+            --sidebar-hover: rgba(255, 255, 255, .07);
+            --sidebar-active: rgba(99, 102, 241, .20);
+            --sidebar-active-txt: #818cf8;
+            --sidebar-txt: #94a3b8;
+            --sidebar-txt-sm: #475569;
+            --sidebar-w: 260px;
+
+            --top-bar-h: 64px;
+            --page-bg: #f1f5f9;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-2: #475569;
+            --text-3: #94a3b8;
+
+            --indigo: #6366f1;
+            --indigo-light: #eef2ff;
+            --green: #10b981;
+            --green-light: #ecfdf5;
+            --amber: #f59e0b;
+            --amber-light: #fffbeb;
+            --rose: #f43f5e;
+            --rose-light: #fff1f2;
+            --sky: #0ea5e9;
+            --sky-light: #f0f9ff;
+
+            --radius-sm: 6px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / .05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / .07), 0 2px 4px -2px rgb(0 0 0 / .05);
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            display: flex;
+        }
+
+        /* ─── SCROLLBAR ────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+
+        /* ─── SIDEBAR ──────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 20px 18px;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, .2);
+        }
+
+        .brand-icon svg {
+            width: 18px;
+            height: 18px;
+            color: #fff;
+        }
+
+        .brand-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: -.3px;
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            color: var(--sidebar-txt-sm);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        /* user mini */
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            margin: 12px;
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid var(--sidebar-border);
+            border-radius: var(--radius-sm);
+        }
+
+        .avatar-sm {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366f1, #a78bfa);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: var(--sidebar-txt-sm);
+        }
+
+        /* nav group */
+        .nav-section {
+            padding: 16px 12px 4px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--sidebar-txt-sm);
+            padding: 0 8px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            color: var(--sidebar-txt);
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: background .15s, color .15s;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: var(--sidebar-hover);
+            color: #e2e8f0;
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-active);
+            color: var(--sidebar-active-txt);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 25%;
+            bottom: 25%;
+            width: 3px;
+            background: var(--sidebar-active-txt);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .nav-item svg {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--rose);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 99px;
+            line-height: 1.6;
+        }
+
+        .nav-pill {
+            margin-left: auto;
+            background: rgba(255, 255, 255, .1);
+            color: var(--sidebar-txt);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 99px;
+        }
+
+        .sidebar-divider {
+            border: none;
+            border-top: 1px solid var(--sidebar-border);
+            margin: 8px 12px;
+        }
+
+        /* ─── MAIN ─────────────────────────────────────── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* Topbar */
+        .topbar {
+            height: var(--top-bar-h);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            gap: 16px;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .breadcrumb {
+            font-size: 12px;
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .breadcrumb span {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .page-heading {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--page-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: background .15s;
+        }
+
+        .icon-btn:hover {
+            background: #e9eef4;
+        }
+
+        .icon-btn svg {
+            width: 17px;
+            height: 17px;
+            color: var(--text-2);
+        }
+
+        .notif-dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 7px;
+            height: 7px;
+            background: var(--rose);
+            border: 1.5px solid var(--surface);
+            border-radius: 50%;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all .15s;
+        }
+
+        .btn-primary {
+            background: var(--indigo);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #4f46e5;
+        }
+
+        .btn-outline {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+        }
+
+        .btn-outline:hover {
+            background: var(--page-bg);
+        }
+
+        .btn svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        /* ─── CONTENT ──────────────────────────────────── */
+        .content {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ─── KPI GRID ─────────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow .2s;
+        }
+
+        .kpi-card:hover {
+            box-shadow: var(--shadow);
+        }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            top: -30px;
+            right: -30px;
+            opacity: .08;
+            background: var(--kpi-accent, var(--indigo));
+            filter: blur(30px);
+        }
+
+        .kpi-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--kpi-icon-bg, var(--indigo-light));
+            color: var(--kpi-icon, var(--indigo));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kpi-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .kpi-trend {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .trend-up {
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        .trend-down {
+            background: var(--rose-light);
+            color: var(--rose);
+        }
+
+        .trend-up svg,
+        .trend-down svg {
+            width: 11px;
+            height: 11px;
+        }
+
+        .kpi-val {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -.5px;
+        }
+
+        .kpi-lbl {
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--text-3);
+        }
+
+        /* ─── SECTION GRID ─────────────────────────────── */
+        .section-grid {
+            display: grid;
+            grid-template-columns: 7fr 5fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-head {
+            padding: 18px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .panel-sub {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        .panel-body {
+            padding: 22px;
+            flex: 1;
+        }
+
+        /* mini tab */
+        .tab-strip {
+            display: flex;
+            gap: 4px;
+            background: var(--page-bg);
+            padding: 3px;
+            border-radius: var(--radius-sm);
+        }
+
+        .tab {
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-2);
+            transition: all .15s;
+        }
+
+        .tab.active {
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ─── CHART (pure CSS) ─────────────────────────── */
+        .chart-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chart-axis {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 2px;
+        }
+
+        .chart-axis-label {
+            font-size: 10px;
+            color: var(--text-3);
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            height: 200px;
+        }
+
+        .bar-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bar-fill {
+            width: 100%;
+            border-radius: 5px 5px 0 0;
+            background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+            transition: filter .2s;
+            position: relative;
+            min-height: 8px;
+            cursor: pointer;
+        }
+
+        .bar-fill:hover {
+            filter: brightness(1.1);
+        }
+
+        .bar-fill::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s;
+        }
+
+        .bar-fill:hover::after {
+            opacity: 1;
+        }
+
+        .bar-mon {
+            font-size: 9px;
+            color: var(--text-3);
+            text-align: center;
+        }
+
+        /* chart legend (line-style sparkline tease) */
+        .chart-legend {
+            display: flex;
+            gap: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-2);
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ─── STATUS LIST ──────────────────────────────── */
+        .status-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .status-lbl {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-2);
+        }
+
+        .status-cnt {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .status-pct {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-left: 8px;
+        }
+
+        .status-bar-wrap {
+            flex: 1;
+            margin: 0 16px;
+            height: 6px;
+            background: var(--page-bg);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .status-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+        }
+
+        /* ─── BOTTOM GRID ──────────────────────────────── */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* mini table */
+        .mini-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .mini-table th {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-3);
+            padding: 0 0 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .mini-table td {
+            padding: 10px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-2);
+        }
+
+        .mini-table tr:last-child td {
+            border: none;
+        }
+
+        .td-bold {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .td-link {
+            color: var(--indigo);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        .td-link:hover {
+            text-decoration: underline;
+        }
+
+        /* metrics panel */
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric-row:last-child {
+            border: none;
+        }
+
+        .metric-lbl {
+            font-size: 13px;
+            color: var(--text-2);
+        }
+
+        .metric-val {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .metric-val.green {
+            color: var(--green);
+        }
+
+        .metric-val.amber {
+            color: var(--amber);
+        }
+
+        /* badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .02em;
+        }
+
+        .badge-active {
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        .badge-trial {
+            background: var(--sky-light);
+            color: var(--sky);
+        }
+
+        .badge-past-due {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .badge-suspended {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .badge-closed {
+            background: var(--rose-light);
+            color: var(--rose);
+        }
+
+        /* ─── RESPONSIVE ───────────────────────────────── */
+        @media (max-width: 1200px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .section-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bottom-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --sidebar-w: 0px;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ══ SIDEBAR ══════════════════════════════════════ -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path
+                        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                </svg>
+            </div>
+            <div>
+                <div class="brand-name">RepairBuddy</div>
+                <div class="brand-sub">Superadmin Console</div>
+            </div>
+        </div>
+
+        <div class="sidebar-user">
+            <div class="avatar-sm">SA</div>
+            <div>
+                <div class="user-name">Super Admin</div>
+                <div class="user-role">Platform Administrator</div>
+            </div>
+        </div>
+
+        <!-- CORE -->
+        <div class="nav-section">
+            <div class="nav-label">Overview</div>
+            <a href="index.html" class="nav-item active">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
+                </svg>
+                Dashboard
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                Activity Feed
+                <span class="nav-badge">4</span>
+            </a>
+        </div>
+
+        <hr class="sidebar-divider" />
+
+        <!-- TENANTS -->
+        <div class="nav-section">
+            <div class="nav-label">Business Management</div>
+            <a href="businesses.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                All Businesses
+                <span class="nav-pill">1,248</span>
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Users Directory
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Impersonation Log
+            </a>
+        </div>
+
+        <hr class="sidebar-divider" />
+
+        <!-- BILLING -->
+        <div class="nav-section">
+            <div class="nav-label">Billing & Subscriptions</div>
+            <a href="billing-plans.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Billing Plans
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Plan Builder
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                Entitlements
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Currencies
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Billing Intervals
+            </a>
+        </div>
+
+        <hr class="sidebar-divider" />
+
+        <!-- PLATFORM -->
+        <div class="nav-section">
+            <div class="nav-label">Platform</div>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Audit Logs
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Analytics
+            </a>
+            <a href="#" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Platform Settings
+            </a>
+        </div>
+
+        <hr class="sidebar-divider" />
+
+        <div class="nav-section">
+            <a href="#" class="nav-item" style="color: #f87171;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <!-- ══ MAIN ══════════════════════════════════════════ -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <div>
+                    <div class="breadcrumb">Admin &rsaquo; <span>Dashboard</span></div>
+                    <div class="page-heading">Platform Overview</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button class="icon-btn" title="Search">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+                <button class="icon-btn" title="Notifications">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span class="notif-dot"></span>
+                </button>
+                <button class="btn btn-primary">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export Report
+                </button>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card" style="--kpi-accent:#6366f1; --kpi-icon-bg:#eef2ff; --kpi-icon:#6366f1">
+                    <div class="kpi-top">
+                        <div class="kpi-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <div class="kpi-trend trend-up">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 15l7-7 7 7" />
+                            </svg>
+                            +12%
+                        </div>
+                    </div>
+                    <div>
+                        <div class="kpi-val">1,248</div>
+                        <div class="kpi-lbl">Total Businesses</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card" style="--kpi-accent:#10b981; --kpi-icon-bg:#ecfdf5; --kpi-icon:#10b981">
+                    <div class="kpi-top">
+                        <div class="kpi-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="kpi-trend trend-up">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 15l7-7 7 7" />
+                            </svg>
+                            +8%
+                        </div>
+                    </div>
+                    <div>
+                        <div class="kpi-val">912</div>
+                        <div class="kpi-lbl">Active Subscriptions</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card" style="--kpi-accent:#0ea5e9; --kpi-icon-bg:#f0f9ff; --kpi-icon:#0ea5e9">
+                    <div class="kpi-top">
+                        <div class="kpi-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="kpi-trend trend-up">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 15l7-7 7 7" />
+                            </svg>
+                            +6%
+                        </div>
+                    </div>
+                    <div>
+                        <div class="kpi-val">$42,850</div>
+                        <div class="kpi-lbl">Estimated MRR (USD)</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card" style="--kpi-accent:#f59e0b; --kpi-icon-bg:#fffbeb; --kpi-icon:#f59e0b">
+                    <div class="kpi-top">
+                        <div class="kpi-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <div class="kpi-trend trend-up">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 15l7-7 7 7" />
+                            </svg>
+                            +142
+                        </div>
+                    </div>
+                    <div>
+                        <div class="kpi-val">8,421</div>
+                        <div class="kpi-lbl">Total Platform Users</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Chart + Status -->
+            <div class="section-grid">
+
+                <!-- Sales Chart -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">Platform Revenue</div>
+                            <div class="panel-sub">Sales totals by month — last 12 months</div>
+                        </div>
+                        <div class="tab-strip">
+                            <button class="tab active">Monthly</button>
+                            <button class="tab">Quarterly</button>
+                            <button class="tab">Annual</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart-wrap">
+                            <div class="chart-bars">
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Mar '25 — $12k" style="height:38%"></div>
+                                    <div class="bar-mon">Mar</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Apr '25 — $15k" style="height:48%"></div>
+                                    <div class="bar-mon">Apr</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="May '25 — $13k" style="height:42%"></div>
+                                    <div class="bar-mon">May</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Jun '25 — $18k" style="height:56%"></div>
+                                    <div class="bar-mon">Jun</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Jul '25 — $22k" style="height:68%"></div>
+                                    <div class="bar-mon">Jul</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Aug '25 — $19k" style="height:60%"></div>
+                                    <div class="bar-mon">Aug</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Sep '25 — $27k" style="height:84%"></div>
+                                    <div class="bar-mon">Sep</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Oct '25 — $24k" style="height:75%"></div>
+                                    <div class="bar-mon">Oct</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Nov '25 — $31k" style="height:97%"></div>
+                                    <div class="bar-mon">Nov</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Dec '25 — $29k" style="height:88%"></div>
+                                    <div class="bar-mon">Dec</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Jan '26 — $34k" style="height:100%"></div>
+                                    <div class="bar-mon">Jan</div>
+                                </div>
+                                <div class="bar-col">
+                                    <div class="bar-fill" data-label="Feb '26 — $38k"
+                                        style="height:100%; background:linear-gradient(180deg,#a78bfa,#6366f1);"></div>
+                                    <div class="bar-mon">Feb</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background:#6366f1;"></div>Sales (USD)
+                                </div>
+                            </div>
+                            <div style="font-size:12px; color:var(--text-3);">Hover bars for details</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tenant Status -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">Tenant Status Breakdown</div>
+                            <div class="panel-sub">Distribution across 1,248 businesses</div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="status-rows">
+                            <div class="status-row">
+                                <div class="status-info">
+                                    <div class="status-dot" style="background:var(--green);"></div>
+                                    <div class="status-lbl">Active</div>
+                                </div>
+                                <div class="status-bar-wrap">
+                                    <div class="status-bar-fill" style="width:59%; background:var(--green);"></div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div class="status-cnt">742</div>
+                                    <div class="status-pct">59%</div>
+                                </div>
+                            </div>
+                            <div class="status-row">
+                                <div class="status-info">
+                                    <div class="status-dot" style="background:var(--sky);"></div>
+                                    <div class="status-lbl">Trialing</div>
+                                </div>
+                                <div class="status-bar-wrap">
+                                    <div class="status-bar-fill" style="width:10%; background:var(--sky);"></div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div class="status-cnt">128</div>
+                                    <div class="status-pct">10%</div>
+                                </div>
+                            </div>
+                            <div class="status-row">
+                                <div class="status-info">
+                                    <div class="status-dot" style="background:var(--amber);"></div>
+                                    <div class="status-lbl">Past Due</div>
+                                </div>
+                                <div class="status-bar-wrap">
+                                    <div class="status-bar-fill" style="width:3%; background:var(--amber);"></div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div class="status-cnt">42</div>
+                                    <div class="status-pct">3%</div>
+                                </div>
+                            </div>
+                            <div class="status-row">
+                                <div class="status-info">
+                                    <div class="status-dot" style="background:#c2410c;"></div>
+                                    <div class="status-lbl">Suspended</div>
+                                </div>
+                                <div class="status-bar-wrap">
+                                    <div class="status-bar-fill" style="width:1%; background:#c2410c;"></div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div class="status-cnt">12</div>
+                                    <div class="status-pct">1%</div>
+                                </div>
+                            </div>
+                            <div class="status-row">
+                                <div class="status-info">
+                                    <div class="status-dot" style="background:var(--text-3);"></div>
+                                    <div class="status-lbl">Closed</div>
+                                </div>
+                                <div class="status-bar-wrap">
+                                    <div class="status-bar-fill" style="width:26%; background:var(--text-3);"></div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div class="status-cnt">324</div>
+                                    <div class="status-pct">26%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /section-grid -->
+
+            <!-- Bottom Row -->
+            <div class="bottom-grid">
+
+                <!-- Recent Tenants -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">Recently Registered</div>
+                            <div class="panel-sub">Newest tenant accounts</div>
+                        </div>
+                        <a href="businesses.html"
+                            style="font-size:12px; color:var(--indigo); text-decoration:none; font-weight:600;">View All
+                            →</a>
+                    </div>
+                    <div class="panel-body" style="padding: 0 22px;">
+                        <table class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Business</th>
+                                    <th>Status</th>
+                                    <th>Plan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="td-bold">QuickFix Electronics</div>
+                                        <div style="font-size:11px; color:var(--text-3);">quickfix-sf</div>
+                                    </td>
+                                    <td><span class="badge badge-active">Active</span></td>
+                                    <td style="color:var(--text-2); font-size:12px;">Professional</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="td-bold">Metro Auto Care</div>
+                                        <div style="font-size:11px; color:var(--text-3);">metroauto</div>
+                                    </td>
+                                    <td><span class="badge badge-trial">Trial</span></td>
+                                    <td style="color:var(--text-2); font-size:12px;">Basic</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="td-bold">Pioneer Appliance</div>
+                                        <div style="font-size:11px; color:var(--text-3);">pioneer-app</div>
+                                    </td>
+                                    <td><span class="badge badge-suspended">Suspended</span></td>
+                                    <td style="color:var(--text-2); font-size:12px;">Enterprise</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="td-bold">Rapid Phone Repair</div>
+                                        <div style="font-size:11px; color:var(--text-3);">rpr-london</div>
+                                    </td>
+                                    <td><span class="badge badge-active">Active</span></td>
+                                    <td style="color:var(--text-2); font-size:12px;">Professional</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Revenue Summary -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">Revenue Summary</div>
+                            <div class="panel-sub">Multi-currency breakdown</div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="metric-row">
+                            <div class="metric-lbl">MRR (USD)</div>
+                            <div class="metric-val green">$42,850</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">MRR (GBP)</div>
+                            <div class="metric-val green">£12,400</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Paid — Last 30d</div>
+                            <div class="metric-val">$38,240</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Paid — YTD</div>
+                            <div class="metric-val">$84,120</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Past-due ARR</div>
+                            <div class="metric-val amber">$3,720</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Active Plans</div>
+                            <div class="metric-val">4</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Health -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">Platform Health</div>
+                            <div class="panel-sub">Current operational status</div>
+                        </div>
+                        <div
+                            style="width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-light);">
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="metric-row">
+                            <div class="metric-lbl">API Uptime (30d)</div>
+                            <div class="metric-val green">99.97%</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Avg. Response</div>
+                            <div class="metric-val">142ms</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Active Sessions</div>
+                            <div class="metric-val">1,204</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Failed Logins (24h)</div>
+                            <div class="metric-val amber">27</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Queue Depth</div>
+                            <div class="metric-val green">0</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-lbl">Storage Used</div>
+                            <div class="metric-val">68%</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /bottom-grid -->
+
+        </div><!-- /content -->
+    </div><!-- /main -->
+
+</body>
+
+</html>

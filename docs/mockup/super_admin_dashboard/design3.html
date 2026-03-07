@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Superadmin — Design 3 (Dark Mode)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #080d19;
+            --bg-2: #0e1528;
+            --bg-3: #141e36;
+            --glass: rgba(255, 255, 255, .04);
+            --glass-b: rgba(255, 255, 255, .09);
+            --border: rgba(255, 255, 255, .08);
+            --text: #f8fafc;
+            --text-2: #94a3b8;
+            --text-3: #475569;
+            --indigo: #818cf8;
+            --indigo-d: #4f46e5;
+            --cyan: #22d3ee;
+            --emerald: #34d399;
+            --amber: #fbbf24;
+            --rose: #fb7185;
+            --purple: #c084fc;
+            --sw: 240px;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .1);
+            border-radius: 99px;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: var(--sw);
+            background: var(--bg-2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+        }
+
+        .s-brand {
+            padding: 22px 20px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .s-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #4f46e5, #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, .15), 0 0 20px rgba(79, 70, 229, .4);
+        }
+
+        .s-logo svg {
+            width: 18px;
+            height: 18px;
+            color: #fff;
+        }
+
+        .s-name {
+            font-size: 15px;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+
+        .s-tag {
+            font-size: 9px;
+            color: var(--indigo);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            display: block;
+        }
+
+        .s-user {
+            margin: 12px;
+            padding: 12px 14px;
+            background: var(--glass);
+            border: 1px solid var(--glass-b);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .s-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--indigo-d), var(--purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, .2);
+        }
+
+        .s-uname {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .s-urole {
+            font-size: 11px;
+            color: var(--text-3);
+        }
+
+        .nav-sec {
+            padding: 14px 12px 4px;
+        }
+
+        .nav-sec-lbl {
+            font-size: 9.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--text-3);
+            padding: 0 8px;
+            margin-bottom: 4px;
+        }
+
+        .nv {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 7px;
+            text-decoration: none;
+            color: var(--text-2);
+            font-size: 13px;
+            font-weight: 500;
+            transition: background .15s, color .15s;
+            position: relative;
+        }
+
+        .nv:hover {
+            background: var(--glass);
+            color: var(--text);
+        }
+
+        .nv.active {
+            background: rgba(129, 140, 248, .12);
+            color: var(--indigo);
+        }
+
+        .nv.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 22%;
+            bottom: 22%;
+            width: 3px;
+            background: var(--indigo);
+            border-radius: 0 3px 3px 0;
+            box-shadow: 0 0 8px rgba(129, 140, 248, .6);
+        }
+
+        .nv svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .nv-pill {
+            margin-left: auto;
+            background: rgba(255, 255, 255, .07);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 99px;
+            color: var(--text-2);
+        }
+
+        .nv-dot {
+            margin-left: auto;
+            background: var(--rose);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 99px;
+            color: #fff;
+            line-height: 1.6;
+        }
+
+        .s-hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 8px 12px;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .topbar {
+            height: 60px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(14, 21, 40, .85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .tb-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tb-bc {
+            font-size: 11px;
+            color: var(--text-3);
+        }
+
+        .tb-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 1px;
+        }
+
+        .tb-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ib {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .15s;
+            position: relative;
+        }
+
+        .ib:hover {
+            background: var(--glass-b);
+        }
+
+        .ib svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-2);
+        }
+
+        .notif {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            width: 6px;
+            height: 6px;
+            background: var(--rose);
+            border: 1.5px solid var(--bg-2);
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(251, 113, 133, .7);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .15s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--indigo-d), #6366f1);
+            color: #fff;
+            box-shadow: 0 0 0 1px rgba(129, 140, 248, .2), 0 4px 14px rgba(79, 70, 229, .4);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 0 1px rgba(129, 140, 248, .3), 0 6px 20px rgba(79, 70, 229, .5);
+        }
+
+        .btn-ghost {
+            background: var(--glass);
+            border: 1px solid var(--glass-b);
+            color: var(--text-2);
+        }
+
+        .btn-ghost:hover {
+            background: var(--glass-b);
+        }
+
+        .btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* ── CONTENT ── */
+        .content {
+            padding: 26px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        /* KPI */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .kcard {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color .2s;
+        }
+
+        .kcard:hover {
+            border-color: var(--glass-b);
+        }
+
+        .kcard::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--kc-a, transparent) 0%, transparent 60%);
+            opacity: .07;
+            pointer-events: none;
+        }
+
+        .kcard-glow {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            top: -20px;
+            right: -15px;
+            background: var(--kc-a, var(--indigo));
+            filter: blur(30px);
+            opacity: .25;
+        }
+
+        .kc-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .kc-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
+            background: var(--kc-icon-bg, rgba(129, 140, 248, .12));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kc-icon svg {
+            width: 19px;
+            height: 19px;
+            color: var(--kc-a, var(--indigo));
+        }
+
+        .kc-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .kc-up {
+            background: rgba(52, 211, 153, .12);
+            color: var(--emerald);
+        }
+
+        .kc-warn {
+            background: rgba(251, 191, 36, .12);
+            color: var(--amber);
+        }
+
+        .kc-val {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -.5px;
+        }
+
+        .kc-lbl {
+            font-size: 12px;
+            color: var(--text-2);
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        /* GRID ROW */
+        .g2 {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 16px;
+        }
+
+        .g3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .panel {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .ph {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ph-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .ph-sub {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        .pb {
+            padding: 20px;
+        }
+
+        /* BAR CHART (pure CSS) */
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 180px;
+        }
+
+        .bar-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .bar-fill {
+            width: 100%;
+            border-radius: 4px 4px 0 0;
+            min-height: 6px;
+            background: linear-gradient(180deg, var(--indigo) 0%, var(--indigo-d) 100%);
+            position: relative;
+            cursor: pointer;
+            transition: filter .15s;
+        }
+
+        .bar-fill:hover {
+            filter: brightness(1.2);
+        }
+
+        .bar-fill.accent {
+            background: linear-gradient(180deg, var(--cyan), #0891b2);
+            box-shadow: 0 0 12px rgba(34, 211, 238, .3);
+        }
+
+        .bar-fill::after {
+            content: attr(data-t);
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: var(--text);
+            font-size: 10px;
+            padding: 3px 7px;
+            border-radius: 5px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s;
+            border: 1px solid var(--border);
+        }
+
+        .bar-fill:hover::after {
+            opacity: 1;
+        }
+
+        .bar-lbl {
+            font-size: 9px;
+            color: var(--text-3);
+        }
+
+        /* status rows */
+        .srow {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+        }
+
+        .srow:last-child {
+            border: none;
+        }
+
+        .sd {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .sl {
+            font-size: 13px;
+            color: var(--text-2);
+            flex: 1;
+        }
+
+        .sb-track {
+            flex: 1;
+            height: 5px;
+            background: rgba(255, 255, 255, .06);
+            border-radius: 99px;
+        }
+
+        .sb-fill {
+            height: 100%;
+            border-radius: 99px;
+        }
+
+        .sval {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            min-width: 32px;
+            text-align: right;
+        }
+
+        /* mini table */
+        .mt {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .mt th {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-3);
+            padding: 0 0 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mt td {
+            padding: 10px 0;
+            font-size: 12.5px;
+            color: var(--text-2);
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+            vertical-align: middle;
+        }
+
+        .mt tr:last-child td {
+            border: none;
+        }
+
+        .td-b {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .td-s {
+            font-size: 10.5px;
+            color: var(--text-3);
+        }
+
+        /* badges */
+        .badges {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 10.5px;
+            font-weight: 700;
+        }
+
+        .bg-em {
+            background: rgba(52, 211, 153, .12);
+            color: var(--emerald);
+        }
+
+        .bg-cy {
+            background: rgba(34, 211, 238, .12);
+            color: var(--cyan);
+        }
+
+        .bg-am {
+            background: rgba(251, 191, 36, .12);
+            color: var(--amber);
+        }
+
+        .bg-ro {
+            background: rgba(251, 113, 133, .12);
+            color: var(--rose);
+        }
+
+        .bg-gr {
+            background: rgba(255, 255, 255, .06);
+            color: var(--text-3);
+        }
+
+        /* metric rows */
+        .mrow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+        }
+
+        .mrow:last-child {
+            border: none;
+        }
+
+        .ml {
+            font-size: 12.5px;
+            color: var(--text-2);
+        }
+
+        .mv {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .mv.em {
+            color: var(--emerald);
+        }
+
+        .mv.am {
+            color: var(--amber);
+        }
+
+        /* health pill */
+        .health-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--emerald);
+            box-shadow: 0 0 6px var(--emerald);
+        }
+
+        @media (max-width: 1200px) {
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .g2 {
+                grid-template-columns: 1fr;
+            }
+
+            .g3 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .kpi-row {
+                grid-template-columns: 1fr;
+            }
+
+            .g3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="s-brand">
+            <div class="s-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                </svg></div>
+            <div>
+                <div class="s-name">RepairBuddy</div>
+                <span class="s-tag">Superadmin Console</span>
+            </div>
+        </div>
+
+        <div class="s-user">
+            <div class="s-avatar">SA</div>
+            <div>
+                <div class="s-uname">Super Admin</div>
+                <div class="s-urole">Platform Administrator</div>
+            </div>
+        </div>
+
+        <div class="nav-sec">
+            <div class="nav-sec-lbl">Overview</div>
+            <a href="#" class="nv active">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-3a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z" />
+                </svg>
+                Dashboard
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Activity Feed
+                <span class="nv-dot">4</span>
+            </a>
+        </div>
+        <hr class="s-hr" />
+
+        <div class="nav-sec">
+            <div class="nav-sec-lbl">Business Management</div>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                All Businesses
+                <span class="nv-pill">1,248</span>
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Users Directory
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Impersonation Log
+            </a>
+        </div>
+        <hr class="s-hr" />
+
+        <div class="nav-sec">
+            <div class="nav-sec-lbl">Billing & Subscriptions</div>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Billing Plans
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Plan Builder
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                Entitlements
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Currencies
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Billing Intervals
+            </a>
+        </div>
+        <hr class="s-hr" />
+
+        <div class="nav-sec">
+            <div class="nav-sec-lbl">Platform</div>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Audit Logs
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Analytics
+            </a>
+            <a href="#" class="nv">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Platform Settings
+            </a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <a href="#" class="nv" style="color:var(--rose);">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+        <div class="topbar">
+            <div class="tb-left">
+                <div class="tb-bc">Admin › Dashboard</div>
+                <div class="tb-title">Platform Overview</div>
+            </div>
+            <div class="tb-right">
+                <button class="ib"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg></button>
+                <button class="ib">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span class="notif"></span>
+                </button>
+                <button class="btn btn-ghost" style="font-size:12px; padding:7px 14px;">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export
+                </button>
+                <button class="btn btn-primary">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    New Tenant
+                </button>
+            </div>
+        </div>
+
+        <div class="content">
+
+            <!-- KPI CARDS -->
+            <div class="kpi-row">
+                <div class="kcard" style="--kc-a: var(--indigo); --kc-icon-bg: rgba(129,140,248,.12);">
+                    <div class="kcard-glow"></div>
+                    <div class="kc-top">
+                        <div class="kc-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg></div>
+                        <div class="kc-badge kc-up">▲ +12%</div>
+                    </div>
+                    <div class="kc-val">1,248</div>
+                    <div class="kc-lbl">Total Businesses</div>
+                </div>
+                <div class="kcard" style="--kc-a: var(--emerald); --kc-icon-bg: rgba(52,211,153,.1);">
+                    <div class="kcard-glow" style="background:var(--emerald);"></div>
+                    <div class="kc-top">
+                        <div class="kc-icon" style="--kc-a:var(--emerald);"><svg fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg></div>
+                        <div class="kc-badge kc-up">▲ +8%</div>
+                    </div>
+                    <div class="kc-val" style="color:var(--emerald);">912</div>
+                    <div class="kc-lbl">Active Subscriptions</div>
+                </div>
+                <div class="kcard" style="--kc-a: var(--cyan); --kc-icon-bg: rgba(34,211,238,.1);">
+                    <div class="kcard-glow" style="background:var(--cyan);"></div>
+                    <div class="kc-top">
+                        <div class="kc-icon" style="--kc-a:var(--cyan);"><svg fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg></div>
+                        <div class="kc-badge kc-up">▲ +6%</div>
+                    </div>
+                    <div class="kc-val" style="color:var(--cyan);">$42,850</div>
+                    <div class="kc-lbl">Estimated MRR (USD)</div>
+                </div>
+                <div class="kcard" style="--kc-a: var(--amber); --kc-icon-bg: rgba(251,191,36,.1);">
+                    <div class="kcard-glow" style="background:var(--amber);"></div>
+                    <div class="kc-top">
+                        <div class="kc-icon" style="--kc-a:var(--amber);"><svg fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg></div>
+                        <div class="kc-badge kc-warn">▲ +142</div>
+                    </div>
+                    <div class="kc-val">8,421</div>
+                    <div class="kc-lbl">Total Platform Users</div>
+                </div>
+            </div>
+
+            <!-- Chart + Status -->
+            <div class="g2">
+                <div class="panel">
+                    <div class="ph">
+                        <div>
+                            <div class="ph-title">Platform Revenue</div>
+                            <div class="ph-sub">Monthly sales totals — last 12 months (USD)</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-ghost" style="padding:5px 10px; font-size:11px;">Quarterly</button>
+                            <button class="btn btn-primary"
+                                style="padding:5px 10px; font-size:11px; box-shadow:none;">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="pb">
+                        <div class="chart-bars">
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Mar '25 — $12k" style="height:36%"></div>
+                                <div class="bar-lbl">Mar</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Apr '25 — $15k" style="height:46%"></div>
+                                <div class="bar-lbl">Apr</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="May '25 — $13k" style="height:40%"></div>
+                                <div class="bar-lbl">May</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Jun '25 — $19k" style="height:58%"></div>
+                                <div class="bar-lbl">Jun</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Jul '25 — $22k" style="height:67%"></div>
+                                <div class="bar-lbl">Jul</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Aug '25 — $20k" style="height:62%"></div>
+                                <div class="bar-lbl">Aug</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Sep '25 — $27k" style="height:82%"></div>
+                                <div class="bar-lbl">Sep</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Oct '25 — $24k" style="height:74%"></div>
+                                <div class="bar-lbl">Oct</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Nov '25 — $31k" style="height:95%"></div>
+                                <div class="bar-lbl">Nov</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Dec '25 — $28k" style="height:86%"></div>
+                                <div class="bar-lbl">Dec</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill" data-t="Jan '26 — $35k" style="height:100%"></div>
+                                <div class="bar-lbl">Jan</div>
+                            </div>
+                            <div class="bar-col">
+                                <div class="bar-fill accent" data-t="Feb '26 — $38k" style="height:100%"></div>
+                                <div class="bar-lbl" style="color:var(--cyan);">Feb</div>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex; gap:20px; margin-top:18px; padding-top:16px; border-top: 1px solid var(--border);">
+                            <div>
+                                <div
+                                    style="font-size:10px; color:var(--text-3); font-weight:600; letter-spacing:.06em; text-transform:uppercase;">
+                                    This Month</div>
+                                <div style="font-size:20px; font-weight:800; color:var(--cyan); margin-top:3px;">$38,000
+                                </div>
+                            </div>
+                            <div>
+                                <div
+                                    style="font-size:10px; color:var(--text-3); font-weight:600; letter-spacing:.06em; text-transform:uppercase;">
+                                    Last Month</div>
+                                <div style="font-size:20px; font-weight:800; color:var(--text-2); margin-top:3px;">
+                                    $31,000</div>
+                            </div>
+                            <div>
+                                <div
+                                    style="font-size:10px; color:var(--text-3); font-weight:600; letter-spacing:.06em; text-transform:uppercase;">
+                                    YTD Total</div>
+                                <div style="font-size:20px; font-weight:800; color:var(--indigo); margin-top:3px;">
+                                    $84,120</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="ph">
+                        <div>
+                            <div class="ph-title">Tenant Status</div>
+                            <div class="ph-sub">1,248 registered businesses</div>
+                        </div>
+                    </div>
+                    <div class="pb">
+                        <div class="srow">
+                            <div class="sd" style="background:var(--emerald); box-shadow: 0 0 6px var(--emerald);">
+                            </div>
+                            <div class="sl">Active</div>
+                            <div class="sb-track">
+                                <div class="sb-fill" style="width:59%; background:var(--emerald);"></div>
+                            </div>
+                            <div class="sval" style="color:var(--emerald);">742</div>
+                        </div>
+                        <div class="srow">
+                            <div class="sd" style="background:var(--cyan); box-shadow: 0 0 6px var(--cyan);"></div>
+                            <div class="sl">Trialing</div>
+                            <div class="sb-track">
+                                <div class="sb-fill" style="width:10%; background:var(--cyan);"></div>
+                            </div>
+                            <div class="sval" style="color:var(--cyan);">128</div>
+                        </div>
+                        <div class="srow">
+                            <div class="sd" style="background:var(--amber);"></div>
+                            <div class="sl">Past Due</div>
+                            <div class="sb-track">
+                                <div class="sb-fill" style="width:3%; background:var(--amber);"></div>
+                            </div>
+                            <div class="sval" style="color:var(--amber);">42</div>
+                        </div>
+                        <div class="srow">
+                            <div class="sd" style="background:var(--rose);"></div>
+                            <div class="sl">Suspended</div>
+                            <div class="sb-track">
+                                <div class="sb-fill" style="width:1%; background:var(--rose);"></div>
+                            </div>
+                            <div class="sval" style="color:var(--rose);">12</div>
+                        </div>
+                        <div class="srow">
+                            <div class="sd" style="background:var(--text-3);"></div>
+                            <div class="sl">Closed</div>
+                            <div class="sb-track">
+                                <div class="sb-fill" style="width:26%; background:var(--text-3);"></div>
+                            </div>
+                            <div class="sval">324</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM -->
+            <div class="g3">
+                <!-- Recent -->
+                <div class="panel">
+                    <div class="ph">
+                        <div class="ph-title">Latest Registrations</div>
+                        <a href="#"
+                            style="font-size:11px; color:var(--indigo); text-decoration:none; font-weight:600;">View all
+                            →</a>
+                    </div>
+                    <div class="pb" style="padding:0 20px;">
+                        <table class="mt">
+                            <thead>
+                                <tr>
+                                    <th>Business</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right">Plan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="td-b">QuickFix Electronics</div>
+                                        <div class="td-s">quickfix-sf</div>
+                                    </td>
+                                    <td><span class="badges bg-em">Active</span></td>
+                                    <td style="text-align:right; font-size:11px; color:var(--text-3);">Professional</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="td-b">Metro Auto Care</div>
+                                        <div class="td-s">metroauto</div>
+                                    </td>
+                                    <td><span class="badges bg-cy">Trial</span></td>
+                                    <td style="text-align:right; font-size:11px; color:var(--text-3);">Basic</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="td-b">Pioneer Appliance</div>
+                                        <div class="td-s">pioneer-app</div>
+                                    </td>
+                                    <td><span class="badges bg-ro">Suspended</span></td>
+                                    <td style="text-align:right; font-size:11px; color:var(--text-3);">Enterprise</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="td-b">TechStar Services</div>
+                                        <div class="td-s">techstar-nyc</div>
+                                    </td>
+                                    <td><span class="badges bg-am">Past Due</span></td>
+                                    <td style="text-align:right; font-size:11px; color:var(--text-3);">Professional</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Revenue -->
+                <div class="panel">
+                    <div class="ph">
+                        <div class="ph-title">Revenue Summary</div>
+                    </div>
+                    <div class="pb">
+                        <div class="mrow">
+                            <div class="ml">MRR (USD)</div>
+                            <div class="mv em">$42,850</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">MRR (GBP)</div>
+                            <div class="mv em">£12,400</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">MRR (EUR)</div>
+                            <div class="mv em">€8,200</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Paid (Last 30d)</div>
+                            <div class="mv">$38,240</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Paid YTD</div>
+                            <div class="mv">$84,120</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Past Due ARR</div>
+                            <div class="mv am">$3,720</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health -->
+                <div class="panel">
+                    <div class="ph">
+                        <div class="ph-title">Platform Health</div>
+                        <div
+                            style="display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:var(--emerald);">
+                            <div class="health-dot"></div>Operational
+                        </div>
+                    </div>
+                    <div class="pb">
+                        <div class="mrow">
+                            <div class="ml">API Uptime (30d)</div>
+                            <div class="mv em">99.97%</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Avg. Response</div>
+                            <div class="mv">142ms</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Active Sessions</div>
+                            <div class="mv">1,204</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Failed Logins (24h)</div>
+                            <div class="mv am">27</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Storage Used</div>
+                            <div class="mv am">68%</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Queue Depth</div>
+                            <div class="mv em">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>
