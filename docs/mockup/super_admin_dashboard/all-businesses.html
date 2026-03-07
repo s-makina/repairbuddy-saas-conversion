@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>All Businesses — RepairBuddy Superadmin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #faf9f7;
+            --surface: #fff;
+            --surface-2: #f5f3f0;
+            --border: #ebe8e3;
+            --border-2: #d9d4cd;
+            --text: #1a1714;
+            --text-2: #6b6560;
+            --text-3: #a09890;
+            --orange: #e8590c;
+            --orange-bg: #fff4ed;
+            --green: #2b8a3e;
+            --green-bg: #f0fdf4;
+            --blue: #1971c2;
+            --blue-bg: #eff6ff;
+            --purple: #7048e8;
+            --purple-bg: #f5f3ff;
+            --red: #e03131;
+            --red-bg: #fff1f2;
+            --amber: #e67700;
+            --amber-bg: #fffbeb;
+            --sw: 256px;
+            --r: 10px;
+            --r-sm: 6px;
+            --sh: 0 1px 3px rgba(0, 0, 0, .06);
+            --sh-md: 0 4px 12px rgba(0, 0, 0, .08)
+        }
+
+        html,
+        body {
+            height: 100vh;
+            overflow: hidden
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-2);
+            border-radius: 20px;
+            border: 2px solid var(--surface)
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--orange)
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-2) transparent
+        }
+
+        .sidebar {
+            width: var(--sw);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            flex-shrink: 0;
+            overflow-y: auto
+        }
+
+        .s-brand {
+            height: 64px;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 10;
+            flex-shrink: 0
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .2)
+        }
+
+        .logo-mark svg {
+            width: 16px;
+            height: 16px;
+            color: #fff
+        }
+
+        .brand-txt {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -.01em
+        }
+
+        .s-search {
+            margin: 14px 14px 6px;
+            position: relative
+        }
+
+        .s-search input {
+            width: 100%;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface-2);
+            outline: none;
+            color: var(--text);
+            transition: all .15s
+        }
+
+        .s-search input:focus {
+            border-color: var(--orange);
+            background: var(--surface)
+        }
+
+        .s-search svg {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 15px;
+            color: var(--text-3)
+        }
+
+        .nav-sec {
+            padding: 12px 12px 4px
+        }
+
+        .nav-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-3);
+            padding: 0 8px;
+            margin-bottom: 4px
+        }
+
+        .nv {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: var(--r-sm);
+            text-decoration: none;
+            color: var(--text-2);
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all .15s;
+            position: relative
+        }
+
+        .nv:hover {
+            background: var(--surface-2);
+            color: var(--text)
+        }
+
+        .nv.active {
+            background: var(--orange-bg);
+            color: var(--orange);
+            font-weight: 600
+        }
+
+        .nv.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            bottom: 20%;
+            width: 3px;
+            background: var(--orange);
+            border-radius: 0 3px 3px 0
+        }
+
+        .nv svg {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0
+        }
+
+        .nv-count {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--surface-2);
+            color: var(--text-3);
+            padding: 1px 7px;
+            border-radius: 99px
+        }
+
+        .nv-badge {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--red);
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 99px;
+            line-height: 1.5
+        }
+
+        .s-hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 6px 14px
+        }
+
+        .s-user {
+            margin-top: auto;
+            padding: 14px;
+            margin: auto 12px 12px;
+            background: var(--surface-2);
+            border-radius: var(--r-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+            position: sticky;
+            bottom: 0;
+            z-index: 10
+        }
+
+        .s-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff
+        }
+
+        .s-uname {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .s-urole {
+            font-size: 11px;
+            color: var(--text-3)
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            height: 100vh;
+            min-width: 0
+        }
+
+        .topbar {
+            height: 64px;
+            min-height: 64px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 30
+        }
+
+        .tb-left {
+            display: flex;
+            flex-direction: column
+        }
+
+        .tb-bc {
+            font-size: 11.5px;
+            color: var(--text-3)
+        }
+
+        .tb-bc b {
+            color: var(--text);
+            font-weight: 600
+        }
+
+        .tb-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 1px
+        }
+
+        .tb-right {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .15s
+        }
+
+        .btn-primary {
+            background: var(--orange);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .25)
+        }
+
+        .btn-primary:hover {
+            background: #cf4c08
+        }
+
+        .btn-ghost {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-2)
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface-2)
+        }
+
+        .btn svg {
+            width: 14px;
+            height: 14px
+        }
+
+        .ib {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: background .15s
+        }
+
+        .ib:hover {
+            background: var(--surface-2)
+        }
+
+        .ib svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-2)
+        }
+
+        .ndot {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            width: 6px;
+            height: 6px;
+            background: var(--red);
+            border: 1.5px solid var(--surface);
+            border-radius: 50%
+        }
+
+        .content {
+            padding: 26px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px
+        }
+
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px
+        }
+
+        .scard {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 18px 20px;
+            box-shadow: var(--sh);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: box-shadow .2s
+        }
+
+        .scard:hover {
+            box-shadow: var(--sh-md)
+        }
+
+        .scard-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .scard-icon svg {
+            width: 18px;
+            height: 18px
+        }
+
+        .sc-val {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text)
+        }
+
+        .sc-lbl {
+            font-size: 12px;
+            color: var(--text-3);
+            font-weight: 500;
+            margin-top: 2px
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 180px
+        }
+
+        .search-wrap svg {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 15px;
+            color: var(--text-3)
+        }
+
+        .filter-bar input {
+            flex: 1;
+            min-width: 180px;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface);
+            outline: none;
+            color: var(--text);
+            transition: all .15s
+        }
+
+        .filter-bar input:focus {
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
+        }
+
+        .filter-bar select {
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text-2);
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px
+        }
+
+        .filter-bar select:focus {
+            border-color: var(--orange)
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            box-shadow: var(--sh);
+            overflow: hidden
+        }
+
+        .ph {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .ph-t {
+            font-size: 14px;
+            font-weight: 700
+        }
+
+        .ph-s {
+            font-size: 11.5px;
+            color: var(--text-3);
+            margin-top: 2px
+        }
+
+        .dt {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .dt th {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-3);
+            padding: 12px 20px;
+            text-align: left;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .dt td {
+            padding: 12px 20px;
+            font-size: 13px;
+            color: var(--text-2);
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle
+        }
+
+        .dt tr:last-child td {
+            border: none
+        }
+
+        .dt tr:hover td {
+            background: var(--bg)
+        }
+
+        .td-name {
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .td-sub {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 1px
+        }
+
+        .td-actions {
+            display: flex;
+            gap: 6px
+        }
+
+        .act-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-3);
+            transition: all .15s
+        }
+
+        .act-btn:hover {
+            background: var(--surface-2);
+            color: var(--text)
+        }
+
+        .act-btn.del:hover {
+            background: var(--red-bg);
+            color: var(--red)
+        }
+
+        .act-btn svg {
+            width: 13px;
+            height: 13px
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 10.5px;
+            font-weight: 700
+        }
+
+        .b-green {
+            background: var(--green-bg);
+            color: var(--green)
+        }
+
+        .b-blue {
+            background: var(--blue-bg);
+            color: var(--blue)
+        }
+
+        .b-amber {
+            background: var(--amber-bg);
+            color: var(--amber)
+        }
+
+        .b-red {
+            background: var(--red-bg);
+            color: var(--red)
+        }
+
+        .b-gray {
+            background: var(--surface-2);
+            color: var(--text-3)
+        }
+
+        @media(max-width:1200px) {
+            .summary-row {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        @media(max-width:768px) {
+            .sidebar {
+                display: none
+            }
+
+            .summary-row {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="s-brand">
+            <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                </svg></div>
+            <div>
+                <div class="brand-txt">RepairBuddy</div>
+            </div>
+        </div>
+        <div class="s-search"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg><input type="text" placeholder="Quick search…" /></div>
+        <div class="nav-sec">
+            <div class="nav-lbl">Overview</div>
+            <a href="design4.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
+                </svg>Dashboard</a>
+            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>Activity Feed<span class="nv-badge">4</span></a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <div class="nav-lbl">Business Management</div>
+            <a href="all-businesses.html" class="nv active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>All Businesses<span class="nv-count">1,248</span></a>
+            <a href="users-directory.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>Users Directory</a>
+            <a href="impersonation-log.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>Impersonation Log</a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <div class="nav-lbl">Billing &amp; Subscriptions</div>
+            <a href="billing-plans.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>Billing Plans</a>
+            <a href="plan-builder.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>Plan Builder</a>
+            <a href="entitlements.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>Entitlements</a>
+            <a href="currencies.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>Currencies</a>
+            <a href="billing-intervals.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>Billing Intervals</a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec">
+            <div class="nav-lbl">Platform</div>
+            <a href="audit-logs.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>Audit Logs</a>
+            <a href="analytics.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>Analytics</a>
+            <a href="settings.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>Settings</a>
+        </div>
+        <hr class="s-hr" />
+        <div class="nav-sec"><a href="#" class="nv" style="color:var(--red)"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>Sign Out</a></div>
+        <div class="s-user">
+            <div class="s-avatar">SA</div>
+            <div>
+                <div class="s-uname">Super Admin</div>
+                <div class="s-urole">Platform Administrator</div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="tb-left">
+                <div class="tb-bc">Admin › Business Management › <b>All Businesses</b></div>
+                <div class="tb-title">All Businesses</div>
+            </div>
+            <div class="tb-right">
+                <button class="ib"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg><span class="ndot"></span></button>
+                <button class="btn btn-ghost"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>Export</button>
+                <button class="btn btn-primary"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>New Tenant</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- KPI Summary -->
+            <div class="summary-row">
+                <div class="scard">
+                    <div class="scard-icon" style="background:var(--orange-bg);color:var(--orange)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg></div>
+                    <div>
+                        <div class="sc-val">1,248</div>
+                        <div class="sc-lbl">Total Businesses</div>
+                    </div>
+                </div>
+                <div class="scard">
+                    <div class="scard-icon" style="background:var(--green-bg);color:var(--green)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg></div>
+                    <div>
+                        <div class="sc-val">912</div>
+                        <div class="sc-lbl">Active Tenants</div>
+                    </div>
+                </div>
+                <div class="scard">
+                    <div class="scard-icon" style="background:var(--blue-bg);color:var(--blue)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg></div>
+                    <div>
+                        <div class="sc-val">128</div>
+                        <div class="sc-lbl">On Trial</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="search-wrap"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg><input type="text" placeholder="Search businesses…" /></div>
+                <select>
+                    <option>All Statuses</option>
+                    <option>Active</option>
+                    <option>Trial</option>
+                    <option>Past Due</option>
+                    <option>Suspended</option>
+                    <option>Closed</option>
+                </select>
+                <select>
+                    <option>All Plans</option>
+                    <option>Basic</option>
+                    <option>Professional</option>
+                    <option>Enterprise</option>
+                </select>
+                <select>
+                    <option>Newest First</option>
+                    <option>Oldest First</option>
+                    <option>A → Z</option>
+                    <option>MRR ↓</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="panel">
+                <div class="ph">
+                    <div>
+                        <div class="ph-t">Tenant Directory</div>
+                        <div class="ph-s">1,248 businesses registered</div>
+                    </div>
+                </div>
+                <table class="dt">
+                    <thead>
+                        <tr>
+                            <th>Business</th>
+                            <th>Owner</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Users</th>
+                            <th>MRR</th>
+                            <th>Created</th>
+                            <th style="width:100px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="td-name">QuickFix Electronics</div>
+                                <div class="td-sub">quickfix.repairbuddy.com</div>
+                            </td>
+                            <td>James Carter</td>
+                            <td>Professional</td>
+                            <td><span class="badge b-green">Active</span></td>
+                            <td>12</td>
+                            <td>$89/mo</td>
+                            <td>Mar 12, 2025</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">Metro Auto Care</div>
+                                <div class="td-sub">metro-auto.repairbuddy.com</div>
+                            </td>
+                            <td>Sarah Mitchell</td>
+                            <td>Basic</td>
+                            <td><span class="badge b-blue">Trial</span></td>
+                            <td>3</td>
+                            <td>—</td>
+                            <td>Feb 28, 2026</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">Pioneer Appliance Repair</div>
+                                <div class="td-sub">pioneer.repairbuddy.com</div>
+                            </td>
+                            <td>David Chen</td>
+                            <td>Enterprise</td>
+                            <td><span class="badge b-red">Suspended</span></td>
+                            <td>28</td>
+                            <td>$249/mo</td>
+                            <td>Jan 15, 2025</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">TechStar Services</div>
+                                <div class="td-sub">techstar.repairbuddy.com</div>
+                            </td>
+                            <td>Emily Rodriguez</td>
+                            <td>Professional</td>
+                            <td><span class="badge b-amber">Past Due</span></td>
+                            <td>8</td>
+                            <td>$89/mo</td>
+                            <td>Dec 22, 2024</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">Gadget Guru Repairs</div>
+                                <div class="td-sub">gadgetguru.repairbuddy.com</div>
+                            </td>
+                            <td>Michael Brown</td>
+                            <td>Enterprise</td>
+                            <td><span class="badge b-green">Active</span></td>
+                            <td>45</td>
+                            <td>$249/mo</td>
+                            <td>Nov 5, 2024</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">FixIt Pro Workshop</div>
+                                <div class="td-sub">fixitpro.repairbuddy.com</div>
+                            </td>
+                            <td>Lisa Wang</td>
+                            <td>Professional</td>
+                            <td><span class="badge b-green">Active</span></td>
+                            <td>6</td>
+                            <td>$89/mo</td>
+                            <td>Oct 18, 2024</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">Apex Mobile Repairs</div>
+                                <div class="td-sub">apex.repairbuddy.com</div>
+                            </td>
+                            <td>Robert Taylor</td>
+                            <td>Basic</td>
+                            <td><span class="badge b-green">Active</span></td>
+                            <td>2</td>
+                            <td>$29/mo</td>
+                            <td>Sep 3, 2024</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-name">Swift Screen Solutions</div>
+                                <div class="td-sub">swiftscreen.repairbuddy.com</div>
+                            </td>
+                            <td>Amanda Foster</td>
+                            <td>Professional</td>
+                            <td><span class="badge b-gray">Closed</span></td>
+                            <td>0</td>
+                            <td>—</td>
+                            <td>Jul 10, 2024</td>
+                            <td>
+                                <div class="td-actions"><button class="act-btn" title="View"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg></button><button class="act-btn" title="Edit"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg></button><button class="act-btn" title="Impersonate"><svg fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></button></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

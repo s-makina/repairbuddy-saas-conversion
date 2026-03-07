@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Superadmin — Design 4 (Warm Light)</title>
+    <title>Analytics — RepairBuddy Superadmin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -42,49 +42,46 @@
             --r: 10px;
             --r-sm: 6px;
             --sh: 0 1px 3px rgba(0, 0, 0, .06);
-            --sh-md: 0 4px 12px rgba(0, 0, 0, .08);
+            --sh-md: 0 4px 12px rgba(0, 0, 0, .08)
         }
 
         html,
         body {
             height: 100vh;
-            overflow: hidden;
+            overflow: hidden
         }
 
         body {
             font-family: 'DM Sans', system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
-            display: flex;
+            display: flex
         }
 
         ::-webkit-scrollbar {
             width: 8px;
-            height: 8px;
+            height: 8px
         }
 
         ::-webkit-scrollbar-track {
-            background: transparent;
+            background: transparent
         }
 
         ::-webkit-scrollbar-thumb {
             background: var(--border-2);
             border-radius: 20px;
-            border: 2px solid var(--surface);
+            border: 2px solid var(--surface)
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--orange);
-            opacity: 0.8;
+            background: var(--orange)
         }
 
-        /* Firefox support */
         * {
             scrollbar-width: thin;
-            scrollbar-color: var(--border-2) transparent;
+            scrollbar-color: var(--border-2) transparent
         }
 
-        /* ── SIDEBAR ── */
         .sidebar {
             width: var(--sw);
             background: var(--surface);
@@ -93,8 +90,7 @@
             flex-direction: column;
             height: 100vh;
             flex-shrink: 0;
-            overflow-y: auto;
-            scrollbar-width: thin;
+            overflow-y: auto
         }
 
         .s-brand {
@@ -108,7 +104,7 @@
             top: 0;
             background: var(--surface);
             z-index: 10;
-            flex-shrink: 0;
+            flex-shrink: 0
         }
 
         .logo-mark {
@@ -120,25 +116,24 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(232, 89, 12, .2);
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .2)
         }
 
         .logo-mark svg {
             width: 16px;
             height: 16px;
-            color: #fff;
+            color: #fff
         }
 
         .brand-txt {
             font-size: 15px;
             font-weight: 700;
-            color: var(--text);
-            letter-spacing: -0.01em;
+            color: var(--text)
         }
 
         .s-search {
             margin: 14px 14px 6px;
-            position: relative;
+            position: relative
         }
 
         .s-search input {
@@ -151,13 +146,12 @@
             background: var(--surface-2);
             outline: none;
             color: var(--text);
-            transition: all .15s;
+            transition: all .15s
         }
 
         .s-search input:focus {
             border-color: var(--orange);
-            background: var(--surface);
-            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08);
+            background: var(--surface)
         }
 
         .s-search svg {
@@ -167,11 +161,11 @@
             transform: translateY(-50%);
             width: 15px;
             height: 15px;
-            color: var(--text-3);
+            color: var(--text-3)
         }
 
         .nav-sec {
-            padding: 12px 12px 4px;
+            padding: 12px 12px 4px
         }
 
         .nav-lbl {
@@ -181,7 +175,7 @@
             letter-spacing: .08em;
             color: var(--text-3);
             padding: 0 8px;
-            margin-bottom: 4px;
+            margin-bottom: 4px
         }
 
         .nv {
@@ -195,18 +189,18 @@
             font-size: 13.5px;
             font-weight: 500;
             transition: all .15s;
-            position: relative;
+            position: relative
         }
 
         .nv:hover {
             background: var(--surface-2);
-            color: var(--text);
+            color: var(--text)
         }
 
         .nv.active {
             background: var(--orange-bg);
             color: var(--orange);
-            font-weight: 600;
+            font-weight: 600
         }
 
         .nv.active::before {
@@ -217,13 +211,13 @@
             bottom: 20%;
             width: 3px;
             background: var(--orange);
-            border-radius: 0 3px 3px 0;
+            border-radius: 0 3px 3px 0
         }
 
         .nv svg {
             width: 17px;
             height: 17px;
-            flex-shrink: 0;
+            flex-shrink: 0
         }
 
         .nv-count {
@@ -233,7 +227,7 @@
             background: var(--surface-2);
             color: var(--text-3);
             padding: 1px 7px;
-            border-radius: 99px;
+            border-radius: 99px
         }
 
         .nv-badge {
@@ -244,18 +238,18 @@
             color: #fff;
             padding: 1px 6px;
             border-radius: 99px;
-            line-height: 1.5;
+            line-height: 1.5
         }
 
         .s-hr {
             border: none;
             border-top: 1px solid var(--border);
-            margin: 6px 14px;
+            margin: 6px 14px
         }
 
         .s-user {
             margin-top: auto;
-            padding: 18px 14px;
+            padding: 14px;
             margin: auto 12px 12px;
             background: var(--surface-2);
             border-radius: var(--r-sm);
@@ -265,7 +259,7 @@
             border: 1px solid var(--border);
             position: sticky;
             bottom: 0;
-            z-index: 10;
+            z-index: 10
         }
 
         .s-avatar {
@@ -279,28 +273,27 @@
             justify-content: center;
             font-size: 12px;
             font-weight: 700;
-            color: #fff;
+            color: #fff
         }
 
         .s-uname {
             font-size: 13px;
             font-weight: 600;
-            color: var(--text);
+            color: var(--text)
         }
 
         .s-urole {
             font-size: 11px;
-            color: var(--text-3);
+            color: var(--text-3)
         }
 
-        /* ── MAIN ── */
         .main {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
             height: 100vh;
-            min-width: 0;
+            min-width: 0
         }
 
         .topbar {
@@ -314,12 +307,12 @@
             padding: 0 28px;
             position: sticky;
             top: 0;
-            z-index: 30;
+            z-index: 30
         }
 
         .tb-left {
             display: flex;
-            flex-direction: column;
+            flex-direction: column
         }
 
         .tb-bc {
@@ -345,6 +338,35 @@
             gap: 10px
         }
 
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .15s
+        }
+
+        .btn-ghost {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-2)
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface-2)
+        }
+
+        .btn svg {
+            width: 14px;
+            height: 14px
+        }
+
         .ib {
             width: 34px;
             height: 34px;
@@ -355,8 +377,8 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background .15s;
             position: relative;
+            transition: background .15s
         }
 
         .ib:hover {
@@ -380,46 +402,6 @@
             border-radius: 50%
         }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border-radius: var(--r-sm);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            font-family: inherit;
-            transition: all .15s
-        }
-
-        .btn-primary {
-            background: var(--orange);
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(232, 89, 12, .25)
-        }
-
-        .btn-primary:hover {
-            background: #cf4c08
-        }
-
-        .btn-ghost {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text-2)
-        }
-
-        .btn-ghost:hover {
-            background: var(--surface-2)
-        }
-
-        .btn svg {
-            width: 14px;
-            height: 14px
-        }
-
-        /* ── CONTENT ── */
         .content {
             padding: 26px 28px;
             display: flex;
@@ -427,7 +409,6 @@
             gap: 22px
         }
 
-        /* KPI */
         .kpi-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -445,7 +426,7 @@
             align-items: flex-start;
             transition: box-shadow .2s, transform .2s;
             position: relative;
-            overflow: hidden;
+            overflow: hidden
         }
 
         .kc:hover {
@@ -512,7 +493,6 @@
             color: var(--blue)
         }
 
-        /* grid */
         .g2 {
             display: grid;
             grid-template-columns: 3fr 2fr;
@@ -525,7 +505,6 @@
             gap: 16px
         }
 
-        /* panel */
         .panel {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -557,7 +536,6 @@
             padding: 20px
         }
 
-        /* tabs */
         .tab-row {
             display: flex;
             gap: 3px;
@@ -585,7 +563,6 @@
             box-shadow: var(--sh)
         }
 
-        /* chart (area SVG) */
         .chart-svg {
             width: 100%;
             height: 210px
@@ -602,7 +579,37 @@
             color: var(--text-3)
         }
 
-        /* status (horizontal stacked bar) */
+        .mrow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .mrow:last-child {
+            border: none
+        }
+
+        .ml {
+            font-size: 12.5px;
+            color: var(--text-2)
+        }
+
+        .mv {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text)
+        }
+
+        .mv.gr {
+            color: var(--green)
+        }
+
+        .mv.am {
+            color: var(--amber)
+        }
+
         .stacked-wrap {
             margin-bottom: 20px
         }
@@ -648,109 +655,43 @@
             color: var(--text)
         }
 
-        /* mini table */
-        .mt {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        .mt th {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            color: var(--text-3);
-            padding: 0 0 10px;
-            text-align: left;
+        .prog-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
             border-bottom: 1px solid var(--border)
         }
 
-        .mt td {
-            padding: 10px 0;
+        .prog-row:last-child {
+            border: none
+        }
+
+        .prog-lbl {
             font-size: 12.5px;
             color: var(--text-2);
-            border-bottom: 1px solid var(--border);
-            vertical-align: middle
+            min-width: 80px
         }
 
-        .mt tr:last-child td {
-            border: none
-        }
-
-        .tdb {
-            font-weight: 600;
-            color: var(--text)
-        }
-
-        .tds {
-            font-size: 10.5px;
-            color: var(--text-3)
-        }
-
-        /* badges */
-        .badge {
-            display: inline-flex;
-            padding: 2px 8px;
-            border-radius: 99px;
-            font-size: 10.5px;
-            font-weight: 700
-        }
-
-        .b-green {
-            background: var(--green-bg);
-            color: var(--green)
-        }
-
-        .b-blue {
-            background: var(--blue-bg);
-            color: var(--blue)
-        }
-
-        .b-amber {
-            background: var(--amber-bg);
-            color: var(--amber)
-        }
-
-        .b-red {
-            background: var(--red-bg);
-            color: var(--red)
-        }
-
-        .b-gray {
+        .prog-bar {
+            flex: 1;
+            height: 8px;
             background: var(--surface-2);
-            color: var(--text-3)
+            border-radius: 99px;
+            overflow: hidden
         }
 
-        /* metric rows */
-        .mrow {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border)
+        .prog-fill {
+            height: 100%;
+            border-radius: 99px
         }
 
-        .mrow:last-child {
-            border: none
-        }
-
-        .ml {
+        .prog-val {
             font-size: 12.5px;
-            color: var(--text-2)
-        }
-
-        .mv {
-            font-size: 13.5px;
             font-weight: 700;
-            color: var(--text)
-        }
-
-        .mv.gr {
-            color: var(--green)
-        }
-
-        .mv.am {
-            color: var(--amber)
+            color: var(--text);
+            min-width: 40px;
+            text-align: right
         }
 
         @media(max-width:1200px) {
@@ -784,8 +725,6 @@
 </head>
 
 <body>
-
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="s-brand">
             <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -797,80 +736,74 @@
                 <div class="brand-txt">RepairBuddy</div>
             </div>
         </div>
-
-        <div class="s-search">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="s-search"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input type="text" placeholder="Quick search…" />
-        </div>
-
+            </svg><input type="text" placeholder="Quick search…" /></div>
         <div class="nav-sec">
-            <div class="nav-lbl">Overview</div>
-            <a href="#" class="nv active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="nav-lbl">Overview</div><a href="design4.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <rect x="3" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
-                </svg>Dashboard</a>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Dashboard</a><a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>Activity Feed<span class="nv-badge">4</span></a>
         </div>
         <hr class="s-hr" />
         <div class="nav-sec">
-            <div class="nav-lbl">Business Management</div>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="nav-lbl">Business Management</div><a href="all-businesses.html" class="nv"><svg fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>All Businesses<span class="nv-count">1,248</span></a>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>All Businesses<span class="nv-count">1,248</span></a><a href="users-directory.html"
+                class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>Users Directory</a>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Users Directory</a><a href="impersonation-log.html" class="nv"><svg fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>Impersonation Log</a>
         </div>
         <hr class="s-hr" />
         <div class="nav-sec">
-            <div class="nav-lbl">Billing & Subscriptions</div>
-            <a href="billing-plans.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="nav-lbl">Billing &amp; Subscriptions</div><a href="billing-plans.html" class="nv"><svg
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>Billing Plans</a>
-            <a href="plan-builder.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Billing Plans</a><a href="plan-builder.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>Plan Builder</a>
-            <a href="entitlements.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Plan Builder</a><a href="entitlements.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>Entitlements</a>
-            <a href="currencies.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Entitlements</a><a href="currencies.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>Currencies</a>
-            <a href="billing-intervals.html" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Currencies</a><a href="billing-intervals.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>Billing Intervals</a>
         </div>
         <hr class="s-hr" />
         <div class="nav-sec">
-            <div class="nav-lbl">Platform</div>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="nav-lbl">Platform</div><a href="audit-logs.html" class="nv"><svg fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>Audit Logs</a>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Audit Logs</a><a href="analytics.html" class="nv active"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>Analytics</a>
-            <a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Analytics</a><a href="settings.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -883,7 +816,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>Sign Out</a></div>
-
         <div class="s-user">
             <div class="s-avatar">SA</div>
             <div>
@@ -893,12 +825,11 @@
         </div>
     </aside>
 
-    <!-- MAIN -->
     <div class="main">
         <div class="topbar">
             <div class="tb-left">
-                <div class="tb-bc">Admin › <b>Dashboard</b></div>
-                <div class="tb-title">Platform Overview</div>
+                <div class="tb-bc">Admin › Platform › <b>Analytics</b></div>
+                <div class="tb-title">Platform Analytics</div>
             </div>
             <div class="tb-right">
                 <button class="ib"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -908,27 +839,38 @@
                 <button class="btn btn-ghost"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>Export</button>
-                <button class="btn btn-primary"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>New Tenant</button>
+                    </svg>Export Report</button>
             </div>
         </div>
 
         <div class="content">
-            <!-- KPI CARDS -->
             <div class="kpi-row">
                 <div class="kc">
                     <div class="kc-stripe" style="background:var(--orange)"></div>
                     <div class="kc-icon" style="background:var(--orange-bg);color:var(--orange)"><svg fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg></div>
                     <div>
-                        <div class="kc-val">1,248</div>
-                        <div class="kc-lbl">Total Businesses</div>
-                        <div class="kc-tag tag-up">▲ +12% this month</div>
+                        <div class="kc-val">248K</div>
+                        <div class="kc-lbl">Page Views</div>
+                        <div class="kc-tag tag-up">▲ +18% this month</div>
+                    </div>
+                </div>
+                <div class="kc">
+                    <div class="kc-stripe" style="background:var(--blue)"></div>
+                    <div class="kc-icon" style="background:var(--blue-bg);color:var(--blue)"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg></div>
+                    <div>
+                        <div class="kc-val">4m 32s</div>
+                        <div class="kc-lbl">Avg. Session</div>
+                        <div class="kc-tag tag-up">▲ +8% vs last month</div>
                     </div>
                 </div>
                 <div class="kc">
@@ -936,12 +878,12 @@
                     <div class="kc-icon" style="background:var(--green-bg);color:var(--green)"><svg fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg></div>
                     <div>
-                        <div class="kc-val">912</div>
-                        <div class="kc-lbl">Active Subscriptions</div>
-                        <div class="kc-tag tag-info">73% conversion</div>
+                        <div class="kc-val">32%</div>
+                        <div class="kc-lbl">Bounce Rate</div>
+                        <div class="kc-tag tag-info">-3% improvement</div>
                     </div>
                 </div>
                 <div class="kc">
@@ -949,36 +891,23 @@
                     <div class="kc-icon" style="background:var(--purple-bg);color:var(--purple)"><svg fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg></div>
                     <div>
-                        <div class="kc-val">$42,850</div>
-                        <div class="kc-lbl">Estimated MRR</div>
-                        <div class="kc-tag tag-up">▲ +6% vs last month</div>
-                    </div>
-                </div>
-                <div class="kc">
-                    <div class="kc-stripe" style="background:var(--amber)"></div>
-                    <div class="kc-icon" style="background:var(--amber-bg);color:var(--amber)"><svg fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg></div>
-                    <div>
-                        <div class="kc-val">8,421</div>
-                        <div class="kc-lbl">Total Platform Users</div>
-                        <div class="kc-tag tag-up">▲ +142 today</div>
+                        <div class="kc-val">1.2M</div>
+                        <div class="kc-lbl">API Calls</div>
+                        <div class="kc-tag tag-up">▲ +24% this month</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart + Status -->
+            <!-- Chart + Top Plans -->
             <div class="g2">
                 <div class="panel">
                     <div class="ph">
                         <div>
-                            <div class="ph-t">Revenue Trend</div>
-                            <div class="ph-s">Monthly sales — last 12 months (USD)</div>
+                            <div class="ph-t">Signups Trend</div>
+                            <div class="ph-s">New tenant registrations — last 12 months</div>
                         </div>
                         <div class="tab-row"><button class="tab-btn">Quarterly</button><button
                                 class="tab-btn active">Monthly</button></div>
@@ -989,16 +918,16 @@
                             <line x1="0" y1="105" x2="700" y2="105" stroke="var(--border)" stroke-width="1" />
                             <line x1="0" y1="158" x2="700" y2="158" stroke="var(--border)" stroke-width="1" />
                             <path
-                                d="M0,185 L58,170 L116,177 L174,160 L232,143 L290,135 L348,115 L406,125 L464,95 L522,103 L580,70 L638,50 L696,35 L696,210 L0,210Z"
-                                fill="url(#areaFill)" opacity=".6" />
+                                d="M0,180 L58,165 L116,170 L174,155 L232,140 L290,130 L348,110 L406,120 L464,90 L522,95 L580,65 L638,45 L696,30 L696,210 L0,210Z"
+                                fill="url(#aFill)" opacity=".6" />
                             <path
-                                d="M0,185 L58,170 L116,177 L174,160 L232,143 L290,135 L348,115 L406,125 L464,95 L522,103 L580,70 L638,50 L696,35"
+                                d="M0,180 L58,165 L116,170 L174,155 L232,140 L290,130 L348,110 L406,120 L464,90 L522,95 L580,65 L638,45 L696,30"
                                 fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"
                                 stroke-linejoin="round" />
-                            <circle cx="696" cy="35" r="5" fill="var(--orange)" />
-                            <circle cx="638" cy="50" r="3.5" fill="var(--orange)" />
+                            <circle cx="696" cy="30" r="5" fill="var(--orange)" />
+                            <circle cx="638" cy="45" r="3.5" fill="var(--orange)" />
                             <defs>
-                                <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                                <linearGradient id="aFill" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="var(--orange)" stop-opacity=".3" />
                                     <stop offset="100%" stop-color="var(--orange)" stop-opacity="0" />
                                 </linearGradient>
@@ -1007,212 +936,147 @@
                         <div class="chart-months"><span>Mar
                                 '25</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb
                                 '26</span></div>
-                        <div
-                            style="display:flex;gap:24px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-                            <div>
-                                <div
-                                    style="font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">
-                                    This Month</div>
-                                <div style="font-size:20px;font-weight:700;color:var(--orange);margin-top:3px">$38,000
-                                </div>
-                            </div>
-                            <div>
-                                <div
-                                    style="font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">
-                                    Last Month</div>
-                                <div style="font-size:20px;font-weight:700;color:var(--text-2);margin-top:3px">$31,000
-                                </div>
-                            </div>
-                            <div>
-                                <div
-                                    style="font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em">
-                                    YTD</div>
-                                <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:3px">$84,120
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
-
-                <!-- Status panel with stacked bar -->
                 <div class="panel">
                     <div class="ph">
                         <div>
-                            <div class="ph-t">Tenant Status</div>
-                            <div class="ph-s">1,248 total businesses</div>
+                            <div class="ph-t">Top Plans by Revenue</div>
+                            <div class="ph-s">Monthly recurring revenue</div>
                         </div>
                     </div>
                     <div class="pb">
-                        <div class="stacked-wrap">
-                            <div class="stacked-bar">
-                                <div class="stacked-seg" style="flex:59;background:var(--green)"></div>
-                                <div class="stacked-seg" style="flex:10;background:var(--blue)"></div>
-                                <div class="stacked-seg" style="flex:3;background:var(--amber)"></div>
-                                <div class="stacked-seg" style="flex:1;background:var(--red)"></div>
-                                <div class="stacked-seg" style="flex:26;background:var(--border-2)"></div>
-                            </div>
-                            <div class="stacked-legend">
-                                <div class="leg">
-                                    <div class="leg-dot" style="background:var(--green)"></div>Active <b>742</b>
-                                </div>
-                                <div class="leg">
-                                    <div class="leg-dot" style="background:var(--blue)"></div>Trialing <b>128</b>
-                                </div>
-                                <div class="leg">
-                                    <div class="leg-dot" style="background:var(--amber)"></div>Past Due <b>42</b>
-                                </div>
-                                <div class="leg">
-                                    <div class="leg-dot" style="background:var(--red)"></div>Suspended <b>12</b>
-                                </div>
-                                <div class="leg">
-                                    <div class="leg-dot" style="background:var(--border-2)"></div>Closed <b>324</b>
-                                </div>
-                            </div>
+                        <div class="mrow">
+                            <div class="ml">Enterprise</div>
+                            <div class="mv gr">$22,410</div>
                         </div>
-                        <div style="border-top:1px solid var(--border);padding-top:16px">
-                            <div class="mrow">
-                                <div class="ml">Trial → Paid Conv.</div>
-                                <div class="mv gr">73%</div>
-                            </div>
-                            <div class="mrow">
-                                <div class="ml">Avg. Lifetime</div>
-                                <div class="mv">14 months</div>
-                            </div>
-                            <div class="mrow">
-                                <div class="ml">Churn Rate (30d)</div>
-                                <div class="mv am">2.1%</div>
-                            </div>
+                        <div class="mrow">
+                            <div class="ml">Professional</div>
+                            <div class="mv gr">$15,820</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Basic</div>
+                            <div class="mv">$4,620</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">Trial → Paid Conv.</div>
+                            <div class="mv gr">73%</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">ARPU</div>
+                            <div class="mv">$46.95</div>
+                        </div>
+                        <div class="mrow">
+                            <div class="ml">LTV (est.)</div>
+                            <div class="mv gr">$657</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bottom -->
+            <!-- Bottom 3-col -->
             <div class="g3">
                 <div class="panel">
                     <div class="ph">
-                        <div class="ph-t">Latest Registrations</div><a href="#"
-                            style="font-size:11px;color:var(--orange);text-decoration:none;font-weight:700">See all
-                            →</a>
-                    </div>
-                    <div class="pb" style="padding:0 20px">
-                        <table class="mt">
-                            <thead>
-                                <tr>
-                                    <th>Business</th>
-                                    <th>Status</th>
-                                    <th>Plan</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="tdb">QuickFix Electronics</div>
-                                        <div class="tds">Mar 12, 2024</div>
-                                    </td>
-                                    <td><span class="badge b-green">Active</span></td>
-                                    <td>Professional</td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="tdb">Metro Auto Care</div>
-                                        <div class="tds">Feb 28, 2024</div>
-                                    </td>
-                                    <td><span class="badge b-blue">Trial</span></td>
-                                    <td>Basic</td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="tdb">Pioneer Appliance</div>
-                                        <div class="tds">Jan 15, 2024</div>
-                                    </td>
-                                    <td><span class="badge b-red">Suspended</span></td>
-                                    <td>Enterprise</td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="tdb">TechStar Services</div>
-                                        <div class="tds">Dec 22, 2023</div>
-                                    </td>
-                                    <td><span class="badge b-amber">Past Due</span></td>
-                                    <td>Professional</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="panel">
-                    <div class="ph">
-                        <div class="ph-t">Revenue Breakdown</div>
+                        <div class="ph-t">Signups by Source</div>
                     </div>
                     <div class="pb">
-                        <div class="mrow">
-                            <div class="ml">MRR (USD)</div>
-                            <div class="mv gr">$42,850</div>
-                        </div>
-                        <div class="mrow">
-                            <div class="ml">MRR (GBP)</div>
-                            <div class="mv gr">£12,400</div>
-                        </div>
-                        <div class="mrow">
-                            <div class="ml">Paid (30d)</div>
-                            <div class="mv">$38,240</div>
-                        </div>
-                        <div class="mrow">
-                            <div class="ml">Paid YTD</div>
-                            <div class="mv">$84,120</div>
-                        </div>
-                        <div class="mrow">
-                            <div class="ml">Past Due</div>
-                            <div class="mv am">$3,720</div>
-                        </div>
-                        <div class="mrow">
-                            <div class="ml">Active Plans</div>
-                            <div class="mv">4</div>
+                        <div class="stacked-wrap">
+                            <div class="stacked-bar">
+                                <div class="stacked-seg" style="flex:42;background:var(--orange)"></div>
+                                <div class="stacked-seg" style="flex:28;background:var(--blue)"></div>
+                                <div class="stacked-seg" style="flex:18;background:var(--green)"></div>
+                                <div class="stacked-seg" style="flex:12;background:var(--border-2)"></div>
+                            </div>
+                            <div class="stacked-legend">
+                                <div class="leg">
+                                    <div class="leg-dot" style="background:var(--orange)"></div>Organic <b>42%</b>
+                                </div>
+                                <div class="leg">
+                                    <div class="leg-dot" style="background:var(--blue)"></div>Referral <b>28%</b>
+                                </div>
+                                <div class="leg">
+                                    <div class="leg-dot" style="background:var(--green)"></div>Paid Ads <b>18%</b>
+                                </div>
+                                <div class="leg">
+                                    <div class="leg-dot" style="background:var(--border-2)"></div>Other <b>12%</b>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="panel">
                     <div class="ph">
-                        <div class="ph-t">Platform Health</div>
-                        <div
-                            style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--green)">
-                            <div
-                                style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-bg)">
-                            </div>Operational
-                        </div>
+                        <div class="ph-t">Geographic Distribution</div>
                     </div>
                     <div class="pb">
                         <div class="mrow">
-                            <div class="ml">API Uptime (30d)</div>
-                            <div class="mv gr">99.97%</div>
+                            <div class="ml">🇺🇸 United States</div>
+                            <div class="mv">42%</div>
                         </div>
                         <div class="mrow">
-                            <div class="ml">Avg. Response</div>
-                            <div class="mv">142ms</div>
+                            <div class="ml">🇬🇧 United Kingdom</div>
+                            <div class="mv">18%</div>
                         </div>
                         <div class="mrow">
-                            <div class="ml">Active Sessions</div>
-                            <div class="mv">1,204</div>
+                            <div class="ml">🇨🇦 Canada</div>
+                            <div class="mv">12%</div>
                         </div>
                         <div class="mrow">
-                            <div class="ml">Failed Logins (24h)</div>
-                            <div class="mv am">27</div>
+                            <div class="ml">🇦🇺 Australia</div>
+                            <div class="mv">9%</div>
                         </div>
                         <div class="mrow">
-                            <div class="ml">Storage</div>
-                            <div class="mv am">68%</div>
+                            <div class="ml">🌍 Other</div>
+                            <div class="mv">19%</div>
                         </div>
-                        <div class="mrow">
-                            <div class="ml">Queue Depth</div>
-                            <div class="mv gr">0</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="ph">
+                        <div class="ph-t">Feature Adoption</div>
+                    </div>
+                    <div class="pb">
+                        <div class="prog-row">
+                            <div class="prog-lbl">Jobs</div>
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:92%;background:var(--green)"></div>
+                            </div>
+                            <div class="prog-val">92%</div>
+                        </div>
+                        <div class="prog-row">
+                            <div class="prog-lbl">Invoicing</div>
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:78%;background:var(--blue)"></div>
+                            </div>
+                            <div class="prog-val">78%</div>
+                        </div>
+                        <div class="prog-row">
+                            <div class="prog-lbl">Calendar</div>
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:65%;background:var(--orange)"></div>
+                            </div>
+                            <div class="prog-val">65%</div>
+                        </div>
+                        <div class="prog-row">
+                            <div class="prog-lbl">Reports</div>
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:41%;background:var(--purple)"></div>
+                            </div>
+                            <div class="prog-val">41%</div>
+                        </div>
+                        <div class="prog-row">
+                            <div class="prog-lbl">Booking</div>
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:33%;background:var(--amber)"></div>
+                            </div>
+                            <div class="prog-val">33%</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
 </body>
 
 </html>
