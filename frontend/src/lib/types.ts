@@ -291,3 +291,145 @@ export interface Branch {
   created_at?: string;
   updated_at?: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Superadmin / Platform Admin types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Generic paginated response wrapper returned by all superadmin list endpoints. */
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+  };
+}
+
+/** A user record with tenant eagerly loaded — as returned by GET /admin/users */
+export interface AdminUser extends User {
+  tenant?: Pick<Tenant, "id" | "name" | "slug" | "status"> | null;
+}
+
+/** Shape returned by GET /admin/dashboard/kpis */
+export interface AdminDashboardKpis {
+  tenants: {
+    trial: number;
+    active: number;
+    past_due: number;
+    suspended: number;
+    closed: number;
+    total: number;
+  };
+  users: {
+    total: number;
+    admin_total: number;
+  };
+  subscriptions: {
+    trial: number;
+    active: number;
+    past_due: number;
+    canceled: number;
+    active_total: number;
+  };
+  mrr_by_currency: Record<string, number>;
+  paid_last_30d_by_currency: Record<string, number>;
+  paid_ytd_by_currency: Record<string, number>;
+}
+
+/** Single month bucket returned by GET /admin/dashboard/sales-last-12-months */
+export interface AdminSalesMonth {
+  month: string; // "YYYY-MM"
+  by_currency: Record<string, number>; // currency → total_cents
+}
+
+/** Shape returned by GET /admin/analytics */
+export interface AdminAnalyticsData {
+  months: number;
+  tenant_trend: Array<{ month: string; count: number }>;
+  user_trend: Array<{ month: string; count: number }>;
+  mrr_trend: Array<{ month: string; cents: number }>;
+  revenue_trend: Array<{ month: string; by_currency: Record<string, number> }>;
+  revenue_by_plan: Array<{
+    plan_name: string;
+    currency: string;
+    total_cents: number;
+    invoice_count: number;
+  }>;
+  subscriptions_snapshot: {
+    trial: number;
+    active: number;
+    past_due: number;
+    canceled: number;
+  };
+  tenants_snapshot: {
+    trial: number;
+    active: number;
+    past_due: number;
+    suspended: number;
+    closed: number;
+  };
+  totals: {
+    tenants: number;
+    users: number;
+  };
+}
+
+/** A platform impersonation session record */
+export interface ImpersonationSession {
+  id: number;
+  actor_user_id: number;
+  tenant_id: number;
+  target_user_id: number;
+  reason?: string | null;
+  reference_id?: string | null;
+  started_at: string;
+  ended_at?: string | null;
+  expires_at?: string | null;
+  metadata?: Record<string, unknown> | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  actor?: Pick<User, "id" | "name" | "email" | "is_admin"> | null;
+  target_user?: Pick<User, "id" | "name" | "email" | "tenant_id"> | null;
+  tenant?: Pick<Tenant, "id" | "name" | "slug"> | null;
+}
+
+/** A platform-level currency record */
+export interface PlatformCurrency {
+  id: number;
+  code: string;
+  symbol: string | null;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Full platform settings response from GET /admin/settings */
+export interface PlatformSettings {
+  app: {
+    name: string;
+    env: string;
+    url: string;
+    debug: boolean;
+  };
+  tenancy: {
+    resolution: string;
+    route_param: string;
+    header: string;
+  };
+  billing: {
+    seller_country: string;
+  };
+  currencies: PlatformCurrency[];
+  supported_currencies: string[];
+  mail: {
+    default: string;
+    from_address: string;
+    from_name: string;
+  };
+}

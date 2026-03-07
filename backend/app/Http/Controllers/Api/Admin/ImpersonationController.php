@@ -11,6 +11,96 @@ use Illuminate\Http\Request;
 
 class ImpersonationController extends Controller
 {
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            'q'        => ['nullable', 'string', 'max:255'],
+            'status'   => ['nullable', 'string', 'in:active,completed,terminated,all'],
+            'from'     => ['nullable', 'date'],
+            'to'       => ['nullable', 'date'],
+            'sort'     => ['nullable', 'string', 'max:50'],
+            'dir'      => ['nullable', 'string', 'in:asc,desc'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
+        ]);
+
+        $q       = is_string($validated['q'] ?? null) ? trim($validated['q']) : '';
+        $status  = is_string($validated['status'] ?? null) ? $validated['status'] : null;
+        $from    = is_string($validated['from'] ?? null) ? $validated['from'] : null;
+        $to      = is_string($validated['to'] ?? null) ? $validated['to'] : null;
+        $sort    = is_string($validated['sort'] ?? null) ? $validated['sort'] : null;
+        $dir     = is_string($validated['dir'] ?? null) ? $validated['dir'] : null;
+        $perPage = isset($validated['per_page']) ? (int) $validated['per_page'] : 25;
+
+        $allowedSorts = [
+            'id'         => 'impersonation_sessions.id',
+            'started_at' => 'impersonation_sessions.started_at',
+            'ended_at'   => 'impersonation_sessions.ended_at',
+        ];
+
+        $query = ImpersonationSession::query()
+            ->with([
+                'actor:id,name,email,is_admin,admin_role',
+                'targetUser:id,name,email,tenant_id',
+                'tenant:id,name,slug',
+            ]);
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('impersonation_sessions.reason', 'like', "%{$q}%")
+                    ->orWhere('impersonation_sessions.reference_id', 'like', "%{$q}%")
+                    ->orWhereHas('actor', function ($actorQ) use ($q) {
+                        $actorQ->where('name', 'like', "%{$q}%")
+                               ->orWhere('email', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('targetUser', function ($targetQ) use ($q) {
+                        $targetQ->where('name', 'like', "%{$q}%")
+                                ->orWhere('email', 'like', "%{$q}%");
+                    });
+            });
+        }
+
+        if ($status !== null && $status !== '' && $status !== 'all') {
+            if ($status === 'active') {
+                $query->whereNull('impersonation_sessions.ended_at')
+                      ->where('impersonation_sessions.expires_at', '>', now());
+            } elseif ($status === 'completed') {
+                $query->whereNotNull('impersonation_sessions.ended_at');
+            } elseif ($status === 'terminated') {
+                $query->whereNull('impersonation_sessions.ended_at')
+                      ->where('impersonation_sessions.expires_at', '<=', now());
+            }
+        }
+
+        if ($from !== null) {
+            $query->whereDate('impersonation_sessions.started_at', '>=', $from);
+        }
+
+        if ($to !== null) {
+            $query->whereDate('impersonation_sessions.started_at', '<=', $to);
+        }
+
+        $sortCol = $allowedSorts[$sort ?? ''] ?? null;
+        $sortDir = in_array($dir, ['asc', 'desc'], true) ? $dir : null;
+
+        if ($sortCol && $sortDir) {
+            $query->orderBy($sortCol, $sortDir)->orderBy('impersonation_sessions.id', 'desc');
+        } else {
+            $query->orderBy('impersonation_sessions.id', 'desc');
+        }
+
+        $paginator = $query->paginate($perPage)->withQueryString();
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'total'        => $paginator->total(),
+                'per_page'     => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+            ],
+        ]);
+    }
+
     public function store(Request $request)
     {
         $actor = $request->user();

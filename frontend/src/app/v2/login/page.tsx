@@ -35,18 +35,20 @@ function LoginForm() {
       if (otpLoginToken) {
         const otpRes = await auth.loginOtp(otpLoginToken, otpCode);
         if (otpRes.must_change_password) {
-          router.replace(`/set-password?next=${encodeURIComponent(next)}`);
+          router.replace(`/set-password?next=${encodeURIComponent(otpRes.is_admin ? "/superadmin" : next)}`);
         } else {
-          router.replace(next);
+          router.replace(otpRes.is_admin ? "/superadmin" : next);
         }
       } else {
         const res = await auth.login(email, password);
-        if (res.otp_required) {
+        if (res.status === "otp_required") {
           setOtpLoginToken(res.otp_login_token ?? null);
+        } else if (res.status === "verification_required") {
+          router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
         } else if (res.must_change_password) {
-          router.replace(`/set-password?next=${encodeURIComponent(next)}`);
+          router.replace(`/set-password?next=${encodeURIComponent(res.is_admin ? "/superadmin" : next)}`);
         } else {
-          router.replace(next);
+          router.replace(res.is_admin ? "/superadmin" : next);
         }
       }
     } catch (err) {

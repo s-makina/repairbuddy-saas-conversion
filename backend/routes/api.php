@@ -251,6 +251,37 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->whereNumber('tenant')
         ->whereNumber('invoice')
         ->middleware('permission:admin.billing.write');
+
+    // ── Users directory ─────────────────────────────────────────────────────
+    Route::get('/users', [\App\Http\Controllers\Api\Admin\AdminUsersController::class, 'index'])
+        ->middleware('permission:admin.tenants.read');
+
+    // ── Impersonation log ───────────────────────────────────────────────────
+    Route::get('/impersonation', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'index'])
+        ->middleware('permission:admin.impersonation.read');
+
+    // ── Platform audit log ──────────────────────────────────────────────────
+    Route::get('/audit', [\App\Http\Controllers\Api\Admin\AdminAuditController::class, 'index'])
+        ->middleware('permission:admin.access');
+
+    // ── Platform analytics ──────────────────────────────────────────────────
+    Route::get('/analytics', [\App\Http\Controllers\Api\Admin\AdminAnalyticsController::class, 'index'])
+        ->middleware('permission:admin.access');
+
+    // ── Platform currencies CRUD ────────────────────────────────────────────
+    Route::get('/currencies', [\App\Http\Controllers\Api\Admin\AdminCurrenciesController::class, 'index'])
+        ->middleware('permission:admin.billing.read');
+    Route::post('/currencies', [\App\Http\Controllers\Api\Admin\AdminCurrenciesController::class, 'store'])
+        ->middleware(['throttle:auth', 'permission:admin.billing.write']);
+    Route::put('/currencies/{currency}', [\App\Http\Controllers\Api\Admin\AdminCurrenciesController::class, 'update'])
+        ->whereNumber('currency')
+        ->middleware('permission:admin.billing.write');
+    Route::delete('/currencies/{currency}', [\App\Http\Controllers\Api\Admin\AdminCurrenciesController::class, 'destroy'])
+        ->whereNumber('currency')
+        ->middleware('permission:admin.billing.write');
+    Route::patch('/currencies/{currency}/active', [\App\Http\Controllers\Api\Admin\AdminCurrenciesController::class, 'setActive'])
+        ->whereNumber('currency')
+        ->middleware('permission:admin.billing.write');
 });
 
 Route::prefix('{business}')
