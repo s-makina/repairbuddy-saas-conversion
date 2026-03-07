@@ -43,11 +43,13 @@ export function SAButton({
   children,
   icon,
   onClick,
+  style,
 }: {
   variant?: "primary" | "ghost" | "outline";
   children: React.ReactNode;
   icon?: React.ReactNode;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }) {
   const cls =
     variant === "primary"
@@ -56,7 +58,7 @@ export function SAButton({
         ? "sa-btn sa-btn-outline"
         : "sa-btn sa-btn-ghost";
   return (
-    <button className={cls} type="button" onClick={onClick}>
+    <button className={cls} type="button" onClick={onClick} style={style}>
       {icon}
       {children}
     </button>

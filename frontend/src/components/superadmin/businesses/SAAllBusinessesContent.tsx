@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Eye, Pencil, UserRound, Download, Plus } from 'lucide-react';
 import { SATopbar, SAButton, SAIconButton } from '../SATopbar';
 import { Bell } from 'lucide-react';
@@ -15,6 +16,7 @@ const businesses = [
 ];
 
 export default function SAAllBusinessesContent() {
+  const router = useRouter();
   return (
     <>
       <SATopbar
@@ -24,7 +26,7 @@ export default function SAAllBusinessesContent() {
           <>
             <SAIconButton hasNotification><Bell size={18} /></SAIconButton>
             <SAButton variant="ghost" icon={<Download size={14} />}>Export</SAButton>
-            <SAButton variant="primary" icon={<Plus size={14} />}>New Tenant</SAButton>
+            <SAButton variant="primary" icon={<Plus size={14} />} onClick={() => router.push('/superadmin/businesses/new')}>New Tenant</SAButton>
           </>
         }
       />
@@ -71,7 +73,7 @@ export default function SAAllBusinessesContent() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <SAButton variant="ghost" icon={<Download size={14} />}>Export</SAButton>
-            <SAButton variant="primary" icon={<Plus size={14} />}>New Tenant</SAButton>
+            <SAButton variant="primary" icon={<Plus size={14} />} onClick={() => router.push('/superadmin/businesses/new')}>New Tenant</SAButton>
           </div>
         </div>
         <table className="sa-dt">

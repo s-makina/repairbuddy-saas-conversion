@@ -1101,9 +1101,14 @@
   padding: 14px 20px;
   border-top: 1px solid var(--sa-border);
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  justify-content: flex-end;
   background: var(--sa-bg);
+}
+.sa-fp-footer-end {
+  display: flex;
+  gap: 8px;
 }
 
 /* ── Form elements ── */
@@ -1542,6 +1547,372 @@
   .sa-info-panel {
     position: static;
   }
+  .sa-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Plan Builder — Pricing Step ── */
+.sa-price-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px 40px;
+  gap: 12px;
+  align-items: end;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-price-row:last-of-type {
+  border: none;
+}
+.sa-pr-del {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sa-r-sm);
+  border: 1px solid var(--sa-border);
+  background: var(--sa-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--sa-red);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.sa-pr-del:hover {
+  background: var(--sa-red-bg);
+}
+.sa-pr-del svg {
+  width: 14px;
+  height: 14px;
+}
+.sa-price-info {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: var(--sa-blue-bg);
+  border-radius: var(--sa-r-sm);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--sa-blue);
+}
+.sa-price-info svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Plan Builder — Entitlements Step ── */
+.sa-ent-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.sa-ent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-r-sm);
+  background: var(--sa-surface);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sa-ent-item:hover {
+  border-color: var(--sa-border-2);
+  background: var(--sa-surface-2);
+}
+.sa-ent-item.selected {
+  border-color: var(--sa-orange);
+  background: var(--sa-orange-bg);
+}
+.sa-ent-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--sa-border-2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.sa-ent-item.selected .sa-ent-check {
+  border-color: var(--sa-orange);
+  background: var(--sa-orange);
+  color: #fff;
+}
+.sa-ent-check svg {
+  width: 12px;
+  height: 12px;
+}
+.sa-ent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sa-text);
+}
+.sa-ent-type {
+  font-size: 10.5px;
+  color: var(--sa-text-3);
+  margin-top: 1px;
+}
+.sa-cat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sa-text-3);
+  margin: 20px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-cat-label:first-child {
+  margin-top: 0;
+}
+
+/* ── Plan Builder — Review Step ── */
+.sa-success-banner {
+  padding: 16px 20px;
+  background: var(--sa-green-bg);
+  border: 1px solid rgba(43, 138, 62, 0.15);
+  border-radius: var(--sa-r-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--sa-green);
+  font-weight: 500;
+}
+.sa-success-banner svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.sa-rv-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-rv-section:last-child {
+  border: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.sa-rv-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sa-text-3);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sa-rv-title button {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sa-orange);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 0;
+}
+.sa-rv-title button:hover {
+  text-decoration: underline;
+}
+.sa-rv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+.sa-rv-label {
+  font-size: 13px;
+  color: var(--sa-text-2);
+}
+.sa-rv-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sa-text);
+}
+.sa-rv-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.sa-rv-tag.tag-green {
+  background: var(--sa-green-bg);
+  color: var(--sa-green);
+}
+.sa-rv-tag.tag-orange {
+  background: var(--sa-orange-bg);
+  color: var(--sa-orange);
+}
+.sa-rv-tag.tag-blue {
+  background: var(--sa-blue-bg);
+  color: var(--sa-blue);
+}
+.sa-ent-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sa-ent-pill {
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--sa-green-bg);
+  color: var(--sa-green);
+  border: 1px solid rgba(43, 138, 62, 0.15);
+}
+.sa-price-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+.sa-ps-card {
+  padding: 12px 14px;
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-r-sm);
+  background: var(--sa-surface-2);
+}
+.sa-ps-cur {
+  font-size: 11px;
+  color: var(--sa-text-3);
+  font-weight: 700;
+}
+.sa-ps-amt {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sa-text);
+  margin-top: 2px;
+}
+.sa-ps-int {
+  font-size: 11px;
+  color: var(--sa-text-3);
+  margin-top: 1px;
+}
+
+/* ── Builder responsive ── */
+@media (max-width: 1200px) {
+  .sa-ent-grid {
+    grid-template-columns: 1fr;
+  }
+  .sa-price-summary {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .sa-price-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── New Tenant — subdomain preview ── */
+.sa-subdomain-preview {
+  display: flex;
+  align-items: stretch;
+  margin-top: 6px;
+}
+.sa-sd-input {
+  flex: 1;
+  border-radius: var(--sa-r-sm) 0 0 var(--sa-r-sm);
+  border: 1px solid var(--sa-border);
+  border-right: none;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--sa-surface);
+  color: var(--sa-text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sa-sd-input:focus {
+  border-color: var(--sa-orange);
+  box-shadow: 0 0 0 3px rgba(232,89,12,.08);
+}
+.sa-sd-suffix {
+  padding: 10px 14px;
+  border: 1px solid var(--sa-border);
+  border-left: none;
+  border-radius: 0 var(--sa-r-sm) var(--sa-r-sm) 0;
+  background: var(--sa-surface-2);
+  font-size: 13px;
+  color: var(--sa-text-3);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+/* ── New Tenant — toggle rows ── */
+.sa-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-toggle-wrap:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.sa-toggle {
+  width: 40px;
+  height: 22px;
+  background: var(--sa-border-2, #d1cdc9);
+  border-radius: 99px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+}
+.sa-toggle::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.sa-toggle.on {
+  background: var(--sa-orange);
+}
+.sa-toggle.on::after {
+  transform: translateX(18px);
+}
+.sa-toggle-info {
+  flex: 1;
+}
+.sa-toggle-label {
+  font-size: 13px;
+  color: var(--sa-text);
+  font-weight: 600;
+}
+.sa-toggle-desc {
+  font-size: 11.5px;
+  color: var(--sa-text-3);
+  margin-top: 2px;
+}
+
+/* ── Form row responsive ── */
+@media (max-width: 1200px) {
   .sa-form-row {
     grid-template-columns: 1fr;
   }
