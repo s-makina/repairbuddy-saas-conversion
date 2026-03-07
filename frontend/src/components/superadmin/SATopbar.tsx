@@ -41,18 +41,23 @@ export function SAIconButton({
 export function SAButton({
   variant = "primary",
   children,
+  icon,
   onClick,
 }: {
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "ghost" | "outline";
   children: React.ReactNode;
+  icon?: React.ReactNode;
   onClick?: () => void;
 }) {
+  const cls =
+    variant === "primary"
+      ? "sa-btn sa-btn-primary"
+      : variant === "outline"
+        ? "sa-btn sa-btn-outline"
+        : "sa-btn sa-btn-ghost";
   return (
-    <button
-      className={`sa-btn ${variant === "primary" ? "sa-btn-primary" : "sa-btn-ghost"}`}
-      type="button"
-      onClick={onClick}
-    >
+    <button className={cls} type="button" onClick={onClick}>
+      {icon}
       {children}
     </button>
   );
