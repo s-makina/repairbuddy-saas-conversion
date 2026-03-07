@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RepairBuddy — Repair Shop Management Made Simple</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #faf9f7;
+            --surface: #fff;
+            --surface-2: #f5f3f0;
+            --border: #ebe8e3;
+            --border-2: #d9d4cd;
+            --text: #1a1714;
+            --text-2: #6b6560;
+            --text-3: #a09890;
+            --orange: #e8590c;
+            --orange-light: #f76707;
+            --orange-bg: #fff4ed;
+            --green: #2b8a3e;
+            --green-bg: #f0fdf4;
+            --blue: #1971c2;
+            --blue-bg: #eff6ff;
+            --purple: #7048e8;
+            --purple-bg: #f5f3ff;
+            --r: 10px;
+            --r-sm: 6px;
+            --r-lg: 16px;
+            --sh: 0 1px 3px rgba(0, 0, 0, .06);
+            --sh-md: 0 4px 12px rgba(0, 0, 0, .08);
+            --sh-lg: 0 8px 30px rgba(0, 0, 0, .1);
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+
+        /* ─── NAVBAR ─── */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, .88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            height: 68px;
+            display: flex;
+            align-items: center;
+            transition: box-shadow .3s
+        }
+
+        .navbar.scrolled {
+            box-shadow: var(--sh-md)
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .25)
+        }
+
+        .logo-mark svg {
+            width: 18px;
+            height: 18px;
+            color: #fff
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -.02em
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none
+        }
+
+        .nav-links a {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-2);
+            transition: color .2s
+        }
+
+        .nav-links a:hover {
+            color: var(--orange)
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: var(--r);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .2s
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-2)
+        }
+
+        .btn-ghost:hover {
+            color: var(--text);
+            background: var(--surface-2)
+        }
+
+        .btn-primary {
+            background: var(--orange);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(232, 89, 12, .3)
+        }
+
+        .btn-primary:hover {
+            background: #cf4c08;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(232, 89, 12, .35)
+        }
+
+        .btn-outline {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text)
+        }
+
+        .btn-outline:hover {
+            border-color: var(--orange);
+            color: var(--orange);
+            background: var(--orange-bg)
+        }
+
+        .btn-lg {
+            padding: 14px 32px;
+            font-size: 15px;
+            border-radius: var(--r-lg)
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 140px 32px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(232, 89, 12, .06) 0%, transparent 70%);
+            pointer-events: none
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: -200px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(112, 72, 232, .04) 0%, transparent 70%);
+            pointer-events: none
+        }
+
+        .hero-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px 6px 8px;
+            background: var(--orange-bg);
+            border: 1px solid rgba(232, 89, 12, .15);
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--orange);
+            margin-bottom: 28px;
+            animation: fadeUp .8s ease forwards
+        }
+
+        .hero-badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--orange);
+            animation: pulse 2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .4
+            }
+        }
+
+        .hero h1 {
+            font-size: 52px;
+            font-weight: 800;
+            letter-spacing: -.03em;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            animation: fadeUp .8s ease .1s forwards;
+            opacity: 0
+        }
+
+        .hero h1 .accent {
+            background: linear-gradient(135deg, var(--orange), var(--orange-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .hero-sub {
+            font-size: 18px;
+            color: var(--text-2);
+            max-width: 560px;
+            margin: 0 auto 36px;
+            line-height: 1.7;
+            animation: fadeUp .8s ease .2s forwards;
+            opacity: 0
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            animation: fadeUp .8s ease .3s forwards;
+            opacity: 0
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            margin-top: 56px;
+            animation: fadeUp .8s ease .4s forwards;
+            opacity: 0
+        }
+
+        .hero-stat-val {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text)
+        }
+
+        .hero-stat-lbl {
+            font-size: 13px;
+            color: var(--text-3);
+            font-weight: 500;
+            margin-top: 2px
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* ─── SECTION COMMON ─── */
+        .section {
+            padding: 80px 32px;
+            max-width: 1200px;
+            margin: 0 auto
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--orange);
+            margin-bottom: 12px
+        }
+
+        .section-label::before {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background: var(--orange);
+            border-radius: 2px
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin-bottom: 12px;
+            line-height: 1.2
+        }
+
+        .section-sub {
+            font-size: 16px;
+            color: var(--text-2);
+            max-width: 520px;
+            line-height: 1.6
+        }
+
+        .section-header {
+            margin-bottom: 46px
+        }
+
+        .section-header.center {
+            text-align: center
+        }
+
+        .section-header.center .section-sub {
+            margin-left: auto;
+            margin-right: auto
+        }
+
+        /* ─── FEATURES ─── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px
+        }
+
+        .feat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 28px 24px;
+            box-shadow: var(--sh);
+            transition: all .25s;
+            position: relative;
+            overflow: hidden
+        }
+
+        .feat-card:hover {
+            box-shadow: var(--sh-lg);
+            transform: translateY(-3px);
+            border-color: var(--border-2)
+        }
+
+        .feat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px
+        }
+
+        .feat-icon svg {
+            width: 22px;
+            height: 22px
+        }
+
+        .feat-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px
+        }
+
+        .feat-card p {
+            font-size: 13.5px;
+            color: var(--text-2);
+            line-height: 1.6
+        }
+
+        /* ─── HOW IT WORKS ─── */
+        .steps-bg {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            position: relative
+        }
+
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 36px;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--border), var(--orange), var(--border));
+            z-index: 0
+        }
+
+        .step-item {
+            text-align: center;
+            position: relative;
+            z-index: 1
+        }
+
+        .step-num {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            margin: 0 auto 18px;
+            border: 3px solid var(--border);
+            background: var(--surface);
+            color: var(--text-3);
+            transition: all .3s
+        }
+
+        .step-item:hover .step-num {
+            border-color: var(--orange);
+            color: var(--orange);
+            background: var(--orange-bg);
+            box-shadow: 0 0 0 6px rgba(232, 89, 12, .08)
+        }
+
+        .step-item h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 6px
+        }
+
+        .step-item p {
+            font-size: 13.5px;
+            color: var(--text-2);
+            line-height: 1.6;
+            max-width: 260px;
+            margin: 0 auto
+        }
+
+        /* ─── PRICING PREVIEW ─── */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px
+        }
+
+        .price-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 32px 28px;
+            box-shadow: var(--sh);
+            transition: all .25s;
+            position: relative
+        }
+
+        .price-card:hover {
+            box-shadow: var(--sh-lg);
+            transform: translateY(-3px)
+        }
+
+        .price-card.featured {
+            border-color: var(--orange);
+            box-shadow: 0 4px 24px rgba(232, 89, 12, .12)
+        }
+
+        .price-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--orange);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 16px;
+            border-radius: 99px;
+            letter-spacing: .02em
+        }
+
+        .price-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 6px
+        }
+
+        .price-desc {
+            font-size: 13px;
+            color: var(--text-3);
+            margin-bottom: 18px
+        }
+
+        .price-amount {
+            font-size: 40px;
+            font-weight: 800;
+            letter-spacing: -.03em;
+            margin-bottom: 4px
+        }
+
+        .price-amount span {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-3)
+        }
+
+        .price-period {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-bottom: 24px
+        }
+
+        .price-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border)
+        }
+
+        .price-features li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13.5px;
+            color: var(--text-2)
+        }
+
+        .price-features li svg {
+            width: 16px;
+            height: 16px;
+            color: var(--green);
+            flex-shrink: 0
+        }
+
+        .price-card .btn {
+            width: 100%;
+            justify-content: center
+        }
+
+        /* ─── TESTIMONIALS ─── */
+        .testimonials-bg {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px
+        }
+
+        .test-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 28px 24px;
+            transition: all .2s
+        }
+
+        .test-card:hover {
+            box-shadow: var(--sh-md);
+            transform: translateY(-2px)
+        }
+
+        .test-stars {
+            display: flex;
+            gap: 3px;
+            margin-bottom: 14px
+        }
+
+        .test-stars svg {
+            width: 16px;
+            height: 16px;
+            color: #f59f00
+        }
+
+        .test-quote {
+            font-size: 14px;
+            color: var(--text-2);
+            line-height: 1.7;
+            margin-bottom: 18px;
+            font-style: italic
+        }
+
+        .test-author {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .test-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff
+        }
+
+        .test-name {
+            font-size: 14px;
+            font-weight: 700
+        }
+
+        .test-role {
+            font-size: 12px;
+            color: var(--text-3)
+        }
+
+        /* ─── CTA BANNER ─── */
+        .cta-banner {
+            margin: 80px 32px;
+            max-width: 1136px;
+            margin-left: auto;
+            margin-right: auto;
+            background: linear-gradient(135deg, #1a1714 0%, #2d2822 100%);
+            border-radius: 24px;
+            padding: 64px 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden
+        }
+
+        .cta-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(232, 89, 12, .2) 0%, transparent 70%);
+            pointer-events: none
+        }
+
+        .cta-banner h2 {
+            font-size: 34px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -.02em;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1
+        }
+
+        .cta-banner p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, .65);
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 1
+        }
+
+        .cta-banner .btn-primary {
+            font-size: 15px;
+            padding: 14px 36px;
+            border-radius: var(--r-lg);
+            position: relative;
+            z-index: 1
+        }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            padding: 56px 32px 32px
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px
+        }
+
+        .footer-brand p {
+            font-size: 13px;
+            color: var(--text-3);
+            line-height: 1.6;
+            margin-top: 14px;
+            max-width: 260px
+        }
+
+        .footer h4 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-3);
+            margin-bottom: 16px
+        }
+
+        .footer ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px
+        }
+
+        .footer ul a {
+            font-size: 13.5px;
+            color: var(--text-2);
+            transition: color .2s
+        }
+
+        .footer ul a:hover {
+            color: var(--orange)
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 40px auto 0;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-3)
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media(max-width:1024px) {
+
+            .features-grid,
+            .pricing-grid,
+            .test-grid,
+            .steps-grid {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .hero h1 {
+                font-size: 40px
+            }
+
+            .footer-inner {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        @media(max-width:640px) {
+
+            .features-grid,
+            .pricing-grid,
+            .test-grid,
+            .steps-grid {
+                grid-template-columns: 1fr
+            }
+
+            .steps-grid::before {
+                display: none
+            }
+
+            .hero h1 {
+                font-size: 32px
+            }
+
+            .hero-stats {
+                gap: 24px;
+                flex-wrap: wrap
+            }
+
+            .hero-ctas {
+                flex-direction: column;
+                align-items: center
+            }
+
+            .nav-links {
+                display: none
+            }
+
+            .footer-inner {
+                grid-template-columns: 1fr
+            }
+
+            .cta-banner {
+                padding: 40px 24px
+            }
+
+            .cta-banner h2 {
+                font-size: 26px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <a href="landing.html" class="nav-brand">
+                <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                    </svg></div>
+                <span class="brand-name">RepairBuddy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="login.html" class="btn btn-ghost">Log In</a>
+                <a href="plan-selection.html" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="hero-badge">
+                <div class="hero-badge-dot"></div>
+                Now with AI-powered diagnostics
+            </div>
+            <h1>Run Your Repair Shop<br><span class="accent">Smarter, Not Harder</span></h1>
+            <p class="hero-sub">The all-in-one platform for repair businesses. Manage appointments, track repairs,
+                send invoices, and delight your customers — all from one place.</p>
+            <div class="hero-ctas">
+                <a href="plan-selection.html" class="btn btn-primary btn-lg">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Start Free Trial
+                </a>
+                <a href="#how-it-works" class="btn btn-outline btn-lg">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    See How It Works
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div>
+                    <div class="hero-stat-val">1,200+</div>
+                    <div class="hero-stat-lbl">Repair Shops</div>
+                </div>
+                <div>
+                    <div class="hero-stat-val">50,000+</div>
+                    <div class="hero-stat-lbl">Repairs Tracked</div>
+                </div>
+                <div>
+                    <div class="hero-stat-val">99.9%</div>
+                    <div class="hero-stat-lbl">Uptime</div>
+                </div>
+                <div>
+                    <div class="hero-stat-val">4.9★</div>
+                    <div class="hero-stat-lbl">Average Rating</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+        <div class="section-header center">
+            <div class="section-label" style="justify-content:center">Features</div>
+            <h2 class="section-title">Everything you need to<br>grow your repair business</h2>
+            <p class="section-sub">From scheduling to invoicing, RepairBuddy handles the heavy lifting so you can
+                focus on what you do best — fixing things.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feat-card">
+                <div class="feat-icon" style="background:var(--orange-bg);color:var(--orange)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <h3>Smart Scheduling</h3>
+                <p>Let customers book online 24/7. Automatic reminders reduce no-shows by up to 40%.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:var(--blue-bg);color:var(--blue)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                </div>
+                <h3>Repair Tracking</h3>
+                <p>Track every repair from intake to delivery with status updates and photo documentation.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:var(--green-bg);color:var(--green)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3>Invoicing & Payments</h3>
+                <p>Create professional invoices in seconds. Accept online payments and track revenue in real time.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:var(--purple-bg);color:var(--purple)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </div>
+                <h3>Inventory Management</h3>
+                <p>Track parts and supplies with low-stock alerts. Know exactly what you have on hand.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:var(--orange-bg);color:var(--orange)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <h3>Customer Portal</h3>
+                <p>Give customers a branded portal to track repair status, view history, and book new appointments.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:var(--blue-bg);color:var(--blue)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <h3>Reports & Analytics</h3>
+                <p>Understand your business performance with detailed dashboards and exportable reports.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <div class="steps-bg" id="how-it-works">
+        <section class="section">
+            <div class="section-header center">
+                <div class="section-label" style="justify-content:center">How It Works</div>
+                <h2 class="section-title">Up and running in minutes</h2>
+                <p class="section-sub">Three simple steps to transform the way you manage your repair shop.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-item">
+                    <div class="step-num">1</div>
+                    <h3>Create Your Account</h3>
+                    <p>Sign up and choose a plan that fits your shop. No credit card required for the free trial.</p>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">2</div>
+                    <h3>Set Up Your Shop</h3>
+                    <p>Add your services, working hours, and team members with our guided setup wizard.</p>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">3</div>
+                    <h3>Start Taking Repairs</h3>
+                    <p>Begin scheduling appointments, tracking repairs, and growing your business right away.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- PRICING PREVIEW -->
+    <section class="section" id="pricing">
+        <div class="section-header center">
+            <div class="section-label" style="justify-content:center">Pricing</div>
+            <h2 class="section-title">Simple, transparent pricing</h2>
+            <p class="section-sub">No hidden fees. No surprises. Choose the plan that grows with your business.</p>
+        </div>
+        <div class="pricing-grid">
+            <div class="price-card">
+                <div class="price-name">Starter</div>
+                <div class="price-desc">Perfect for solo technicians</div>
+                <div class="price-amount">$29<span>/mo</span></div>
+                <div class="price-period">Billed monthly</div>
+                <ul class="price-features">
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Up to 50 repairs/month</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>1 user</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Online booking</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Basic invoicing</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Email support</li>
+                </ul>
+                <a href="plan-selection.html" class="btn btn-outline">Choose Starter</a>
+            </div>
+            <div class="price-card featured">
+                <div class="price-name">Professional</div>
+                <div class="price-desc">Best for growing shops</div>
+                <div class="price-amount">$79<span>/mo</span></div>
+                <div class="price-period">Billed monthly</div>
+                <ul class="price-features">
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Unlimited repairs</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Up to 5 users</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Inventory management</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Customer portal</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Priority support</li>
+                </ul>
+                <a href="plan-selection.html" class="btn btn-primary">Choose Professional</a>
+            </div>
+            <div class="price-card">
+                <div class="price-name">Enterprise</div>
+                <div class="price-desc">For multi-location businesses</div>
+                <div class="price-amount">$149<span>/mo</span></div>
+                <div class="price-period">Billed monthly</div>
+                <ul class="price-features">
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Everything in Professional</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Unlimited users</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Multi-location support</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Advanced analytics</li>
+                    <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M5 13l4 4L19 7" />
+                        </svg>Dedicated account manager</li>
+                </ul>
+                <a href="plan-selection.html" class="btn btn-outline">Choose Enterprise</a>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:32px">
+            <a href="plan-selection.html"
+                style="font-size:14px;font-weight:700;color:var(--orange);transition:opacity .2s">Compare all plan
+                features →</a>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <div class="testimonials-bg" id="testimonials">
+        <section class="section">
+            <div class="section-header center">
+                <div class="section-label" style="justify-content:center">Testimonials</div>
+                <h2 class="section-title">Loved by repair shops worldwide</h2>
+                <p class="section-sub">Don't just take our word for it — hear from shop owners who've transformed their
+                    business.</p>
+            </div>
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-stars">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </div>
+                    <p class="test-quote">"RepairBuddy cut our admin time in half. We went from sticky notes and
+                        spreadsheets to a fully organized shop in just one week."</p>
+                    <div class="test-author">
+                        <div class="test-avatar" style="background:linear-gradient(135deg,#e8590c,#f76707)">MK</div>
+                        <div>
+                            <div class="test-name">Mike Kowalski</div>
+                            <div class="test-role">QuickFix Electronics</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="test-card">
+                    <div class="test-stars">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </div>
+                    <p class="test-quote">"The customer portal alone is worth the subscription. Our clients love being
+                        able to check repair status online instead of calling."</p>
+                    <div class="test-author">
+                        <div class="test-avatar" style="background:linear-gradient(135deg,#1971c2,#4dabf7)">SR</div>
+                        <div>
+                            <div class="test-name">Sarah Rodriguez</div>
+                            <div class="test-role">Metro Auto Care</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="test-card">
+                    <div class="test-stars">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </div>
+                    <p class="test-quote">"We manage 3 locations with RepairBuddy Enterprise. The multi-location
+                        reporting gives us visibility we never had before."</p>
+                    <div class="test-author">
+                        <div class="test-avatar" style="background:linear-gradient(135deg,#7048e8,#9775fa)">JT</div>
+                        <div>
+                            <div class="test-name">James Thompson</div>
+                            <div class="test-role">TechStar Services</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- CTA BANNER -->
+    <div class="cta-banner">
+        <h2>Ready to transform your repair shop?</h2>
+        <p>Start your 14-day free trial. No credit card required.</p>
+        <a href="plan-selection.html" class="btn btn-primary">Get Started Free →</a>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="nav-brand">
+                    <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                        </svg></div>
+                    <span class="brand-name">RepairBuddy</span>
+                </div>
+                <p>The all-in-one repair shop management platform trusted by over 1,200 businesses worldwide.</p>
+            </div>
+            <div>
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#">Integrations</a></li>
+                    <li><a href="#">What's New</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">Status Page</a></li>
+                    <li><a href="#">Community</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div>© 2026 RepairBuddy. All rights reserved.</div>
+            <div style="display:flex;gap:20px">
+                <a href="#" style="color:var(--text-3);transition:color .2s">Privacy</a>
+                <a href="#" style="color:var(--text-3);transition:color .2s">Terms</a>
+                <a href="#" style="color:var(--text-3);transition:color .2s">Cookies</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 20);
+        });
+    </script>
+
+</body>
+
+</html>

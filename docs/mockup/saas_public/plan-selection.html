@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Choose Your Plan — RepairBuddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #faf9f7;
+            --surface: #fff;
+            --surface-2: #f5f3f0;
+            --border: #ebe8e3;
+            --border-2: #d9d4cd;
+            --text: #1a1714;
+            --text-2: #6b6560;
+            --text-3: #a09890;
+            --orange: #e8590c;
+            --orange-light: #f76707;
+            --orange-bg: #fff4ed;
+            --green: #2b8a3e;
+            --green-bg: #f0fdf4;
+            --blue: #1971c2;
+            --blue-bg: #eff6ff;
+            --purple: #7048e8;
+            --purple-bg: #f5f3ff;
+            --red: #e03131;
+            --red-bg: #fff1f2;
+            --r: 10px;
+            --r-sm: 6px;
+            --r-lg: 16px;
+            --sh: 0 1px 3px rgba(0, 0, 0, .06);
+            --sh-md: 0 4px 12px rgba(0, 0, 0, .08);
+            --sh-lg: 0 8px 30px rgba(0, 0, 0, .1);
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+
+        /* ─── NAVBAR ─── */
+        .navbar {
+            background: rgba(255, 255, 255, .92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            height: 68px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .25)
+        }
+
+        .logo-mark svg {
+            width: 18px;
+            height: 18px;
+            color: #fff
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -.02em
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: var(--r);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .2s
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-2)
+        }
+
+        .btn-ghost:hover {
+            color: var(--text);
+            background: var(--surface-2)
+        }
+
+        .btn-primary {
+            background: var(--orange);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(232, 89, 12, .3)
+        }
+
+        .btn-primary:hover {
+            background: #cf4c08;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(232, 89, 12, .35)
+        }
+
+        .btn-outline {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text)
+        }
+
+        .btn-outline:hover {
+            border-color: var(--orange);
+            color: var(--orange);
+            background: var(--orange-bg)
+        }
+
+        .btn-lg {
+            padding: 14px 32px;
+            font-size: 15px;
+            border-radius: var(--r-lg)
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px
+        }
+
+        /* ─── HEADER ─── */
+        .page-header {
+            text-align: center;
+            padding: 56px 32px 0;
+            max-width: 640px;
+            margin: 0 auto
+        }
+
+        .page-header h1 {
+            font-size: 38px;
+            font-weight: 800;
+            letter-spacing: -.03em;
+            margin-bottom: 14px
+        }
+
+        .page-header p {
+            font-size: 16px;
+            color: var(--text-2);
+            line-height: 1.6;
+            margin-bottom: 32px
+        }
+
+        /* ─── BILLING TOGGLE ─── */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 48px
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-3);
+            cursor: pointer;
+            transition: color .2s
+        }
+
+        .toggle-label.active {
+            color: var(--text)
+        }
+
+        .toggle-switch {
+            width: 52px;
+            height: 28px;
+            background: var(--border-2);
+            border-radius: 99px;
+            position: relative;
+            cursor: pointer;
+            transition: background .3s
+        }
+
+        .toggle-switch.on {
+            background: var(--orange)
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
+            transition: transform .3s
+        }
+
+        .toggle-switch.on::after {
+            transform: translateX(24px)
+        }
+
+        .save-badge {
+            background: var(--green-bg);
+            color: var(--green);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 99px
+        }
+
+        /* ─── PRICING CARDS ─── */
+        .pricing-section {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 32px 56px
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            align-items: start
+        }
+
+        .price-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: var(--sh);
+            transition: all .3s;
+            position: relative;
+            overflow: hidden
+        }
+
+        .price-card:hover {
+            box-shadow: var(--sh-lg);
+            transform: translateY(-4px)
+        }
+
+        .price-card.featured {
+            border-color: var(--orange);
+            box-shadow: 0 4px 24px rgba(232, 89, 12, .12);
+            transform: scale(1.03)
+        }
+
+        .price-card.featured:hover {
+            transform: scale(1.03) translateY(-4px)
+        }
+
+        .pc-popular {
+            background: var(--orange);
+            color: #fff;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 8px;
+            letter-spacing: .04em
+        }
+
+        .pc-body {
+            padding: 32px 28px
+        }
+
+        .pc-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px
+        }
+
+        .pc-icon svg {
+            width: 22px;
+            height: 22px
+        }
+
+        .pc-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px
+        }
+
+        .pc-desc {
+            font-size: 13.5px;
+            color: var(--text-3);
+            margin-bottom: 20px;
+            line-height: 1.5
+        }
+
+        .pc-price {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 4px
+        }
+
+        .pc-amount {
+            font-size: 44px;
+            font-weight: 800;
+            letter-spacing: -.03em;
+            line-height: 1
+        }
+
+        .pc-period {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-3)
+        }
+
+        .pc-annual-note {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-bottom: 24px
+        }
+
+        .pc-cta {
+            width: 100%;
+            justify-content: center;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-bottom: 24px
+        }
+
+        .pc-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border)
+        }
+
+        .pc-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13.5px;
+            color: var(--text-2);
+            line-height: 1.4
+        }
+
+        .pc-features li svg {
+            width: 17px;
+            height: 17px;
+            color: var(--green);
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .pc-features li.disabled {
+            color: var(--text-3)
+        }
+
+        .pc-features li.disabled svg {
+            color: var(--border-2)
+        }
+
+        /* ─── COMPARISON TABLE ─── */
+        .comparison-section {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 32px 72px
+        }
+
+        .comparison-header {
+            text-align: center;
+            margin-bottom: 32px
+        }
+
+        .comparison-header h2 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin-bottom: 8px
+        }
+
+        .comparison-header p {
+            font-size: 14px;
+            color: var(--text-3)
+        }
+
+        .comp-table {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            overflow: hidden;
+            box-shadow: var(--sh);
+            border-collapse: collapse
+        }
+
+        .comp-table thead th {
+            padding: 18px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+            background: var(--surface-2)
+        }
+
+        .comp-table thead th:first-child {
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-3)
+        }
+
+        .comp-table thead th.featured-col {
+            background: var(--orange-bg);
+            color: var(--orange)
+        }
+
+        .comp-table tbody td {
+            padding: 14px 20px;
+            font-size: 13px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-2)
+        }
+
+        .comp-table tbody td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .comp-table tbody tr:last-child td {
+            border-bottom: none
+        }
+
+        .comp-table tbody tr:hover {
+            background: var(--surface-2)
+        }
+
+        .comp-table .feat-col {
+            background: rgba(255, 244, 237, .3)
+        }
+
+        .check {
+            color: var(--green);
+            font-weight: 700
+        }
+
+        .cross {
+            color: var(--border-2)
+        }
+
+        /* ─── FAQ ─── */
+        .faq-section {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 32px 80px
+        }
+
+        .faq-header {
+            text-align: center;
+            margin-bottom: 36px
+        }
+
+        .faq-header h2 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin-bottom: 8px
+        }
+
+        .faq-header p {
+            font-size: 14px;
+            color: var(--text-3)
+        }
+
+        .faq-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            margin-bottom: 10px;
+            overflow: hidden;
+            transition: box-shadow .2s
+        }
+
+        .faq-item:hover {
+            box-shadow: var(--sh-md)
+        }
+
+        .faq-q {
+            padding: 18px 22px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            user-select: none
+        }
+
+        .faq-q svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-3);
+            flex-shrink: 0;
+            transition: transform .3s
+        }
+
+        .faq-item.open .faq-q svg {
+            transform: rotate(180deg);
+            color: var(--orange)
+        }
+
+        .faq-a {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .3s ease, padding .3s ease
+        }
+
+        .faq-item.open .faq-a {
+            max-height: 300px;
+            padding: 0 22px 18px
+        }
+
+        .faq-a p {
+            font-size: 13.5px;
+            color: var(--text-2);
+            line-height: 1.7
+        }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            padding: 28px 32px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-3)
+        }
+
+        .footer a {
+            color: var(--orange);
+            font-weight: 600
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media(max-width:1024px) {
+            .pricing-grid {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .price-card.featured {
+                transform: none;
+                grid-column: 1 / -1;
+                max-width: 400px;
+                margin: 0 auto
+            }
+        }
+
+        @media(max-width:640px) {
+            .pricing-grid {
+                grid-template-columns: 1fr
+            }
+
+            .price-card.featured {
+                max-width: 100%
+            }
+
+            .page-header h1 {
+                font-size: 28px
+            }
+
+            .comp-table {
+                font-size: 12px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="landing.html" class="nav-brand">
+                <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                    </svg></div>
+                <span class="brand-name">RepairBuddy</span>
+            </a>
+            <div class="nav-actions">
+                <a href="login.html" class="btn btn-ghost">Log In</a>
+                <a href="landing.html" class="btn btn-outline" style="font-size:13px;padding:8px 16px">← Back to
+                    Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <h1>Choose the right plan<br>for your shop</h1>
+        <p>All plans come with a 14-day free trial. No credit card required. Upgrade, downgrade, or cancel anytime.</p>
+
+        <!-- Billing Toggle -->
+        <div class="toggle-wrap">
+            <span class="toggle-label active" id="lbl-monthly">Monthly</span>
+            <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling()"></div>
+            <span class="toggle-label" id="lbl-annual">Annual</span>
+            <span class="save-badge">Save 20%</span>
+        </div>
+    </div>
+
+    <!-- PRICING CARDS -->
+    <div class="pricing-section">
+        <div class="pricing-grid">
+            <!-- Starter -->
+            <div class="price-card">
+                <div class="pc-body">
+                    <div class="pc-icon" style="background:var(--blue-bg);color:var(--blue)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div class="pc-name">Starter</div>
+                    <div class="pc-desc">Perfect for solo technicians and small shops just getting started.</div>
+                    <div class="pc-price">
+                        <span class="pc-amount" data-monthly="29" data-annual="23">$29</span>
+                        <span class="pc-period">/month</span>
+                    </div>
+                    <div class="pc-annual-note price-note">Billed monthly</div>
+                    <a href="register.html?plan=starter" class="btn btn-outline pc-cta">Start Free Trial</a>
+                    <ul class="pc-features">
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Up to 50 repairs/month</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>1 staff member</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Online booking page</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Basic invoicing</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Email notifications</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Email support</li>
+                        <li class="disabled"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 12H6" />
+                            </svg>Inventory management</li>
+                        <li class="disabled"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 12H6" />
+                            </svg>Customer portal</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Professional (Featured) -->
+            <div class="price-card featured">
+                <div class="pc-popular">⭐ MOST POPULAR</div>
+                <div class="pc-body">
+                    <div class="pc-icon" style="background:var(--orange-bg);color:var(--orange)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                    </div>
+                    <div class="pc-name">Professional</div>
+                    <div class="pc-desc">Best for growing repair shops that want to scale operations.</div>
+                    <div class="pc-price">
+                        <span class="pc-amount" data-monthly="79" data-annual="63">$79</span>
+                        <span class="pc-period">/month</span>
+                    </div>
+                    <div class="pc-annual-note price-note">Billed monthly</div>
+                    <a href="register.html?plan=professional" class="btn btn-primary pc-cta">Start Free Trial</a>
+                    <ul class="pc-features">
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Unlimited repairs</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Up to 5 staff members</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Online booking + SMS reminders</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Advanced invoicing + payments</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Inventory management</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Customer portal</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Reports & analytics</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Priority support</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="price-card">
+                <div class="pc-body">
+                    <div class="pc-icon" style="background:var(--purple-bg);color:var(--purple)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <div class="pc-name">Enterprise</div>
+                    <div class="pc-desc">For multi-location businesses that need full control and customisation.</div>
+                    <div class="pc-price">
+                        <span class="pc-amount" data-monthly="149" data-annual="119">$149</span>
+                        <span class="pc-period">/month</span>
+                    </div>
+                    <div class="pc-annual-note price-note">Billed monthly</div>
+                    <a href="register.html?plan=enterprise" class="btn btn-outline pc-cta">Start Free Trial</a>
+                    <ul class="pc-features">
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Everything in Professional</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Unlimited staff members</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Multi-location management</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Advanced analytics & exports</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>API access</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Custom branding</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>SSO / SAML integration</li>
+                        <li><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Dedicated account manager</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPARISON TABLE -->
+    <div class="comparison-section">
+        <div class="comparison-header">
+            <h2>Detailed feature comparison</h2>
+            <p>See exactly what's included in each plan</p>
+        </div>
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Starter</th>
+                    <th class="featured-col">Professional</th>
+                    <th>Enterprise</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Monthly Repairs</td>
+                    <td>50</td>
+                    <td class="feat-col">Unlimited</td>
+                    <td>Unlimited</td>
+                </tr>
+                <tr>
+                    <td>Staff Members</td>
+                    <td>1</td>
+                    <td class="feat-col">5</td>
+                    <td>Unlimited</td>
+                </tr>
+                <tr>
+                    <td>Online Booking</td>
+                    <td class="check">✓</td>
+                    <td class="feat-col check">✓</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>SMS Reminders</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col check">✓</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>Invoicing</td>
+                    <td>Basic</td>
+                    <td class="feat-col">Advanced</td>
+                    <td>Advanced</td>
+                </tr>
+                <tr>
+                    <td>Online Payments</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col check">✓</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>Inventory Management</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col check">✓</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>Customer Portal</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col check">✓</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>Reports & Analytics</td>
+                    <td>Basic</td>
+                    <td class="feat-col">Standard</td>
+                    <td>Advanced</td>
+                </tr>
+                <tr>
+                    <td>Multi-location</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col cross">—</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>API Access</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col cross">—</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>Custom Branding</td>
+                    <td class="cross">—</td>
+                    <td class="feat-col cross">—</td>
+                    <td class="check">✓</td>
+                </tr>
+                <tr>
+                    <td>Support</td>
+                    <td>Email</td>
+                    <td class="feat-col">Priority</td>
+                    <td>Dedicated Manager</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-section">
+        <div class="faq-header">
+            <h2>Frequently asked questions</h2>
+            <p>Everything you need to know about RepairBuddy pricing</p>
+        </div>
+
+        <div class="faq-item open">
+            <div class="faq-q" onclick="toggleFaq(this)">
+                Can I try RepairBuddy for free?
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+            <div class="faq-a">
+                <p>Absolutely! Every plan comes with a 14-day free trial. No credit card required. You'll have full
+                    access to all features in your chosen plan during the trial period.</p>
+            </div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(this)">
+                Can I change plans later?
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+            <div class="faq-a">
+                <p>Yes, you can upgrade or downgrade at any time. When upgrading, you'll be charged the prorated
+                    difference immediately. Downgrading takes effect at the next billing cycle.</p>
+            </div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(this)">
+                What payment methods do you accept?
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+            <div class="faq-a">
+                <p>We accept all major credit cards (Visa, Mastercard, American Express) and PayPal. Enterprise
+                    customers can also pay via bank transfer or invoice.</p>
+            </div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(this)">
+                Is there a contract or can I cancel anytime?
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+            <div class="faq-a">
+                <p>There are no long-term contracts. You can cancel your subscription at any time. Your account will
+                    remain active until the end of your current billing period.</p>
+            </div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(this)">
+                Do you offer discounts for annual billing?
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+            <div class="faq-a">
+                <p>Yes! When you choose annual billing, you save 20% compared to monthly billing. That's like getting
+                    over 2 months free each year.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>© 2026 RepairBuddy. All rights reserved. <a href="landing.html">Back to Home</a></p>
+    </footer>
+
+    <script>
+        // Billing toggle
+        let isAnnual = false;
+        function toggleBilling() {
+            isAnnual = !isAnnual;
+            const toggle = document.getElementById('billing-toggle');
+            const lblM = document.getElementById('lbl-monthly');
+            const lblA = document.getElementById('lbl-annual');
+
+            toggle.classList.toggle('on', isAnnual);
+            lblM.classList.toggle('active', !isAnnual);
+            lblA.classList.toggle('active', isAnnual);
+
+            document.querySelectorAll('.pc-amount').forEach(el => {
+                const m = el.dataset.monthly;
+                const a = el.dataset.annual;
+                el.textContent = '$' + (isAnnual ? a : m);
+            });
+            document.querySelectorAll('.price-note').forEach(el => {
+                el.textContent = isAnnual ? 'Billed annually' : 'Billed monthly';
+            });
+        }
+
+        // FAQ accordion
+        function toggleFaq(el) {
+            const item = el.parentElement;
+            const wasOpen = item.classList.contains('open');
+            document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+            if (!wasOpen) item.classList.add('open');
+        }
+    </script>
+
+</body>
+
+</html>

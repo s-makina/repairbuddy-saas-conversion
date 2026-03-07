@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Set Up Your Business — RepairBuddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #faf9f7;
+            --surface: #fff;
+            --surface-2: #f5f3f0;
+            --border: #ebe8e3;
+            --border-2: #d9d4cd;
+            --text: #1a1714;
+            --text-2: #6b6560;
+            --text-3: #a09890;
+            --orange: #e8590c;
+            --orange-light: #f76707;
+            --orange-bg: #fff4ed;
+            --green: #2b8a3e;
+            --green-bg: #f0fdf4;
+            --blue: #1971c2;
+            --blue-bg: #eff6ff;
+            --purple: #7048e8;
+            --purple-bg: #f5f3ff;
+            --red: #e03131;
+            --red-bg: #fff1f2;
+            --r: 10px;
+            --r-sm: 6px;
+            --r-lg: 16px;
+            --sh: 0 1px 3px rgba(0, 0, 0, .06);
+            --sh-md: 0 4px 12px rgba(0, 0, 0, .08);
+            --sh-lg: 0 8px 30px rgba(0, 0, 0, .1);
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+
+        /* ─── TOPBAR ─── */
+        .topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            flex-shrink: 0
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(232, 89, 12, .25)
+        }
+
+        .logo-mark svg {
+            width: 18px;
+            height: 18px;
+            color: #fff
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -.02em
+        }
+
+        .tb-right {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .tb-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-2)
+        }
+
+        .tb-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e8590c, #f76707);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff
+        }
+
+        .skip-link {
+            font-size: 13px;
+            color: var(--text-3);
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--r-sm);
+            transition: all .2s
+        }
+
+        .skip-link:hover {
+            color: var(--orange);
+            background: var(--orange-bg)
+        }
+
+        /* ─── MAIN LAYOUT ─── */
+        .setup-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 32px 48px
+        }
+
+        /* ─── PROGRESS ─── */
+        .progress-section {
+            margin-bottom: 36px
+        }
+
+        .progress-steps {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            position: relative
+        }
+
+        .p-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            position: relative;
+            cursor: pointer
+        }
+
+        .p-step:not(:last-child)::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: var(--border);
+            margin: 0 8px;
+            transition: background .3s
+        }
+
+        .p-step.done:not(:last-child)::after {
+            background: var(--orange)
+        }
+
+        .p-num {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-3);
+            background: var(--surface);
+            flex-shrink: 0;
+            transition: all .3s;
+            position: relative;
+            z-index: 1
+        }
+
+        .p-step.active .p-num {
+            border-color: var(--orange);
+            background: var(--orange);
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(232, 89, 12, .12)
+        }
+
+        .p-step.done .p-num {
+            border-color: var(--orange);
+            background: var(--orange-bg);
+            color: var(--orange)
+        }
+
+        .p-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-3);
+            white-space: nowrap;
+            transition: color .3s
+        }
+
+        .p-step.active .p-label {
+            color: var(--text)
+        }
+
+        .p-step.done .p-label {
+            color: var(--orange)
+        }
+
+        /* ─── WIZARD CARD ─── */
+        .wizard-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--sh-md);
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column
+        }
+
+        .wc-header {
+            padding: 28px 32px 0;
+            margin-bottom: 24px
+        }
+
+        .wc-header h2 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin-bottom: 6px
+        }
+
+        .wc-header p {
+            font-size: 14px;
+            color: var(--text-2);
+            line-height: 1.5
+        }
+
+        .wc-body {
+            padding: 0 32px;
+            flex: 1
+        }
+
+        .wc-footer {
+            padding: 20px 32px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface-2);
+            margin-top: auto
+        }
+
+        /* ─── BUTTONS ─── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 24px;
+            border-radius: var(--r);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            transition: all .2s
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px
+        }
+
+        .btn-primary {
+            background: var(--orange);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(232, 89, 12, .3)
+        }
+
+        .btn-primary:hover {
+            background: #cf4c08;
+            transform: translateY(-1px)
+        }
+
+        .btn-ghost {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text-2)
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface-2);
+            color: var(--text)
+        }
+
+        .btn-success {
+            background: var(--green);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(43, 138, 62, .3);
+            padding: 14px 36px;
+            font-size: 15px;
+            border-radius: var(--r-lg)
+        }
+
+        .btn-success:hover {
+            background: #237032;
+            transform: translateY(-1px)
+        }
+
+        .btn-secondary {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-2)
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+            color: var(--text)
+        }
+
+        /* ─── FORM ELEMENTS ─── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px
+        }
+
+        .form-group {
+            margin-bottom: 0
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 7px
+        }
+
+        .form-sub {
+            font-size: 11.5px;
+            color: var(--text-3);
+            font-weight: 400;
+            margin-left: 4px
+        }
+
+        .input-wrap {
+            position: relative
+        }
+
+        .input-wrap svg {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 17px;
+            height: 17px;
+            color: var(--text-3);
+            pointer-events: none
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 11px 14px 11px 42px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            transition: all .2s
+        }
+
+        .form-input:focus {
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
+        }
+
+        .form-input::placeholder {
+            color: var(--text-3);
+            font-weight: 400
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 11px 36px 11px 42px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            cursor: pointer;
+            transition: all .2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center
+        }
+
+        .form-select:focus {
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
+        }
+
+        textarea.form-input {
+            padding: 11px 14px;
+            min-height: 80px;
+            resize: vertical
+        }
+
+        /* ─── STEP-SPECIFIC: WORKING HOURS ─── */
+        .hours-table {
+            width: 100%
+        }
+
+        .hour-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .hour-row:last-child {
+            border-bottom: none
+        }
+
+        .hour-toggle {
+            width: 40px;
+            height: 22px;
+            border-radius: 99px;
+            background: var(--border-2);
+            position: relative;
+            cursor: pointer;
+            transition: background .3s;
+            flex-shrink: 0;
+            border: none
+        }
+
+        .hour-toggle.on {
+            background: var(--orange)
+        }
+
+        .hour-toggle::after {
+            content: '';
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .15);
+            transition: transform .3s
+        }
+
+        .hour-toggle.on::after {
+            transform: translateX(18px)
+        }
+
+        .hour-day {
+            width: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0
+        }
+
+        .hour-times {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1
+        }
+
+        .hour-times select {
+            padding: 7px 28px 7px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center
+        }
+
+        .hour-times span {
+            font-size: 12px;
+            color: var(--text-3)
+        }
+
+        .hour-closed {
+            font-size: 13px;
+            color: var(--text-3);
+            font-style: italic
+        }
+
+        /* ─── STEP-SPECIFIC: SERVICES ─── */
+        .service-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px
+        }
+
+        .service-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: center;
+            background: var(--surface-2);
+            padding: 14px 16px;
+            border-radius: var(--r);
+            border: 1px solid var(--border)
+        }
+
+        .service-item input {
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            transition: border-color .2s
+        }
+
+        .service-item input:focus {
+            border-color: var(--orange)
+        }
+
+        .remove-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s;
+            flex-shrink: 0
+        }
+
+        .remove-btn:hover {
+            background: var(--red-bg);
+            border-color: var(--red);
+            color: var(--red)
+        }
+
+        .remove-btn svg {
+            width: 14px;
+            height: 14px;
+            color: var(--text-3)
+        }
+
+        .remove-btn:hover svg {
+            color: var(--red)
+        }
+
+        .add-service-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--surface);
+            border: 1.5px dashed var(--border-2);
+            border-radius: var(--r);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--orange);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all .2s
+        }
+
+        .add-service-btn:hover {
+            background: var(--orange-bg);
+            border-color: var(--orange)
+        }
+
+        .add-service-btn svg {
+            width: 16px;
+            height: 16px
+        }
+
+        /* ─── STEP-SPECIFIC: REVIEW ─── */
+        .review-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 20px
+        }
+
+        .review-block {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 20px;
+            position: relative
+        }
+
+        .review-block-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .review-block-title a {
+            font-size: 12px;
+            color: var(--orange);
+            font-weight: 600
+        }
+
+        .review-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            font-size: 13px
+        }
+
+        .review-row:not(:last-child) {
+            border-bottom: 1px solid var(--border)
+        }
+
+        .review-label {
+            color: var(--text-3)
+        }
+
+        .review-value {
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .review-badge {
+            display: inline-flex;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .launch-section {
+            text-align: center;
+            padding: 20px 0
+        }
+
+        .launch-section p {
+            font-size: 14px;
+            color: var(--text-2);
+            margin-bottom: 20px
+        }
+
+        /* ─── TABS (STEPS) ─── */
+        .step-panel {
+            display: none
+        }
+
+        .step-panel.active {
+            display: block;
+            animation: fadeIn .3s ease
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media(max-width:768px) {
+            .form-grid {
+                grid-template-columns: 1fr
+            }
+
+            .service-item {
+                grid-template-columns: 1fr;
+                gap: 8px
+            }
+
+            .p-label {
+                display: none
+            }
+
+            .progress-steps {
+                justify-content: center
+            }
+
+            .hour-times {
+                flex-wrap: wrap
+            }
+        }
+
+        @media(max-width:500px) {
+            .setup-main {
+                padding: 20px 16px
+            }
+
+            .wc-header,
+            .wc-body {
+                padding-left: 20px;
+                padding-right: 20px
+            }
+
+            .wc-footer {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 10px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <div class="nav-brand">
+            <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                </svg></div>
+            <span class="brand-name">RepairBuddy</span>
+        </div>
+        <div class="tb-right">
+            <a href="#" class="skip-link">Skip for now →</a>
+            <div class="tb-user">
+                <div class="tb-avatar">JD</div>
+                John Doe
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="setup-main">
+
+        <!-- PROGRESS -->
+        <div class="progress-section">
+            <div class="progress-steps">
+                <div class="p-step active" data-step="1" onclick="goToStep(1)">
+                    <div class="p-num">1</div>
+                    <span class="p-label">Business Info</span>
+                </div>
+                <div class="p-step" data-step="2" onclick="goToStep(2)">
+                    <div class="p-num">2</div>
+                    <span class="p-label">Working Hours</span>
+                </div>
+                <div class="p-step" data-step="3" onclick="goToStep(3)">
+                    <div class="p-num">3</div>
+                    <span class="p-label">Services</span>
+                </div>
+                <div class="p-step" data-step="4" onclick="goToStep(4)">
+                    <div class="p-num">4</div>
+                    <span class="p-label">Review & Launch</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- WIZARD CARD -->
+        <div class="wizard-card">
+
+            <!-- STEP 1: Business Info -->
+            <div class="step-panel active" id="step-1">
+                <div class="wc-header">
+                    <h2>Tell us about your business</h2>
+                    <p>This information helps us set up your workspace and customise your experience.</p>
+                </div>
+                <div class="wc-body">
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label class="form-label">Business Name</label>
+                            <div class="input-wrap">
+                                <input type="text" class="form-input" placeholder="e.g. QuickFix Electronics"
+                                    value="QuickFix Electronics">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Industry</label>
+                            <div class="input-wrap">
+                                <select class="form-select" style="padding-left:42px">
+                                    <option>Electronics Repair</option>
+                                    <option>Phone & Tablet Repair</option>
+                                    <option>Computer Repair</option>
+                                    <option>Auto Repair</option>
+                                    <option>Appliance Repair</option>
+                                    <option>Watch & Jewelry Repair</option>
+                                    <option>General Repairs</option>
+                                    <option>Other</option>
+                                </select>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 13.255A23.193 23.193 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <div class="input-wrap">
+                                <input type="tel" class="form-input" placeholder="+1 (555) 000-0000"
+                                    value="+1 (555) 123-4567">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="form-group full">
+                            <label class="form-label">Business Address</label>
+                            <div class="input-wrap">
+                                <input type="text" class="form-input" placeholder="123 Main St, City, State, ZIP"
+                                    value="742 Maple Avenue, Portland, OR 97201">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Country</label>
+                            <div class="input-wrap">
+                                <select class="form-select" style="padding-left:42px">
+                                    <option selected>United States</option>
+                                    <option>Canada</option>
+                                    <option>United Kingdom</option>
+                                    <option>Australia</option>
+                                    <option>Other</option>
+                                </select>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Timezone</label>
+                            <div class="input-wrap">
+                                <select class="form-select" style="padding-left:42px">
+                                    <option>Pacific Time (PT)</option>
+                                    <option>Mountain Time (MT)</option>
+                                    <option selected>Eastern Time (ET)</option>
+                                    <option>Central Time (CT)</option>
+                                    <option>GMT</option>
+                                    <option>CET</option>
+                                </select>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Working Hours -->
+            <div class="step-panel" id="step-2">
+                <div class="wc-header">
+                    <h2>Set your working hours</h2>
+                    <p>Define when your shop is open. Customers will only be able to book during these hours.</p>
+                </div>
+                <div class="wc-body">
+                    <div class="hours-table">
+                        <div class="hour-row">
+                            <button class="hour-toggle on" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Monday</div>
+                            <div class="hour-times">
+                                <select>
+                                    <option>8:00 AM</option>
+                                    <option selected>9:00 AM</option>
+                                    <option>10:00 AM</option>
+                                </select>
+                                <span>to</span>
+                                <select>
+                                    <option>4:00 PM</option>
+                                    <option>5:00 PM</option>
+                                    <option selected>6:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hour-row">
+                            <button class="hour-toggle on" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Tuesday</div>
+                            <div class="hour-times">
+                                <select>
+                                    <option>8:00 AM</option>
+                                    <option selected>9:00 AM</option>
+                                    <option>10:00 AM</option>
+                                </select>
+                                <span>to</span>
+                                <select>
+                                    <option>4:00 PM</option>
+                                    <option>5:00 PM</option>
+                                    <option selected>6:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hour-row">
+                            <button class="hour-toggle on" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Wednesday</div>
+                            <div class="hour-times">
+                                <select>
+                                    <option>8:00 AM</option>
+                                    <option selected>9:00 AM</option>
+                                    <option>10:00 AM</option>
+                                </select>
+                                <span>to</span>
+                                <select>
+                                    <option>4:00 PM</option>
+                                    <option>5:00 PM</option>
+                                    <option selected>6:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hour-row">
+                            <button class="hour-toggle on" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Thursday</div>
+                            <div class="hour-times">
+                                <select>
+                                    <option>8:00 AM</option>
+                                    <option selected>9:00 AM</option>
+                                    <option>10:00 AM</option>
+                                </select>
+                                <span>to</span>
+                                <select>
+                                    <option>4:00 PM</option>
+                                    <option>5:00 PM</option>
+                                    <option selected>6:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hour-row">
+                            <button class="hour-toggle on" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Friday</div>
+                            <div class="hour-times">
+                                <select>
+                                    <option>8:00 AM</option>
+                                    <option selected>9:00 AM</option>
+                                    <option>10:00 AM</option>
+                                </select>
+                                <span>to</span>
+                                <select>
+                                    <option>4:00 PM</option>
+                                    <option selected>5:00 PM</option>
+                                    <option>6:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hour-row">
+                            <button class="hour-toggle on" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Saturday</div>
+                            <div class="hour-times">
+                                <select>
+                                    <option>8:00 AM</option>
+                                    <option selected>10:00 AM</option>
+                                    <option>11:00 AM</option>
+                                </select>
+                                <span>to</span>
+                                <select>
+                                    <option>1:00 PM</option>
+                                    <option selected>3:00 PM</option>
+                                    <option>4:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hour-row">
+                            <button class="hour-toggle" onclick="this.classList.toggle('on')"></button>
+                            <div class="hour-day">Sunday</div>
+                            <div class="hour-times">
+                                <span class="hour-closed">Closed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Services -->
+            <div class="step-panel" id="step-3">
+                <div class="wc-header">
+                    <h2>Add your services</h2>
+                    <p>List the repair services you offer. You can always add more later.</p>
+                </div>
+                <div class="wc-body">
+                    <div
+                        style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;margin-bottom:10px;padding:0 16px;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">
+                        <div>Service Name</div>
+                        <div>Price</div>
+                        <div>Duration</div>
+                        <div style="width:32px"></div>
+                    </div>
+                    <div class="service-list">
+                        <div class="service-item">
+                            <input type="text" placeholder="Service name" value="Screen Replacement">
+                            <input type="text" placeholder="$0.00" value="$89.00">
+                            <input type="text" placeholder="e.g. 1hr" value="45 min">
+                            <button class="remove-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg></button>
+                        </div>
+                        <div class="service-item">
+                            <input type="text" placeholder="Service name" value="Battery Replacement">
+                            <input type="text" placeholder="$0.00" value="$49.00">
+                            <input type="text" placeholder="e.g. 1hr" value="30 min">
+                            <button class="remove-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg></button>
+                        </div>
+                        <div class="service-item">
+                            <input type="text" placeholder="Service name" value="Diagnostic Check">
+                            <input type="text" placeholder="$0.00" value="$29.00">
+                            <input type="text" placeholder="e.g. 1hr" value="20 min">
+                            <button class="remove-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg></button>
+                        </div>
+                        <div class="service-item">
+                            <input type="text" placeholder="Service name" value="Water Damage Repair">
+                            <input type="text" placeholder="$0.00" value="$129.00">
+                            <input type="text" placeholder="e.g. 1hr" value="2 hrs">
+                            <button class="remove-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg></button>
+                        </div>
+                    </div>
+                    <button class="add-service-btn">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Another Service
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 4: Review & Launch -->
+            <div class="step-panel" id="step-4">
+                <div class="wc-header">
+                    <h2>Review & launch</h2>
+                    <p>Everything looks good? Hit launch to start using RepairBuddy!</p>
+                </div>
+                <div class="wc-body">
+                    <div class="review-sections">
+                        <!-- Business Info -->
+                        <div class="review-block">
+                            <div class="review-block-title">
+                                <span>📋 Business Information</span>
+                                <a href="#" onclick="goToStep(1);return false">Edit</a>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Business Name</span>
+                                <span class="review-value">QuickFix Electronics</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Industry</span>
+                                <span class="review-value">Electronics Repair</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Phone</span>
+                                <span class="review-value">+1 (555) 123-4567</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Address</span>
+                                <span class="review-value">742 Maple Ave, Portland, OR</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Timezone</span>
+                                <span class="review-value">Eastern Time (ET)</span>
+                            </div>
+                        </div>
+
+                        <!-- Working Hours -->
+                        <div class="review-block">
+                            <div class="review-block-title">
+                                <span>🕐 Working Hours</span>
+                                <a href="#" onclick="goToStep(2);return false">Edit</a>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Mon – Fri</span>
+                                <span class="review-value">9:00 AM – 6:00 PM</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Saturday</span>
+                                <span class="review-value">10:00 AM – 3:00 PM</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Sunday</span>
+                                <span class="review-value" style="color:var(--red)">Closed</span>
+                            </div>
+                        </div>
+
+                        <!-- Services -->
+                        <div class="review-block">
+                            <div class="review-block-title">
+                                <span>🔧 Services (4)</span>
+                                <a href="#" onclick="goToStep(3);return false">Edit</a>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Screen Replacement</span>
+                                <span class="review-value">$89.00 · 45 min</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Battery Replacement</span>
+                                <span class="review-value">$49.00 · 30 min</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Diagnostic Check</span>
+                                <span class="review-value">$29.00 · 20 min</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Water Damage Repair</span>
+                                <span class="review-value">$129.00 · 2 hrs</span>
+                            </div>
+                        </div>
+
+                        <!-- Plan -->
+                        <div class="review-block" style="background:var(--orange-bg);border-color:rgba(232,89,12,.15)">
+                            <div class="review-block-title">
+                                <span>⭐ Your Plan</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Plan</span>
+                                <span class="review-value"
+                                    style="color:var(--orange);font-weight:700">Professional</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Billing</span>
+                                <span class="review-value">$79.00/month</span>
+                            </div>
+                            <div class="review-row">
+                                <span class="review-label">Trial</span>
+                                <span class="review-value" style="color:var(--green);font-weight:700">14 days
+                                    free</span>
+                            </div>
+                        </div>
+
+                        <!-- Launch -->
+                        <div class="launch-section">
+                            <p>🎉 Your workspace is ready. Launch it and start managing your repair shop like a pro!
+                            </p>
+                            <button class="btn btn-success">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    style="width:18px;height:18px">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Launch Your Business
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER NAV -->
+            <div class="wc-footer" id="wizard-footer">
+                <button class="btn btn-ghost" id="btn-prev" onclick="prevStep()" style="visibility:hidden">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Previous
+                </button>
+                <div style="font-size:12px;color:var(--text-3)">Step <span id="step-current">1</span> of 4</div>
+                <button class="btn btn-primary" id="btn-next" onclick="nextStep()">
+                    Next Step
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        function goToStep(n) {
+            if (n < 1 || n > totalSteps) return;
+            currentStep = n;
+            updateUI();
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            // Panels
+            document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('step-' + currentStep).classList.add('active');
+
+            // Progress indicators
+            document.querySelectorAll('.p-step').forEach(s => {
+                const sn = parseInt(s.dataset.step);
+                s.classList.remove('active', 'done');
+                if (sn === currentStep) s.classList.add('active');
+                else if (sn < currentStep) s.classList.add('done');
+            });
+
+            // Buttons
+            document.getElementById('btn-prev').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+            const nextBtn = document.getElementById('btn-next');
+            if (currentStep === totalSteps) {
+                nextBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'inline-flex';
+            }
+
+            // Counter
+            document.getElementById('step-current').textContent = currentStep;
+        }
+    </script>
+
+</body>
+
+</html>
