@@ -264,15 +264,50 @@ class TenantController extends Controller
         }
 
         $tenantsOut = [];
+
+        // Batch load owners and user counts for the listed tenants
+        $owners = [];
+        $userCounts = [];
+        if (count($tenantIds) > 0) {
+            $ownerRows = User::query()
+                ->whereIn('tenant_id', $tenantIds)
+                ->where('role', 'owner')
+                ->select(['id', 'tenant_id', 'name', 'email'])
+                ->get();
+
+            foreach ($ownerRows as $o) {
+                $tid = (int) ($o->tenant_id ?? 0);
+                if ($tid > 0 && !isset($owners[$tid])) {
+                    $owners[$tid] = ['id' => $o->id, 'name' => $o->name, 'email' => $o->email];
+                }
+            }
+
+            $countRows = DB::table('users')
+                ->whereIn('tenant_id', $tenantIds)
+                ->where('is_admin', false)
+                ->select(['tenant_id', DB::raw('count(*) as c')])
+                ->groupBy('tenant_id')
+                ->get();
+
+            foreach ($countRows as $row) {
+                $tid = (int) ($row->tenant_id ?? 0);
+                if ($tid > 0) {
+                    $userCounts[$tid] = (int) ($row->c ?? 0);
+                }
+            }
+        }
+
         foreach ($tenantItems as $t) {
             $tenantId = is_array($t) ? (int) ($t['id'] ?? 0) : (int) ($t->id ?? 0);
             $base = is_array($t) ? $t : $t->toArray();
             $base['billing_snapshot'] = $tenantId > 0 ? ($snapshots[$tenantId] ?? null) : null;
+            $base['owner'] = $tenantId > 0 ? ($owners[$tenantId] ?? null) : null;
+            $base['user_count'] = $tenantId > 0 ? ($userCounts[$tenantId] ?? 0) : 0;
             $tenantsOut[] = $base;
         }
 
         return response()->json([
-            'tenants' => $tenantsOut,
+            'data' => $tenantsOut,
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -440,9 +475,19 @@ class TenantController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:64', 'unique:tenants,slug'],
             'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:50'],
+            'currency' => ['nullable', 'string', 'max:10'],
+            'billing_country' => ['nullable', 'string', 'max:10'],
+            'timezone' => ['nullable', 'string', 'max:100'],
+            'language' => ['nullable', 'string', 'max:10'],
+            'status' => ['nullable', 'string', 'in:trial,active'],
             'owner_name' => ['required', 'string', 'max:255'],
             'owner_email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'owner_password' => ['required', 'string', 'min:8'],
+            'owner_phone' => ['nullable', 'string', 'max:50'],
+            'skip_email_verification' => ['nullable', 'boolean'],
+            'must_change_password' => ['nullable', 'boolean'],
+            'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
         $ownerPermissions = [
@@ -513,12 +558,19 @@ class TenantController extends Controller
                 $i++;
             }
 
+            $tenantStatus = ($validated['status'] ?? 'active') === 'trial' ? 'trial' : 'active';
+
             $tenant = Tenant::query()->create([
                 'name' => $validated['name'],
                 'slug' => $slug,
-                'status' => 'active',
+                'status' => $tenantStatus,
                 'contact_email' => $validated['contact_email'] ?? $validated['owner_email'],
-                'activated_at' => now(),
+                'contact_phone' => $validated['contact_phone'] ?? null,
+                'currency' => $validated['currency'] ?? null,
+                'billing_country' => $validated['billing_country'] ?? null,
+                'timezone' => $validated['timezone'] ?? null,
+                'language' => $validated['language'] ?? null,
+                'activated_at' => $tenantStatus === 'active' ? now() : null,
             ]);
 
             foreach (Permissions::all() as $permName) {
@@ -556,20 +608,26 @@ class TenantController extends Controller
                 return $permissionIdsByName[$name] ?? null;
             }, $technicianPermissions))));
 
+            $skipVerification = (bool) ($validated['skip_email_verification'] ?? false);
+            $mustChangePassword = (bool) ($validated['must_change_password'] ?? true);
+
             $owner = User::query()->create([
                 'name' => $validated['owner_name'],
                 'email' => $validated['owner_email'],
                 'password' => Hash::make($validated['owner_password']),
+                'phone' => $validated['owner_phone'] ?? null,
                 'tenant_id' => $tenant->id,
                 'role' => 'owner',
                 'role_id' => $ownerRole->id,
                 'is_admin' => false,
+                'must_change_password' => $mustChangePassword,
+                'email_verified_at' => $skipVerification ? now() : null,
             ]);
 
             return [$tenant, $owner];
         });
 
-        PlatformAudit::log($request, 'tenant.created', $tenant, null, [
+        PlatformAudit::log($request, 'tenant.created', $tenant, $validated['reason'] ?? null, [
             'owner_user_id' => $owner->id,
         ]);
 

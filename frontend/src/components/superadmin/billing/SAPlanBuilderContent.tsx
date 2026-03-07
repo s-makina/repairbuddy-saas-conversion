@@ -160,9 +160,23 @@ export function SAPlanBuilderContent() {
         billingIntervalId: allIntervals[0]?.id ?? null,
         amount: "",
         trialDays: "0",
-        isDefault: t.length === 0,
+        isDefault: true,
       },
     ]);
+
+  // When marking a tier as default, un-default any other tier with the same currency+interval pair.
+  const toggleDefault = (idx: number) => {
+    setPriceTiers((tiers) => {
+      const tier = tiers[idx];
+      return tiers.map((t, i) => {
+        if (i === idx) return { ...t, isDefault: true };
+        if (t.currency === tier.currency && t.billingIntervalId === tier.billingIntervalId) {
+          return { ...t, isDefault: false };
+        }
+        return t;
+      });
+    });
+  };
 
   const removeTier = (i: number) => {
     setPriceTiers((t) => {
@@ -397,402 +411,16 @@ export function SAPlanBuilderContent() {
   }
 
   const visibleTiers = priceTiers.filter((t) => !t._deleted);
+  const entitlementCategories = [...new Set(allEntitlements.map((e) => e.is_premium ? "Premium Features" : "Standard Features"))];
+  const selectedEnts = allEntitlements.filter((e) => selectedEntitlements.has(e.id));
 
-  // ── Stepper ──
-  const Stepper = () => (
-    <div className="sa-panel" style={{ padding: "20px 24px" }}>
-      <div className="sa-stepper">
-        {STEPS.map((label, i) => (
-          <div
-            key={label}
-            className={`sa-step${i === step ? " active" : ""}${i < step ? " done" : ""}`}
-            onClick={() => i < step && setStep(i)}
-            style={{ cursor: i < step ? "pointer" : "default" }}
-          >
-            <div className="sa-step-num">
-              {i < step ? <Check style={{ width: 14, height: 14 }} /> : i + 1}
-            </div>
-            <span className="sa-step-label">{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
-  // ── Step 1: Details ──
-  const StepDetails = () => (
-    <div className="sa-form-panel" style={{ position: "static" }}>
-      <div className="sa-fp-header">
-        <div className="sa-fp-title">Plan Details</div>
-        <div className="sa-fp-desc">Define the basic information for this billing plan.</div>
-      </div>
-      <div className="sa-fp-body">
-        <div className="sa-form-group">
-          <label className="sa-label">Plan Name <span className="sa-req">*</span></label>
-          <input className="sa-input" name="name" value={details.name} onChange={handleDetailChange} placeholder="e.g. Professional" />
-          <div className="sa-form-hint">The display name shown to tenants.</div>
-        </div>
-        <div className="sa-form-row">
-          <div className="sa-form-group">
-            <label className="sa-label">Code</label>
-            <input
-              className="sa-input"
-              name="code"
-              value={details.code}
-              onChange={handleDetailChange}
-              placeholder="e.g. professional (auto-generated)"
-              disabled={isEditMode}
-              style={isEditMode ? { background: "#f3f4f6", cursor: "not-allowed" } : undefined}
-            />
-            <div className="sa-form-hint">Unique identifier.{isEditMode ? " Cannot be changed." : " Auto-generated from name if left empty."}</div>
-          </div>
-        </div>
-        <div className="sa-form-group">
-          <label className="sa-label">Description</label>
-          <textarea className="sa-textarea" name="description" value={details.description} onChange={handleDetailChange} rows={3} placeholder="Describe what this plan includes…" />
-        </div>
-        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--sa-border)" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--sa-text)", marginBottom: 12 }}>Plan Options</div>
-          <div className="sa-toggle-wrap">
-            <button type="button" className={`sa-toggle${details.isActive ? " on" : ""}`} onClick={() => setDetails({ ...details, isActive: !details.isActive })} />
-            <div className="sa-toggle-info">
-              <div className="sa-toggle-label">Active</div>
-              <div className="sa-toggle-desc">Make this plan visible and available for purchase.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="sa-fp-footer">
-        <SAButton variant="ghost" onClick={() => router.push("/superadmin/billing/plans")}>Cancel</SAButton>
-        <div className="sa-fp-footer-end">
-          <SAButton variant="ghost" icon={<Save size={14} />} onClick={saveDraft} disabled={saving}>
-            {saving ? "Saving..." : "Save Draft"}
-          </SAButton>
-          <SAButton variant="primary" icon={<ArrowRight size={14} />} onClick={goNext} disabled={saving}>
-            Next: Pricing
-          </SAButton>
-        </div>
-      </div>
-    </div>
-  );
 
-  // ── Step 2: Pricing ──
-  const StepPricing = () => (
-    <div className="sa-form-panel" style={{ position: "static" }}>
-      <div className="sa-fp-header">
-        <div className="sa-fp-title">Plan Pricing</div>
-        <div className="sa-fp-desc">Define pricing tiers for different currencies and billing intervals.</div>
-      </div>
-      <div className="sa-fp-body">
-        {!draftVersion && (
-          <div style={{ padding: "12px 16px", background: "#fef3c7", borderRadius: 6, color: "#92400e", fontSize: 13, marginBottom: 16 }}>
-            Save plan details first to configure pricing.
-          </div>
-        )}
-        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--sa-text)" }}>Price Tiers</div>
-          <SAButton variant="ghost" icon={<Plus size={13} />} onClick={addTier} disabled={!draftVersion}>Add Price</SAButton>
-        </div>
-        {visibleTiers.map((tier, visualIdx) => {
-          const realIdx = priceTiers.findIndex((t) => t === tier);
-          return (
-            <div key={visualIdx} className="sa-price-row">
-              <div className="sa-form-group" style={{ margin: 0 }}>
-                {visualIdx === 0 && <label className="sa-label">Currency</label>}
-                <select
-                  className="sa-select"
-                  value={tier.currency}
-                  onChange={(e) => updateTier(realIdx, "currency", e.target.value)}
-                  disabled={!!tier.id}
-                >
-                  {allCurrencies.map((c) => (
-                    <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
-                  ))}
-                  {/* If the tier has a currency not in the active list, show it */}
-                  {!allCurrencies.some((c) => c.code === tier.currency) && (
-                    <option value={tier.currency}>{tier.currency}</option>
-                  )}
-                </select>
-              </div>
-              <div className="sa-form-group" style={{ margin: 0 }}>
-                {visualIdx === 0 && <label className="sa-label">Interval</label>}
-                <select
-                  className="sa-select"
-                  value={tier.billingIntervalId ?? ""}
-                  onChange={(e) => updateTier(realIdx, "billingIntervalId", e.target.value ? parseInt(e.target.value, 10) : null)}
-                  disabled={!!tier.id}
-                >
-                  <option value="">Select interval</option>
-                  {allIntervals.map((iv) => (
-                    <option key={iv.id} value={iv.id}>{iv.name} ({iv.months}mo)</option>
-                  ))}
-                </select>
-              </div>
-              <div className="sa-form-group" style={{ margin: 0 }}>
-                {visualIdx === 0 && <label className="sa-label">Amount</label>}
-                <input
-                  className="sa-input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={tier.amount}
-                  placeholder="0.00"
-                  onChange={(e) => updateTier(realIdx, "amount", e.target.value)}
-                />
-              </div>
-              <div className="sa-form-group" style={{ margin: 0, maxWidth: 80 }}>
-                {visualIdx === 0 && <label className="sa-label">Trial</label>}
-                <input
-                  className="sa-input"
-                  type="number"
-                  min="0"
-                  value={tier.trialDays}
-                  placeholder="0"
-                  onChange={(e) => updateTier(realIdx, "trialDays", e.target.value)}
-                />
-              </div>
-              <button
-                className="sa-pr-del"
-                style={{ marginTop: visualIdx === 0 ? 22 : 0 }}
-                title="Remove"
-                onClick={() => removeTier(realIdx)}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          );
-        })}
-        {visibleTiers.length === 0 && (
-          <div style={{ padding: 20, textAlign: "center", color: "var(--sa-text-muted)", fontSize: 13 }}>
-            No price tiers configured. Click &ldquo;Add Price&rdquo; to add one.
-          </div>
-        )}
-        <div className="sa-price-info">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          Add multiple price tiers for different currencies and billing intervals. At least one price tier is required.
-        </div>
-      </div>
-      <div className="sa-fp-footer">
-        <SAButton variant="ghost" icon={<ArrowLeft size={14} />} onClick={() => setStep(0)}>Previous</SAButton>
-        <div className="sa-fp-footer-end">
-          <SAButton variant="ghost" icon={<Save size={14} />} onClick={savePrices} disabled={saving || !draftVersion}>
-            {saving ? "Saving..." : "Save Prices"}
-          </SAButton>
-          <SAButton variant="primary" icon={<ArrowRight size={14} />} onClick={goNext} disabled={saving}>
-            Next: Entitlements
-          </SAButton>
-        </div>
-      </div>
-    </div>
-  );
 
-  // ── Step 3: Entitlements ──
-  const StepEntitlements = () => {
-    const categories = [...new Set(allEntitlements.map((e) => e.is_premium ? "Premium Features" : "Standard Features"))];
 
-    return (
-      <div className="sa-form-panel" style={{ position: "static" }}>
-        <div className="sa-fp-header">
-          <div className="sa-fp-title">Plan Entitlements</div>
-          <div className="sa-fp-desc">Select which features and limits are included in this plan.</div>
-        </div>
-        <div className="sa-fp-body">
-          {!draftVersion && (
-            <div style={{ padding: "12px 16px", background: "#fef3c7", borderRadius: 6, color: "#92400e", fontSize: 13, marginBottom: 16 }}>
-              Save plan details first to configure entitlements.
-            </div>
-          )}
-          {allEntitlements.length === 0 ? (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--sa-text-muted)", fontSize: 13 }}>
-              No entitlement definitions found. Create some in the Entitlements page first.
-            </div>
-          ) : (
-            categories.map((cat) => (
-              <div key={cat}>
-                <div className="sa-cat-label">{cat}</div>
-                <div className="sa-ent-grid">
-                  {allEntitlements
-                    .filter((e) => (e.is_premium ? "Premium Features" : "Standard Features") === cat)
-                    .map((ent) => {
-                      const isSelected = selectedEntitlements.has(ent.id);
-                      const value = selectedEntitlements.get(ent.id);
 
-                      return (
-                        <div
-                          key={ent.id}
-                          className={`sa-ent-item${isSelected ? " selected" : ""}`}
-                          onClick={() => toggleEntitlement(ent.id)}
-                        >
-                          <div className="sa-ent-check">
-                            {isSelected && (
-                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div className="sa-ent-name">{ent.name}</div>
-                            <div className="sa-ent-type">{ent.value_type} · {ent.code}</div>
-                            {isSelected && ent.value_type === "integer" && (
-                              <input
-                                className="sa-input"
-                                type="number"
-                                min="0"
-                                value={typeof value === "number" ? value : ""}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  setEntitlementValue(ent.id, parseInt(e.target.value, 10) || 0);
-                                }}
-                                style={{ marginTop: 6, padding: "4px 8px", fontSize: 12, maxWidth: 120 }}
-                                placeholder="Value"
-                              />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="sa-fp-footer">
-          <SAButton variant="ghost" icon={<ArrowLeft size={14} />} onClick={() => setStep(1)}>Previous</SAButton>
-          <div className="sa-fp-footer-end">
-            <SAButton variant="ghost" icon={<Save size={14} />} onClick={saveEntitlements} disabled={saving || !draftVersion}>
-              {saving ? "Saving..." : "Save Entitlements"}
-            </SAButton>
-            <SAButton variant="primary" icon={<ArrowRight size={14} />} onClick={goNext} disabled={saving}>
-              Next: Review
-            </SAButton>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
-  // ── Step 4: Review ──
-  const StepReview = () => {
-    const selectedEnts = allEntitlements.filter((e) => selectedEntitlements.has(e.id));
 
-    return (
-      <div className="sa-form-panel" style={{ position: "static" }}>
-        <div className="sa-success-banner" style={{ margin: "0 0 4px" }}>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          All steps completed! Review your plan details below and publish when ready.
-        </div>
-        <div className="sa-fp-header">
-          <div>
-            <div className="sa-fp-title">Plan Summary</div>
-            <div className="sa-fp-desc">Review all details before publishing.</div>
-          </div>
-        </div>
-        <div className="sa-fp-body">
-          <div className="sa-rv-section">
-            <div className="sa-rv-title">
-              Plan Details
-              <button onClick={() => setStep(0)}>Edit</button>
-            </div>
-            <div className="sa-rv-row">
-              <div className="sa-rv-label">Plan Name</div>
-              <div className="sa-rv-value">{details.name || "—"}</div>
-            </div>
-            <div className="sa-rv-row">
-              <div className="sa-rv-label">Code</div>
-              <div className="sa-rv-value" style={{ fontFamily: "monospace", fontSize: 12 }}>
-                {details.code || plan?.code || "(auto-generated)"}
-              </div>
-            </div>
-            {details.description && (
-              <div className="sa-rv-row">
-                <div className="sa-rv-label">Description</div>
-                <div className="sa-rv-value">{details.description}</div>
-              </div>
-            )}
-            <div className="sa-rv-row">
-              <div className="sa-rv-label">Status</div>
-              <span className={`sa-rv-tag ${details.isActive ? "tag-green" : "tag-blue"}`}>
-                {details.isActive ? "Active" : "Inactive"}
-              </span>
-            </div>
-          </div>
-
-          <div className="sa-rv-section">
-            <div className="sa-rv-title">
-              Pricing ({visibleTiers.length} tier{visibleTiers.length !== 1 ? "s" : ""})
-              <button onClick={() => setStep(1)}>Edit</button>
-            </div>
-            {visibleTiers.length > 0 ? (
-              <div className="sa-price-summary">
-                {visibleTiers.map((tier, i) => {
-                  const cur = allCurrencies.find((c) => c.code === tier.currency);
-                  const iv = allIntervals.find((interval) => interval.id === tier.billingIntervalId);
-                  return (
-                    <div className="sa-ps-card" key={i}>
-                      <div className="sa-ps-cur">{tier.currency}</div>
-                      <div className="sa-ps-amt">
-                        {cur?.symbol ?? "$"}{tier.amount || "0.00"}
-                      </div>
-                      <div className="sa-ps-int">/ {iv?.name ?? "period"}</div>
-                      {parseInt(tier.trialDays) > 0 && (
-                        <div style={{ fontSize: 11, color: "var(--sa-text-muted)" }}>
-                          {tier.trialDays}-day trial
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ color: "var(--sa-text-muted)", fontSize: 13, fontStyle: "italic" }}>
-                No pricing configured
-              </div>
-            )}
-          </div>
-
-          <div className="sa-rv-section">
-            <div className="sa-rv-title">
-              Entitlements ({selectedEntitlements.size} selected)
-              <button onClick={() => setStep(2)}>Edit</button>
-            </div>
-            {selectedEnts.length > 0 ? (
-              <div className="sa-ent-pills">
-                {selectedEnts.map((e) => {
-                  const val = selectedEntitlements.get(e.id);
-                  const suffix = typeof val === "number" ? `: ${val}` : "";
-                  return (
-                    <div className="sa-ent-pill" key={e.id}>✓ {e.name}{suffix}</div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ color: "var(--sa-text-muted)", fontSize: 13, fontStyle: "italic" }}>
-                No entitlements selected
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="sa-fp-footer">
-          <SAButton variant="ghost" icon={<ArrowLeft size={14} />} onClick={() => setStep(2)}>Previous</SAButton>
-          <div className="sa-fp-footer-end">
-            <SAButton variant="ghost" onClick={() => router.push("/superadmin/billing/plans")}>
-              Back to Plans
-            </SAButton>
-            <SAButton
-              variant="primary"
-              icon={publishing ? <Loader2 size={14} className="sa-spin" /> : <Check size={14} />}
-              style={{ background: "var(--sa-green)", boxShadow: "0 2px 8px rgba(43,138,62,.25)" }}
-              onClick={handlePublish}
-              disabled={publishing || !draftVersion}
-            >
-              {publishing ? "Publishing..." : "Publish Plan"}
-            </SAButton>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <>
@@ -806,11 +434,401 @@ export function SAPlanBuilderContent() {
         }
       />
       <div className="sa-content" style={{ maxWidth: 860 }}>
-        <Stepper />
-        {step === 0 && <StepDetails />}
-        {step === 1 && <StepPricing />}
-        {step === 2 && <StepEntitlements />}
-        {step === 3 && <StepReview />}
+
+        {/* ── Stepper ── */}
+        <div className="sa-panel" style={{ padding: "20px 24px" }}>
+          <div className="sa-stepper">
+            {STEPS.map((label, i) => (
+              <div
+                key={label}
+                className={`sa-step${i === step ? " active" : ""}${i < step ? " done" : ""}`}
+                onClick={() => i < step && setStep(i)}
+                style={{ cursor: i < step ? "pointer" : "default" }}
+              >
+                <div className="sa-step-num">
+                  {i < step ? <Check style={{ width: 14, height: 14 }} /> : i + 1}
+                </div>
+                <span className="sa-step-label">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Step 1: Details ── */}
+        {step === 0 && (
+          <div className="sa-form-panel" style={{ position: "static" }}>
+            <div className="sa-fp-header">
+              <div className="sa-fp-title">Plan Details</div>
+              <div className="sa-fp-desc">Define the basic information for this billing plan.</div>
+            </div>
+            <div className="sa-fp-body">
+              <div className="sa-form-group">
+                <label className="sa-label">Plan Name <span className="sa-req">*</span></label>
+                <input className="sa-input" name="name" value={details.name} onChange={handleDetailChange} placeholder="e.g. Professional" />
+                <div className="sa-form-hint">The display name shown to tenants.</div>
+              </div>
+              <div className="sa-form-row">
+                <div className="sa-form-group">
+                  <label className="sa-label">Code</label>
+                  <input
+                    className="sa-input"
+                    name="code"
+                    value={details.code}
+                    onChange={handleDetailChange}
+                    placeholder="e.g. professional (auto-generated)"
+                    disabled={isEditMode}
+                    style={isEditMode ? { background: "#f3f4f6", cursor: "not-allowed" } : undefined}
+                  />
+                  <div className="sa-form-hint">Unique identifier.{isEditMode ? " Cannot be changed." : " Auto-generated from name if left empty."}</div>
+                </div>
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Description</label>
+                <textarea className="sa-textarea" name="description" value={details.description} onChange={handleDetailChange} rows={3} placeholder="Describe what this plan includes…" />
+              </div>
+              <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--sa-border)" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--sa-text)", marginBottom: 12 }}>Plan Options</div>
+                <div className="sa-toggle-wrap">
+                  <button type="button" className={`sa-toggle${details.isActive ? " on" : ""}`} onClick={() => setDetails({ ...details, isActive: !details.isActive })} />
+                  <div className="sa-toggle-info">
+                    <div className="sa-toggle-label">Active</div>
+                    <div className="sa-toggle-desc">Make this plan visible and available for purchase.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="sa-fp-footer">
+              <SAButton variant="ghost" onClick={() => router.push("/superadmin/billing/plans")}>Cancel</SAButton>
+              <div className="sa-fp-footer-end">
+                <SAButton variant="ghost" icon={<Save size={14} />} onClick={saveDraft} disabled={saving}>
+                  {saving ? "Saving..." : "Save Draft"}
+                </SAButton>
+                <SAButton variant="primary" icon={<ArrowRight size={14} />} onClick={goNext} disabled={saving}>
+                  Next: Pricing
+                </SAButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Pricing ── */}
+        {step === 1 && (
+          <div className="sa-form-panel" style={{ position: "static" }}>
+            <div className="sa-fp-header">
+              <div className="sa-fp-title">Plan Pricing</div>
+              <div className="sa-fp-desc">Define pricing tiers for different currencies and billing intervals.</div>
+            </div>
+            <div className="sa-fp-body">
+              {!draftVersion && (
+                <div style={{ padding: "12px 16px", background: "#fef3c7", borderRadius: 6, color: "#92400e", fontSize: 13, marginBottom: 16 }}>
+                  Save plan details first to configure pricing.
+                </div>
+              )}
+              <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--sa-text)" }}>Price Tiers</div>
+                <SAButton variant="ghost" icon={<Plus size={13} />} onClick={addTier} disabled={!draftVersion}>Add Price</SAButton>
+              </div>
+              {visibleTiers.map((tier, visualIdx) => {
+                const realIdx = priceTiers.findIndex((t) => t === tier);
+                return (
+                  <div key={visualIdx} className="sa-price-row">
+                    <div className="sa-form-group" style={{ margin: 0 }}>
+                      {visualIdx === 0 && <label className="sa-label">Currency</label>}
+                      <select
+                        className="sa-select"
+                        value={tier.currency}
+                        onChange={(e) => updateTier(realIdx, "currency", e.target.value)}
+                        disabled={!!tier.id}
+                      >
+                        {allCurrencies.map((c) => (
+                          <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
+                        ))}
+                        {!allCurrencies.some((c) => c.code === tier.currency) && (
+                          <option value={tier.currency}>{tier.currency}</option>
+                        )}
+                      </select>
+                    </div>
+                    <div className="sa-form-group" style={{ margin: 0 }}>
+                      {visualIdx === 0 && <label className="sa-label">Interval</label>}
+                      <select
+                        className="sa-select"
+                        value={tier.billingIntervalId ?? ""}
+                        onChange={(e) => updateTier(realIdx, "billingIntervalId", e.target.value ? parseInt(e.target.value, 10) : null)}
+                        disabled={!!tier.id}
+                      >
+                        <option value="">Select interval</option>
+                        {allIntervals.map((iv) => (
+                          <option key={iv.id} value={iv.id}>{iv.name} ({iv.months}mo)</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sa-form-group" style={{ margin: 0 }}>
+                      {visualIdx === 0 && <label className="sa-label">Amount</label>}
+                      <input
+                        className="sa-input"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={tier.amount}
+                        placeholder="0.00"
+                        onChange={(e) => updateTier(realIdx, "amount", e.target.value)}
+                      />
+                    </div>
+                    <div className="sa-form-group" style={{ margin: 0 }}>
+                      {visualIdx === 0 && <label className="sa-label">Trial (days)</label>}
+                      <input
+                        className="sa-input"
+                        type="number"
+                        min="0"
+                        value={tier.trialDays}
+                        placeholder="0"
+                        onChange={(e) => updateTier(realIdx, "trialDays", e.target.value)}
+                      />
+                    </div>
+                    <div className="sa-form-group" style={{ margin: 0 }}>
+                      {visualIdx === 0 && <label className="sa-label" style={{ whiteSpace: "nowrap" }}>Default</label>}
+                      <div style={{ height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={tier.isDefault}
+                          onChange={() => toggleDefault(realIdx)}
+                          title="Mark as default price for this currency + interval"
+                          style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--sa-orange)" }}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      className="sa-pr-del"
+                      style={{ marginTop: visualIdx === 0 ? 22 : 0 }}
+                      title="Remove"
+                      onClick={() => removeTier(realIdx)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+              {visibleTiers.length === 0 && (
+                <div style={{ padding: 20, textAlign: "center", color: "var(--sa-text-muted)", fontSize: 13 }}>
+                  No price tiers configured. Click &ldquo;Add Price&rdquo; to add one.
+                </div>
+              )}
+              <div className="sa-price-info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Add multiple price tiers for different currencies and billing intervals. At least one price tier is required.
+              </div>
+            </div>
+            <div className="sa-fp-footer">
+              <SAButton variant="ghost" icon={<ArrowLeft size={14} />} onClick={() => setStep(0)}>Previous</SAButton>
+              <div className="sa-fp-footer-end">
+                <SAButton variant="ghost" icon={<Save size={14} />} onClick={savePrices} disabled={saving || !draftVersion}>
+                  {saving ? "Saving..." : "Save Prices"}
+                </SAButton>
+                <SAButton variant="primary" icon={<ArrowRight size={14} />} onClick={goNext} disabled={saving}>
+                  Next: Entitlements
+                </SAButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 3: Entitlements ── */}
+        {step === 2 && (
+          <div className="sa-form-panel" style={{ position: "static" }}>
+            <div className="sa-fp-header">
+              <div className="sa-fp-title">Plan Entitlements</div>
+              <div className="sa-fp-desc">Select which features and limits are included in this plan.</div>
+            </div>
+            <div className="sa-fp-body">
+              {!draftVersion && (
+                <div style={{ padding: "12px 16px", background: "#fef3c7", borderRadius: 6, color: "#92400e", fontSize: 13, marginBottom: 16 }}>
+                  Save plan details first to configure entitlements.
+                </div>
+              )}
+              {allEntitlements.length === 0 ? (
+                <div style={{ padding: 24, textAlign: "center", color: "var(--sa-text-muted)", fontSize: 13 }}>
+                  No entitlement definitions found. Create some in the Entitlements page first.
+                </div>
+              ) : (
+                entitlementCategories.map((cat) => (
+                  <div key={cat}>
+                    <div className="sa-cat-label">{cat}</div>
+                    <div className="sa-ent-grid">
+                      {allEntitlements
+                        .filter((e) => (e.is_premium ? "Premium Features" : "Standard Features") === cat)
+                        .map((ent) => {
+                          const isSelected = selectedEntitlements.has(ent.id);
+                          const value = selectedEntitlements.get(ent.id);
+                          return (
+                            <div
+                              key={ent.id}
+                              className={`sa-ent-item${isSelected ? " selected" : ""}`}
+                              onClick={() => toggleEntitlement(ent.id)}
+                            >
+                              <div className="sa-ent-check">
+                                {isSelected && (
+                                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div className="sa-ent-name">{ent.name}</div>
+                                <div className="sa-ent-type">{ent.value_type} · {ent.code}</div>
+                                {isSelected && ent.value_type === "integer" && (
+                                  <input
+                                    className="sa-input"
+                                    type="number"
+                                    min="0"
+                                    value={typeof value === "number" ? value : ""}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      setEntitlementValue(ent.id, parseInt(e.target.value, 10) || 0);
+                                    }}
+                                    style={{ marginTop: 6, padding: "4px 8px", fontSize: 12, maxWidth: 120 }}
+                                    placeholder="Value"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="sa-fp-footer">
+              <SAButton variant="ghost" icon={<ArrowLeft size={14} />} onClick={() => setStep(1)}>Previous</SAButton>
+              <div className="sa-fp-footer-end">
+                <SAButton variant="ghost" icon={<Save size={14} />} onClick={saveEntitlements} disabled={saving || !draftVersion}>
+                  {saving ? "Saving..." : "Save Entitlements"}
+                </SAButton>
+                <SAButton variant="primary" icon={<ArrowRight size={14} />} onClick={goNext} disabled={saving}>
+                  Next: Review
+                </SAButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 4: Review ── */}
+        {step === 3 && (
+          <div className="sa-form-panel" style={{ position: "static" }}>
+            <div className="sa-success-banner" style={{ margin: "0 0 4px" }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              All steps completed! Review your plan details below and publish when ready.
+            </div>
+            <div className="sa-fp-header">
+              <div>
+                <div className="sa-fp-title">Plan Summary</div>
+                <div className="sa-fp-desc">Review all details before publishing.</div>
+              </div>
+            </div>
+            <div className="sa-fp-body">
+              <div className="sa-rv-section">
+                <div className="sa-rv-title">
+                  Plan Details
+                  <button onClick={() => setStep(0)}>Edit</button>
+                </div>
+                <div className="sa-rv-row">
+                  <div className="sa-rv-label">Plan Name</div>
+                  <div className="sa-rv-value">{details.name || "—"}</div>
+                </div>
+                <div className="sa-rv-row">
+                  <div className="sa-rv-label">Code</div>
+                  <div className="sa-rv-value" style={{ fontFamily: "monospace", fontSize: 12 }}>
+                    {details.code || plan?.code || "(auto-generated)"}
+                  </div>
+                </div>
+                {details.description && (
+                  <div className="sa-rv-row">
+                    <div className="sa-rv-label">Description</div>
+                    <div className="sa-rv-value">{details.description}</div>
+                  </div>
+                )}
+                <div className="sa-rv-row">
+                  <div className="sa-rv-label">Status</div>
+                  <span className={`sa-rv-tag ${details.isActive ? "tag-green" : "tag-blue"}`}>
+                    {details.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
+              </div>
+              <div className="sa-rv-section">
+                <div className="sa-rv-title">
+                  Pricing ({visibleTiers.length} tier{visibleTiers.length !== 1 ? "s" : ""})
+                  <button onClick={() => setStep(1)}>Edit</button>
+                </div>
+                {visibleTiers.length > 0 ? (
+                  <div className="sa-price-summary">
+                    {visibleTiers.map((tier, i) => {
+                      const cur = allCurrencies.find((c) => c.code === tier.currency);
+                      const iv = allIntervals.find((interval) => interval.id === tier.billingIntervalId);
+                      return (
+                        <div className="sa-ps-card" key={i}>
+                          <div className="sa-ps-cur">{tier.currency}</div>
+                          <div className="sa-ps-amt">
+                            {cur?.symbol ?? "$"}{tier.amount || "0.00"}
+                          </div>
+                          <div className="sa-ps-int">/ {iv?.name ?? "period"}</div>
+                          {parseInt(tier.trialDays) > 0 && (
+                            <div style={{ fontSize: 11, color: "var(--sa-text-muted)" }}>
+                              {tier.trialDays}-day trial
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ color: "var(--sa-text-muted)", fontSize: 13, fontStyle: "italic" }}>
+                    No pricing configured
+                  </div>
+                )}
+              </div>
+              <div className="sa-rv-section">
+                <div className="sa-rv-title">
+                  Entitlements ({selectedEntitlements.size} selected)
+                  <button onClick={() => setStep(2)}>Edit</button>
+                </div>
+                {selectedEnts.length > 0 ? (
+                  <div className="sa-ent-pills">
+                    {selectedEnts.map((e) => {
+                      const val = selectedEntitlements.get(e.id);
+                      const suffix = typeof val === "number" ? `: ${val}` : "";
+                      return (
+                        <div className="sa-ent-pill" key={e.id}>✓ {e.name}{suffix}</div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ color: "var(--sa-text-muted)", fontSize: 13, fontStyle: "italic" }}>
+                    No entitlements selected
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="sa-fp-footer">
+              <SAButton variant="ghost" icon={<ArrowLeft size={14} />} onClick={() => setStep(2)}>Previous</SAButton>
+              <div className="sa-fp-footer-end">
+                <SAButton variant="ghost" onClick={() => router.push("/superadmin/billing/plans")}>
+                  Back to Plans
+                </SAButton>
+                <SAButton
+                  variant="primary"
+                  icon={publishing ? <Loader2 size={14} className="sa-spin" /> : <Check size={14} />}
+                  style={{ background: "var(--sa-green)", boxShadow: "0 2px 8px rgba(43,138,62,.25)" }}
+                  onClick={handlePublish}
+                  disabled={publishing || !draftVersion}
+                >
+                  {publishing ? "Publishing..." : "Publish Plan"}
+                </SAButton>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );

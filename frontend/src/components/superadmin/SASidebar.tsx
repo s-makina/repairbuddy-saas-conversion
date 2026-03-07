@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getAdminBusinessStats } from "@/lib/superadmin";
 
 /* ── SVG Icon Paths ── */
 const icons = {
@@ -102,44 +103,63 @@ type NavSection = {
   items: NavItem[];
 };
 
-const navSections: NavSection[] = [
-  {
-    label: "Overview",
-    items: [
-      { label: "Dashboard", icon: "dashboard", href: "/superadmin" },
-      { label: "Activity Feed", icon: "activity", href: "/superadmin/activity", badge: 4 },
-    ],
-  },
-  {
-    label: "Business Management",
-    items: [
-      { label: "All Businesses", icon: "businesses", href: "/superadmin/businesses", count: "1,248" },
-      { label: "Users Directory", icon: "users", href: "/superadmin/users" },
-      { label: "Impersonation Log", icon: "shield", href: "/superadmin/impersonation" },
-    ],
-  },
-  {
-    label: "Billing & Subscriptions",
-    items: [
-      { label: "Billing Plans", icon: "billing", href: "/superadmin/billing/plans" },
-      { label: "Plan Builder", icon: "plus", href: "/superadmin/billing/builder" },
-      { label: "Entitlements", icon: "entitlements", href: "/superadmin/billing/entitlements" },
-      { label: "Currencies", icon: "currency", href: "/superadmin/billing/currencies" },
-      { label: "Billing Intervals", icon: "clock", href: "/superadmin/billing/intervals" },
-    ],
-  },
-  {
-    label: "Platform",
-    items: [
-      { label: "Audit Logs", icon: "audit", href: "/superadmin/audit" },
-      { label: "Analytics", icon: "analytics", href: "/superadmin/analytics" },
-      { label: "Settings", icon: "settings", href: "/superadmin/settings" },
-    ],
-  },
-];
-
 export function SASidebar() {
   const pathname = usePathname();
+  const [businessCount, setBusinessCount] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getAdminBusinessStats()
+      .then((stats) => {
+        if (!controller.signal.aborted) {
+          setBusinessCount(stats.total.toLocaleString());
+        }
+      })
+      .catch(() => {
+        // Silent failure — sidebar remains functional without a count
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  const navSections: NavSection[] = [
+    {
+      label: "Overview",
+      items: [
+        { label: "Dashboard", icon: "dashboard", href: "/superadmin" },
+        { label: "Activity Feed", icon: "activity", href: "/superadmin/activity", badge: 4 },
+      ],
+    },
+    {
+      label: "Business Management",
+      items: [
+        { label: "All Businesses", icon: "businesses", href: "/superadmin/businesses", count: businessCount },
+        { label: "Users Directory", icon: "users", href: "/superadmin/users" },
+        { label: "Impersonation Log", icon: "shield", href: "/superadmin/impersonation" },
+      ],
+    },
+    {
+      label: "Billing & Subscriptions",
+      items: [
+        { label: "Billing Plans", icon: "billing", href: "/superadmin/billing/plans" },
+        { label: "Plan Builder", icon: "plus", href: "/superadmin/billing/builder" },
+        { label: "Entitlements", icon: "entitlements", href: "/superadmin/billing/entitlements" },
+        { label: "Currencies", icon: "currency", href: "/superadmin/billing/currencies" },
+        { label: "Billing Intervals", icon: "clock", href: "/superadmin/billing/intervals" },
+      ],
+    },
+    {
+      label: "Platform",
+      items: [
+        { label: "Audit Logs", icon: "audit", href: "/superadmin/audit" },
+        { label: "Analytics", icon: "analytics", href: "/superadmin/analytics" },
+        { label: "Settings", icon: "settings", href: "/superadmin/settings" },
+      ],
+    },
+  ];
 
   return (
     <aside className="sa-sidebar">

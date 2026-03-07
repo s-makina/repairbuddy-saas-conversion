@@ -1555,8 +1555,8 @@
 /* ── Plan Builder — Pricing Step ── */
 .sa-price-row {
   display: grid;
-  grid-template-columns: 120px 1fr 120px 40px;
-  gap: 12px;
+  grid-template-columns: 100px 1fr 100px 70px 56px 32px;
+  gap: 10px;
   align-items: end;
   padding: 14px 0;
   border-bottom: 1px solid var(--sa-border);

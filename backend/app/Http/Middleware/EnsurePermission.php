@@ -18,7 +18,9 @@ class EnsurePermission
             ], 401);
         }
 
-        if (! $user->can($permission)) {
+        // Super admins bypass per-route permission checks.
+        // EnsureAdmin already verifies is_admin on all /api/admin/* routes.
+        if (! $user->is_admin && ! $user->can($permission)) {
             return response()->json([
                 'message' => 'Forbidden.',
             ], 403);

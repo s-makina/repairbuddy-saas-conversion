@@ -13,7 +13,7 @@
 import { apiFetch, apiDownload } from "@/lib/api";
 import type {
   AdminDashboardKpis,
-  AdminSalesMonth,
+  AdminSalesResponse,
   AdminAnalyticsData,
   AdminUser,
   ImpersonationSession,
@@ -70,8 +70,8 @@ export async function getDashboardKpis(): Promise<AdminDashboardKpis> {
   return apiFetch<AdminDashboardKpis>("/api/admin/dashboard/kpis");
 }
 
-export async function getDashboardSales(): Promise<{ months: AdminSalesMonth[] }> {
-  return apiFetch<{ months: AdminSalesMonth[] }>("/api/admin/dashboard/sales-last-12-months");
+export async function getDashboardSales(): Promise<AdminSalesResponse> {
+  return apiFetch<AdminSalesResponse>("/api/admin/dashboard/sales-last-12-months");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,9 +173,16 @@ export async function createBusiness(args: {
   billingCountry?: string;
   timezone?: string;
   language?: string;
+  status?: "trial" | "active";
+  ownerName: string;
+  ownerEmail: string;
+  ownerPassword: string;
+  ownerPhone?: string;
+  skipEmailVerification?: boolean;
+  mustChangePassword?: boolean;
   reason?: string;
-}): Promise<{ tenant: Tenant }> {
-  return apiFetch<{ tenant: Tenant }>("/api/admin/businesses", {
+}): Promise<{ tenant: Tenant; owner: import("@/lib/types").User }> {
+  return apiFetch<{ tenant: Tenant; owner: import("@/lib/types").User }>("/api/admin/businesses", {
     method: "POST",
     body: {
       name: args.name,
@@ -186,6 +193,13 @@ export async function createBusiness(args: {
       billing_country: args.billingCountry,
       timezone: args.timezone,
       language: args.language,
+      status: args.status,
+      owner_name: args.ownerName,
+      owner_email: args.ownerEmail,
+      owner_password: args.ownerPassword,
+      owner_phone: args.ownerPhone,
+      skip_email_verification: args.skipEmailVerification,
+      must_change_password: args.mustChangePassword,
       reason: args.reason,
     },
   });

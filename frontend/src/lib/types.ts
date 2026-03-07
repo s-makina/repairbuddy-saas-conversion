@@ -57,6 +57,8 @@ export interface Tenant {
   closed_reason?: string | null;
   data_retention_days?: number | null;
   billing_snapshot?: TenantBillingSnapshot | null;
+  owner?: Pick<User, "id" | "name" | "email"> | null;
+  user_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -314,34 +316,42 @@ export interface AdminUser extends User {
 
 /** Shape returned by GET /admin/dashboard/kpis */
 export interface AdminDashboardKpis {
+  generated_at: string;
   tenants: {
-    trial: number;
-    active: number;
-    past_due: number;
-    suspended: number;
-    closed: number;
     total: number;
+    by_status: {
+      trial: number;
+      active: number;
+      past_due: number;
+      suspended: number;
+      closed: number;
+    };
   };
   users: {
     total: number;
-    admin_total: number;
+    admins: number;
   };
   subscriptions: {
-    trial: number;
-    active: number;
-    past_due: number;
-    canceled: number;
     active_total: number;
+    by_status: {
+      trial: number;
+      active: number;
+      past_due: number;
+      canceled: number;
+    };
+  };
+  revenue: {
+    paid_last_30d_by_currency: Record<string, number>;
+    paid_ytd_by_currency: Record<string, number>;
   };
   mrr_by_currency: Record<string, number>;
-  paid_last_30d_by_currency: Record<string, number>;
-  paid_ytd_by_currency: Record<string, number>;
 }
 
-/** Single month bucket returned by GET /admin/dashboard/sales-last-12-months */
-export interface AdminSalesMonth {
-  month: string; // "YYYY-MM"
-  by_currency: Record<string, number>; // currency → total_cents
+/** Shape returned by GET /admin/dashboard/sales-last-12-months */
+export interface AdminSalesResponse {
+  generated_at: string;
+  months: Array<{ key: string; label: string }>;
+  totals_by_currency: Record<string, number[]>;
 }
 
 /** Shape returned by GET /admin/analytics */
