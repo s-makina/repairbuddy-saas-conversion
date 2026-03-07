@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Plan Builder — Step 1: Details — RepairBuddy Superadmin</title>
+    <title>Plan Builder — Step 4: Review — RepairBuddy Superadmin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -332,12 +332,6 @@
             margin-top: 1px
         }
 
-        .tb-right {
-            display: flex;
-            align-items: center;
-            gap: 10px
-        }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -349,7 +343,8 @@
             cursor: pointer;
             border: none;
             font-family: inherit;
-            transition: all .15s
+            transition: all .15s;
+            text-decoration: none
         }
 
         .btn-primary {
@@ -370,6 +365,16 @@
 
         .btn-ghost:hover {
             background: var(--surface-2)
+        }
+
+        .btn-success {
+            background: var(--green);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(43, 138, 62, .25)
+        }
+
+        .btn-success:hover {
+            background: #237832
         }
 
         .btn svg {
@@ -428,8 +433,7 @@
             border: 2px solid var(--border);
             color: var(--text-3);
             background: var(--surface);
-            flex-shrink: 0;
-            transition: all .2s
+            flex-shrink: 0
         }
 
         .step.active .step-num {
@@ -470,13 +474,15 @@
 
         .fp-header {
             padding: 20px 24px;
-            border-bottom: 1px solid var(--border)
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
         }
 
         .fp-title {
             font-size: 16px;
-            font-weight: 700;
-            color: var(--text)
+            font-weight: 700
         }
 
         .fp-desc {
@@ -498,144 +504,163 @@
             background: var(--bg)
         }
 
-        .form-group {
-            margin-bottom: 20px
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px
-        }
-
-        label {
-            display: block;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 6px
-        }
-
-        .req {
-            color: var(--red)
-        }
-
-        .form-hint {
-            font-size: 11px;
-            color: var(--text-3);
-            margin-top: 4px
-        }
-
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: var(--r-sm);
-            font-size: 13.5px;
-            font-family: inherit;
-            background: var(--surface);
-            color: var(--text);
-            outline: none;
-            transition: all .15s
-        }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            border-color: var(--orange);
-            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px
-        }
-
-        select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 36px;
-            cursor: pointer
-        }
-
-        .toggle-wrap {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 0;
+        .rv-section {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
             border-bottom: 1px solid var(--border)
         }
 
-        .toggle-wrap:last-child {
-            border: none
+        .rv-section:last-child {
+            border: none;
+            margin-bottom: 0;
+            padding-bottom: 0
         }
 
-        .toggle {
-            width: 40px;
-            height: 22px;
-            background: var(--border-2);
-            border-radius: 99px;
-            position: relative;
-            cursor: pointer;
-            transition: background .2s;
-            flex-shrink: 0
-        }
-
-        .toggle::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            top: 3px;
-            left: 3px;
-            transition: transform .2s;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .15)
-        }
-
-        .toggle.on {
-            background: var(--orange)
-        }
-
-        .toggle.on::after {
-            transform: translateX(18px)
-        }
-
-        .toggle-info {
-            flex: 1
-        }
-
-        .toggle-label {
-            font-size: 13px;
-            color: var(--text);
-            font-weight: 600
-        }
-
-        .toggle-desc {
-            font-size: 11.5px;
+        .rv-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
             color: var(--text-3);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .rv-title a {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--orange);
+            text-decoration: none;
+            text-transform: none;
+            letter-spacing: 0
+        }
+
+        .rv-title a:hover {
+            text-decoration: underline
+        }
+
+        .rv-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0
+        }
+
+        .rv-label {
+            font-size: 13px;
+            color: var(--text-2)
+        }
+
+        .rv-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .rv-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .tag-green {
+            background: var(--green-bg);
+            color: var(--green)
+        }
+
+        .tag-blue {
+            background: var(--blue-bg);
+            color: var(--blue)
+        }
+
+        .tag-orange {
+            background: var(--orange-bg);
+            color: var(--orange)
+        }
+
+        .ent-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px
+        }
+
+        .ent-pill {
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 11.5px;
+            font-weight: 600;
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(43, 138, 62, .15)
+        }
+
+        .price-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 8px
+        }
+
+        .ps-card {
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--surface-2)
+        }
+
+        .ps-cur {
+            font-size: 11px;
+            color: var(--text-3);
+            font-weight: 700
+        }
+
+        .ps-amt {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
             margin-top: 2px
         }
 
-        @media(max-width:1200px) {
-            .form-row {
-                grid-template-columns: 1fr
-            }
+        .ps-int {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 1px
+        }
+
+        .success-banner {
+            padding: 16px 20px;
+            background: var(--green-bg);
+            border: 1px solid rgba(43, 138, 62, .15);
+            border-radius: var(--r-sm);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--green);
+            font-weight: 500;
+            margin-bottom: 4px
+        }
+
+        .success-banner svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0
         }
 
         @media(max-width:768px) {
             .sidebar {
                 display: none
+            }
+
+            .price-summary {
+                grid-template-columns: 1fr
             }
         }
     </style>
@@ -664,10 +689,7 @@
                     <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
-                </svg>Dashboard</a><a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>Activity Feed<span class="nv-badge">4</span></a>
+                </svg>Dashboard</a>
         </div>
         <hr class="s-hr" />
         <div class="nav-sec">
@@ -748,104 +770,137 @@
                 <div class="tb-bc">Admin › Billing › <b>Plan Builder</b></div>
                 <div class="tb-title">Create New Plan</div>
             </div>
-            <div class="tb-right"><a href="billing-plans.html" class="btn btn-ghost"><svg fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
+            <div><a href="billing-plans.html" class="btn btn-ghost"><svg fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>Back to Plans</a></div>
         </div>
 
         <div class="content">
-            <!-- STEPPER -->
             <div class="stepper">
-                <div class="step active">
-                    <div class="step-num">1</div>
+                <div class="step done">
+                    <div class="step-num"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="width:14px;height:14px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg></div>
                     <div class="step-label">Details</div>
                 </div>
-                <div class="step">
-                    <div class="step-num">2</div>
+                <div class="step done">
+                    <div class="step-num"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="width:14px;height:14px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg></div>
                     <div class="step-label">Pricing</div>
                 </div>
-                <div class="step">
-                    <div class="step-num">3</div>
+                <div class="step done">
+                    <div class="step-num"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="width:14px;height:14px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg></div>
                     <div class="step-label">Entitlements</div>
                 </div>
-                <div class="step">
+                <div class="step active">
                     <div class="step-num">4</div>
                     <div class="step-label">Review</div>
                 </div>
             </div>
 
-            <!-- STEP 1: DETAILS -->
+            <div class="success-banner">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                All steps completed! Review your plan details below and publish when ready.
+            </div>
+
             <div class="form-panel">
                 <div class="fp-header">
-                    <div class="fp-title">Plan Details</div>
-                    <div class="fp-desc">Define the basic information for this billing plan.</div>
+                    <div>
+                        <div class="fp-title">Plan Summary</div>
+                        <div class="fp-desc">Review all details before publishing.</div>
+                    </div>
                 </div>
                 <div class="fp-body">
-                    <div class="form-group"><label>Plan Name <span class="req">*</span></label><input type="text"
-                            placeholder="e.g. Professional" />
-                        <div class="form-hint">The display name shown to tenants.</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Slug <span class="req">*</span></label><input type="text"
-                                placeholder="e.g. professional" />
-                            <div class="form-hint">URL-safe identifier. Auto-generated from name.</div>
+                    <!-- Details Section -->
+                    <div class="rv-section">
+                        <div class="rv-title">Plan Details <a href="plan-builder.html">Edit</a></div>
+                        <div class="rv-row">
+                            <div class="rv-label">Plan Name</div>
+                            <div class="rv-value">Professional</div>
                         </div>
-                        <div class="form-group"><label>Sort Order</label><input type="number" value="0" />
-                            <div class="form-hint">Controls display order on pricing page.</div>
+                        <div class="rv-row">
+                            <div class="rv-label">Slug</div>
+                            <div class="rv-value" style="font-family:monospace;font-size:12px">professional</div>
                         </div>
-                    </div>
-                    <div class="form-group"><label>Description</label><textarea
-                            placeholder="Describe what this plan includes…"></textarea></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Plan Type</label><select>
-                                <option>Recurring</option>
-                                <option>One-Time</option>
-                                <option>Usage-Based</option>
-                            </select></div>
-                        <div class="form-group"><label>Trial Period (days)</label><input type="number" value="14" />
-                            <div class="form-hint">Set to 0 for no trial.</div>
+                        <div class="rv-row">
+                            <div class="rv-label">Type</div>
+                            <div class="rv-value">Recurring</div>
+                        </div>
+                        <div class="rv-row">
+                            <div class="rv-label">Trial Period</div>
+                            <div class="rv-value">14 days</div>
+                        </div>
+                        <div class="rv-row">
+                            <div class="rv-label">Status</div>
+                            <div><span class="rv-tag tag-green">Active</span></div>
+                        </div>
+                        <div class="rv-row">
+                            <div class="rv-label">Featured</div>
+                            <div><span class="rv-tag tag-orange">Yes — Most Popular</span></div>
                         </div>
                     </div>
 
-                    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
-                        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">Plan Options
-                        </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle on"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Active</div>
-                                <div class="toggle-desc">Make this plan visible and available for purchase.</div>
+                    <!-- Pricing Section -->
+                    <div class="rv-section">
+                        <div class="rv-title">Pricing <a href="plan-builder-pricing.html">Edit</a></div>
+                        <div class="price-summary">
+                            <div class="ps-card">
+                                <div class="ps-cur">USD ($)</div>
+                                <div class="ps-amt">$79.00</div>
+                                <div class="ps-int">/ month</div>
+                            </div>
+                            <div class="ps-card">
+                                <div class="ps-cur">USD ($)</div>
+                                <div class="ps-amt">$790.00</div>
+                                <div class="ps-int">/ year (save 17%)</div>
+                            </div>
+                            <div class="ps-card">
+                                <div class="ps-cur">GBP (£)</div>
+                                <div class="ps-amt">£65.00</div>
+                                <div class="ps-int">/ month</div>
                             </div>
                         </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle on"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Featured</div>
-                                <div class="toggle-desc">Highlight this plan on the pricing page with a "Most Popular"
-                                    badge.</div>
-                            </div>
-                        </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Hidden</div>
-                                <div class="toggle-desc">Only accessible via direct link. Not shown on public pricing
-                                    page.</div>
-                            </div>
+                    </div>
+
+                    <!-- Entitlements Section -->
+                    <div class="rv-section">
+                        <div class="rv-title">Entitlements (7 selected) <a
+                                href="plan-builder-entitlements.html">Edit</a></div>
+                        <div class="ent-pills">
+                            <div class="ent-pill">✓ Job Management</div>
+                            <div class="ent-pill">✓ Invoicing</div>
+                            <div class="ent-pill">✓ Customer Mgmt</div>
+                            <div class="ent-pill">✓ Online Booking</div>
+                            <div class="ent-pill">✓ Reports</div>
+                            <div class="ent-pill">✓ Max 25 Users</div>
+                            <div class="ent-pill">✓ 10 GB Storage</div>
                         </div>
                     </div>
                 </div>
                 <div class="fp-footer">
-                    <a href="billing-plans.html" class="btn btn-ghost">Cancel</a>
+                    <a href="plan-builder-entitlements.html" class="btn btn-ghost"><svg fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>Previous</a>
                     <div style="display:flex;gap:8px">
-                        <button class="btn btn-ghost">Save Draft</button>
-                        <a href="plan-builder-pricing.html" class="btn btn-primary">Next: Pricing <svg fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
+                        <button class="btn btn-ghost">Save as Draft</button>
+                        <a href="billing-plans.html" class="btn btn-success"><svg fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg></a>
+                                    d="M5 13l4 4L19 7" />
+                            </svg>Publish Plan</a>
                     </div>
                 </div>
             </div>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Plan Builder — Step 1: Details — RepairBuddy Superadmin</title>
+    <title>James Carter — RepairBuddy Superadmin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -335,7 +335,7 @@
         .tb-right {
             display: flex;
             align-items: center;
-            gap: 10px
+            gap: 8px
         }
 
         .btn {
@@ -349,7 +349,8 @@
             cursor: pointer;
             border: none;
             font-family: inherit;
-            transition: all .15s
+            transition: all .15s;
+            text-decoration: none
         }
 
         .btn-primary {
@@ -372,6 +373,16 @@
             background: var(--surface-2)
         }
 
+        .btn-danger {
+            background: var(--red-bg);
+            border: 1px solid rgba(224, 49, 49, .2);
+            color: var(--red)
+        }
+
+        .btn-danger:hover {
+            background: #ffe3e3
+        }
+
         .btn svg {
             width: 14px;
             height: 14px
@@ -381,86 +392,89 @@
             padding: 26px 28px;
             display: flex;
             flex-direction: column;
-            gap: 22px;
-            max-width: 860px
+            gap: 22px
         }
 
-        .stepper {
+        .user-header {
             display: flex;
             align-items: center;
-            gap: 0;
-            margin-bottom: 4px
+            gap: 18px;
+            padding: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            box-shadow: var(--sh)
         }
 
-        .step {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            position: relative
-        }
-
-        .step:not(:last-child)::after {
-            content: '';
-            flex: 1;
-            height: 2px;
-            background: var(--border);
-            margin: 0 12px
-        }
-
-        .step.active:not(:last-child)::after {
-            background: linear-gradient(90deg, var(--orange) 50%, var(--border) 50%)
-        }
-
-        .step.done:not(:last-child)::after {
-            background: var(--green)
-        }
-
-        .step-num {
-            width: 32px;
-            height: 32px;
+        .uh-av {
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
+            background: linear-gradient(135deg, #1971c2, #4dabf7);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 24px;
             font-weight: 700;
-            border: 2px solid var(--border);
-            color: var(--text-3);
-            background: var(--surface);
-            flex-shrink: 0;
-            transition: all .2s
-        }
-
-        .step.active .step-num {
-            border-color: var(--orange);
-            background: var(--orange);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(232, 89, 12, .3)
+            flex-shrink: 0
         }
 
-        .step.done .step-num {
-            border-color: var(--green);
-            background: var(--green);
-            color: #fff
+        .uh-info {
+            flex: 1
         }
 
-        .step-label {
-            font-size: 12.5px;
-            font-weight: 600;
+        .uh-name {
+            font-size: 20px;
+            font-weight: 700
+        }
+
+        .uh-meta {
+            font-size: 13px;
             color: var(--text-3);
-            white-space: nowrap
+            margin-top: 3px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap
         }
 
-        .step.active .step-label {
-            color: var(--text)
+        .uh-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px
         }
 
-        .step.done .step-label {
+        .badge {
+            display: inline-flex;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .b-green {
+            background: var(--green-bg);
             color: var(--green)
         }
 
-        .form-panel {
+        .b-orange {
+            background: var(--orange-bg);
+            color: var(--orange)
+        }
+
+        .b-blue {
+            background: var(--blue-bg);
+            color: var(--blue)
+        }
+
+        .g2 {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 16px;
+            align-items: start
+        }
+
+        .panel {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--r);
@@ -468,167 +482,145 @@
             overflow: hidden
         }
 
-        .fp-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border)
-        }
-
-        .fp-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text)
-        }
-
-        .fp-desc {
-            font-size: 13px;
-            color: var(--text-2);
-            margin-top: 4px
-        }
-
-        .fp-body {
-            padding: 24px
-        }
-
-        .fp-footer {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg)
-        }
-
-        .form-group {
-            margin-bottom: 20px
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px
-        }
-
-        label {
-            display: block;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 6px
-        }
-
-        .req {
-            color: var(--red)
-        }
-
-        .form-hint {
-            font-size: 11px;
-            color: var(--text-3);
-            margin-top: 4px
-        }
-
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: var(--r-sm);
-            font-size: 13.5px;
-            font-family: inherit;
-            background: var(--surface);
-            color: var(--text);
-            outline: none;
-            transition: all .15s
-        }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            border-color: var(--orange);
-            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px
-        }
-
-        select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 36px;
-            cursor: pointer
-        }
-
-        .toggle-wrap {
+        .ph {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 0;
-            border-bottom: 1px solid var(--border)
+            justify-content: space-between
         }
 
-        .toggle-wrap:last-child {
-            border: none
+        .ph-t {
+            font-size: 14px;
+            font-weight: 700
         }
 
-        .toggle {
-            width: 40px;
-            height: 22px;
-            background: var(--border-2);
-            border-radius: 99px;
-            position: relative;
-            cursor: pointer;
-            transition: background .2s;
-            flex-shrink: 0
-        }
-
-        .toggle::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            top: 3px;
-            left: 3px;
-            transition: transform .2s;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .15)
-        }
-
-        .toggle.on {
-            background: var(--orange)
-        }
-
-        .toggle.on::after {
-            transform: translateX(18px)
-        }
-
-        .toggle-info {
-            flex: 1
-        }
-
-        .toggle-label {
-            font-size: 13px;
-            color: var(--text);
-            font-weight: 600
-        }
-
-        .toggle-desc {
+        .ph-s {
             font-size: 11.5px;
             color: var(--text-3);
             margin-top: 2px
         }
 
+        .pb {
+            padding: 20px
+        }
+
+        .mrow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .mrow:last-child {
+            border: none
+        }
+
+        .ml {
+            font-size: 12.5px;
+            color: var(--text-2)
+        }
+
+        .mv {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .mv.gr {
+            color: var(--green)
+        }
+
+        .mv.am {
+            color: var(--amber)
+        }
+
+        .mv.rd {
+            color: var(--red)
+        }
+
+        .dt {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .dt th {
+            text-align: left;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: 10px 16px;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .dt td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--text)
+        }
+
+        .dt tr:last-child td {
+            border: none
+        }
+
+        .qa-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .qa-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all .15s;
+            text-decoration: none;
+            color: var(--text)
+        }
+
+        .qa-btn:hover {
+            background: var(--surface-2);
+            border-color: var(--border-2)
+        }
+
+        .qa-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .qa-icon svg {
+            width: 16px;
+            height: 16px
+        }
+
+        .qa-lbl {
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        .qa-desc {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 1px
+        }
+
         @media(max-width:1200px) {
-            .form-row {
+            .g2 {
                 grid-template-columns: 1fr
             }
         }
@@ -636,6 +628,10 @@
         @media(max-width:768px) {
             .sidebar {
                 display: none
+            }
+
+            .qa-grid {
+                grid-template-columns: 1fr
             }
         }
     </style>
@@ -664,10 +660,7 @@
                     <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
-                </svg>Dashboard</a><a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>Activity Feed<span class="nv-badge">4</span></a>
+                </svg>Dashboard</a>
         </div>
         <hr class="s-hr" />
         <div class="nav-sec">
@@ -676,7 +669,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>All Businesses<span class="nv-count">1,248</span></a><a href="users-directory.html"
-                class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="nv active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>Users Directory</a><a href="impersonation-log.html" class="nv"><svg fill="none"
@@ -691,8 +684,8 @@
                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>Billing Plans</a><a href="plan-builder.html" class="nv active"><svg fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
+                </svg>Billing Plans</a><a href="plan-builder.html" class="nv"><svg fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>Plan Builder</a><a href="entitlements.html" class="nv"><svg fill="none" stroke="currentColor"
@@ -745,107 +738,210 @@
     <div class="main">
         <div class="topbar">
             <div class="tb-left">
-                <div class="tb-bc">Admin › Billing › <b>Plan Builder</b></div>
-                <div class="tb-title">Create New Plan</div>
+                <div class="tb-bc">Admin › Users Directory › <b>James Carter</b></div>
+                <div class="tb-title">User Detail</div>
             </div>
-            <div class="tb-right"><a href="billing-plans.html" class="btn btn-ghost"><svg fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
+            <div class="tb-right">
+                <a href="users-directory.html" class="btn btn-ghost"><svg fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>Back to Plans</a></div>
+                    </svg>Back</a>
+            </div>
         </div>
 
         <div class="content">
-            <!-- STEPPER -->
-            <div class="stepper">
-                <div class="step active">
-                    <div class="step-num">1</div>
-                    <div class="step-label">Details</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">2</div>
-                    <div class="step-label">Pricing</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">3</div>
-                    <div class="step-label">Entitlements</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">4</div>
-                    <div class="step-label">Review</div>
+            <!-- User Header -->
+            <div class="user-header">
+                <div class="uh-av">JC</div>
+                <div class="uh-info">
+                    <div class="uh-name">James Carter <span class="badge b-orange"
+                            style="margin-left:8px;vertical-align:middle">Owner</span> <span class="badge b-green"
+                            style="vertical-align:middle">Online</span></div>
+                    <div class="uh-meta">
+                        <span>✉️ james@quickfix.com</span>
+                        <span>🏢 <a href="business-detail.html"
+                                style="color:var(--blue);text-decoration:none;font-weight:600">QuickFix
+                                Electronics</a></span>
+                        <span>📅 Joined Mar 12, 2025</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- STEP 1: DETAILS -->
-            <div class="form-panel">
-                <div class="fp-header">
-                    <div class="fp-title">Plan Details</div>
-                    <div class="fp-desc">Define the basic information for this billing plan.</div>
-                </div>
-                <div class="fp-body">
-                    <div class="form-group"><label>Plan Name <span class="req">*</span></label><input type="text"
-                            placeholder="e.g. Professional" />
-                        <div class="form-hint">The display name shown to tenants.</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Slug <span class="req">*</span></label><input type="text"
-                                placeholder="e.g. professional" />
-                            <div class="form-hint">URL-safe identifier. Auto-generated from name.</div>
+            <div class="g2">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                    <!-- Account Info -->
+                    <div class="panel">
+                        <div class="ph">
+                            <div class="ph-t">Account Information</div>
                         </div>
-                        <div class="form-group"><label>Sort Order</label><input type="number" value="0" />
-                            <div class="form-hint">Controls display order on pricing page.</div>
-                        </div>
-                    </div>
-                    <div class="form-group"><label>Description</label><textarea
-                            placeholder="Describe what this plan includes…"></textarea></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Plan Type</label><select>
-                                <option>Recurring</option>
-                                <option>One-Time</option>
-                                <option>Usage-Based</option>
-                            </select></div>
-                        <div class="form-group"><label>Trial Period (days)</label><input type="number" value="14" />
-                            <div class="form-hint">Set to 0 for no trial.</div>
+                        <div class="pb">
+                            <div class="mrow">
+                                <div class="ml">Full Name</div>
+                                <div class="mv">James Carter</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Email</div>
+                                <div class="mv">james@quickfix.com</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Phone</div>
+                                <div class="mv">+1 (555) 234-5678</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Role</div>
+                                <div class="mv"><span class="badge b-orange">Owner</span></div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Business</div>
+                                <div class="mv"><a href="business-detail.html"
+                                        style="color:var(--blue);text-decoration:none">QuickFix Electronics</a></div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">2FA Enabled</div>
+                                <div class="mv gr">✓ Yes (Authenticator)</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Last Login</div>
+                                <div class="mv">Today at 8:14 AM</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Email Verified</div>
+                                <div class="mv gr">✓ Verified</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
-                        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">Plan Options
-                        </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle on"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Active</div>
-                                <div class="toggle-desc">Make this plan visible and available for purchase.</div>
+                    <!-- Login History -->
+                    <div class="panel">
+                        <div class="ph">
+                            <div>
+                                <div class="ph-t">Login History</div>
+                                <div class="ph-s">Last 5 sessions</div>
                             </div>
                         </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle on"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Featured</div>
-                                <div class="toggle-desc">Highlight this plan on the pricing page with a "Most Popular"
-                                    badge.</div>
-                            </div>
+                        <table class="dt">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>IP Address</th>
+                                    <th>Device</th>
+                                    <th>Location</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="font-weight:600">Today, 8:14 AM</td>
+                                    <td style="font-family:monospace;font-size:12px">203.0.113.42</td>
+                                    <td>Chrome / Windows</td>
+                                    <td>New York, US</td>
+                                </tr>
+                                <tr>
+                                    <td>Mar 6, 9:01 AM</td>
+                                    <td style="font-family:monospace;font-size:12px">203.0.113.42</td>
+                                    <td>Chrome / Windows</td>
+                                    <td>New York, US</td>
+                                </tr>
+                                <tr>
+                                    <td>Mar 5, 7:45 AM</td>
+                                    <td style="font-family:monospace;font-size:12px">198.51.100.8</td>
+                                    <td>Safari / iPhone</td>
+                                    <td>New York, US</td>
+                                </tr>
+                                <tr>
+                                    <td>Mar 4, 8:22 AM</td>
+                                    <td style="font-family:monospace;font-size:12px">203.0.113.42</td>
+                                    <td>Chrome / Windows</td>
+                                    <td>New York, US</td>
+                                </tr>
+                                <tr>
+                                    <td>Mar 3, 10:15 AM</td>
+                                    <td style="font-family:monospace;font-size:12px">203.0.113.42</td>
+                                    <td>Chrome / Windows</td>
+                                    <td>New York, US</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sidebar: Quick Actions + Status -->
+                <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:86px">
+                    <div class="panel">
+                        <div class="ph">
+                            <div class="ph-t">Quick Actions</div>
                         </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Hidden</div>
-                                <div class="toggle-desc">Only accessible via direct link. Not shown on public pricing
-                                    page.</div>
+                        <div class="pb">
+                            <div class="qa-grid">
+                                <a href="#" class="qa-btn">
+                                    <div class="qa-icon" style="background:var(--orange-bg);color:var(--orange)"><svg
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg></div>
+                                    <div>
+                                        <div class="qa-lbl">Impersonate</div>
+                                        <div class="qa-desc">Login as this user</div>
+                                    </div>
+                                </a>
+                                <a href="#" class="qa-btn">
+                                    <div class="qa-icon" style="background:var(--blue-bg);color:var(--blue)"><svg
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                        </svg></div>
+                                    <div>
+                                        <div class="qa-lbl">Reset Password</div>
+                                        <div class="qa-desc">Send reset email</div>
+                                    </div>
+                                </a>
+                                <a href="#" class="qa-btn">
+                                    <div class="qa-icon" style="background:var(--amber-bg);color:var(--amber)"><svg
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg></div>
+                                    <div>
+                                        <div class="qa-lbl">Disable 2FA</div>
+                                        <div class="qa-desc">Remove auth app</div>
+                                    </div>
+                                </a>
+                                <a href="#" class="qa-btn" style="border-color:rgba(224,49,49,.2)">
+                                    <div class="qa-icon" style="background:var(--red-bg);color:var(--red)"><svg
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg></div>
+                                    <div>
+                                        <div class="qa-lbl" style="color:var(--red)">Suspend</div>
+                                        <div class="qa-desc">Block access</div>
+                                    </div>
+                                </a>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="fp-footer">
-                    <a href="billing-plans.html" class="btn btn-ghost">Cancel</a>
-                    <div style="display:flex;gap:8px">
-                        <button class="btn btn-ghost">Save Draft</button>
-                        <a href="plan-builder-pricing.html" class="btn btn-primary">Next: Pricing <svg fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg></a>
+                    <div class="panel">
+                        <div class="ph">
+                            <div class="ph-t">Account Status</div>
+                        </div>
+                        <div class="pb">
+                            <div class="mrow">
+                                <div class="ml">Status</div>
+                                <div class="mv gr">Active</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Created</div>
+                                <div class="mv">Mar 12, 2025</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Sessions</div>
+                                <div class="mv">1 active</div>
+                            </div>
+                            <div class="mrow">
+                                <div class="ml">Failed Logins</div>
+                                <div class="mv">0</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

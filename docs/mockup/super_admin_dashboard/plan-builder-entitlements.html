@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Plan Builder — Step 1: Details — RepairBuddy Superadmin</title>
+    <title>Plan Builder — Step 3: Entitlements — RepairBuddy Superadmin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -332,12 +332,6 @@
             margin-top: 1px
         }
 
-        .tb-right {
-            display: flex;
-            align-items: center;
-            gap: 10px
-        }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -349,7 +343,8 @@
             cursor: pointer;
             border: none;
             font-family: inherit;
-            transition: all .15s
+            transition: all .15s;
+            text-decoration: none
         }
 
         .btn-primary {
@@ -428,8 +423,7 @@
             border: 2px solid var(--border);
             color: var(--text-3);
             background: var(--surface);
-            flex-shrink: 0;
-            transition: all .2s
+            flex-shrink: 0
         }
 
         .step.active .step-num {
@@ -475,8 +469,7 @@
 
         .fp-title {
             font-size: 16px;
-            font-weight: 700;
-            color: var(--text)
+            font-weight: 700
         }
 
         .fp-desc {
@@ -498,137 +491,86 @@
             background: var(--bg)
         }
 
-        .form-group {
-            margin-bottom: 20px
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0
-        }
-
-        .form-row {
+        .ent-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px
+            gap: 12px
         }
 
-        label {
-            display: block;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 6px
-        }
-
-        .req {
-            color: var(--red)
-        }
-
-        .form-hint {
-            font-size: 11px;
-            color: var(--text-3);
-            margin-top: 4px
-        }
-
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 10px 14px;
+        .ent-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: var(--r-sm);
-            font-size: 13.5px;
-            font-family: inherit;
             background: var(--surface);
-            color: var(--text);
-            outline: none;
+            cursor: pointer;
             transition: all .15s
         }
 
-        input:focus,
-        textarea:focus,
-        select:focus {
+        .ent-item:hover {
+            border-color: var(--border-2);
+            background: var(--surface-2)
+        }
+
+        .ent-item.selected {
             border-color: var(--orange);
-            box-shadow: 0 0 0 3px rgba(232, 89, 12, .08)
+            background: var(--orange-bg)
         }
 
-        textarea {
-            resize: vertical;
-            min-height: 80px
-        }
-
-        select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 36px;
-            cursor: pointer
-        }
-
-        .toggle-wrap {
+        .ent-check {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-2);
+            border-radius: 4px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 0;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all .15s
+        }
+
+        .ent-item.selected .ent-check {
+            border-color: var(--orange);
+            background: var(--orange);
+            color: #fff
+        }
+
+        .ent-check svg {
+            width: 12px;
+            height: 12px
+        }
+
+        .ent-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .ent-type {
+            font-size: 10.5px;
+            color: var(--text-3);
+            margin-top: 1px
+        }
+
+        .cat-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-3);
+            margin: 20px 0 10px;
+            padding-bottom: 6px;
             border-bottom: 1px solid var(--border)
         }
 
-        .toggle-wrap:last-child {
-            border: none
-        }
-
-        .toggle {
-            width: 40px;
-            height: 22px;
-            background: var(--border-2);
-            border-radius: 99px;
-            position: relative;
-            cursor: pointer;
-            transition: background .2s;
-            flex-shrink: 0
-        }
-
-        .toggle::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            top: 3px;
-            left: 3px;
-            transition: transform .2s;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .15)
-        }
-
-        .toggle.on {
-            background: var(--orange)
-        }
-
-        .toggle.on::after {
-            transform: translateX(18px)
-        }
-
-        .toggle-info {
-            flex: 1
-        }
-
-        .toggle-label {
-            font-size: 13px;
-            color: var(--text);
-            font-weight: 600
-        }
-
-        .toggle-desc {
-            font-size: 11.5px;
-            color: var(--text-3);
-            margin-top: 2px
+        .cat-label:first-child {
+            margin-top: 0
         }
 
         @media(max-width:1200px) {
-            .form-row {
+            .ent-grid {
                 grid-template-columns: 1fr
             }
         }
@@ -664,10 +606,7 @@
                     <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
                     <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2" />
-                </svg>Dashboard</a><a href="#" class="nv"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>Activity Feed<span class="nv-badge">4</span></a>
+                </svg>Dashboard</a>
         </div>
         <hr class="s-hr" />
         <div class="nav-sec">
@@ -748,25 +687,30 @@
                 <div class="tb-bc">Admin › Billing › <b>Plan Builder</b></div>
                 <div class="tb-title">Create New Plan</div>
             </div>
-            <div class="tb-right"><a href="billing-plans.html" class="btn btn-ghost"><svg fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
+            <div><a href="billing-plans.html" class="btn btn-ghost"><svg fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>Back to Plans</a></div>
         </div>
 
         <div class="content">
-            <!-- STEPPER -->
             <div class="stepper">
-                <div class="step active">
-                    <div class="step-num">1</div>
+                <div class="step done">
+                    <div class="step-num"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="width:14px;height:14px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg></div>
                     <div class="step-label">Details</div>
                 </div>
-                <div class="step">
-                    <div class="step-num">2</div>
+                <div class="step done">
+                    <div class="step-num"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="width:14px;height:14px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg></div>
                     <div class="step-label">Pricing</div>
                 </div>
-                <div class="step">
+                <div class="step active">
                     <div class="step-num">3</div>
                     <div class="step-label">Entitlements</div>
                 </div>
@@ -776,72 +720,141 @@
                 </div>
             </div>
 
-            <!-- STEP 1: DETAILS -->
             <div class="form-panel">
                 <div class="fp-header">
-                    <div class="fp-title">Plan Details</div>
-                    <div class="fp-desc">Define the basic information for this billing plan.</div>
+                    <div class="fp-title">Plan Entitlements</div>
+                    <div class="fp-desc">Select which features and limits are included in this plan.</div>
                 </div>
                 <div class="fp-body">
-                    <div class="form-group"><label>Plan Name <span class="req">*</span></label><input type="text"
-                            placeholder="e.g. Professional" />
-                        <div class="form-hint">The display name shown to tenants.</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Slug <span class="req">*</span></label><input type="text"
-                                placeholder="e.g. professional" />
-                            <div class="form-hint">URL-safe identifier. Auto-generated from name.</div>
+                    <div class="cat-label">Core Features</div>
+                    <div class="ent-grid">
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Job Management</div>
+                                <div class="ent-type">Boolean · Core</div>
+                            </div>
                         </div>
-                        <div class="form-group"><label>Sort Order</label><input type="number" value="0" />
-                            <div class="form-hint">Controls display order on pricing page.</div>
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Invoicing</div>
+                                <div class="ent-type">Boolean · Core</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group"><label>Description</label><textarea
-                            placeholder="Describe what this plan includes…"></textarea></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Plan Type</label><select>
-                                <option>Recurring</option>
-                                <option>One-Time</option>
-                                <option>Usage-Based</option>
-                            </select></div>
-                        <div class="form-group"><label>Trial Period (days)</label><input type="number" value="14" />
-                            <div class="form-hint">Set to 0 for no trial.</div>
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Customer Management</div>
+                                <div class="ent-type">Boolean · Core</div>
+                            </div>
+                        </div>
+                        <div class="ent-item">
+                            <div class="ent-check"></div>
+                            <div>
+                                <div class="ent-name">Inventory Tracking</div>
+                                <div class="ent-type">Boolean · Core</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
-                        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">Plan Options
-                        </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle on"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Active</div>
-                                <div class="toggle-desc">Make this plan visible and available for purchase.</div>
+                    <div class="cat-label">Advanced Features</div>
+                    <div class="ent-grid">
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Online Booking</div>
+                                <div class="ent-type">Boolean · Advanced</div>
                             </div>
                         </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle on"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Featured</div>
-                                <div class="toggle-desc">Highlight this plan on the pricing page with a "Most Popular"
-                                    badge.</div>
+                        <div class="ent-item">
+                            <div class="ent-check"></div>
+                            <div>
+                                <div class="ent-name">Automated Workflows</div>
+                                <div class="ent-type">Boolean · Advanced</div>
                             </div>
                         </div>
-                        <div class="toggle-wrap">
-                            <div class="toggle"></div>
-                            <div class="toggle-info">
-                                <div class="toggle-label">Hidden</div>
-                                <div class="toggle-desc">Only accessible via direct link. Not shown on public pricing
-                                    page.</div>
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Reports & Analytics</div>
+                                <div class="ent-type">Boolean · Advanced</div>
+                            </div>
+                        </div>
+                        <div class="ent-item">
+                            <div class="ent-check"></div>
+                            <div>
+                                <div class="ent-name">API Access</div>
+                                <div class="ent-type">Boolean · Advanced</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cat-label">Limits</div>
+                    <div class="ent-grid">
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Max Users: 25</div>
+                                <div class="ent-type">Numeric · Limit</div>
+                            </div>
+                        </div>
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Storage: 10 GB</div>
+                                <div class="ent-type">Numeric · Limit</div>
+                            </div>
+                        </div>
+                        <div class="ent-item selected">
+                            <div class="ent-check"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg></div>
+                            <div>
+                                <div class="ent-name">Max Branches: 3</div>
+                                <div class="ent-type">Numeric · Limit</div>
+                            </div>
+                        </div>
+                        <div class="ent-item">
+                            <div class="ent-check"></div>
+                            <div>
+                                <div class="ent-name">Custom Domain</div>
+                                <div class="ent-type">Boolean · Premium</div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="fp-footer">
-                    <a href="billing-plans.html" class="btn btn-ghost">Cancel</a>
+                    <a href="plan-builder-pricing.html" class="btn btn-ghost"><svg fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>Previous</a>
                     <div style="display:flex;gap:8px">
                         <button class="btn btn-ghost">Save Draft</button>
-                        <a href="plan-builder-pricing.html" class="btn btn-primary">Next: Pricing <svg fill="none"
+                        <a href="plan-builder-review.html" class="btn btn-primary">Next: Review <svg fill="none"
                                 stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M14 5l7 7m0 0l-7 7m7-7H3" />
