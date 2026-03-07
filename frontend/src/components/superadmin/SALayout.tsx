@@ -2,6 +2,7 @@
 
 import React from "react";
 import { SASidebar } from "./SASidebar";
+import { RequireSuperAdmin } from "./RequireSuperAdmin";
 import "./superadmin.css";
 
 type SALayoutProps = {
@@ -10,11 +11,13 @@ type SALayoutProps = {
 
 export function SALayout({ children }: SALayoutProps) {
   return (
-    <div className="sa-root">
-      <SASidebar />
-      <div className="sa-main">
-        {children}
+    <RequireSuperAdmin>
+      <div className="sa-root">
+        <SASidebar />
+        <div className="sa-main">
+          {children}
+        </div>
       </div>
-    </div>
+    </RequireSuperAdmin>
   );
 }

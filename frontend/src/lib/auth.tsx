@@ -31,7 +31,7 @@ type LoginVerificationRequiredPayload = {
 type LoginPayload = AuthPayload | LoginOtpRequiredPayload | LoginVerificationRequiredPayload;
 
 export type LoginResult =
-  | { status: "ok"; must_change_password: boolean }
+  | { status: "ok"; must_change_password: boolean; is_admin: boolean }
   | { status: "otp_required"; otp_login_token: string }
   | { status: "verification_required" };
 
@@ -59,7 +59,7 @@ type AuthContextValue = {
   can: (permission: string) => boolean;
   refresh: () => Promise<void>;
   login: (email: string, password: string) => Promise<LoginResult>;
-  loginOtp: (otpLoginToken: string, code: string) => Promise<{ must_change_password: boolean }>;
+  loginOtp: (otpLoginToken: string, code: string) => Promise<{ must_change_password: boolean; is_admin: boolean }>;
   register: (input: {
     name: string;
     email: string;
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(payload.user);
       setTenant(payload.tenant);
       setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
-      return { status: "ok", must_change_password: Boolean(payload.user?.must_change_password) };
+      return { status: "ok", must_change_password: Boolean(payload.user?.must_change_password), is_admin: Boolean(payload.user?.is_admin) };
     }
 
     if ("otp_required" in payload && payload.otp_required) {
@@ -204,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(payload.user);
     setTenant(payload.tenant);
     setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
-    return { must_change_password: Boolean(payload.user?.must_change_password) };
+    return { must_change_password: Boolean(payload.user?.must_change_password), is_admin: Boolean(payload.user?.is_admin) };
   }, []);
 
   const register = useCallback(async (input: {
