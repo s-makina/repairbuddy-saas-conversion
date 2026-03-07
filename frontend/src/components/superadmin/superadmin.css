@@ -1347,3 +1347,202 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Purple badge variant ── */
+.sa-b-purple {
+  background: var(--sa-purple-bg);
+  color: var(--sa-purple);
+}
+
+/* ── td-sub (secondary cell text) ── */
+.sa-td-sub {
+  font-size: 11px;
+  color: var(--sa-text-3);
+  margin-top: 1px;
+}
+
+/* ── act-btn.warn hover variant ── */
+.sa-act-btn.warn:hover {
+  background: var(--sa-amber-bg);
+  color: var(--sa-amber);
+  border-color: rgba(230, 119, 0, 0.25);
+}
+
+/* ── User cell (avatar + name) ── */
+.sa-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sa-u-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* ── Duration / Reason (impersonation log) ── */
+.sa-dur {
+  font-family: monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--sa-surface-2);
+  color: var(--sa-text-2);
+}
+.sa-dur.long {
+  background: var(--sa-amber-bg);
+  color: var(--sa-amber);
+}
+.sa-reason {
+  font-size: 12px;
+  color: var(--sa-text-2);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Audit log special cells ── */
+.sa-ts {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--sa-text-3);
+  white-space: nowrap;
+}
+.sa-ip {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--sa-text-3);
+}
+.sa-evt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sa-evt-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sa-evt-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Form section (settings page) ── */
+.sa-form-section {
+  margin-bottom: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.sa-fs-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sa-text);
+  margin-bottom: 4px;
+}
+.sa-fs-desc {
+  font-size: 12px;
+  color: var(--sa-text-3);
+  margin-bottom: 16px;
+}
+
+/* ── Info panel (settings sticky sidebar) ── */
+.sa-info-panel {
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-r);
+  box-shadow: var(--sa-sh);
+  overflow: hidden;
+  position: sticky;
+  top: 86px;
+}
+
+/* ── Progress bar rows (analytics) ── */
+.sa-prog-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-prog-row:last-child {
+  border: none;
+}
+.sa-prog-lbl {
+  font-size: 12.5px;
+  color: var(--sa-text-2);
+  min-width: 80px;
+}
+.sa-prog-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--sa-surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.sa-prog-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+.sa-prog-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sa-text);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ── Legend row (analytics) ── */
+.sa-leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--sa-text-2);
+}
+.sa-leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ── Chart SVG & month labels ── */
+.sa-chart-svg {
+  width: 100%;
+  height: 210px;
+}
+.sa-chart-months {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--sa-text-3);
+  margin-top: 8px;
+}
+
+/* ── KPI-stripe responsive ── */
+@media (max-width: 1200px) {
+  .sa-info-panel {
+    position: static;
+  }
+  .sa-form-row {
+    grid-template-columns: 1fr;
+  }
+}
