@@ -131,10 +131,25 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
         ->whereNumber('interval')
         ->middleware('permission:admin.billing.write');
 
+    Route::delete('/billing/intervals/{interval}', [\App\Http\Controllers\Api\Admin\BillingIntervalController::class, 'destroy'])
+        ->whereNumber('interval')
+        ->middleware('permission:admin.billing.write');
+
+    Route::get('/billing/plans', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'index'])
+        ->middleware('permission:admin.billing.read');
+
     Route::post('/billing/plans', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.billing.write']);
 
+    Route::get('/billing/plans/{plan}', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'show'])
+        ->whereNumber('plan')
+        ->middleware('permission:admin.billing.read');
+
     Route::put('/billing/plans/{plan}', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'update'])
+        ->whereNumber('plan')
+        ->middleware('permission:admin.billing.write');
+
+    Route::delete('/billing/plans/{plan}', [\App\Http\Controllers\Api\Admin\BillingPlanController::class, 'destroy'])
         ->whereNumber('plan')
         ->middleware('permission:admin.billing.write');
 
@@ -164,6 +179,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::post('/billing/versions/{version}/retire', [\App\Http\Controllers\Api\Admin\BillingPlanVersionController::class, 'retire'])
         ->whereNumber('version')
         ->middleware('permission:admin.billing.write');
+
+    Route::get('/billing/entitlement-definitions', [\App\Http\Controllers\Api\Admin\BillingEntitlementDefinitionController::class, 'index'])
+        ->middleware('permission:admin.billing.read');
 
     Route::post('/billing/entitlement-definitions', [\App\Http\Controllers\Api\Admin\BillingEntitlementDefinitionController::class, 'store'])
         ->middleware(['throttle:auth', 'permission:admin.billing.write']);

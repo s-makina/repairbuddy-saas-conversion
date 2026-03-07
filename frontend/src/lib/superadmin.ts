@@ -479,3 +479,75 @@ export async function setCurrencyActive(args: {
     { method: "PATCH", body: { is_active: args.isActive } }
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Billing Plans (admin CRUD beyond what billing.ts provides)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ListBillingPlansParams = {
+  q?: string;
+  include_inactive?: boolean;
+  page?: number;
+  per_page?: number;
+};
+
+export async function listBillingPlans(
+  params: ListBillingPlansParams = {}
+): Promise<PaginatedResponse<import("@/lib/types").BillingPlan>> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.include_inactive) qs.set("include_inactive", "1");
+  if (params.page) qs.set("page", String(params.page));
+  if (params.per_page) qs.set("per_page", String(params.per_page));
+
+  return apiFetch<PaginatedResponse<import("@/lib/types").BillingPlan>>(
+    `/api/admin/billing/plans${qs.toString() ? `?${qs.toString()}` : ""}`
+  );
+}
+
+export async function getAdminBillingPlan(
+  planId: number
+): Promise<{ plan: import("@/lib/types").BillingPlan }> {
+  return apiFetch<{ plan: import("@/lib/types").BillingPlan }>(
+    `/api/admin/billing/plans/${planId}`
+  );
+}
+
+export async function deleteBillingPlan(args: {
+  planId: number;
+  reason?: string;
+}): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(`/api/admin/billing/plans/${args.planId}`, {
+    method: "DELETE",
+    body: args.reason ? { reason: args.reason } : undefined,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Billing Intervals (delete)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function deleteBillingInterval(args: {
+  intervalId: number;
+  reason?: string;
+}): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(
+    `/api/admin/billing/intervals/${args.intervalId}`,
+    {
+      method: "DELETE",
+      body: args.reason ? { reason: args.reason } : undefined,
+    }
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Entitlement Definitions (list)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listEntitlementDefinitions(): Promise<{
+  definitions: import("@/lib/types").EntitlementDefinition[];
+}> {
+  return apiFetch<{ definitions: import("@/lib/types").EntitlementDefinition[] }>(
+    "/api/admin/billing/entitlement-definitions"
+  );
+}

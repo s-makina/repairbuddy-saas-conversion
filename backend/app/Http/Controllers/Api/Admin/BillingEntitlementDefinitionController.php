@@ -10,6 +10,18 @@ use Illuminate\Support\Str;
 
 class BillingEntitlementDefinitionController extends Controller
 {
+    public function index(Request $request)
+    {
+        $definitions = EntitlementDefinition::query()
+            ->withCount('planEntitlements as usage_count')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'definitions' => $definitions,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

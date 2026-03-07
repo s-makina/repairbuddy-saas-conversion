@@ -1,150 +1,174 @@
 "use client";
 
-import { SATopbar, SAButton, SAIconButton } from "../SATopbar";
+import { SATopbar, SAButton } from "../SATopbar";
 import {
   Search,
   Plus,
-  Download,
   CreditCard,
   Crown,
   Star,
   CheckCircle,
   Pencil,
-  Settings,
+  Trash2,
+  Loader2,
+  AlertCircle,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
-import { useState } from "react";
-
-/* ── static data ── */
-const summaryCards = [
-  {
-    label: "Total Plans",
-    value: 4,
-    bg: "var(--sa-orange-bg)",
-    color: "var(--sa-orange)",
-    icon: <CreditCard />,
-  },
-  {
-    label: "Active Plans",
-    value: 3,
-    bg: "var(--sa-green-bg)",
-    color: "var(--sa-green)",
-    icon: <Crown />,
-  },
-  {
-    label: "Featured",
-    value: 1,
-    bg: "#fef3c7",
-    color: "#d97706",
-    icon: <Star />,
-  },
-];
-
-interface PlanFeature {
-  text: string;
-}
-interface Plan {
-  name: string;
-  code: string;
-  status: "active" | "inactive";
-  price: string;
-  interval: string;
-  desc: string;
-  features: PlanFeature[];
-  featured?: boolean;
-}
-
-const plans: Plan[] = [
-  {
-    name: "Basic",
-    code: "plan_basic",
-    status: "active",
-    price: "$29",
-    interval: "/month",
-    desc: "Essential features for small repair shops just getting started.",
-    features: [
-      { text: "Up to 5 employees" },
-      { text: "Basic inventory management" },
-      { text: "100 repair tickets/month" },
-      { text: "Email support" },
-    ],
-  },
-  {
-    name: "Professional",
-    code: "plan_professional",
-    status: "active",
-    price: "$79",
-    interval: "/month",
-    desc: "Advanced tools for growing repair businesses.",
-    featured: true,
-    features: [
-      { text: "Up to 25 employees" },
-      { text: "Full inventory + POS" },
-      { text: "Unlimited repair tickets" },
-      { text: "Priority support" },
-      { text: "API access" },
-    ],
-  },
-  {
-    name: "Enterprise",
-    code: "plan_enterprise",
-    status: "active",
-    price: "$199",
-    interval: "/month",
-    desc: "Complete solution for multi-location repair chains.",
-    features: [
-      { text: "Unlimited employees" },
-      { text: "White-label branding" },
-      { text: "Dedicated account manager" },
-      { text: "Custom integrations" },
-      { text: "SLA guarantee" },
-    ],
-  },
-  {
-    name: "Starter (Legacy)",
-    code: "plan_starter_v1",
-    status: "inactive",
-    price: "$19",
-    interval: "/month",
-    desc: "Discontinued plan kept for existing subscribers.",
-    features: [
-      { text: "Up to 2 employees" },
-      { text: "Basic repairs only" },
-      { text: "50 tickets/month" },
-    ],
-  },
-];
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { getBillingCatalog, deleteBillingPlan, updateBillingPlan } from "@/lib/superadmin";
+import type { BillingCatalogPayload } from "@/lib/billing";
+import type { BillingPlan, BillingPlanVersion } from "@/lib/types";
+import { notify } from "@/lib/notify";
 
 export function SABillingPlansContent() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [catalog, setCatalog] = useState<BillingCatalogPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+
+  const fetchCatalog = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getBillingCatalog({ includeInactive: true });
+      setCatalog(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load billing plans");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
+
+  const plans = catalog?.billing_plans ?? [];
+
+  const filtered = plans.filter((p) => {
+    if (statusFilter === "active" && !p.is_active) return false;
+    if (statusFilter === "inactive" && p.is_active) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const totalPlans = plans.length;
+  const activePlans = plans.filter((p) => p.is_active).length;
+  const plansWithActiveVersion = plans.filter((p) =>
+    p.versions?.some((v) => v.status === "active")
+  ).length;
+
+  function getActiveVersion(plan: BillingPlan): BillingPlanVersion | undefined {
+    return plan.versions?.find((v) => v.status === "active");
+  }
+
+  function getDisplayPrice(plan: BillingPlan): { price: string; interval: string } {
+    const ver = getActiveVersion(plan);
+    if (!ver?.prices?.length) return { price: "No pricing", interval: "" };
+    const defaultPrice = ver.prices.find((p) => p.is_default) ?? ver.prices[0];
+    const amount = (defaultPrice.amount_cents / 100).toFixed(2);
+    return {
+      price: `${defaultPrice.currency} ${amount}`,
+      interval: `/ ${defaultPrice.interval_model?.name ?? defaultPrice.interval ?? "period"}`,
+    };
+  }
+
+  function getEntitlementTexts(plan: BillingPlan): string[] {
+    const ver = getActiveVersion(plan) ?? plan.versions?.[0];
+    if (!ver?.entitlements?.length) return [];
+    return ver.entitlements.map((e) => {
+      const name = e.definition?.name ?? `Entitlement #${e.entitlement_definition_id}`;
+      const val = e.value_json;
+      if (typeof val === "boolean") return val ? name : `No ${name}`;
+      if (typeof val === "number") return `${name}: ${val}`;
+      return name;
+    });
+  }
+
+  async function handleToggleActive(plan: BillingPlan) {
+    if (busy) return;
+    setBusy(plan.id);
+    try {
+      await updateBillingPlan({
+        planId: plan.id,
+        name: plan.name,
+        code: plan.code,
+        description: plan.description ?? undefined,
+        isActive: !plan.is_active,
+        reason: plan.is_active ? "Deactivated from plans list" : "Activated from plans list",
+      });
+      notify.success(`Plan "${plan.name}" ${plan.is_active ? "deactivated" : "activated"}`);
+      await fetchCatalog();
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : "Failed to update plan");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleDelete(plan: BillingPlan) {
+    if (busy) return;
+    if (!confirm(`Delete plan "${plan.name}"? This cannot be undone.`)) return;
+    setBusy(plan.id);
+    try {
+      await deleteBillingPlan({ planId: plan.id, reason: "Deleted from plans list" });
+      notify.success(`Plan "${plan.name}" deleted`);
+      await fetchCatalog();
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : "Failed to delete plan");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const summaryCards = [
+    {
+      label: "Total Plans",
+      value: totalPlans,
+      bg: "var(--sa-orange-bg)",
+      color: "var(--sa-orange)",
+      icon: <CreditCard />,
+    },
+    {
+      label: "Active Plans",
+      value: activePlans,
+      bg: "var(--sa-green-bg)",
+      color: "var(--sa-green)",
+      icon: <Crown />,
+    },
+    {
+      label: "With Active Version",
+      value: plansWithActiveVersion,
+      bg: "#fef3c7",
+      color: "#d97706",
+      icon: <Star />,
+    },
+  ];
 
   return (
     <>
-      {/* Topbar */}
       <SATopbar
         breadcrumb="Billing & Subscriptions"
         title="Billing Plans"
         actions={
-          <>
-            <SAButton variant="ghost" icon={<Download />}>
-              Export
-            </SAButton>
-            <SAButton variant="primary" icon={<Plus />}>
-              Create Plan
-            </SAButton>
-          </>
+          <SAButton variant="primary" icon={<Plus />} onClick={() => router.push("/superadmin/billing/builder")}>
+            Create Plan
+          </SAButton>
         }
       />
 
-      {/* Content */}
       <div className="sa-content">
         {/* Summary row */}
         <div className="sa-summary-row">
           {summaryCards.map((c) => (
             <div className="sa-scard" key={c.label}>
-              <div
-                className="sa-scard-icon"
-                style={{ background: c.bg, color: c.color }}
-              >
+              <div className="sa-scard-icon" style={{ background: c.bg, color: c.color }}>
                 {c.icon}
               </div>
               <div>
@@ -159,75 +183,126 @@ export function SABillingPlansContent() {
         <div className="sa-filter-bar" style={{ marginTop: 20 }}>
           <div className="sa-search-wrap">
             <Search />
-            <input placeholder="Search plans..." />
+            <input
+              placeholder="Search plans..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <select>
-            <option>All Types</option>
-            <option>Standard</option>
-            <option>Legacy</option>
-          </select>
         </div>
+
+        {/* Loading state */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: 60 }}>
+            <Loader2 className="sa-spin" style={{ width: 32, height: 32, color: "var(--sa-orange)" }} />
+            <div style={{ marginTop: 12, color: "var(--sa-text-muted)", fontSize: 13 }}>Loading plans...</div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && !loading && (
+          <div className="sa-panel" style={{ padding: 32, textAlign: "center", color: "#dc2626" }}>
+            <AlertCircle style={{ width: 28, height: 28, margin: "0 auto 8px" }} />
+            <div>{error}</div>
+            <SAButton variant="outline" onClick={fetchCatalog} style={{ marginTop: 12 }}>Retry</SAButton>
+          </div>
+        )}
 
         {/* Plan cards grid */}
-        <div className="sa-plan-grid" style={{ marginTop: 20 }}>
-          {plans.map((p) => (
-            <div
-              className={`sa-plan-card${p.featured ? " featured" : ""}`}
-              key={p.code}
-            >
-              {/* header */}
-              <div className="sa-pc-header">
-                <div>
-                  <div className="sa-pc-name">{p.name}</div>
-                  <div className="sa-pc-code">{p.code}</div>
-                </div>
-                <span
-                  className={`sa-pc-status ${
-                    p.status === "active" ? "sa-pc-active" : "sa-pc-inactive"
-                  }`}
+        {!loading && !error && (
+          <div className="sa-plan-grid" style={{ marginTop: 20 }}>
+            {filtered.length === 0 && (
+              <div className="sa-panel" style={{ padding: 32, textAlign: "center", color: "var(--sa-text-muted)", gridColumn: "1 / -1" }}>
+                No plans found{search || statusFilter !== "all" ? " matching your filters" : ""}.
+              </div>
+            )}
+            {filtered.map((p) => {
+              const { price, interval } = getDisplayPrice(p);
+              const entitlements = getEntitlementTexts(p);
+              const activeVersion = getActiveVersion(p);
+              const isBusy = busy === p.id;
+
+              return (
+                <div
+                  className={`sa-plan-card${activeVersion ? " featured" : ""}`}
+                  key={p.id}
+                  style={isBusy ? { opacity: 0.6, pointerEvents: "none" } : undefined}
                 >
-                  {p.status === "active" ? "Active" : "Inactive"}
-                </span>
-              </div>
-
-              {/* body */}
-              <div className="sa-pc-body">
-                <div className="sa-pc-price">
-                  {p.price}
-                  <span>{p.interval}</span>
-                </div>
-                <div className="sa-pc-desc">{p.desc}</div>
-
-                <div className="sa-pc-features">
-                  {p.features.map((f, i) => (
-                    <div className="sa-pc-feat" key={i}>
-                      <CheckCircle />
-                      {f.text}
+                  <div className="sa-pc-header">
+                    <div>
+                      <div className="sa-pc-name">{p.name}</div>
+                      <div className="sa-pc-code">{p.code}</div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <span className={`sa-pc-status ${p.is_active ? "sa-pc-active" : "sa-pc-inactive"}`}>
+                      {p.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
 
-              {/* footer */}
-              <div className="sa-pc-footer">
-                <SAButton variant="outline" icon={<Pencil />}>
-                  Edit
-                </SAButton>
-                <SAButton variant="ghost" icon={<Settings />}>
-                  Configure
-                </SAButton>
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div className="sa-pc-body">
+                    <div className="sa-pc-price">
+                      {price}
+                      {interval && <span>{interval}</span>}
+                    </div>
+                    {p.description && <div className="sa-pc-desc">{p.description}</div>}
+                    {activeVersion && (
+                      <div style={{ fontSize: 11, color: "var(--sa-text-muted)", marginBottom: 8 }}>
+                        Version {activeVersion.version} &middot; Active
+                      </div>
+                    )}
+                    <div className="sa-pc-features">
+                      {entitlements.slice(0, 5).map((text, i) => (
+                        <div className="sa-pc-feat" key={i}>
+                          <CheckCircle />
+                          {text}
+                        </div>
+                      ))}
+                      {entitlements.length > 5 && (
+                        <div className="sa-pc-feat" style={{ color: "var(--sa-text-muted)" }}>
+                          +{entitlements.length - 5} more
+                        </div>
+                      )}
+                      {entitlements.length === 0 && (
+                        <div style={{ fontSize: 12, color: "var(--sa-text-muted)", fontStyle: "italic" }}>
+                          No entitlements configured
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="sa-pc-footer">
+                    <SAButton
+                      variant="outline"
+                      icon={<Pencil />}
+                      onClick={() => router.push(`/superadmin/billing/builder?planId=${p.id}`)}
+                    >
+                      Edit
+                    </SAButton>
+                    <SAButton
+                      variant="ghost"
+                      icon={p.is_active ? <ToggleRight /> : <ToggleLeft />}
+                      onClick={() => handleToggleActive(p)}
+                    >
+                      {p.is_active ? "Deactivate" : "Activate"}
+                    </SAButton>
+                    <SAButton
+                      variant="ghost"
+                      icon={<Trash2 />}
+                      onClick={() => handleDelete(p)}
+                      style={{ color: "#dc2626" }}
+                    >
+                      Delete
+                    </SAButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </>
   );

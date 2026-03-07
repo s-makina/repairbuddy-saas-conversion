@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingInterval;
+use App\Models\BillingPrice;
 use App\Support\PlatformAudit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -116,6 +117,35 @@ class BillingIntervalController extends Controller
 
         return response()->json([
             'interval' => $interval,
+        ]);
+    }
+
+    public function destroy(Request $request, BillingInterval $interval)
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        // Guard: cannot delete an interval that is referenced by prices
+        $inUse = BillingPrice::query()->where('billing_interval_id', $interval->id)->exists();
+        if ($inUse) {
+            return response()->json([
+                'message' => 'Cannot delete this interval because it is referenced by existing billing prices.',
+            ], 422);
+        }
+
+        $snapshot = $interval->toArray();
+        $id = $interval->id;
+
+        $interval->delete();
+
+        PlatformAudit::log($request, 'billing.interval.deleted', null, $validated['reason'] ?? null, [
+            'billing_interval_id' => $id,
+            'interval' => $snapshot,
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
         ]);
     }
 }

@@ -2140,6 +2140,9 @@
 .sa-login-btn-spinner {
   animation: sa-spin 0.8s linear infinite;
 }
+.sa-spin {
+  animation: sa-spin 0.8s linear infinite;
+}
 @keyframes sa-spin {
   to { transform: rotate(360deg); }
 }

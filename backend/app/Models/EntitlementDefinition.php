@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EntitlementDefinition extends Model
 {
@@ -22,5 +23,10 @@ class EntitlementDefinition extends Model
         return [
             'is_premium' => 'boolean',
         ];
+    }
+
+    public function planEntitlements(): HasMany
+    {
+        return $this->hasMany(PlanEntitlement::class);
     }
 }
