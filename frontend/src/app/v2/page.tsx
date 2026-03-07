@@ -148,7 +148,7 @@ export default function LandingV2() {
             <li><a href="#testimonials">Testimonials</a></li>
           </ul>
           <div className="nav-actions">
-            <Link href="/v2/login" className="btn btn-ghost">Log In</Link>
+            {/* <Link href="/v2/login" className="btn btn-ghost">Log In</Link> */}
             <Link href="/v2/plans" className="btn btn-primary">Get Started</Link>
           </div>
         </div>
