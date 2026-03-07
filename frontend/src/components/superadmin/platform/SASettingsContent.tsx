@@ -57,21 +57,21 @@ export default function SASettingsContent() {
                 <div className="sa-fs-desc">Configure how your platform appears to tenants and their customers.</div>
                 <div className="sa-form-group">
                   <label className="sa-label">Platform Name <span className="sa-req">*</span></label>
-                  <input className="sa-input" type="text" defaultValue="RepairBuddy" />
+                  <input className="sa-input" type="text" defaultValue="99SmartX" />
                 </div>
                 <div className="sa-form-row">
                   <div className="sa-form-group">
                     <label className="sa-label">Support Email <span className="sa-req">*</span></label>
-                    <input className="sa-input" type="email" defaultValue="support@repairbuddy.com" />
+                    <input className="sa-input" type="email" defaultValue="support@99smartx.com" />
                   </div>
                   <div className="sa-form-group">
                     <label className="sa-label">Admin Email</label>
-                    <input className="sa-input" type="email" defaultValue="admin@repairbuddy.com" />
+                    <input className="sa-input" type="email" defaultValue="admin@99smartx.com" />
                   </div>
                 </div>
                 <div className="sa-form-group">
                   <label className="sa-label">Platform URL</label>
-                  <input className="sa-input" type="text" defaultValue="https://app.repairbuddy.com" />
+                  <input className="sa-input" type="text" defaultValue="https://app.99smartx.com" />
                   <div className="sa-form-hint">Base URL for all tenant sub-domains.</div>
                 </div>
               </div>

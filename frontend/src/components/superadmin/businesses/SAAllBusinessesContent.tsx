@@ -6,13 +6,13 @@ import { SATopbar, SAButton, SAIconButton } from '../SATopbar';
 import { Bell } from 'lucide-react';
 
 const businesses = [
-  { name: 'QuickFix Electronics', domain: 'quickfix.repairbuddy.com', owner: 'James Carter', plan: 'Professional', status: 'Active', statusClass: 'b-green', users: 12, mrr: '$89/mo', created: 'Mar 12, 2025' },
-  { name: 'Metro Auto Care', domain: 'metro-auto.repairbuddy.com', owner: 'Sarah Mitchell', plan: 'Basic', status: 'Trial', statusClass: 'b-blue', users: 3, mrr: '—', created: 'Feb 28, 2026' },
-  { name: 'Pioneer Appliance Repair', domain: 'pioneer.repairbuddy.com', owner: 'David Chen', plan: 'Enterprise', status: 'Suspended', statusClass: 'b-red', users: 28, mrr: '$249/mo', created: 'Jan 15, 2025' },
-  { name: 'TechStar Services', domain: 'techstar.repairbuddy.com', owner: 'Emily Rodriguez', plan: 'Professional', status: 'Past Due', statusClass: 'b-amber', users: 8, mrr: '$89/mo', created: 'Dec 22, 2024' },
-  { name: 'Gadget Guru Repairs', domain: 'gadgetguru.repairbuddy.com', owner: 'Michael Brown', plan: 'Enterprise', status: 'Active', statusClass: 'b-green', users: 45, mrr: '$249/mo', created: 'Nov 5, 2024' },
-  { name: 'FixIt Pro Workshop', domain: 'fixitpro.repairbuddy.com', owner: 'Lisa Wang', plan: 'Professional', status: 'Active', statusClass: 'b-green', users: 6, mrr: '$89/mo', created: 'Oct 18, 2024' },
-  { name: 'Apex Mobile Repairs', domain: 'apex.repairbuddy.com', owner: 'Robert Taylor', plan: 'Basic', status: 'Active', statusClass: 'b-green', users: 2, mrr: '$29/mo', created: 'Sep 3, 2024' },
+  { name: 'QuickFix Electronics', domain: 'quickfix.99smartx.com', owner: 'James Carter', plan: 'Professional', status: 'Active', statusClass: 'b-green', users: 12, mrr: '$89/mo', created: 'Mar 12, 2025' },
+  { name: 'Metro Auto Care', domain: 'metro-auto.99smartx.com', owner: 'Sarah Mitchell', plan: 'Basic', status: 'Trial', statusClass: 'b-blue', users: 3, mrr: '—', created: 'Feb 28, 2026' },
+  { name: 'Pioneer Appliance Repair', domain: 'pioneer.99smartx.com', owner: 'David Chen', plan: 'Enterprise', status: 'Suspended', statusClass: 'b-red', users: 28, mrr: '$249/mo', created: 'Jan 15, 2025' },
+  { name: 'TechStar Services', domain: 'techstar.99smartx.com', owner: 'Emily Rodriguez', plan: 'Professional', status: 'Past Due', statusClass: 'b-amber', users: 8, mrr: '$89/mo', created: 'Dec 22, 2024' },
+  { name: 'Gadget Guru Repairs', domain: 'gadgetguru.99smartx.com', owner: 'Michael Brown', plan: 'Enterprise', status: 'Active', statusClass: 'b-green', users: 45, mrr: '$249/mo', created: 'Nov 5, 2024' },
+  { name: 'FixIt Pro Workshop', domain: 'fixitpro.99smartx.com', owner: 'Lisa Wang', plan: 'Professional', status: 'Active', statusClass: 'b-green', users: 6, mrr: '$89/mo', created: 'Oct 18, 2024' },
+  { name: 'Apex Mobile Repairs', domain: 'apex.99smartx.com', owner: 'Robert Taylor', plan: 'Basic', status: 'Active', statusClass: 'b-green', users: 2, mrr: '$29/mo', created: 'Sep 3, 2024' },
 ];
 
 export default function SAAllBusinessesContent() {

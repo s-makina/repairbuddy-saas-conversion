@@ -108,7 +108,7 @@ export default function SANewTenantContent() {
                   value={form.subdomain}
                   onChange={e => set('subdomain', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                 />
-                <span className="sa-sd-suffix">.repairbuddy.com</span>
+                <span className="sa-sd-suffix">.99smartx.com</span>
               </div>
               <div className="sa-form-hint">This will be the tenant's unique URL on the platform.</div>
             </div>

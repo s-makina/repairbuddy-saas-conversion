@@ -149,7 +149,7 @@ export function SASidebar() {
           <Icon name="wrench" />
         </div>
         <div>
-          <div className="sa-brand-txt">RepairBuddy</div>
+          <div className="sa-brand-txt">99SmartX</div>
         </div>
       </div>
 

@@ -211,7 +211,7 @@ export function PortalShell({ tenantSlug, title, subtitle, actions, children }: 
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <Link href={`/t/${tenantSlug}/status`} className="text-sm font-semibold text-[var(--rb-text)]">
-                RepairBuddy
+                99SmartX
               </Link>
               <div className="text-xs text-zinc-500">Business: {tenantSlug}</div>
               {isUnlocked ? <div className="text-xs text-zinc-500">Case: {session.case_number}</div> : null}
