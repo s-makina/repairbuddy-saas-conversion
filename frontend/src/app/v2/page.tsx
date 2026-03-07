@@ -2,6 +2,85 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getPublicBillingPlans } from "@/lib/publicBilling";
+import type { BillingPlan } from "@/lib/types";
+
+interface PricingPreviewPlan {
+  id: string;
+  name: string;
+  desc: string;
+  amount: string;
+  period: string;
+  featured: boolean;
+  cta: string;
+  features: string[];
+}
+
+const staticPricingPlans: PricingPreviewPlan[] = [
+  {
+    id: "starter",
+    name: "Starter", desc: "Perfect for solo technicians", amount: "$29", period: "Billed monthly",
+    featured: false, cta: "Choose Starter",
+    features: ["Up to 50 repairs/month", "1 user", "Online booking", "Basic invoicing", "Email support"],
+  },
+  {
+    id: "professional",
+    name: "Professional", desc: "Best for growing shops", amount: "$79", period: "Billed monthly",
+    featured: true, cta: "Choose Professional",
+    features: ["Unlimited repairs", "Up to 5 users", "Inventory management", "Customer portal", "Priority support"],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise", desc: "For multi-location businesses", amount: "$149", period: "Billed monthly",
+    featured: false, cta: "Choose Enterprise",
+    features: ["Everything in Professional", "Unlimited users", "Multi-location support", "Advanced analytics", "Dedicated account manager"],
+  },
+];
+
+function mapApiPricingPreview(apiPlans: BillingPlan[]): PricingPreviewPlan[] {
+  const sorted = [...apiPlans].sort((a, b) => {
+    const aV = a.versions?.find(v => v.status === "active") ?? a.versions?.[0];
+    const bV = b.versions?.find(v => v.status === "active") ?? b.versions?.[0];
+    const aP = aV?.prices?.find(p => p.interval === "month") ?? aV?.prices?.[0];
+    const bP = bV?.prices?.find(p => p.interval === "month") ?? bV?.prices?.[0];
+    return (aP?.amount_cents ?? 0) - (bP?.amount_cents ?? 0);
+  });
+
+  const result: PricingPreviewPlan[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const plan = sorted[i];
+    const version = plan.versions?.find(v => v.status === "active") ?? plan.versions?.[0];
+    if (!version) continue;
+    const monthlyPrice = version.prices?.find(p => p.interval === "month") ?? version.prices?.[0];
+    if (!monthlyPrice) continue;
+    const amount = `$${Math.round(monthlyPrice.amount_cents / 100)}`;
+    const features = (version.entitlements ?? [])
+      .filter(e => e.definition?.value_type !== "boolean" || e.value_json === true || e.value_json === 1)
+      .slice(0, 5)
+      .map(e => {
+        const def = e.definition;
+        if (!def) return String(e.value_json);
+        if (def.value_type === "boolean") return def.name;
+        if (def.value_type === "integer") {
+          const num = Number(e.value_json);
+          if (num < 0) return `Unlimited ${def.name.toLowerCase()}`;
+          return `Up to ${num} ${def.name.toLowerCase()}`;
+        }
+        return `${def.name}: ${String(e.value_json)}`;
+      });
+    result.push({
+      id: plan.code,
+      name: plan.name,
+      desc: plan.description ?? "",
+      amount,
+      period: "Billed monthly",
+      featured: i === Math.floor((sorted.length - 1) / 2),
+      cta: `Choose ${plan.name}`,
+      features: features.length > 0 ? features : [`${plan.name} plan`],
+    });
+  }
+  return result;
+}
 
 const WrenchIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -24,11 +103,26 @@ const StarIcon = () => (
 export default function LandingV2() {
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [pricingPlans, setPricingPlans] = useState<PricingPreviewPlan[]>(staticPricingPlans);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    getPublicBillingPlans()
+      .then((res) => {
+        if (!alive) return;
+        const mapped = mapApiPricingPreview(res.billing_plans ?? []);
+        if (mapped.length > 0) setPricingPlans(mapped);
+      })
+      .catch(() => {
+        // silently fall back to static plans
+      });
+    return () => { alive = false; };
   }, []);
 
   const faqs = [
@@ -187,24 +281,8 @@ export default function LandingV2() {
           <p className="section-sub">No hidden fees. No surprises. Choose the plan that grows with your business.</p>
         </div>
         <div className="pricing-grid">
-          {[
-            {
-              name: "Starter", desc: "Perfect for solo technicians", amount: "$29", period: "Billed monthly",
-              featured: false, cta: "Choose Starter",
-              features: ["Up to 50 repairs/month", "1 user", "Online booking", "Basic invoicing", "Email support"],
-            },
-            {
-              name: "Professional", desc: "Best for growing shops", amount: "$79", period: "Billed monthly",
-              featured: true, cta: "Choose Professional",
-              features: ["Unlimited repairs", "Up to 5 users", "Inventory management", "Customer portal", "Priority support"],
-            },
-            {
-              name: "Enterprise", desc: "For multi-location businesses", amount: "$149", period: "Billed monthly",
-              featured: false, cta: "Choose Enterprise",
-              features: ["Everything in Professional", "Unlimited users", "Multi-location support", "Advanced analytics", "Dedicated account manager"],
-            },
-          ].map((p) => (
-            <div key={p.name} className={`price-card${p.featured ? " featured" : ""}`}>
+          {pricingPlans.map((p) => (
+            <div key={p.id} className={`price-card${p.featured ? " featured" : ""}`}>
               <div className="price-name">{p.name}</div>
               <div className="price-desc">{p.desc}</div>
               <div className="price-amount">{p.amount}<span>/mo</span></div>
@@ -214,7 +292,7 @@ export default function LandingV2() {
                   <li key={f}><CheckIcon />{f}</li>
                 ))}
               </ul>
-              <Link href="/v2/plans" className={`btn ${p.featured ? "btn-primary" : "btn-outline"}`}>{p.cta}</Link>
+              <Link href={`/v2/register?plan=${p.id}`} className={`btn ${p.featured ? "btn-primary" : "btn-outline"}`}>{p.cta}</Link>
             </div>
           ))}
         </div>
