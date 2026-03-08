@@ -587,6 +587,16 @@ export type ActivityFeedKpis = {
   signups_today: number;
   plan_changes_today: number;
   alerts_today: number;
+  // Live Status widget
+  active_users?: number;
+  open_repairs?: number;
+  api_requests_min?: number;
+  server_load?: number;
+  // Today's Summary widget
+  trial_conversions_today?: number;
+  cancellations_today?: number;
+  revenue_today?: number;
+  failed_payments_today?: number;
 };
 
 export type ActivityFeedTabCounts = {

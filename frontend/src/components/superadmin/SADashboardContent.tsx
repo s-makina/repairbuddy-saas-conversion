@@ -454,7 +454,7 @@ export default function SADashboardPage() {
                   No sales data available
                 </div>
               )}
-              <div className="sa-stat-row">
+              <div className="sa-chart-stat-row">
                 <div>
                   <div className="sa-stat-label">This Month</div>
                   <div className="sa-stat-value" style={{ color: "var(--sa-orange)" }}>

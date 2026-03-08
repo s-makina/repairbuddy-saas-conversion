@@ -420,13 +420,12 @@ export default function SAActivityFeedContent() {
           title="Activity Feed"
           actions={null}
         />
-        <div className="sa-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-          <div style={{ textAlign: 'center' }}>
-            <Loader2 className="sa-spinner" style={{ width: 36, height: 36, animation: 'spin 1s linear infinite', color: 'var(--sa-orange)' }} />
+        <div className="sa-content" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Loader2 className="sa-spin" style={{ width: 36, height: 36, color: 'var(--sa-orange)' }} />
             <div style={{ marginTop: 12, color: 'var(--sa-text-2)' }}>Loading activity feed...</div>
           </div>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </>
     );
   }
@@ -706,20 +705,20 @@ export default function SAActivityFeedContent() {
               </div>
               <div className="sa-wb">
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Events Today</span>
-                  <span className="sa-stat-val" style={{ color: 'var(--sa-green)' }}>{kpis.events_today.toLocaleString()}</span>
+                  <span className="sa-stat-lbl">Active Users (now)</span>
+                  <span className="sa-stat-val" style={{ color: 'var(--sa-green)' }}>{kpis.active_users?.toLocaleString() ?? '—'}</span>
                 </div>
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Signups Today</span>
-                  <span className="sa-stat-val">{kpis.signups_today}</span>
+                  <span className="sa-stat-lbl">Open Repairs</span>
+                  <span className="sa-stat-val">{kpis.open_repairs?.toLocaleString() ?? '—'}</span>
                 </div>
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Plan Changes</span>
-                  <span className="sa-stat-val">{kpis.plan_changes_today}</span>
+                  <span className="sa-stat-lbl">API Requests/min</span>
+                  <span className="sa-stat-val">{kpis.api_requests_min?.toLocaleString() ?? '—'}</span>
                 </div>
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Alerts</span>
-                  <span className="sa-stat-val" style={{ color: kpis.alerts_today > 0 ? 'var(--sa-red)' : undefined }}>{kpis.alerts_today}</span>
+                  <span className="sa-stat-lbl">Server Load</span>
+                  <span className="sa-stat-val" style={{ color: 'var(--sa-green)' }}>{kpis.server_load ?? '—'}{kpis.server_load ? '%' : ''}</span>
                 </div>
               </div>
             </div>
@@ -736,16 +735,20 @@ export default function SAActivityFeedContent() {
                   <span className="sa-stat-val" style={{ color: 'var(--sa-green)' }}>{kpis.signups_today}</span>
                 </div>
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Plan Changes</span>
-                  <span className="sa-stat-val">{kpis.plan_changes_today}</span>
+                  <span className="sa-stat-lbl">Trial Conversions</span>
+                  <span className="sa-stat-val" style={{ color: 'var(--sa-green)' }}>{kpis.trial_conversions_today ?? 0}</span>
                 </div>
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Alerts</span>
-                  <span className="sa-stat-val" style={{ color: kpis.alerts_today > 0 ? 'var(--sa-red)' : undefined }}>{kpis.alerts_today}</span>
+                  <span className="sa-stat-lbl">Cancellations</span>
+                  <span className="sa-stat-val" style={{ color: (kpis.cancellations_today ?? 0) > 0 ? 'var(--sa-red)' : undefined }}>{kpis.cancellations_today ?? 0}</span>
                 </div>
                 <div className="sa-stat-row">
-                  <span className="sa-stat-lbl">Total Events</span>
-                  <span className="sa-stat-val">{kpis.events_today.toLocaleString()}</span>
+                  <span className="sa-stat-lbl">Revenue Today</span>
+                  <span className="sa-stat-val" style={{ color: 'var(--sa-green)' }}>${kpis.revenue_today?.toLocaleString() ?? '0'}</span>
+                </div>
+                <div className="sa-stat-row">
+                  <span className="sa-stat-lbl">Failed Payments</span>
+                  <span className="sa-stat-val" style={{ color: (kpis.failed_payments_today ?? 0) > 0 ? 'var(--sa-red)' : undefined }}>{kpis.failed_payments_today ?? 0}</span>
                 </div>
               </div>
             </div>
@@ -785,7 +788,6 @@ export default function SAActivityFeedContent() {
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } .sa-spin { animation: spin 1s linear infinite; }`}</style>
-    </>
+      </>
   );
 }
