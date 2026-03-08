@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { getPublicBillingPlans } from "@/lib/publicBilling";
 import type { BillingPlan } from "@/lib/types";
 
@@ -101,6 +103,8 @@ const StarIcon = () => (
 );
 
 export default function LandingV2() {
+  const auth = useAuth();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [pricingPlans, setPricingPlans] = useState<PricingPreviewPlan[]>(staticPricingPlans);
@@ -110,6 +114,12 @@ export default function LandingV2() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (auth.loading) return;
+    if (!auth.isAuthenticated) return;
+    router.replace(auth.isAdmin ? "/admin" : "/app");
+  }, [auth.loading, auth.isAuthenticated, auth.isAdmin, router]);
 
   useEffect(() => {
     let alive = true;
@@ -137,7 +147,7 @@ export default function LandingV2() {
       {/* NAVBAR */}
       <nav className={`navbar${scrolled ? " scrolled" : ""}`}>
         <div className="nav-inner">
-          <Link href="/v2" className="nav-brand">
+          <Link href="/" className="nav-brand">
             <div className="logo-mark"><WrenchIcon /></div>
             <span className="brand-name">99SmartX</span>
           </Link>
@@ -148,8 +158,8 @@ export default function LandingV2() {
             <li><a href="#testimonials">Testimonials</a></li>
           </ul>
           <div className="nav-actions">
-            {/* <Link href="/v2/login" className="btn btn-ghost">Log In</Link> */}
-            <Link href="/v2/plans" className="btn btn-primary">Get Started</Link>
+            {/* <Link href="/login" className="btn btn-ghost">Log In</Link> */}
+            <Link href="/plans" className="btn btn-primary">Get Started</Link>
           </div>
         </div>
       </nav>
@@ -167,7 +177,7 @@ export default function LandingV2() {
             send invoices, and delight your customers — all from one place.
           </p>
           <div className="hero-ctas">
-            <Link href="/v2/plans" className="btn btn-primary btn-lg">
+            <Link href="/plans" className="btn btn-primary btn-lg">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -292,12 +302,12 @@ export default function LandingV2() {
                   <li key={f}><CheckIcon />{f}</li>
                 ))}
               </ul>
-              <Link href={`/v2/register?plan=${p.id}`} className={`btn ${p.featured ? "btn-primary" : "btn-outline"}`}>{p.cta}</Link>
+              <Link href={`/register?plan=${p.id}`} className={`btn ${p.featured ? "btn-primary" : "btn-outline"}`}>{p.cta}</Link>
             </div>
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 32 }}>
-          <Link href="/v2/plans" style={{ fontSize: 14, fontWeight: 700, color: "var(--orange)", transition: "opacity .2s" }}>
+          <Link href="/plans" style={{ fontSize: 14, fontWeight: 700, color: "var(--orange)", transition: "opacity .2s" }}>
             Compare all plan features →
           </Link>
         </div>
@@ -351,7 +361,7 @@ export default function LandingV2() {
       <div className="cta-banner">
         <h2>Ready to transform your repair shop?</h2>
         <p>Join 1,200+ repair shops already using 99SmartX. Start your free 14-day trial today.</p>
-        <Link href="/v2/plans" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 36px", borderRadius: "var(--r-lg)", position: "relative", zIndex: 1 }}>
+        <Link href="/plans" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 36px", borderRadius: "var(--r-lg)", position: "relative", zIndex: 1 }}>
           Start Free Trial — No Card Required
         </Link>
       </div>
@@ -384,7 +394,7 @@ export default function LandingV2() {
       <footer className="footer">
         <div className="footer-inner">
           <div className="footer-brand">
-            <Link href="/v2" className="nav-brand" style={{ marginBottom: 0 }}>
+            <Link href="/" className="nav-brand" style={{ marginBottom: 0 }}>
               <div className="logo-mark"><WrenchIcon /></div>
               <span className="brand-name">99SmartX</span>
             </Link>
@@ -394,7 +404,7 @@ export default function LandingV2() {
             <h4>Product</h4>
             <ul>
               <li><a href="#features">Features</a></li>
-              <li><Link href="/v2/plans">Pricing</Link></li>
+              <li><Link href="/plans">Pricing</Link></li>
               <li><a href="#how-it-works">How It Works</a></li>
             </ul>
           </div>

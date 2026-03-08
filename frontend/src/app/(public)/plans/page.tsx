@@ -288,13 +288,13 @@ export default function PlansV2() {
       {/* NAVBAR */}
       <nav className="sticky-nav">
         <div className="nav-inner">
-          <Link href="/v2" className="nav-brand">
+          <Link href="/" className="nav-brand">
             <div className="logo-mark"><WrenchIcon /></div>
             <span className="brand-name">99SmartX</span>
           </Link>
           <div className="nav-actions">
-            <Link href="/v2/login" className="btn btn-ghost">Log In</Link>
-            <Link href="/v2" className="btn btn-outline" style={{ fontSize: 13, padding: "8px 16px" }}>← Back to Home</Link>
+            <Link href="/login" className="btn btn-ghost">Log In</Link>
+            <Link href="/" className="btn btn-outline" style={{ fontSize: 13, padding: "8px 16px" }}>← Back to Home</Link>
           </div>
         </div>
       </nav>
@@ -356,7 +356,7 @@ export default function PlansV2() {
                       : "Billed monthly"}
                   </div>
                   <Link
-                    href={`/v2/register?plan=${p.id}`}
+                    href={`/register?plan=${p.id}`}
                     className={`btn pc-cta ${p.featured ? "btn-primary" : "btn-outline"}`}
                   >
                     Start Free Trial

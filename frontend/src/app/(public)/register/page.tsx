@@ -67,7 +67,7 @@ function RegisterForm() {
 
   return (
     <div className="auth-page">
-      <Link href="/v2" className="brand-link">
+      <Link href="/" className="brand-link">
         <div className="logo-mark-lg"><WrenchIcon /></div>
         <span className="brand-name-lg">99SmartX</span>
       </Link>
@@ -226,11 +226,11 @@ function RegisterForm() {
         </button>
 
         <div className="auth-footer">
-          Already have an account? <Link href="/v2/login">Sign in</Link>
+          Already have an account? <Link href="/login">Sign in</Link>
         </div>
       </div>
 
-      <Link href="/v2/plans" className="back-link">
+      <Link href="/plans" className="back-link">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>

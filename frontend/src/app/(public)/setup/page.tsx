@@ -549,7 +549,7 @@ export default function BusinessSetupPage() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* TOPBAR */}
       <div className="topbar">
-        <Link href="/v2" className="nav-brand">
+        <Link href="/" className="nav-brand">
           <div className="logo-mark"><WrenchIcon /></div>
           <span className="brand-name">99SmartX</span>
         </Link>

@@ -60,7 +60,7 @@ function LoginForm() {
 
   return (
     <div className="auth-page">
-      <Link href="/v2" className="brand-link">
+      <Link href="/" className="brand-link">
         <div className="logo-mark-lg"><WrenchIcon /></div>
         <span className="brand-name-lg">99SmartX</span>
       </Link>
@@ -201,12 +201,12 @@ function LoginForm() {
               ← Back to sign in
             </button>
           ) : (
-            <>Don't have an account? <Link href="/v2/register">Sign up free</Link></>
+            <>Don't have an account? <Link href="/register">Sign up free</Link></>
           )}
         </div>
       </div>
 
-      <Link href="/v2" className="back-link">
+      <Link href="/" className="back-link">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
