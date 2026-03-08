@@ -309,13 +309,12 @@ export default function SADashboardPage() {
           title="Platform Overview"
           actions={null}
         />
-        <div className="sa-content" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
-          <div style={{ textAlign: "center" }}>
-            <Loader2 className="sa-spinner" style={{ width: 36, height: 36, animation: "spin 1s linear infinite", color: "var(--sa-orange)" }} />
+        <div className="sa-content" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Loader2 className="sa-spin" style={{ width: 36, height: 36, color: "var(--sa-orange)" }} />
             <div style={{ marginTop: 12, color: "var(--sa-text-2)" }}>Loading dashboard...</div>
           </div>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </>
     );
   }

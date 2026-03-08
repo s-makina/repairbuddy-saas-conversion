@@ -195,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { status: "verification_required" };
   }, []);
 
-  const loginOtp = useCallback(async (otpLoginToken: string, code: string): Promise<{ must_change_password: boolean }> => {
+  const loginOtp = useCallback(async (otpLoginToken: string, code: string): Promise<{ must_change_password: boolean; is_admin: boolean }> => {
     const payload = await apiFetch<AuthPayload>("/api/auth/login/otp", {
       method: "POST",
       body: { otp_login_token: otpLoginToken, code },

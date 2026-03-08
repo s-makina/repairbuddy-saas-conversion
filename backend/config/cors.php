@@ -19,9 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000')),
+    'allowed_origins' => ['http://repairbuddy.test', 'https://repairbuddy.test'],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => ['/^https?:\/\/([a-z0-9-]+\.)?repairbuddy\.test$/'],
 
     'allowed_headers' => ['*'],
 

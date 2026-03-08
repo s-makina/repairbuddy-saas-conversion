@@ -78,11 +78,11 @@ Route::domain(config('tenancy.base_domain'))
     ->middleware('web')
     ->group(function () {
         // Central domain should hand off to the React app.
-        Route::get('/', function () {
-            $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
+        // Route::get('/', function () {
+        //     // $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
 
-            return redirect()->away($frontendUrl);
-        })->name('frontend.home');
+        //     // return redirect()->away($frontendUrl);
+        // })->name('frontend.home');
 
         // Login
         Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])

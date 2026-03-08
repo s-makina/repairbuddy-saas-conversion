@@ -4,6 +4,11 @@ import { getImpersonationSessionId } from "@/lib/impersonation";
 
 let csrfFetched = false;
 
+function getXsrfToken(): string | null {
+  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 async function ensureCsrfCookie(): Promise<void> {
   if (csrfFetched) return;
   try {
@@ -45,6 +50,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
+
+  const xsrfToken = getXsrfToken();
+  if (xsrfToken) {
+    headers.set("X-XSRF-TOKEN", xsrfToken);
+  }
 
   const token = options.token ?? getToken();
   if (token) {

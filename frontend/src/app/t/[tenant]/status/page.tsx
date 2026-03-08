@@ -68,6 +68,10 @@ type EstimateDetail = {
   updated_at: string;
 };
 
+// Aliases for API response types
+type ApiLookupJob = JobDetail;
+type ApiLookupEstimate = EstimateDetail;
+
 type LookupResult =
   | { entity_type: "job"; job: JobDetail }
   | { entity_type: "estimate"; estimate: EstimateDetail };
