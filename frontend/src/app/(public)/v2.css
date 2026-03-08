@@ -2155,6 +2155,250 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── EMAIL VERIFICATION ─── */
+.v2 .auth-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.v2 .auth-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.v2 .auth-icon-orange {
+  background: var(--orange-bg);
+}
+
+.v2 .auth-icon-orange svg {
+  color: var(--orange);
+}
+
+.v2 .auth-icon-green {
+  background: var(--green-bg);
+}
+
+.v2 .auth-icon-green svg {
+  color: var(--green);
+}
+
+.v2 .auth-icon-blue {
+  background: var(--blue-bg);
+  position: relative;
+}
+
+.v2 .auth-icon-blue svg {
+  color: var(--blue);
+}
+
+.v2 .auth-icon-blue::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 3px solid var(--surface);
+}
+
+@keyframes v2-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.v2 .auth-icon.floating {
+  animation: v2-float 3s ease-in-out infinite;
+}
+
+.v2 .auth-card.text-center {
+  text-align: center;
+}
+
+.v2 .auth-card .sub {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.v2 .email-highlight {
+  display: inline-block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 6px 18px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 12px 0 28px;
+}
+
+.v2 .resend {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.v2 .resend a,
+.v2 .resend button {
+  color: var(--orange);
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.v2 .resend a:hover,
+.v2 .resend button:hover {
+  text-decoration: underline;
+}
+
+.v2 .resend .timer {
+  font-family: monospace;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.v2 .help-text {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-3);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.v2 .help-text a {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+/* ─── 2FA / OTP CODE INPUTS ─── */
+.v2 .code-inputs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.v2 .code-input {
+  width: 52px;
+  height: 62px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: all .2s;
+  caret-color: var(--orange);
+}
+
+.v2 .code-input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(232, 89, 12, .1);
+  background: var(--orange-bg);
+}
+
+.v2 .code-input.filled {
+  border-color: var(--orange);
+  background: var(--orange-bg);
+}
+
+.v2 .phone-hint {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.v2 .alt-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.v2 .alt-btn {
+  width: 100%;
+  padding: 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.v2 .alt-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-2);
+  color: var(--text);
+}
+
+.v2 .alt-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ─── PASSWORD RULES ─── */
+.v2 .pw-rules {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.v2 .pw-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 3px 0;
+}
+
+.v2 .pw-rule.pass {
+  color: var(--green);
+}
+
+.v2 .pw-rule svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ─── ALERT SUCCESS ─── */
+.v2 .alert-success {
+  background: var(--green-bg);
+  border: 1px solid rgba(43, 138, 62, .2);
+  color: var(--green);
+  padding: 12px 16px;
+  border-radius: var(--r);
+  font-size: 13.5px;
+  margin-bottom: 18px;
+}
+
 /* ─── ALERT ─── */
 .v2 .alert-error {
   background: var(--red-bg);
@@ -2226,6 +2470,7 @@
   .v2 .page-header h1 { font-size: 28px; }
   .v2 .comp-table { font-size: 12px; }
   .v2 .auth-card { padding: 28px 24px; }
+  .v2 .code-input { width: 44px; height: 54px; font-size: 20px; }
   .v2 .form-row { grid-template-columns: 1fr; }
   .v2 .setup-main { padding: 20px 16px; }
   .v2 .wc-header,

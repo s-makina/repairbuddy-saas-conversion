@@ -2,15 +2,16 @@
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { PublicPageShell } from "@/components/PublicPageShell";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { Preloader } from "@/components/Preloader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+
+const WrenchIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+  </svg>
+);
 
 function VerifyEmailPageInner() {
   const auth = useAuth();
@@ -19,124 +20,127 @@ function VerifyEmailPageInner() {
   const initialEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
   const verified = useMemo(() => searchParams.get("verified") === "1", [searchParams]);
 
-  const [email, setEmail] = useState(initialEmail);
-  const [verificationEmailSent, setVerificationEmailSent] = useState(!verified && Boolean(initialEmail));
-  const [status, setStatus] = useState<string | null>(verified ? "Email verified. You can now sign in." : null);
+  const [email] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(verified ? "Your email has been verified. You can now sign in." : null);
   const [submitting, setSubmitting] = useState(false);
+  const [countdown, setCountdown] = useState(verified ? 0 : 59);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function onResend(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    if (verified || countdown <= 0) return;
+    intervalRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [verified, countdown]);
+
+  async function handleResend() {
+    if (countdown > 0 || submitting) return;
     setError(null);
-    setStatus(null);
+    setSuccess(null);
     setSubmitting(true);
-
     try {
       await auth.resendVerificationEmail(email);
-      setVerificationEmailSent(true);
-      setStatus("Verification email sent. Check your inbox.");
+      setSuccess("Verification email sent. Check your inbox.");
+      setCountdown(59);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to resend verification email.");
-      }
+      setError(err instanceof ApiError ? err.message : "Failed to resend verification email.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <PublicPageShell badge="Verify email" centerContent>
-      <section className="mx-auto w-full max-w-6xl px-4 py-10">
-        <div className="flex justify-center">
-          <div className="w-full max-w-md">
-            <Card className="bg-white/70">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  <div className="flex items-center gap-2">
-                    <span>Verify your email</span>
-                    {verificationEmailSent ? (
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      </span>
-                    ) : null}
-                  </div>
-                </CardTitle>
-                <CardDescription>
-                  {verified
-                    ? "Your email is verified. You can now sign in."
-                    : "We sent you a verification link. Click it to activate your account."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {status ? <Alert variant="success" title="Status">{status}</Alert> : null}
-                  {error ? <Alert variant="danger" title="Unable to resend">{error}</Alert> : null}
+    <div className="v2">
+      <div className="auth-page">
+        <Link href="/" className="brand-link">
+          <div className="logo-mark-lg"><WrenchIcon /></div>
+          <span className="brand-name-lg">RepairBuddy</span>
+        </Link>
 
-                  {!verified ? (
-                    <form className="space-y-4" onSubmit={onResend}>
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium" htmlFor="email">
-                          Email
-                        </label>
-                        <Input
-                          id="email"
-                          autoComplete="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          type="email"
-                          required
-                          disabled={submitting}
-                          placeholder="you@company.com"
-                        />
-                      </div>
-
-                      <Button className="w-full" type="submit" disabled={submitting}>
-                        {submitting ? "Sending..." : "Resend verification email"}
-                      </Button>
-                    </form>
-                  ) : null}
-
-                  {auth.isAuthenticated ? (
-                    <div className="text-xs text-zinc-600">
-                      You are signed in. If verification just completed, refresh the page.
-                    </div>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="mt-5 text-center text-sm text-zinc-600">
-              <Link className="font-medium text-[var(--rb-text)] underline underline-offset-4" href="/login">
-                Go to sign in
-              </Link>
-            </div>
+        <div className="auth-card auth-card-wide text-center">
+          <div className={`auth-icon auth-icon-orange${verified ? "" : " floating"}`}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
           </div>
+
+          <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-.02em", marginBottom: 10 }}>
+            {verified ? "Email verified!" : "Check your email"}
+          </h1>
+
+          {error && <div className="alert-error">{error}</div>}
+          {success && <div className="alert-success">{success}</div>}
+
+          {!verified && (
+            <>
+              <p className="sub">{"We've sent a verification link to"}</p>
+              {email && <div className="email-highlight">{email}</div>}
+              <p className="sub">Click the link in your email to verify your account and complete setup. The link will expire in 24 hours.</p>
+
+              <a
+                href="mailto:"
+                className="btn-submit"
+                style={{ textDecoration: "none", marginTop: 20 }}
+              >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Open Email App
+              </a>
+
+              <div className="resend">
+                {countdown > 0 ? (
+                  <>Didn{"'"}t receive the email? Resend in <span className="timer">0:{String(countdown).padStart(2, "0")}</span></>
+                ) : (
+                  <>Didn{"'"}t receive the email?{" "}
+                    <button onClick={handleResend} disabled={submitting}>
+                      {submitting ? "Sending…" : "Resend verification email"}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="help-text">
+                Check your spam or junk folder if you don{"'"}t see the email. If {"you're"} still having trouble, contact{" "}
+                <a href="mailto:support@99smartx.com">support@99smartx.com</a>
+              </div>
+            </>
+          )}
+
+          {verified && (
+            <p className="sub" style={{ marginTop: 8 }}>
+              Your account is now active. Sign in to get started.
+            </p>
+          )}
         </div>
-      </section>
-    </PublicPageShell>
+
+        <div className="auth-footer">
+          Wrong email? <Link href="/register">Go back to signup</Link>
+        </div>
+        <Link href="/login" className="back-link">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to sign in
+        </Link>
+      </div>
+    </div>
   );
 }
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense
-      fallback={
-        <Preloader />
-      }
-    >
+    <Suspense fallback={<Preloader />}>
       <VerifyEmailPageInner />
     </Suspense>
   );

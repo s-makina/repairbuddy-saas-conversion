@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useCallback, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 
@@ -22,10 +22,42 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
+  const [otpDigits, setOtpDigits] = useState<string[]>(["" ,"", "", "", "", ""]);
   const [otpLoginToken, setOtpLoginToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleOtpChange = useCallback((index: number, value: string) => {
+    if (value && !/^[0-9]$/.test(value)) return;
+    setOtpDigits((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  }, []);
+
+  const handleOtpKeyDown = useCallback((index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  }, [otpDigits]);
+
+  const handleOtpPaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < pasted.length; i++) {
+      newDigits[i] = pasted[i];
+    }
+    setOtpDigits(newDigits);
+    const focusIdx = Math.min(pasted.length, 5);
+    otpRefs.current[focusIdx]?.focus();
+  }, [otpDigits]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,6 +65,7 @@ function LoginForm() {
     setSubmitting(true);
     try {
       if (otpLoginToken) {
+        const otpCode = otpDigits.join("");
         const otpRes = await auth.loginOtp(otpLoginToken, otpCode);
         if (otpRes.must_change_password) {
           router.replace(`/set-password?next=${encodeURIComponent(otpRes.is_admin ? "/superadmin" : next)}`);
@@ -65,34 +98,44 @@ function LoginForm() {
         <span className="brand-name-lg">99SmartX</span>
       </Link>
 
-      <div className="auth-card">
+      <div className={`auth-card${otpLoginToken ? " text-center" : ""}`}>
+        {otpLoginToken && (
+          <div className="auth-icon auth-icon-blue" style={{ width: 72, height: 72, marginBottom: 20 }}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 32, height: 32 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+        )}
         <div className="auth-header">
-          <h1>{otpLoginToken ? "Two-Factor Auth" : "Welcome back"}</h1>
-          <p>{otpLoginToken ? "Enter the code from your authenticator app" : "Sign in to manage your repair shop"}</p>
+          <h1>{otpLoginToken ? "Two-factor authentication" : "Welcome back"}</h1>
+          <p>{otpLoginToken ? "Enter the 6-digit code from your authenticator app" : "Sign in to manage your repair shop"}</p>
         </div>
 
         {error && <div className="alert-error">{error}</div>}
 
         <form onSubmit={onSubmit}>
           {otpLoginToken ? (
-            <div className="form-group">
-              <label className="form-label">Verification Code</label>
-              <div className="input-wrap">
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="000000"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  required
-                />
-                <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+            <>
+              <div className="code-inputs" onPaste={handleOtpPaste}>
+                {otpDigits.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={(el) => { otpRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    className={`code-input${digit ? " filled" : ""}`}
+                    maxLength={1}
+                    value={digit}
+                    placeholder="·"
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    autoFocus={i === 0}
+                    autoComplete={i === 0 ? "one-time-code" : "off"}
+                  />
+                ))}
               </div>
-            </div>
+            </>
           ) : (
             <>
               {/* Email */}
@@ -118,7 +161,7 @@ function LoginForm() {
               <div className="form-group">
                 <div className="form-label-row">
                   <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
-                  <Link href="/reset-password" className="forgot-link">Forgot password?</Link>
+                  <Link href="/forgot-password" className="forgot-link">Forgot password?</Link>
                 </div>
                 <div className="input-wrap">
                   <input
@@ -168,11 +211,18 @@ function LoginForm() {
             </>
           )}
 
-          <button type="submit" className="btn-submit" disabled={submitting}>
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-            {submitting ? "Signing in…" : "Sign In"}
+          <button type="submit" className="btn-submit" disabled={submitting || (otpLoginToken != null && otpDigits.join("").length < 6)}>
+            {otpLoginToken ? (
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            ) : (
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            )}
+            {submitting ? (otpLoginToken ? "Verifying…" : "Signing in…") : (otpLoginToken ? "Verify & Sign In" : "Sign In")}
           </button>
         </form>
 
@@ -191,17 +241,24 @@ function LoginForm() {
           </>
         )}
 
-        <div className="auth-footer">
-          {otpLoginToken ? (
-            <button
-              type="button"
-              onClick={() => setOtpLoginToken(null)}
-              style={{ background: "none", border: "none", color: "var(--orange)", fontWeight: 700, cursor: "pointer", fontSize: 14 }}
-            >
-              ← Back to sign in
+        {otpLoginToken && (
+          <div className="divider"><span>or try another method</span></div>
+        )}
+
+        {otpLoginToken && (
+          <div className="alt-methods">
+            <button type="button" className="alt-btn" onClick={() => { setOtpLoginToken(null); setOtpDigits(["", "", "", "", "", ""]); setError(null); }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Use a different account
             </button>
-          ) : (
-            <>Don't have an account? <Link href="/register">Sign up free</Link></>
+          </div>
+        )}
+
+        <div className="auth-footer">
+          {otpLoginToken ? null : (
+            <>Don{"'"}t have an account? <Link href="/register">Sign up free</Link></>
           )}
         </div>
       </div>
