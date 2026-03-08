@@ -91,6 +91,7 @@ function RegisterForm() {
         password,
         tenant_name: companyName.trim(),
         tenant_slug: tenantSlug,
+        plan_code: plan || undefined,
       });
       router.replace(`/verify-email?email=${encodeURIComponent(email)}&tenant=${encodeURIComponent(tenantSlug)}`);
     } catch (err) {

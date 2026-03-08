@@ -34,6 +34,11 @@ class EnforceTenantSessionPolicy
             return $next($request);
         }
 
+        // TransientToken is used for session-based SPA auth and has no expiry fields
+        if ($token instanceof \Laravel\Sanctum\TransientToken) {
+            return $next($request);
+        }
+
         $settings = TenantSecuritySetting::query()->where('tenant_id', $tenantId)->first();
 
         $idleMinutes = (int) ($settings?->session_idle_timeout_minutes ?? 60);

@@ -68,7 +68,7 @@
         .wc-header{padding:28px 32px 0;margin-bottom:24px}
         .wc-header h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
         .wc-header p{font-size:14px;color:var(--text-2);line-height:1.5}
-        .wc-body{padding:0 32px;flex:1}
+        .wc-body{padding:0 32px 32px;flex:1}
         .wc-footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);margin-top:auto}
 
         /* BUTTONS */
@@ -213,6 +213,7 @@
         @media(max-width:500px){
             .setup-main{padding:20px 16px}
             .wc-header,.wc-body{padding-left:20px;padding-right:20px}
+            .wc-body{padding-bottom:24px}
             .wc-footer{padding:16px 20px;flex-direction:column;gap:10px}
         }
     </style>
@@ -661,8 +662,14 @@
     const totalSteps = 9;
     const optionalSteps = [5, 6, 7, 8];
     let saving = false;
+    let autoSaveTimer = null;
     let branches = [];
     let taxRows = @json(data_get($state, 'tax.taxes', [])) || [];
+
+    function scheduleAutoSave() {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => saveCurrentStep(), 1500);
+    }
 
     // ── Helpers ──
     function val(id) { return (document.getElementById(id)?.value ?? '').trim(); }
@@ -1064,6 +1071,14 @@
     if (currentStep > 1) {
         goToStep(currentStep);
     }
+
+    // ── Auto-save on field change ──
+    document.querySelector('.wizard-card')?.addEventListener('input', e => {
+        if (e.target.matches('input:not([type=file]):not([type=color]), textarea, select')) scheduleAutoSave();
+    });
+    document.querySelector('.wizard-card')?.addEventListener('change', e => {
+        if (e.target.matches('input[type=checkbox], input[type=color], select')) scheduleAutoSave();
+    });
     </script>
 </body>
 </html>

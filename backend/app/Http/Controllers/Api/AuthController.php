@@ -152,6 +152,7 @@ class AuthController extends Controller
             ],
             'tenant_name' => ['nullable', 'string', 'max:255'],
             'tenant_slug' => ['nullable', 'string', 'max:64'],
+            'plan_code'   => ['nullable', 'string', 'max:64'],
         ]);
 
         $tenantSlug = $validated['tenant_slug'] ?? null;
@@ -292,6 +293,41 @@ class AuthController extends Controller
                 'role_id' => $ownerRole->id,
                 'is_admin' => false,
             ]);
+
+            // Create a trial subscription so the tenant can access setup immediately
+            $planCode = $validated['plan_code'] ?? 'starter';
+            $defaultPrice = DB::table('billing_prices as bp')
+                ->join('billing_plan_versions as bpv', 'bp.billing_plan_version_id', '=', 'bpv.id')
+                ->join('billing_plans as bpl', 'bpv.plan_id', '=', 'bpl.id')
+                ->where('bpl.code', $planCode)
+                ->where('bpl.is_active', true)
+                ->where('bpv.status', 'active')
+                ->orderByDesc('bp.is_default')
+                ->orderBy('bp.id')
+                ->select('bp.*')
+                ->first();
+
+            if ($defaultPrice) {
+                $trialDays = is_numeric($defaultPrice->trial_days) ? (int) $defaultPrice->trial_days : 0;
+                $subNow = now();
+                $subStatus = $trialDays > 0 ? 'trial' : 'pending';
+                $periodEnd = $trialDays > 0 ? $subNow->copy()->addDays($trialDays) : null;
+
+                DB::table('tenant_subscriptions')->insert([
+                    'tenant_id'               => $tenant->id,
+                    'billing_plan_version_id' => (int) $defaultPrice->billing_plan_version_id,
+                    'billing_price_id'        => (int) $defaultPrice->id,
+                    'currency'                => strtoupper((string) ($defaultPrice->currency ?? 'USD')),
+                    'status'                  => $subStatus,
+                    'started_at'              => $subNow,
+                    'current_period_start'    => $subNow,
+                    'current_period_end'      => $periodEnd,
+                    'cancel_at_period_end'    => 0,
+                    'canceled_at'             => null,
+                    'created_at'              => $subNow,
+                    'updated_at'              => $subNow,
+                ]);
+            }
 
             return [$tenant, $user];
         });

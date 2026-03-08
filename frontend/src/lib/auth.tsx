@@ -67,6 +67,7 @@ type AuthContextValue = {
     password: string;
     tenant_name?: string;
     tenant_slug?: string;
+    plan_code?: string;
   }) => Promise<void>;
   resendVerificationEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -214,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string;
     tenant_name?: string;
     tenant_slug?: string;
+    plan_code?: string;
   }) => {
     await apiFetch<RegisterPayload>("/api/auth/register", {
       method: "POST",
