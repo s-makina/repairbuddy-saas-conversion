@@ -389,9 +389,11 @@ export function SAPlanBuilderContent() {
     return (
       <>
         <SATopbar breadcrumb={<>Billing & Subscriptions › <b>Plan Builder</b></>} title={isEditMode ? "Edit Plan" : "Create New Plan"} />
-        <div className="sa-content" style={{ maxWidth: 860, textAlign: "center", padding: 60 }}>
-          <Loader2 className="sa-spin" style={{ width: 32, height: 32, color: "var(--sa-orange)" }} />
-          <div style={{ marginTop: 12, color: "var(--sa-text-muted)", fontSize: 13 }}>Loading...</div>
+        <div className="sa-content" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Loader2 className="sa-spin" style={{ width: 36, height: 36, color: "var(--sa-orange)" }} />
+            <div style={{ marginTop: 12, color: "var(--sa-text-2)" }}>Loading...</div>
+          </div>
         </div>
       </>
     );
