@@ -46,7 +46,8 @@ export function RequireAuth({
     }
 
     if (auth.user && !auth.user.email_verified_at) {
-      router.replace(`/verify-email?email=${encodeURIComponent(auth.user.email)}`);
+      const tenantParam = tenantSlug ? `&tenant=${encodeURIComponent(tenantSlug)}` : "";
+      router.replace(`/verify-email?email=${encodeURIComponent(auth.user.email)}${tenantParam}`);
       return;
     }
 

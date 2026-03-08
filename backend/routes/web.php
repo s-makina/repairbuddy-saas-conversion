@@ -5,80 +5,167 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Subdomain-based tenant welcome page: http://{business}.repairbuddy.test/
+// Must be defined before the generic Route::get('/') so it takes priority.
+Route::domain('{business}.' . config('tenancy.base_domain'))
+    ->where(['business' => '[A-Za-z0-9\-]+'])
+    ->middleware(['web', 'tenant'])
+    ->group(function () {
+        Route::get('/', function (\Illuminate\Http\Request $request) {
+            $tenant = \App\Support\TenantContext::tenant();
+            $tenantSlug = $request->route('business');
 
-Route::middleware('web')->group(function () {
-    // Login
-    Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
-        ->middleware('guest')
-        ->name('login');
+            return view('tenant.welcome', [
+                'tenant' => $tenant,
+                'tenantSlug' => $tenantSlug,
+            ]);
+        })->name('tenant.subdomain.welcome');
 
-    Route::post('/login', [\App\Http\Controllers\Web\AuthController::class, 'login'])
-        ->middleware('guest');
+        // Tenant-scoped authentication routes for subdomain access.
+        Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
+            ->middleware('guest')
+            ->name('tenant.subdomain.login');
 
-    // Register
-    Route::get('/register', [\App\Http\Controllers\Web\AuthController::class, 'showRegister'])
-        ->middleware('guest')
-        ->name('register');
+        Route::post('/login', [\App\Http\Controllers\Web\AuthController::class, 'login'])
+            ->middleware('guest');
 
-    Route::post('/register', [\App\Http\Controllers\Web\AuthController::class, 'register'])
-        ->middleware('guest');
+        Route::get('/register', [\App\Http\Controllers\Web\AuthController::class, 'showRegister'])
+            ->middleware('guest')
+            ->name('tenant.subdomain.register');
 
-    // Forgot Password
-    Route::get('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'showForgotPassword'])
-        ->middleware('guest')
-        ->name('password.request');
+        Route::post('/register', [\App\Http\Controllers\Web\AuthController::class, 'register'])
+            ->middleware('guest');
 
-    Route::post('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'sendResetLink'])
-        ->middleware('guest')
-        ->name('password.email');
+        Route::get('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'showForgotPassword'])
+            ->middleware('guest')
+            ->name('tenant.subdomain.password.request');
 
-    // Reset Password
-    Route::get('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'showResetPassword'])
-        ->middleware('guest')
-        ->name('password.reset');
+        Route::post('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'sendResetLink'])
+            ->middleware('guest')
+            ->name('tenant.subdomain.password.email');
 
-    Route::post('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'resetPassword'])
-        ->middleware('guest')
-        ->name('password.update');
+        Route::get('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'showResetPassword'])
+            ->middleware('guest')
+            ->name('tenant.subdomain.password.reset');
 
-    // 2FA Verification
-    Route::get('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'show2FA'])
-        ->middleware('auth')
-        ->name('2fa.show');
+        Route::post('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'resetPassword'])
+            ->middleware('guest')
+            ->name('tenant.subdomain.password.update');
 
-    Route::post('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'verify2FA'])
-        ->middleware('auth')
-        ->name('2fa.verify');
+        Route::get('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'show2FA'])
+            ->middleware('auth')
+            ->name('tenant.subdomain.2fa.show');
 
-    Route::post('/2fa/resend', [\App\Http\Controllers\Web\AuthController::class, 'resend2FA'])
-        ->middleware('auth')
-        ->name('2fa.resend');
+        Route::post('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'verify2FA'])
+            ->middleware('auth')
+            ->name('tenant.subdomain.2fa.verify');
 
-    // Logout
-    Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
-        ->middleware('auth')
-        ->name('web.logout');
-});
+        Route::post('/2fa/resend', [\App\Http\Controllers\Web\AuthController::class, 'resend2FA'])
+            ->middleware('auth')
+            ->name('tenant.subdomain.2fa.resend');
 
-Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
-    $user = User::query()->findOrFail($id);
+        Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
+            ->middleware('auth')
+            ->name('tenant.subdomain.logout');
+    });
 
-    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
-        abort(403);
-    }
+Route::domain(config('tenancy.base_domain'))
+    ->middleware('web')
+    ->group(function () {
+        // Central domain should hand off to the React app.
+        Route::get('/', function () {
+            $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
 
-    if (! $user->hasVerifiedEmail()) {
-        $user->markEmailAsVerified();
-        event(new Verified($user));
-    }
+            return redirect()->away($frontendUrl);
+        })->name('frontend.home');
 
-    $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
+        // Login
+        Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
+            ->middleware('guest')
+            ->name('login');
 
-    return redirect()->away($frontendUrl.'/verify-email?verified=1');
-})->middleware(['signed'])->name('verification.verify');
+        Route::post('/login', [\App\Http\Controllers\Web\AuthController::class, 'login'])
+            ->middleware('guest');
+
+        // Register
+        Route::get('/register', [\App\Http\Controllers\Web\AuthController::class, 'showRegister'])
+            ->middleware('guest')
+            ->name('register');
+
+        Route::post('/register', [\App\Http\Controllers\Web\AuthController::class, 'register'])
+            ->middleware('guest');
+
+        // Forgot Password
+        Route::get('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'showForgotPassword'])
+            ->middleware('guest')
+            ->name('password.request');
+
+        Route::post('/forgot-password', [\App\Http\Controllers\Web\AuthController::class, 'sendResetLink'])
+            ->middleware('guest')
+            ->name('password.email');
+
+        // Reset Password
+        Route::get('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'showResetPassword'])
+            ->middleware('guest')
+            ->name('password.reset');
+
+        Route::post('/reset-password', [\App\Http\Controllers\Web\AuthController::class, 'resetPassword'])
+            ->middleware('guest')
+            ->name('password.update');
+
+        // 2FA Verification
+        Route::get('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'show2FA'])
+            ->middleware('auth')
+            ->name('2fa.show');
+
+        Route::post('/verify-2fa', [\App\Http\Controllers\Web\AuthController::class, 'verify2FA'])
+            ->middleware('auth')
+            ->name('2fa.verify');
+
+        Route::post('/2fa/resend', [\App\Http\Controllers\Web\AuthController::class, 'resend2FA'])
+            ->middleware('auth')
+            ->name('2fa.resend');
+
+        // Logout
+        Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
+            ->middleware('auth')
+            ->name('web.logout');
+
+        Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
+            $user = User::query()->findOrFail($id);
+
+            if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+                abort(403);
+            }
+
+            if (! $user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
+                event(new Verified($user));
+            }
+
+            $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
+            $slug = $user->tenant?->slug;
+            $query = 'verified=1' . ($slug ? '&tenant=' . urlencode($slug) : '');
+
+            return redirect()->away($frontendUrl . '/verify-email?' . $query);
+        })->middleware(['signed'])->name('verification.verify');
+    });
+
+// Tenant Welcome Page
+Route::prefix('t/{business}')
+    ->where(['business' => '[A-Za-z0-9\-]+' ])
+    ->middleware(['web', 'tenant'])
+    ->group(function () {
+        Route::get('/', function (\Illuminate\Http\Request $request) {
+            $tenant = \App\Support\TenantContext::tenant();
+            $tenantSlug = $request->route('business');
+
+            return view('tenant.welcome', [
+                'tenant' => $tenant,
+                'tenantSlug' => $tenantSlug,
+            ]);
+        })->name('tenant.welcome');
+    });
 
 // Tenant-scoped Authentication (guest routes)
 Route::prefix('t/{business}')

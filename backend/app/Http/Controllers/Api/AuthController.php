@@ -424,6 +424,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Email address not verified.',
                 'verification_required' => true,
+                'tenant_slug' => $user->tenant?->slug,
             ], 403);
         }
 

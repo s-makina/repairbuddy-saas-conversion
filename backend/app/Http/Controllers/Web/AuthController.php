@@ -83,7 +83,9 @@ class AuthController extends Controller
             return redirect()->intended($this->dashboardFallbackUrl($tenantId, $tenantSlug));
         }
 
-        return view('auth.login', [
+        $view = $tenantSlug ? 'tenant.auth.login' : 'auth.login';
+
+        return view($view, [
             'tenant' => $tenant,
             'tenantSlug' => $tenantSlug,
         ]);
@@ -170,7 +172,9 @@ class AuthController extends Controller
             return redirect()->intended($this->dashboardFallbackUrl($tenantId, $tenantSlug));
         }
 
-        return view('auth.register', [
+        $view = $tenantSlug ? 'tenant.auth.register' : 'auth.register';
+
+        return view($view, [
             'tenant' => $tenant,
             'tenantSlug' => $tenantSlug,
         ]);
@@ -212,9 +216,13 @@ class AuthController extends Controller
 
     public function showForgotPassword(Request $request)
     {
+        $tenant = $this->getCurrentTenant();
         $tenantSlug = $this->getTenantSlugFromRequest($request);
 
-        return view('auth.forgot-password', [
+        $view = $tenantSlug ? 'tenant.auth.forgot-password' : 'auth.forgot-password';
+
+        return view($view, [
+            'tenant' => $tenant,
             'tenantSlug' => $tenantSlug,
         ]);
     }

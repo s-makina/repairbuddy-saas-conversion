@@ -92,7 +92,7 @@ function RegisterForm() {
         tenant_name: companyName.trim(),
         tenant_slug: tenantSlug,
       });
-      router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
+      router.replace(`/verify-email?email=${encodeURIComponent(email)}&tenant=${encodeURIComponent(tenantSlug)}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Registration failed. Please try again.");
     } finally {

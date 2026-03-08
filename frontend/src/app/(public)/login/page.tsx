@@ -77,7 +77,8 @@ function LoginForm() {
         if (res.status === "otp_required") {
           setOtpLoginToken(res.otp_login_token ?? null);
         } else if (res.status === "verification_required") {
-          router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
+          const tenantParam = res.tenant_slug ? `&tenant=${encodeURIComponent(res.tenant_slug)}` : "";
+          router.replace(`/verify-email?email=${encodeURIComponent(email)}${tenantParam}`);
         } else if (res.must_change_password) {
           router.replace(`/set-password?next=${encodeURIComponent(res.is_admin ? "/superadmin" : next)}`);
         } else {

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Account — QuickFix Electronics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --rb-blue: #063e70;
+            --rb-blue-light: #0a5fa3;
+            --rb-orange: #fd6742;
+            --rb-bg: #fcfdfe;
+            --rb-border: #f1f5f9;
+            --rb-text: #0f172a;
+            --rb-text-2: #64748b;
+            --rb-text-3: #94a3b8;
+            --rb-green: #16a34a
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--rb-bg);
+            background-image: radial-gradient(at 0% 0%, rgba(253, 103, 66, .03) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(6, 62, 112, .03) 0px, transparent 50%);
+            color: var(--rb-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+
+        .tenant-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px
+        }
+
+        .shop-logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--rb-blue), var(--rb-blue-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 15px;
+            box-shadow: 0 2px 8px rgba(6, 62, 112, .2)
+        }
+
+        .shop-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--rb-text)
+        }
+
+        .shop-sub {
+            font-size: 11px;
+            color: var(--rb-text-3);
+            font-weight: 500
+        }
+
+        .auth-card {
+            background: #fff;
+            width: 100%;
+            max-width: 480px;
+            padding: 40px 48px;
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .04);
+            border: 1px solid rgba(226, 232, 240, .8);
+            position: relative;
+            overflow: hidden;
+            animation: reveal .8s cubic-bezier(.4, 0, .2, 1) forwards
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--rb-blue), var(--rb-orange));
+            opacity: .8
+        }
+
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 28px
+        }
+
+        .auth-header h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -.5px;
+            margin-bottom: 8px
+        }
+
+        .auth-header p {
+            color: var(--rb-text-2);
+            font-size: 1rem;
+            line-height: 1.5
+        }
+
+        .name-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 18px
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: .9rem;
+            color: var(--rb-text);
+            margin-bottom: 8px
+        }
+
+        .input-wrap {
+            position: relative
+        }
+
+        .input-wrap svg {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--rb-text-3);
+            pointer-events: none
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            border: 1.5px solid #eef2f6;
+            border-radius: 16px;
+            font-size: .95rem;
+            font-family: inherit;
+            font-weight: 500;
+            background: #fcfdfe;
+            color: var(--rb-text);
+            outline: none;
+            transition: all .3s
+        }
+
+        .form-input:focus {
+            border-color: var(--rb-blue);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(6, 62, 112, .08)
+        }
+
+        .form-input::placeholder {
+            color: var(--rb-text-3);
+            font-weight: 400
+        }
+
+        .form-input-simple {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #eef2f6;
+            border-radius: 16px;
+            font-size: .95rem;
+            font-family: inherit;
+            font-weight: 500;
+            background: #fcfdfe;
+            color: var(--rb-text);
+            outline: none;
+            transition: all .3s
+        }
+
+        .form-input-simple:focus {
+            border-color: var(--rb-blue);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(6, 62, 112, .08)
+        }
+
+        .form-input-simple::placeholder {
+            color: var(--rb-text-3);
+            font-weight: 400
+        }
+
+        .phone-input {
+            display: flex;
+            gap: 8px
+        }
+
+        .country-select {
+            width: 90px;
+            padding: 14px 8px;
+            border: 1.5px solid #eef2f6;
+            border-radius: 16px;
+            font-size: .9rem;
+            font-family: inherit;
+            font-weight: 600;
+            background: #fcfdfe;
+            color: var(--rb-text);
+            outline: none;
+            cursor: pointer;
+            text-align: center
+        }
+
+        .country-select:focus {
+            border-color: var(--rb-blue)
+        }
+
+        .phone-field {
+            flex: 1
+        }
+
+        .pw-strength {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px
+        }
+
+        .pw-bar {
+            flex: 1;
+            height: 3px;
+            border-radius: 3px;
+            background: #eef2f6
+        }
+
+        .pw-bar.filled {
+            background: var(--rb-orange)
+        }
+
+        .pw-bar.strong {
+            background: var(--rb-green)
+        }
+
+        .terms {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 8px 0 22px
+        }
+
+        .terms input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--rb-blue);
+            cursor: pointer;
+            margin-top: 2px;
+            flex-shrink: 0
+        }
+
+        .terms label {
+            font-size: 13px;
+            color: var(--rb-text-2);
+            line-height: 1.5;
+            cursor: pointer
+        }
+
+        .terms a {
+            color: var(--rb-blue);
+            font-weight: 600
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: var(--rb-blue);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .4s cubic-bezier(.4, 0, .2, 1);
+            box-shadow: 0 10px 20px rgba(6, 62, 112, .1)
+        }
+
+        .btn-submit:hover {
+            background: #05335d;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(6, 62, 112, .2)
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 22px 0
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #eef2f6
+        }
+
+        .divider span {
+            font-size: 12px;
+            color: var(--rb-text-3);
+            font-weight: 500
+        }
+
+        .google-btn {
+            width: 100%;
+            padding: 13px;
+            border: 1.5px solid #eef2f6;
+            border-radius: 14px;
+            font-size: .95rem;
+            font-weight: 600;
+            font-family: inherit;
+            background: #fff;
+            color: var(--rb-text);
+            cursor: pointer;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px
+        }
+
+        .google-btn:hover {
+            background: #f8fafc;
+            border-color: #d1d5db
+        }
+
+        .google-btn svg {
+            width: 18px;
+            height: 18px
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 26px;
+            font-size: .95rem;
+            color: var(--rb-text-2)
+        }
+
+        .footer-link a {
+            color: var(--rb-blue);
+            font-weight: 700
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            font-size: 13px;
+            color: var(--rb-text-3);
+            transition: color .2s
+        }
+
+        .back-link:hover {
+            color: var(--rb-blue)
+        }
+
+        .back-link svg {
+            width: 14px;
+            height: 14px
+        }
+
+        @media(max-width:500px) {
+            .auth-card {
+                padding: 28px 24px
+            }
+
+            .name-row {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a href="tenant-welcome.html" class="tenant-badge">
+        <div class="shop-logo">QF</div>
+        <div>
+            <div class="shop-name">QuickFix Electronics</div>
+            <div class="shop-sub">quickfix.repairbuddy.com</div>
+        </div>
+    </a>
+
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Create your account</h1>
+            <p>Sign up to book repairs and track your orders.</p>
+        </div>
+
+        <form>
+            <div class="name-row">
+                <div class="input-group">
+                    <label class="form-label">First Name</label>
+                    <input type="text" class="form-input-simple" placeholder="John" required />
+                </div>
+                <div class="input-group">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" class="form-input-simple" placeholder="Smith" required />
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-wrap">
+                    <input type="email" class="form-input" placeholder="john@email.com" required />
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="form-label">Phone Number</label>
+                <div class="phone-input">
+                    <select class="country-select">
+                        <option>🇺🇸 +1</option>
+                        <option>🇬🇧 +44</option>
+                        <option>🇨🇦 +1</option>
+                        <option>🇦🇺 +61</option>
+                    </select>
+                    <input type="tel" class="form-input-simple phone-field" placeholder="(555) 123-4567" />
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="form-label">Password</label>
+                <div class="input-wrap">
+                    <input type="password" class="form-input" placeholder="Minimum 8 characters" required />
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div class="pw-strength">
+                    <div class="pw-bar filled"></div>
+                    <div class="pw-bar filled"></div>
+                    <div class="pw-bar strong"></div>
+                    <div class="pw-bar"></div>
+                </div>
+            </div>
+
+            <div class="terms">
+                <input type="checkbox" id="terms" />
+                <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy
+                        Policy</a></label>
+            </div>
+
+            <button type="submit" class="btn-submit">Create Account</button>
+        </form>
+
+        <div class="divider"><span>or</span></div>
+        <button class="google-btn">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                    fill="#4285F4" />
+                <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853" />
+                <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05" />
+                <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335" />
+            </svg>
+            Sign up with Google
+        </button>
+
+        <div class="footer-link">
+            Already have an account? <a href="tenant-login.html">Sign in</a>
+        </div>
+    </div>
+
+    <a href="tenant-welcome.html" class="back-link">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to QuickFix Electronics
+    </a>
+</body>
+
+</html>

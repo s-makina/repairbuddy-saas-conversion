@@ -19,6 +19,10 @@ function VerifyEmailPageInner() {
 
   const initialEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
   const verified = useMemo(() => searchParams.get("verified") === "1", [searchParams]);
+  const tenant = useMemo(() => searchParams.get("tenant") || "", [searchParams]);
+
+  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+  const tenantLoginUrl = tenant ? `${apiBase}/t/${tenant}/login` : null;
 
   const [email] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
@@ -118,21 +122,31 @@ function VerifyEmailPageInner() {
           )}
 
           {verified && (
-            <p className="sub" style={{ marginTop: 8 }}>
-              Your account is now active. Sign in to get started.
-            </p>
+            <>
+              <p className="sub" style={{ marginTop: 8 }}>
+                {tenant
+                  ? <>Your workspace <strong>{tenant}</strong> is ready. Sign in to get started.</>
+                  : "Your account is now active. Sign in to get started."}
+              </p>
+              {tenantLoginUrl && (
+                <a
+                  href={tenantLoginUrl}
+                  className="btn-submit"
+                  style={{ textDecoration: "none", marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                  Sign in to {tenant}
+                </a>
+              )}
+            </>
           )}
         </div>
 
         <div className="auth-footer">
           Wrong email? <Link href="/register">Go back to signup</Link>
         </div>
-        <Link href="/login" className="back-link">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to sign in
-        </Link>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ type LoginOtpRequiredPayload = {
 
 type LoginVerificationRequiredPayload = {
   verification_required: true;
+  tenant_slug?: string | null;
 };
 
 type LoginPayload = AuthPayload | LoginOtpRequiredPayload | LoginVerificationRequiredPayload;
@@ -33,7 +34,7 @@ type LoginPayload = AuthPayload | LoginOtpRequiredPayload | LoginVerificationReq
 export type LoginResult =
   | { status: "ok"; must_change_password: boolean; is_admin: boolean }
   | { status: "otp_required"; otp_login_token: string }
-  | { status: "verification_required" };
+  | { status: "verification_required"; tenant_slug?: string | null };
 
 type MePayload = {
   user: User | null;
@@ -169,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (maybeApiError.status === 403 && maybeApiError.data && typeof maybeApiError.data === "object") {
           const data = maybeApiError.data as Record<string, unknown>;
           if (data.verification_required === true) {
-            return { status: "verification_required" };
+            return { status: "verification_required", tenant_slug: (data.tenant_slug as string | null | undefined) ?? null };
           }
         }
       }
