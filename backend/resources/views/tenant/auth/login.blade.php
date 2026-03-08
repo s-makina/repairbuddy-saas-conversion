@@ -15,7 +15,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
         @enderror
 
-        <form method="POST" action="{{ route('tenant.login', ['business' => $tenantSlug]) }}" onsubmit="handleSubmit(this)">
+        <form method="POST" action="{{ route('tenant.subdomain.login', ['business' => $tenantSlug]) }}" onsubmit="handleSubmit(this)">
             @csrf
 
             <div class="input-group">
@@ -32,7 +32,7 @@
             <div class="input-group">
                 <div class="label-row">
                     <label class="form-label" style="margin-bottom:0">Password</label>
-                    <a href="{{ route('tenant.password.request', ['business' => $tenantSlug]) }}" class="forgot-link">Forgot?</a>
+                    <a href="{{ route('tenant.subdomain.password.request', ['business' => $tenantSlug]) }}" class="forgot-link">Forgot?</a>
                 </div>
                 <div class="input-wrap">
                     <input type="password" name="password" id="password" class="form-input @error('password') is-invalid @enderror" placeholder="••••••••" autocomplete="current-password" required />
@@ -58,7 +58,7 @@
         </form>
 
         <div class="footer-link">
-            Need an account? <a href="{{ route('tenant.register', ['business' => $tenantSlug]) }}">Register</a>
+            Need an account? <a href="{{ route('tenant.subdomain.register', ['business' => $tenantSlug]) }}">Register</a>
         </div>
     </div>
 @push('scripts')

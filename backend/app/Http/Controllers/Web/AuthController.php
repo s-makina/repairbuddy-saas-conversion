@@ -17,6 +17,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected function tenantRouteName(Request $request, string $suffix): string
+    {
+        $prefix = $request->routeIs('tenant.subdomain.*') ? 'tenant.subdomain' : 'tenant';
+
+        return $prefix.'.'.$suffix;
+    }
+
     /**
      * Get the tenant slug from the current request URL.
      */
@@ -74,7 +81,7 @@ class AuthController extends Controller
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                return redirect()->route('tenant.login', ['business' => $tenantSlug])
+                return redirect()->route($this->tenantRouteName($request, 'login'), ['business' => $tenantSlug])
                     ->withErrors(['email' => 'You are not authorized for this business.']);
             }
 
@@ -139,7 +146,7 @@ class AuthController extends Controller
 
         // Check if 2FA is enabled for this user
         if ($user->two_factor_enabled ?? false) {
-            return redirect()->route('tenant.2fa.show', ['business' => $tenantSlug]);
+            return redirect()->route($this->tenantRouteName($request, '2fa.show'), ['business' => $tenantSlug]);
         }
 
         $tenantId = is_numeric($user?->tenant_id) ? (int) $user->tenant_id : null;
@@ -163,7 +170,7 @@ class AuthController extends Controller
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                return redirect()->route('tenant.login', ['business' => $tenantSlug])
+                return redirect()->route($this->tenantRouteName($request, 'login'), ['business' => $tenantSlug])
                     ->withErrors(['email' => 'You are not authorized for this business.']);
             }
 
@@ -208,7 +215,7 @@ class AuthController extends Controller
         $tenantSlug = $this->getTenantSlugFromRequest($request);
 
         // Don't auto-login - user must wait for admin activation
-        return redirect()->route('tenant.login', ['business' => $tenantSlug])
+        return redirect()->route($this->tenantRouteName($request, 'login'), ['business' => $tenantSlug])
             ->with('status', 'Account created successfully! An administrator will review and activate your account.');
     }
 
@@ -277,7 +284,7 @@ class AuthController extends Controller
         $tenantSlug = $this->getTenantSlugFromRequest($request);
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('tenant.login', ['business' => $tenantSlug])->with('status', __($status))
+            ? redirect()->route($this->tenantRouteName($request, 'login'), ['business' => $tenantSlug])->with('status', __($status))
             : back()->withErrors(['email' => [__($status)]]);
     }
 
@@ -376,7 +383,7 @@ class AuthController extends Controller
 
         // Redirect to tenant-scoped login if we have a slug
         if ($tenantSlug) {
-            return redirect()->route('tenant.login', ['business' => $tenantSlug]);
+            return redirect()->route($this->tenantRouteName($request, 'login'), ['business' => $tenantSlug]);
         }
 
         return redirect('/login');

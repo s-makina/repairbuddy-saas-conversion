@@ -16,7 +16,7 @@
             <div class="alert alert-success">{{ session('status') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('tenant.password.email', ['business' => $tenantSlug]) }}" onsubmit="handleSubmit(this)">
+        <form method="POST" action="{{ route('tenant.subdomain.password.email', ['business' => $tenantSlug]) }}" onsubmit="handleSubmit(this)">
             @csrf
 
             <div class="input-group">
@@ -37,7 +37,7 @@
         </form>
 
         <div class="footer-link">
-            Remember your password? <a href="{{ route('tenant.login', ['business' => $tenantSlug]) }}">Sign in</a>
+            Remember your password? <a href="{{ route('tenant.subdomain.login', ['business' => $tenantSlug]) }}">Sign in</a>
         </div>
     </div>
 @push('scripts')

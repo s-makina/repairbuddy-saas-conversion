@@ -2,6 +2,7 @@
 
 @php
   $tenantSlug = $tenantSlug ?? null;
+  $tenantRoutePrefix = request()->routeIs('tenant.subdomain.*') ? 'tenant.subdomain' : 'tenant';
 @endphp
 
 @section('content')
@@ -21,7 +22,7 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.password.update', ['business' => $tenantSlug]) : route('password.update') }}" onsubmit="handleSubmit(this)">
+    <form method="POST" action="{{ $tenantSlug ? route($tenantRoutePrefix.'.password.update', ['business' => $tenantSlug]) : route('password.update') }}" onsubmit="handleSubmit(this)">
       @csrf
       <input type="hidden" name="token" value="{{ $token ?? request('token') }}">
       <input type="hidden" name="email" value="{{ $email ?? old('email') ?? request('email') }}">

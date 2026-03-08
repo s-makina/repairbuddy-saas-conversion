@@ -11,7 +11,7 @@
             <div class="alert alert-success">{{ session('status') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('tenant.register', ['business' => $tenantSlug]) }}" onsubmit="handleSubmit(this)">
+        <form method="POST" action="{{ route('tenant.subdomain.register', ['business' => $tenantSlug]) }}" onsubmit="handleSubmit(this)">
             @csrf
 
             <div class="name-row">
@@ -73,7 +73,7 @@
         </form>
 
         <div class="footer-link">
-            Already have an account? <a href="{{ route('tenant.login', ['business' => $tenantSlug]) }}">Sign in</a>
+            Already have an account? <a href="{{ route('tenant.subdomain.login', ['business' => $tenantSlug]) }}">Sign in</a>
         </div>
     </div>
 @push('scripts')

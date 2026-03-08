@@ -96,13 +96,27 @@ class ResetPasswordNotification extends Notification
      */
     protected function resetUrl($notifiable)
     {
-        $frontendUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $query = [
+            'token' => $this->token,
+            'email' => $notifiable->getEmailForPasswordReset(),
+        ];
 
-        // Include tenant slug in URL for tenant users
         if ($this->tenantSlug) {
-            return $frontendUrl.'/t/'.$this->tenantSlug.'/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
+            $baseDomain = trim((string) config('tenancy.base_domain'));
+
+            if ($baseDomain !== '') {
+                return URL::route('tenant.subdomain.password.reset', [
+                    'business' => $this->tenantSlug,
+                    ...$query,
+                ]);
+            }
+
+            return URL::route('tenant.password.reset', [
+                'business' => $this->tenantSlug,
+                ...$query,
+            ]);
         }
 
-        return $frontendUrl.'/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
+        return URL::route('password.reset', $query);
     }
 }
