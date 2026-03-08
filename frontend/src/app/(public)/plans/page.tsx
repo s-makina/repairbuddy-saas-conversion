@@ -154,83 +154,6 @@ function buildCompRows(raw: BillingPlan[]): CompRow[] {
   }));
 }
 
-const staticPlans: Plan[] = [
-  {
-    id: "starter",
-    name: "Starter",
-    desc: "Perfect for solo technicians and small shops just getting started.",
-    monthly: 29, annual: 23, hasAnnual: true,
-    featured: false,
-    iconBg: "var(--blue-bg)", iconColor: "var(--blue)",
-    icon: <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
-    features: [
-      { label: "Up to 50 repairs/month", included: true },
-      { label: "1 staff member", included: true },
-      { label: "Online booking page", included: true },
-      { label: "Basic invoicing", included: true },
-      { label: "Email notifications", included: true },
-      { label: "Email support", included: true },
-      { label: "Inventory management", included: false },
-      { label: "Customer portal", included: false },
-    ],
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    desc: "Best for growing repair shops that want to scale operations.",
-    monthly: 79, annual: 63, hasAnnual: true,
-    featured: true,
-    iconBg: "var(--orange-bg)", iconColor: "var(--orange)",
-    icon: <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
-    features: [
-      { label: "Unlimited repairs", included: true },
-      { label: "Up to 5 staff members", included: true },
-      { label: "Online booking + SMS reminders", included: true },
-      { label: "Advanced invoicing + payments", included: true },
-      { label: "Inventory management", included: true },
-      { label: "Customer portal", included: true },
-      { label: "Reports & analytics", included: true },
-      { label: "Priority support", included: true },
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    desc: "For multi-location businesses that need full control and customisation.",
-    monthly: 149, annual: 119, hasAnnual: true,
-    featured: false,
-    iconBg: "var(--purple-bg)", iconColor: "var(--purple)",
-    icon: <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
-    features: [
-      { label: "Everything in Professional", included: true },
-      { label: "Unlimited staff members", included: true },
-      { label: "Multi-location management", included: true },
-      { label: "Advanced analytics & exports", included: true },
-      { label: "API access", included: true },
-      { label: "Custom branding", included: true },
-      { label: "SSO / SAML integration", included: true },
-      { label: "Dedicated account manager", included: true },
-    ],
-  },
-];
-
-// Static fallback comparison rows (used when API data unavailable)
-const staticCompRows: CompRow[] = [
-  { feature: "Monthly Repairs",       values: ["50",     "Unlimited", "Unlimited"] },
-  { feature: "Staff Members",         values: ["1",      "5",         "Unlimited"] },
-  { feature: "Online Booking",        values: [true,     true,        true] },
-  { feature: "SMS Reminders",         values: [false,    true,        true] },
-  { feature: "Invoicing",             values: ["Basic",  "Advanced",  "Advanced"] },
-  { feature: "Online Payments",       values: [false,    true,        true] },
-  { feature: "Inventory Management",  values: [false,    true,        true] },
-  { feature: "Customer Portal",       values: [false,    true,        true] },
-  { feature: "Reports & Analytics",   values: ["Basic",  "Standard",  "Advanced"] },
-  { feature: "Multi-location",        values: [false,    false,       true] },
-  { feature: "API Access",            values: [false,    false,       true] },
-  { feature: "Custom Branding",       values: [false,    false,       true] },
-  { feature: "Support",               values: ["Email",  "Priority",  "Dedicated Manager"] },
-];
-
 const faqs = [
   { q: "Is there a free trial?", a: "Yes! All plans come with a 14-day free trial. No credit card required to start." },
   { q: "Can I change my plan later?", a: "Absolutely. Upgrade or downgrade anytime — changes take effect on your next billing cycle." },
@@ -251,12 +174,17 @@ function CellValue({ value }: { value: string | boolean }) {
 export default function PlansV2() {
   const [annual, setAnnual] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [plans, setPlans] = useState<Plan[]>(staticPlans);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [rawForComp, setRawForComp] = useState<BillingPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
+    setError(null);
+
     getPublicBillingPlans()
       .then((res) => {
         if (!alive) return;
@@ -265,22 +193,30 @@ export default function PlansV2() {
         if (mapped.length > 0) {
           setPlans(mapped);
           setRawForComp(raw);
+          return;
         }
+
+        setPlans([]);
+        setRawForComp([]);
+        setError("No active billing plans are currently available.");
       })
-      .catch(() => {
-        // silently fall back to static plans
+      .catch((e: unknown) => {
+        if (!alive) return;
+        setPlans([]);
+        setRawForComp([]);
+        setError(e instanceof Error ? e.message : "Failed to load billing plans.");
       })
       .finally(() => {
         if (alive) setLoading(false);
       });
     return () => { alive = false; };
-  }, []);
+  }, [reloadToken]);
 
   const hasAnnualOption = plans.some(p => p.hasAnnual);
 
   const compRows = useMemo<CompRow[]>(() => {
     if (rawForComp.length > 0) return buildCompRows(rawForComp);
-    return staticCompRows;
+    return [];
   }, [rawForComp]);
 
   return (
@@ -336,6 +272,25 @@ export default function PlansV2() {
             {[1, 2, 3].map((i) => (
               <div key={i} className="pc-card" style={{ minHeight: 420, opacity: 0.4, background: "var(--surface-2)", borderRadius: "var(--r-lg)" }} />
             ))}
+          </div>
+        ) : error ? (
+          <div className="pc-card" style={{ maxWidth: 760, margin: "0 auto" }}>
+            <div className="pc-body" style={{ textAlign: "center", gap: 12 }}>
+              <div className="pc-name">Unable to load plans</div>
+              <div className="pc-desc" style={{ maxWidth: 560, margin: "0 auto" }}>{error}</div>
+              <div style={{ marginTop: 10 }}>
+                <button className="btn btn-outline" onClick={() => setReloadToken((n) => n + 1)}>
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="pc-card" style={{ maxWidth: 760, margin: "0 auto" }}>
+            <div className="pc-body" style={{ textAlign: "center" }}>
+              <div className="pc-name">No plans available</div>
+              <div className="pc-desc">Please check back shortly.</div>
+            </div>
           </div>
         ) : (
           <div className="plans-grid">

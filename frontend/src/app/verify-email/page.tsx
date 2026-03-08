@@ -2,6 +2,7 @@
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { getTenantLoginUrl } from "@/lib/config";
 import { Preloader } from "@/components/Preloader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -21,8 +22,7 @@ function VerifyEmailPageInner() {
   const verified = useMemo(() => searchParams.get("verified") === "1", [searchParams]);
   const tenant = useMemo(() => searchParams.get("tenant") || "", [searchParams]);
 
-  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
-  const tenantLoginUrl = tenant ? `${apiBase}/t/${tenant}/login` : null;
+  const tenantLoginUrl = useMemo(() => (tenant ? getTenantLoginUrl(tenant) : null), [tenant]);
 
   const [email] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
