@@ -67,6 +67,11 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
         Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
             ->middleware('auth')
             ->name('tenant.subdomain.logout');
+
+        // Business setup wizard (subdomain access)
+        Route::get('/setup', [\App\Http\Controllers\Web\BusinessSetupController::class, 'show'])
+            ->middleware('auth')
+            ->name('tenant.subdomain.setup');
     });
 
 Route::domain(config('tenancy.base_domain'))
@@ -275,7 +280,7 @@ Route::prefix('t/{business}/portal')
 
 Route::prefix('t/{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
-    ->middleware(['web', 'tenant', 'branch.web', 'auth'])
+    ->middleware(['web', 'tenant', 'branch.web', 'auth', 'business.setup'])
     ->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');

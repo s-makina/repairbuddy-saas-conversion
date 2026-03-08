@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailVerifiedJson::class,
             'impersonation' => \App\Http\Middleware\ApplyImpersonation::class,
             'impersonation.audit' => \App\Http\Middleware\AuditImpersonatedWrites::class,
+            'business.setup' => \App\Http\Middleware\EnsureBusinessSetup::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
