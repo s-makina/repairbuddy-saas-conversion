@@ -1,3 +1,0 @@
-{
-  "/app/[tenant]/placeholder/[...path]/page": "app/app/[tenant]/placeholder/[...path]/page.js"
-}

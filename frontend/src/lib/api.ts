@@ -2,6 +2,20 @@ import { API_BASE_URL } from "@/lib/config";
 import { getToken } from "@/lib/token";
 import { getImpersonationSessionId } from "@/lib/impersonation";
 
+let csrfFetched = false;
+
+async function ensureCsrfCookie(): Promise<void> {
+  if (csrfFetched) return;
+  try {
+    await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
+      credentials: "include",
+    });
+    csrfFetched = true;
+  } catch {
+    // Ignore CSRF fetch errors - will fail later if needed
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   data: unknown;
@@ -22,6 +36,12 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const url = `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  const method = (options.method ?? "GET").toUpperCase();
+  const isMutating = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+  if (isMutating) {
+    await ensureCsrfCookie();
+  }
 
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
@@ -60,6 +80,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       ...options,
       headers,
       body,
+      credentials: "include",
       signal: controller?.signal ?? options.signal,
     });
   } catch (err) {
@@ -139,6 +160,7 @@ export async function apiDownload(path: string, options: ApiDownloadOptions = {}
       ...options,
       headers,
       body,
+      credentials: "include",
       signal: controller?.signal ?? options.signal,
     });
   } catch (err) {
