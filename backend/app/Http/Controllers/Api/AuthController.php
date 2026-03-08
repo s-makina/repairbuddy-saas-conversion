@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Password;
@@ -301,7 +302,35 @@ class AuthController extends Controller
 
         [$tenant, $user] = $result;
 
-        $user->sendEmailVerificationNotification();
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            // Email failed — delete everything that was just created so the
+            // customer can try again from scratch without a phantom account.
+            try {
+                DB::transaction(function () use ($tenant, $user) {
+                    $user->delete();
+                    Role::where('tenant_id', $tenant->id)->each(function ($role) {
+                        $role->permissions()->detach();
+                        $role->delete();
+                    });
+                    $tenant->delete();
+                });
+            } catch (\Throwable $cleanupException) {
+                Log::error('Failed to clean up tenant after email send failure', [
+                    'tenant_id' => $tenant->id,
+                    'user_id'   => $user->id,
+                    'error'     => $cleanupException->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'We could not send your verification email. Please try again.',
+                'errors'  => [
+                    'email' => ['Failed to send verification email. Please check the address and try again.'],
+                ],
+            ], 500);
+        }
 
         $this->logAuthEvent($request, 'register_success', $user, $user->email, $tenant);
 

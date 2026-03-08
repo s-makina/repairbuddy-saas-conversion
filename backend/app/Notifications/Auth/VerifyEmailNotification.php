@@ -29,12 +29,20 @@ class VerifyEmailNotification extends Notification
     protected $tenantLogoUrl;
 
     /**
+     * The tenant slug (workspace ID).
+     *
+     * @var string|null
+     */
+    protected $tenantSlug;
+
+    /**
      * Create a notification instance.
      */
-    public function __construct(?string $tenantName = null, ?string $tenantLogoUrl = null)
+    public function __construct(?string $tenantName = null, ?string $tenantLogoUrl = null, ?string $tenantSlug = null)
     {
         $this->tenantName = $tenantName;
         $this->tenantLogoUrl = $tenantLogoUrl;
+        $this->tenantSlug = $tenantSlug;
     }
 
     /**
@@ -58,6 +66,14 @@ class VerifyEmailNotification extends Notification
     {
         $verificationUrl = $this->verificationUrl($notifiable);
 
+        $workspaceUrl = null;
+        if ($this->tenantSlug) {
+            $domain = env('APP_DOMAIN', '');
+            if ($domain) {
+                $workspaceUrl = 'https://' . $this->tenantSlug . '.' . $domain;
+            }
+        }
+
         return (new MailMessage)
             ->subject(Lang::get('Verify Email Address'))
             ->view('emails.auth.verify-email', [
@@ -66,6 +82,8 @@ class VerifyEmailNotification extends Notification
                 'userEmail' => $notifiable->email,
                 'tenantName' => $this->tenantName ?? 'RepairBuddy',
                 'tenantLogoUrl' => $this->tenantLogoUrl,
+                'tenantSlug' => $this->tenantSlug,
+                'workspaceUrl' => $workspaceUrl,
             ]);
     }
 

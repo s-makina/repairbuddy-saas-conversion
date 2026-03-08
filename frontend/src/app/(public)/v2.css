@@ -974,6 +974,16 @@
   margin-left: 4px;
 }
 
+.v2 .form-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 6px;
+}
+
+.v2 .form-hint strong {
+  color: var(--orange);
+}
+
 .v2 .forgot-link {
   font-size: 12px;
   font-weight: 600;

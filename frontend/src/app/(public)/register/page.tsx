@@ -22,6 +22,16 @@ function getPasswordStrength(pw: string): number {
   return score;
 }
 
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function RegisterForm() {
   const auth = useAuth();
   const router = useRouter();
@@ -33,11 +43,27 @@ function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+  const [tenantSlug, setTenantSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  function handleCompanyNameChange(value: string) {
+    setCompanyName(value);
+    if (!slugEdited) {
+      setTenantSlug(toSlug(value));
+    }
+  }
+
+  function handleSlugChange(value: string) {
+    setSlugEdited(true);
+    setTenantSlug(toSlug(value));
+  }
+
   const strength = getPasswordStrength(password);
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "99smartx.com";
   const planLabel = plan
     ? plan.charAt(0).toUpperCase() + plan.slice(1) + " Plan Selected"
     : "Professional Plan Selected";
@@ -48,6 +74,14 @@ function RegisterForm() {
       setError("Please agree to the Terms of Service and Privacy Policy.");
       return;
     }
+    if (!companyName.trim()) {
+      setError("Please enter your company name.");
+      return;
+    }
+    if (!tenantSlug) {
+      setError("Please enter a valid workspace ID (letters, numbers, and hyphens only).");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -55,7 +89,8 @@ function RegisterForm() {
         name: `${firstName} ${lastName}`.trim(),
         email,
         password,
-        tenant_name: undefined,
+        tenant_name: companyName.trim(),
+        tenant_slug: tenantSlug,
       });
       router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
@@ -125,6 +160,50 @@ function RegisterForm() {
                 </svg>
               </div>
             </div>
+          </div>
+
+          {/* Company Name */}
+          <div className="form-group">
+            <label className="form-label">Company Name</label>
+            <div className="input-wrap">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Acme Repair Shop"
+                value={companyName}
+                onChange={(e) => handleCompanyNameChange(e.target.value)}
+                required
+                autoComplete="organization"
+              />
+              <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Workspace ID */}
+          <div className="form-group">
+            <label className="form-label">Workspace ID</label>
+            <div className="input-wrap">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="acme-repair-shop"
+                value={tenantSlug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                required
+                autoComplete="off"
+                pattern="[a-z0-9][a-z0-9\-]*[a-z0-9]"
+              />
+              <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            {tenantSlug && (
+              <div className="form-hint">
+                Your workspace URL: <strong>{tenantSlug}.{appDomain}</strong>
+              </div>
+            )}
           </div>
 
           {/* Email */}

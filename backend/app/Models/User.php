@@ -152,12 +152,13 @@ class User extends Authenticatable implements MustVerifyEmailContract
     {
         $tenant = $this->tenant;
         $tenantName = $tenant?->name;
+        $tenantSlug = $tenant?->slug;
         $tenantLogoUrl = null;
 
         if ($tenant && $tenant->logo_path) {
             $tenantLogoUrl = Storage::disk('public')->url($tenant->logo_path);
         }
 
-        $this->notify(new VerifyEmailNotification($tenantName, $tenantLogoUrl));
+        $this->notify(new VerifyEmailNotification($tenantName, $tenantLogoUrl, $tenantSlug));
     }
 }
