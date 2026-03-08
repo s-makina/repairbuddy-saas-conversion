@@ -3,6 +3,7 @@
 @php
   $tenantSlug = $tenantSlug ?? null;
   $tenant = $tenant ?? null;
+  $tenantRoutePrefix = request()->routeIs('tenant.subdomain.*') ? 'tenant.subdomain' : 'tenant';
 @endphp
 
 @section('content')
@@ -31,7 +32,7 @@
       </div>
     @enderror
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.login', ['business' => $tenantSlug]) : route('login') }}" onsubmit="handleSubmit(this)">
+    <form method="POST" action="{{ $tenantSlug ? route($tenantRoutePrefix.'.login', ['business' => $tenantSlug]) : route('login') }}" onsubmit="handleSubmit(this)">
       @csrf
 
       <div class="input-group-modern">
@@ -57,7 +58,7 @@
       <div class="input-group-modern">
         <div class="d-flex justify-content-between">
           <label for="password" class="form-label">Password</label>
-          <a href="{{ $tenantSlug ? route('tenant.password.request', ['business' => $tenantSlug]) : route('password.request') }}" class="forgot-password">Forgot?</a>
+          <a href="{{ $tenantSlug ? route($tenantRoutePrefix.'.password.request', ['business' => $tenantSlug]) : route('password.request') }}" class="forgot-password">Forgot?</a>
         </div>
         <div class="input-wrapper">
           <input
@@ -93,7 +94,7 @@
 
     <div class="footer-link">
       @if($tenantSlug)
-        Need an account? <a href="{{ route('tenant.register', ['business' => $tenantSlug]) }}">Register</a>
+        Need an account? <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}">Register</a>
       @else
         Need a workspace? <a href="{{ route('register') }}">Get Started</a>
       @endif

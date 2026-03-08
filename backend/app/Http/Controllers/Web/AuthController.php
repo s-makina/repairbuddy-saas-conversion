@@ -192,10 +192,30 @@ class AuthController extends Controller
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'terms' => ['required', 'accepted'],
         ]);
+
+        $tenantSlug = $this->getTenantSlugFromRequest($request);
+        $loginRoute = $this->tenantRouteName($request, 'login');
+
+        // Check if the email is already registered (handles timeout-retry case)
+        $existingUser = User::where('email', $validated['email'])->first();
+        if ($existingUser) {
+            if (is_null($existingUser->email_verified_at)) {
+                // User registered but verification email never arrived (e.g. previous timeout).
+                // Resend verification and show a clear message instead of a confusing error.
+                event(new Registered($existingUser));
+
+                return redirect()->route($loginRoute, ['business' => $tenantSlug])
+                    ->with('status', 'A verification email has been resent to ' . $existingUser->email . '. Please check your inbox.');
+            }
+
+            return back()
+                ->withInput($request->only('first_name', 'last_name', 'email'))
+                ->withErrors(['email' => 'This email is already registered. Please log in or reset your password.']);
+        }
 
         $tenant = $this->getCurrentTenant();
         $tenantId = $tenant?->id;
@@ -212,11 +232,9 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        $tenantSlug = $this->getTenantSlugFromRequest($request);
-
         // Don't auto-login - user must wait for admin activation
-        return redirect()->route($this->tenantRouteName($request, 'login'), ['business' => $tenantSlug])
-            ->with('status', 'Account created successfully! An administrator will review and activate your account.');
+        return redirect()->route($loginRoute, ['business' => $tenantSlug])
+            ->with('status', 'Account created successfully! Please check your email to verify your address.');
     }
 
     // ==================== Forgot Password ====================

@@ -2,6 +2,7 @@
 
 @php
   $tenantSlug = $tenantSlug ?? null;
+  $tenantRoutePrefix = request()->routeIs('tenant.subdomain.*') ? 'tenant.subdomain' : 'tenant';
 @endphp
 
 @section('content')
@@ -23,7 +24,7 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.2fa.verify', ['business' => $tenantSlug]) : route('2fa.verify') }}">
+    <form method="POST" action="{{ $tenantSlug ? route($tenantRoutePrefix.'.2fa.verify', ['business' => $tenantSlug]) : route('2fa.verify') }}">
       @csrf
 
       <div class="otp-container">
@@ -45,7 +46,7 @@
     </form>
 
     <div class="footer-link">
-      Didn't receive the code? <a href="{{ $tenantSlug ? route('tenant.2fa.resend', ['business' => $tenantSlug]) : route('2fa.resend') }}">Click to resend</a>
+      Didn't receive the code? <a href="{{ $tenantSlug ? route($tenantRoutePrefix.'.2fa.resend', ['business' => $tenantSlug]) : route('2fa.resend') }}">Click to resend</a>
     </div>
   </div>
 @push('scripts')

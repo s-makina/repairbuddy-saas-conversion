@@ -2,6 +2,9 @@
     $tenantSlug = $tenantSlug ?? null;
     $tenant = $tenant ?? null;
     $shopInitials = $tenant ? strtoupper(collect(explode(' ', $tenant->name))->map(fn($w) => substr($w, 0, 1))->take(2)->join('')) : 'RB';
+    $isSubdomain = request()->routeIs('tenant.subdomain.*');
+    $tenantRoutePrefix = $isSubdomain ? 'tenant.subdomain' : 'tenant';
+    $tenantHomeUrl = $isSubdomain ? url('/') : url('/t/' . $tenantSlug);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -125,7 +128,7 @@
     <!-- NAVBAR -->
     <nav class="navbar">
         <div class="nav-inner">
-            <a href="{{ url('/t/' . $tenantSlug) }}" class="nav-brand">
+            <a href="{{ $tenantHomeUrl }}" class="nav-brand">
                 <div class="shop-logo">{{ $shopInitials }}</div>
                 <div>
                     <div class="shop-name">{{ $tenant->name ?? 'RepairBuddy' }}</div>
@@ -135,8 +138,8 @@
             <div class="nav-links">
                 <a href="#services">Services</a>
                 <a href="#hours">Hours & Contact</a>
-                <a href="{{ route('tenant.login', ['business' => $tenantSlug]) }}" class="btn btn-outline">Sign In</a>
-                <a href="{{ route('tenant.register', ['business' => $tenantSlug]) }}" class="btn btn-primary">Book a Repair</a>
+                <a href="{{ route($tenantRoutePrefix.'.login', ['business' => $tenantSlug]) }}" class="btn btn-outline">Sign In</a>
+                <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}" class="btn btn-primary">Book a Repair</a>
             </div>
         </div>
     </nav>
@@ -148,7 +151,7 @@
             <h1>Expert Electronics Repairs, <span>Done Right</span></h1>
             <p>From cracked screens to water damage — get fast, reliable repairs from our certified technicians. Book online in seconds.</p>
             <div class="hero-ctas">
-                <a href="{{ route('tenant.register', ['business' => $tenantSlug]) }}" class="btn btn-orange btn-lg">
+                <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}" class="btn btn-orange btn-lg">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     Book Appointment
                 </a>
@@ -240,7 +243,7 @@
         <div class="cta-inner">
             <h2>Ready to get your device fixed?</h2>
             <p>Book an appointment online and skip the wait. Most repairs done while you wait.</p>
-            <a href="{{ route('tenant.register', ['business' => $tenantSlug]) }}" class="btn btn-white btn-lg">Book Your Repair &rarr;</a>
+            <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}" class="btn btn-white btn-lg">Book Your Repair &rarr;</a>
         </div>
     </div>
 

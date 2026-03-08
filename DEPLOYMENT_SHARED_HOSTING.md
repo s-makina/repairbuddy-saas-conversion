@@ -69,3 +69,27 @@ RewriteRule ^$ frontend/out/index.html [L]
 - [ ] Ensure `.env` is NOT accessible via web.
 - [ ] Permissions: `storage` and `bootstrap/cache` must be writable by the web server.
 - [ ] Ensure `APP_DEBUG` is `false`.
+
+## 6. Queue Worker Warning (Email Delivery)
+
+All transactional emails — including **registration email verification** — are dispatched to the queue (`QUEUE_CONNECTION=database`). On most shared hosts you cannot run a persistent background process, so queued jobs will never be processed and users will never receive emails.
+
+**Option A — Switch to synchronous delivery (simple, but blocks the request)**
+
+Set in `.env`:
+```env
+QUEUE_CONNECTION=sync
+```
+Emails will be sent immediately during the HTTP request instead of being queued. This is acceptable if your SMTP provider responds quickly (e.g. Mailgun, Postmark, SendGrid). Avoid slow SMTP (Gmail, plain SMTP) as it will cause registration timeouts.
+
+**Option B — Use a hosted queue service (recommended)**
+
+If your host supports it, switch to Amazon SQS or a Redis-backed queue and configure a worker via a cron-driven artisan command:
+```cron
+* * * * * php /home/user/repairbuddy_backend/artisan queue:work --stop-when-empty >> /dev/null 2>&1
+```
+This runs a short-lived worker every minute via cron. Not as efficient as a persistent worker, but functional on shared hosting.
+
+**Option C — Use a server with Supervisor (recommended for production)**
+
+See `DEPLOYMENT_LINUX_APACHE.md` Section 15 for a full persistent queue worker setup.

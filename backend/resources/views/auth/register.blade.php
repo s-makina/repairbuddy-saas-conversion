@@ -3,6 +3,7 @@
 @php
   $tenantSlug = $tenantSlug ?? null;
   $tenant = $tenant ?? null;
+  $tenantRoutePrefix = request()->routeIs('tenant.subdomain.*') ? 'tenant.subdomain' : 'tenant';
 @endphp
 
 @section('content')
@@ -25,7 +26,7 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ $tenantSlug ? route('tenant.register', ['business' => $tenantSlug]) : route('register') }}" onsubmit="handleSubmit(this)">
+    <form method="POST" action="{{ $tenantSlug ? route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) : route('register') }}" onsubmit="handleSubmit(this)">
       @csrf
 
       <div class="row">
@@ -143,7 +144,7 @@
     </form>
 
     <div class="footer-link">
-      Already have an account? <a href="{{ $tenantSlug ? route('tenant.login', ['business' => $tenantSlug]) : route('login') }}">Log in</a>
+      Already have an account? <a href="{{ $tenantSlug ? route($tenantRoutePrefix.'.login', ['business' => $tenantSlug]) : route('login') }}">Log in</a>
     </div>
   </div>
 @push('scripts')

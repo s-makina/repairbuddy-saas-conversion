@@ -289,7 +289,11 @@ cd /var/www/repairbuddy/backend
 # Generate app key (first deploy only)
 php artisan key:generate
 
-# Run database migrations
+# Create queue tables (first deploy only — required for QUEUE_CONNECTION=database)
+# If these migrations don't exist yet, generate them first:
+php artisan queue:table
+php artisan queue:failed-table
+# Then run all migrations (including the above on first deploy):
 php artisan migrate --force
 
 # Seed superadmin (first deploy only)
@@ -607,6 +611,8 @@ sudo systemctl reload apache2
 
 The app uses `QUEUE_CONNECTION=database`. Supervisor keeps the worker running.
 
+> **Critical:** All transactional emails — including registration email verification — are dispatched to the queue. If the queue worker is not running, no verification emails will be sent and new users will be silently stuck at registration. The worker is not optional.
+
 ```bash
 sudo apt install -y supervisor
 ```
@@ -699,6 +705,9 @@ Before going live, verify each item:
 [ ] storage:link created at public/storage
 [ ] storage/ and bootstrap/cache/ owned by www-data and writable
 [ ] Supervisor worker is running (supervisorctl status)
+[ ] jobs and failed_jobs tables exist in the database
+[ ] Queue worker processes jobs: php artisan queue:work --once (exits cleanly after one job)
+[ ] Registration email flow verified: register a test account and confirm verification email arrives
 [ ] Cron is set for www-data
 [ ] HTTPS is working — HTTP redirects to HTTPS
 [ ] HSTS header is present (curl -I https://yourdomain.com)
@@ -708,7 +717,6 @@ Before going live, verify each item:
 [ ] PM2 frontend process is running (pm2 status)
 [ ] PM2 startup hook is saved (pm2 save)
 [ ] Let's Encrypt renewal dry-run succeeds
-[ ] Queue test: php artisan queue:work --once (processes one job cleanly)
 [ ] Mail test: php artisan tinker → Mail::raw('test', fn($m) => $m->to('you@test.com'))
 ```
 
