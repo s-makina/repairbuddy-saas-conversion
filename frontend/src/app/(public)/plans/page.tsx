@@ -229,7 +229,6 @@ export default function PlansV2() {
             <span className="brand-name">99SmartX</span>
           </Link>
           <div className="nav-actions">
-            <Link href="/login" className="btn btn-ghost">Log In</Link>
             <Link href="/" className="btn btn-outline" style={{ fontSize: 13, padding: "8px 16px" }}>← Back to Home</Link>
           </div>
         </div>
