@@ -122,6 +122,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     protected function casts(): array
     {
         return [
+            'tenant_id' => 'integer',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
