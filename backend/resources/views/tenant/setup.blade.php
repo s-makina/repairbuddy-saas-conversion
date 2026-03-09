@@ -403,7 +403,7 @@
             {{-- STEP 4: Branches --}}
             <div class="step-panel" id="step-4">
                 <div class="wc-header">
-                    <h2>Set up your branches</h2>
+                    <h2>Set up your shops</h2>
                     <p>Add the physical locations where your business operates. You can always add more later.</p>
                 </div>
                 <div class="wc-body">
@@ -412,7 +412,7 @@
                     </div>
                     <button type="button" class="add-row-btn" onclick="addBranch()">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        Add Another Branch
+                        Add Another Shop
                     </button>
                 </div>
             </div>
@@ -480,17 +480,35 @@
             <div class="step-panel" id="step-6">
                 <div class="wc-header">
                     <h2>Operations &amp; preferences</h2>
-                    <p>Set your default operations and notification preferences.</p>
+                    <p>Set your default timezone and language preferences.</p>
                 </div>
                 <div class="wc-body">
                     <div class="form-grid">
+                        @php
+                            $tz = $tenant->timezone ?? 'UTC';
+                            $allTimezones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+                            // Group timezones by region
+                            $tzGroups = [];
+                            foreach ($allTimezones as $timezone) {
+                                $parts = explode('/', $timezone);
+                                $region = $parts[0];
+                                if (!isset($tzGroups[$region])) {
+                                    $tzGroups[$region] = [];
+                                }
+                                $tzGroups[$region][] = $timezone;
+                            }
+                            ksort($tzGroups);
+                        @endphp
                         <div class="form-group">
                             <label class="form-label">Timezone</label>
                             <div class="input-wrap">
                                 <select class="form-select" id="f-timezone" style="padding-left:42px">
-                                    @php $tz = $tenant->timezone ?? 'UTC'; @endphp
-                                    @foreach(['UTC','Europe/London','Europe/Berlin','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Asia/Tokyo','Australia/Sydney'] as $t)
-                                        <option value="{{ $t }}" {{ $tz === $t ? 'selected' : '' }}>{{ $t }}</option>
+                                    @foreach($tzGroups as $region => $timezones)
+                                        <optgroup label="{{ $region }}">
+                                            @foreach($timezones as $t)
+                                                <option value="{{ $t }}" {{ $tz === $t ? 'selected' : '' }}>{{ $t }}</option>
+                                            @endforeach
+                                        </optgroup>
                                     @endforeach
                                 </select>
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -502,26 +520,6 @@
                                 <input type="text" class="form-input" id="f-language" value="{{ $tenant->language ?? 'en' }}" disabled style="background:var(--surface-2)">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
                             </div>
-                        </div>
-                        <div class="form-group full" style="margin-top:4px"><div class="section-title">Operations defaults (optional)</div></div>
-                        <div class="form-group full">
-                            <label class="form-label">Working Hours</label>
-                            <input type="text" class="form-input" id="f-working-hours" style="padding-left:14px" placeholder="e.g. Mon&ndash;Fri 09:00&ndash;17:00" value="{{ data_get($state, 'operations.working_hours', '') }}">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Default Labor Rate <span class="form-sub">(optional)</span></label>
-                            <input type="text" class="form-input" id="f-labor-rate" style="padding-left:14px" placeholder="e.g. 75.00" value="{{ data_get($state, 'operations.labor_rate', '') }}">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Default Warranty Terms <span class="form-sub">(optional)</span></label>
-                            <input type="text" class="form-input" id="f-warranty" style="padding-left:14px" placeholder="e.g. 90 days parts and labor" value="{{ data_get($state, 'operations.warranty_terms', '') }}">
-                        </div>
-                        <hr class="section-divider" style="grid-column:1/-1">
-                        <div class="form-group full">
-                            <label class="checkbox-label"><input type="checkbox" id="f-notify-status" {{ data_get($state, 'operations.notify_status_change') ? 'checked' : '' }}> Email customer on repair status change</label>
-                        </div>
-                        <div class="form-group full">
-                            <label class="checkbox-label"><input type="checkbox" id="f-notify-invoice" {{ data_get($state, 'operations.notify_invoice_created') ? 'checked' : '' }}> Email customer on invoice created</label>
                         </div>
                     </div>
                 </div>
@@ -861,6 +859,20 @@
         }
     }
 
+    // Sync current input values back to branches array before re-rendering
+    function syncBranchInputs() {
+        const cards = document.querySelectorAll('.shop-card');
+        cards.forEach((card, i) => {
+            if (branches[i]) {
+                branches[i].name = card.querySelector('.branch-name')?.value || '';
+                branches[i].code = card.querySelector('.branch-code')?.value || '';
+                branches[i].phone = card.querySelector('.branch-phone')?.value || '';
+                branches[i].is_active = card.querySelector('.branch-active')?.value === '1';
+                branches[i].address = card.querySelector('.branch-address')?.value || '';
+            }
+        });
+    }
+
     function renderBranches() {
         const list = document.getElementById('branches-list');
         list.innerHTML = '';
@@ -871,13 +883,13 @@
                 <div class="shop-card-header">
                     <div class="shop-card-num">
                         <div class="shop-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>
-                        <span>${b.name || 'Branch ' + (i + 1)}</span>
+                        <span>${b.name || 'Shop ' + (i + 1)}</span>
                     </div>
                     ${isDefault ? '<span class="primary-badge">&#x2726; Default</span>' : '<button type="button" class="remove-btn" style="width:28px;height:28px" onclick="removeBranch(' + i + ')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>'}
                 </div>
                 <div class="shop-card-grid">
-                    <div class="form-group"><label class="form-label">Branch Name</label><input type="text" class="form-input branch-name" value="${b.name || ''}" data-idx="${i}"></div>
-                    <div class="form-group"><label class="form-label">Branch Code</label><input type="text" class="form-input branch-code" value="${b.code || ''}" maxlength="16" data-idx="${i}"></div>
+                    <div class="form-group"><label class="form-label">Shop Name</label><input type="text" class="form-input branch-name" value="${b.name || ''}" data-idx="${i}"></div>
+                    <div class="form-group"><label class="form-label">Shop Code</label><input type="text" class="form-input branch-code" value="${b.code || ''}" maxlength="16" data-idx="${i}"></div>
                     <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input branch-phone" value="${b.phone || ''}" data-idx="${i}"></div>
                     <div class="form-group"><label class="form-label">Active</label><select class="form-select branch-active" style="padding-left:14px" data-idx="${i}"><option value="1" ${b.is_active !== false && b.is_active !== 0 ? 'selected' : ''}>Yes</option><option value="0" ${b.is_active === false || b.is_active === 0 ? 'selected' : ''}>No</option></select></div>
                     <div class="form-group full"><label class="form-label">Address</label><input type="text" class="form-input branch-address" value="${b.address || ''}" data-idx="${i}"></div>
@@ -887,6 +899,7 @@
     }
 
     function addBranch() {
+        syncBranchInputs();
         branches.push({ name: '', code: '', phone: '', is_active: true, address: '' });
         renderBranches();
     }
@@ -898,6 +911,7 @@
                 await apiFetch('/branches/' + b.id, { method: 'DELETE' });
             } catch (e) { toast(e.message, 'error'); return; }
         }
+        syncBranchInputs();
         branches.splice(idx, 1);
         renderBranches();
     }
