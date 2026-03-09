@@ -69,7 +69,7 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
 
         $workspaceUrl = null;
         if ($this->tenantSlug) {
-            $domain = env('APP_DOMAIN', '');
+            $domain = config('app.domain', '');
             if ($domain) {
                 $workspaceUrl = 'https://' . $this->tenantSlug . '.' . $domain;
             }

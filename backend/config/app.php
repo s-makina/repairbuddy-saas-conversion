@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Domain
+    |--------------------------------------------------------------------------
+    |
+    | The base domain for the application, used for constructing tenant URLs.
+    | e.g., 99smartx.com -> workspace URL becomes: {slug}.99smartx.com
+    |
+    */
+
+    'domain' => env('APP_DOMAIN', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
