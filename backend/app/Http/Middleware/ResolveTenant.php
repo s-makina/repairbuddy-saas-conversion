@@ -19,6 +19,14 @@ class ResolveTenant
 
         $tenantSlug = null;
 
+        if ($resolution === 'subdomain') {
+            $host = $request->getHost();
+            $baseDomain = config('tenancy.base_domain', '');
+            if ($baseDomain !== '' && str_ends_with($host, '.' . $baseDomain)) {
+                $tenantSlug = str_replace('.' . $baseDomain, '', $host);
+            }
+        }
+
         if ($resolution === 'path') {
             $param = config('tenancy.route_param', 'business');
             $tenantSlug = $request->route($param);
