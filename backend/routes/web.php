@@ -75,24 +75,26 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
     });
 
 // Email verification route (must be accessible from API subdomain)
-Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
-    $user = User::query()->findOrFail($id);
+Route::middleware(['web'])->group(function () {
+    Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
+        $user = User::query()->findOrFail($id);
 
-    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
-        abort(403);
-    }
+        if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+            abort(403);
+        }
 
-    if (! $user->hasVerifiedEmail()) {
-        $user->markEmailAsVerified();
-        event(new Verified($user));
-    }
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new Verified($user));
+        }
 
-    $frontendUrl = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/');
-    $slug = $user->tenant?->slug;
-    $query = 'verified=1' . ($slug ? '&tenant=' . urlencode($slug) : '');
+        $frontendUrl = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/');
+        $slug = $user->tenant?->slug;
+        $query = 'verified=1' . ($slug ? '&tenant=' . urlencode($slug) : '');
 
-    return redirect()->away($frontendUrl . '/verify-email?' . $query);
-})->middleware(['signed'])->name('verification.verify');
+        return redirect()->away($frontendUrl . '/verify-email?' . $query);
+    })->middleware(['signed'])->name('verification.verify');
+});
 
 Route::domain(config('tenancy.base_domain'))
     ->middleware('web')
