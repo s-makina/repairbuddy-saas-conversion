@@ -19,9 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://repairbuddy.test', 'https://repairbuddy.test'],
+    'allowed_origins' => [],
 
-    'allowed_origins_patterns' => ['/^https?:\/\/([a-z0-9-]+\.)?repairbuddy\.test$/'],
+    'allowed_origins_patterns' => [
+        '/^https?:\/\/([a-z0-9-]+\.)?99smartx\.com$/',
+        '/^https?:\/\/([a-z0-9-]+\.)?repairbuddy\.test$/',
+    ],
 
     'allowed_headers' => ['*'],
 
