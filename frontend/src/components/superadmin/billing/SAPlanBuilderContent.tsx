@@ -2,7 +2,7 @@
 
 import { SATopbar, SAButton } from "../SATopbar";
 import { ArrowLeft, ArrowRight, Check, Save, Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   getBillingCatalog,
@@ -38,7 +38,10 @@ type PriceTier = {
 export function SAPlanBuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editPlanId = searchParams.get("planId") ? parseInt(searchParams.get("planId")!, 10) : null;
+  const editPlanId = useMemo(() => {
+    const planIdParam = searchParams.get("planId");
+    return planIdParam ? parseInt(planIdParam, 10) : null;
+  }, [searchParams]);
   const isEditMode = !!editPlanId;
 
   const [step, setStep] = useState(0);
@@ -69,6 +72,9 @@ export function SAPlanBuilderContent() {
 
   // Step 3 — Entitlements
   const [selectedEntitlements, setSelectedEntitlements] = useState<Map<number, unknown>>(new Map());
+
+  // Track if initial load has been done to prevent re-fetching
+  const hasLoadedRef = useRef(false);
 
   // Load reference data + plan for editing
   const loadData = useCallback(async () => {
@@ -145,7 +151,11 @@ export function SAPlanBuilderContent() {
     }
   }, [editPlanId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+    loadData();
+  }, [loadData]);
 
   // ── Helpers ──
   const handleDetailChange = (

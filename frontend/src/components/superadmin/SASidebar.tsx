@@ -117,11 +117,8 @@ export function SASidebar() {
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      router.replace("/superadmin/login");
-    }
+    router.replace("/");
+    await logout();
   };
 
   // Derive initials from user name

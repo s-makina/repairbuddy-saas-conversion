@@ -298,7 +298,7 @@ class AuthController extends Controller
             $planCode = $validated['plan_code'] ?? 'starter';
             $defaultPrice = DB::table('billing_prices as bp')
                 ->join('billing_plan_versions as bpv', 'bp.billing_plan_version_id', '=', 'bpv.id')
-                ->join('billing_plans as bpl', 'bpv.plan_id', '=', 'bpl.id')
+                ->join('billing_plans as bpl', 'bpv.billing_plan_id', '=', 'bpl.id')
                 ->where('bpl.code', $planCode)
                 ->where('bpl.is_active', true)
                 ->where('bpv.status', 'active')
