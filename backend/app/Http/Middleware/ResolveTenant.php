@@ -22,7 +22,7 @@ class ResolveTenant
         if ($resolution === 'subdomain') {
             $host = $request->getHost();
             $baseDomain = config('tenancy.base_domain', '');
-            \Log::debug('ResolveTenant subdomain', [
+            \Log::info('ResolveTenant subdomain', [
                 'host' => $host,
                 'baseDomain' => $baseDomain,
                 'str_ends_with' => $baseDomain !== '' && str_ends_with($host, '.' . $baseDomain),
