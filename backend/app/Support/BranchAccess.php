@@ -41,6 +41,11 @@ class BranchAccess
             return [];
         }
 
+        // Owners have access to all branches
+        if ($user->hasRole('owner')) {
+            return Branch::query()->pluck('id')->all();
+        }
+
         if ($user->can('branches.manage')) {
             return Branch::query()->pluck('id')->all();
         }

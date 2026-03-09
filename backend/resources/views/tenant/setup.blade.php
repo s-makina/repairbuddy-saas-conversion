@@ -664,6 +664,11 @@
     let branches = [];
     let taxRows = @json(data_get($state, 'tax.taxes', [])) || [];
 
+    // Load branches on initial page load if already at step 4+
+    if (currentStep >= 4) {
+        loadBranches();
+    }
+
     function scheduleAutoSave() {
         clearTimeout(autoSaveTimer);
         autoSaveTimer = setTimeout(() => saveCurrentStep(), 1500);
@@ -942,8 +947,16 @@
         }
     }
 
-    // Hook branch save into step change
+    // Hook branch save into step change - save branches when leaving step 4
     const _origSave = saveCurrentStep;
+    saveCurrentStep = async function() {
+        const prevStep = currentStep;
+        await _origSave();
+        // Save branches when leaving step 4
+        if (prevStep === 4) {
+            await saveBranches();
+        }
+    };
 
     // ── Tax rows ──
     function collectTaxRows() {
@@ -957,6 +970,19 @@
             });
         });
         return rows.length ? rows : taxRows;
+    }
+
+    // Sync current tax input values back to taxRows array before re-rendering
+    function syncTaxInputs() {
+        const rows = document.querySelectorAll('#tax-list .tax-item');
+        rows.forEach((row, i) => {
+            if (taxRows[i]) {
+                taxRows[i].name = row.querySelector('.tax-name')?.value || '';
+                taxRows[i].rate = row.querySelector('.tax-rate')?.value || '';
+                taxRows[i].active = row.querySelector('.tax-active')?.value === 'Yes';
+                taxRows[i].is_default = row.querySelector('.tax-default')?.value === 'Yes';
+            }
+        });
     }
 
     function renderTaxRows() {
@@ -975,11 +1001,13 @@
     }
 
     function addTaxRow() {
+        syncTaxInputs();
         taxRows.push({ name: '', rate: '', active: true, is_default: false });
         renderTaxRows();
     }
 
     function removeTaxRow(idx) {
+        syncTaxInputs();
         taxRows.splice(idx, 1);
         renderTaxRows();
     }

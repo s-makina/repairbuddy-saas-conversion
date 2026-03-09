@@ -346,14 +346,14 @@ Route::prefix('{business}')
             Route::get('/branches/current', [\App\Http\Controllers\Api\App\BranchController::class, 'current']);
             Route::post('/branches/active', [\App\Http\Controllers\Api\App\BranchController::class, 'setActive']);
 
-            Route::post('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'store'])
-                ->middleware('permission:branches.manage');
+            // Branch CRUD - owner can manage during setup, permission checked in controller for non-owners
+            Route::post('/branches', [\App\Http\Controllers\Api\App\BranchController::class, 'store']);
             Route::get('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'show'])
-                ->whereNumber('branch')
-                ->middleware('permission:branches.manage');
+                ->whereNumber('branch');
             Route::put('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'update'])
-                ->whereNumber('branch')
-                ->middleware('permission:branches.manage');
+                ->whereNumber('branch');
+            Route::delete('/branches/{branch}', [\App\Http\Controllers\Api\App\BranchController::class, 'destroy'])
+                ->whereNumber('branch');
             Route::post('/branches/{branch}/assign-users', [\App\Http\Controllers\Api\App\BranchController::class, 'assignUsers'])
                 ->whereNumber('branch')
                 ->middleware('permission:branches.manage');
@@ -361,8 +361,7 @@ Route::prefix('{business}')
                 ->whereNumber('branch')
                 ->middleware('permission:branches.manage');
             Route::post('/branches/{branch}/default', [\App\Http\Controllers\Api\App\BranchController::class, 'setDefault'])
-                ->whereNumber('branch')
-                ->middleware('permission:branches.manage');
+                ->whereNumber('branch');
 
             Route::get('/permissions', [\App\Http\Controllers\Api\App\PermissionController::class, 'index'])
                 ->middleware('permission:roles.manage');

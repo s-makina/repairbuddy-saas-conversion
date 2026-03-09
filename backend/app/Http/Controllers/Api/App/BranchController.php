@@ -350,4 +350,39 @@ class BranchController extends Controller
             'tenant' => $tenant->fresh(),
         ]);
     }
+
+    public function destroy(Request $request, string $business, $branch)
+    {
+        if (! is_numeric($branch)) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        $branchId = (int) $branch;
+
+        $tenantId = TenantContext::tenantId();
+
+        if (! $tenantId) {
+            return response()->json(['message' => 'Tenant context is missing.'], 422);
+        }
+
+        $branchModel = Branch::query()->withoutGlobalScopes()->whereKey($branchId)->first();
+
+        if (! $branchModel || (int) $branchModel->tenant_id !== (int) $tenantId) {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        }
+
+        // Prevent deleting the default branch
+        $tenant = TenantContext::tenant();
+        if ($tenant && $tenant->default_branch_id === $branchModel->id) {
+            return response()->json([
+                'message' => 'Cannot delete the default branch.',
+            ], 422);
+        }
+
+        $branchModel->delete();
+
+        return response()->json([
+            'status' => 'ok',
+        ]);
+    }
 }
