@@ -19,6 +19,10 @@ class ResolveTenant
 
         $tenantSlug = null;
 
+        \Log::info('ResolveTenant subdomain', [
+                'host' => $resolution
+            ]);
+
         if ($resolution === 'subdomain') {
             $host = $request->getHost();
             $baseDomain = config('tenancy.base_domain', '');
