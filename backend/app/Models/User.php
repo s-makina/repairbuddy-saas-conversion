@@ -16,9 +16,47 @@ use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+use App\Support\Permissions;
+use Spatie\Permission\Contracts\Permission;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
+
 class User extends Authenticatable implements MustVerifyEmailContract
 {
     use HasApiTokens, HasFactory, Notifiable, MustVerifyEmailTrait, HasRoles;
+
+    /**
+     * Check if user has a specific permission.
+     * Owner role gets all tenant permissions dynamically.
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        // Admin users use the parent implementation
+        if ($this->is_admin) {
+            return parent::hasPermissionTo($permission, $guardName);
+        }
+
+        // Check if user has Owner role via roleModel relationship
+        if ($this->role_id) {
+            $role = $this->roleModel;
+
+            // Ensure relationship is loaded
+            if (! $role && $this->relationLoaded('roleModel') === false) {
+                $this->load('roleModel');
+                $role = $this->roleModel;
+            }
+
+            // Owner role has ALL tenant permissions (non-admin)
+            if ($role && strtolower((string) $role->name) === 'owner') {
+                $permissionName = $permission instanceof Permission ? $permission->name : $permission;
+                // Grant all non-admin permissions to Owner
+                if (!str_starts_with($permissionName, 'admin.')) {
+                    return true;
+                }
+            }
+        }
+
+        return parent::hasPermissionTo($permission, $guardName);
+    }
 
     protected $appends = [
         'avatar_url',

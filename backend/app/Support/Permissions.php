@@ -72,6 +72,11 @@ class Permissions
         ];
     }
 
+    public static function tenantPermissions(): array
+    {
+        return array_values(array_filter(self::all(), fn (string $p) => !str_starts_with($p, 'admin.')));
+    }
+
     public static function forUser(?User $user): array
     {
         if (! $user) {
@@ -122,7 +127,19 @@ class Permissions
         if ($user->role_id) {
             $role = $user->roleModel;
 
+            // Ensure relationship is loaded
+            if (! $role && $user->relationLoaded('roleModel') === false) {
+                $user->load('roleModel');
+                $role = $user->roleModel;
+            }
+
             if ($role && (int) $role->tenant_id === (int) $user->tenant_id) {
+                // Owner role gets ALL tenant permissions (non-admin) dynamically
+                if (strtolower((string) $role->name) === 'owner') {
+                    return self::tenantPermissions();
+                }
+
+                // Other roles get their assigned permissions from database
                 $permissions = $role->permissions()->pluck('name')->all();
 
                 return array_values(array_unique(array_values(array_filter($permissions, function (string $p) use ($known) {
@@ -134,47 +151,7 @@ class Permissions
         $role = (string) ($user->role ?? '');
 
         $map = [
-            'owner' => [
-                'app.access',
-                'dashboard.view',
-                'appointments.view',
-                'jobs.view',
-                'estimates.view',
-                'estimates.manage',
-                'services.view',
-                'services.manage',
-                'service_types.view',
-                'service_types.manage',
-                'devices.view',
-                'devices.manage',
-                'device_brands.view',
-                'device_brands.manage',
-                'device_types.view',
-                'device_types.manage',
-                'parts.view',
-                'parts.manage',
-                'payments.view',
-                'reports.view',
-                'expenses.view',
-                'expense_categories.view',
-                'clients.view',
-                'customer_devices.view',
-                'customer_devices.manage',
-                'technicians.view',
-                'managers.view',
-                'job_reviews.view',
-                'time_logs.view',
-                'time_logs.manage',
-                'hourly_rates.view',
-                'reminder_logs.view',
-                'print_screen.view',
-                'security.manage',
-                'profile.manage',
-                'settings.manage',
-                'users.manage',
-                'roles.manage',
-                'branches.manage',
-            ],
+            'owner' => self::tenantPermissions(),
             'member' => [
                 'app.access',
                 'dashboard.view',

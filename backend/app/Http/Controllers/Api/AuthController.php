@@ -157,37 +157,7 @@ class AuthController extends Controller
 
         $tenantSlug = $validated['tenant_slug'] ?? null;
 
-        $ownerPermissions = [
-            'app.access',
-            'dashboard.view',
-            'appointments.view',
-            'jobs.view',
-            'estimates.view',
-            'services.view',
-            'devices.view',
-            'device_brands.view',
-            'device_types.view',
-            'parts.view',
-            'payments.view',
-            'reports.view',
-            'expenses.view',
-            'expense_categories.view',
-            'clients.view',
-            'customer_devices.view',
-            'technicians.view',
-            'managers.view',
-            'job_reviews.view',
-            'time_logs.view',
-            'hourly_rates.view',
-            'reminder_logs.view',
-            'print_screen.view',
-            'security.manage',
-            'profile.manage',
-            'settings.manage',
-            'users.manage',
-            'roles.manage',
-            'branches.manage',
-        ];
+        $ownerPermissions = Permissions::tenantPermissions();
 
         $memberPermissions = [
             'app.access',
