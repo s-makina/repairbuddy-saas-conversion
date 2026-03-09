@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/superadmin/layout,_N_T_/superadmin/billing/layout,_N_T_/superadmin/billing/builder/layout,_N_T_/superadmin/billing/builder/page,_N_T_/superadmin/billing/builder"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/superadmin/billing/builder/__PAGE__",
+    "/superadmin/billing/builder",
+    "/superadmin/billing",
+    "/superadmin",
+    "/_index",
+    "/_head"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/superadmin/layout,_N_T_/superadmin/businesses/layout,_N_T_/superadmin/businesses/new/layout,_N_T_/superadmin/businesses/new/page,_N_T_/superadmin/businesses/new"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/superadmin/businesses/new/__PAGE__",
+    "/superadmin/businesses/new",
+    "/superadmin/businesses",
+    "/superadmin",
+    "/_index",
+    "/_head"
+  ]
+}

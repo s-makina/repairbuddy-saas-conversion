@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/superadmin/layout,_N_T_/superadmin/billing/layout,_N_T_/superadmin/billing/currencies/layout,_N_T_/superadmin/billing/currencies/page,_N_T_/superadmin/billing/currencies"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/superadmin/billing/currencies/__PAGE__",
+    "/superadmin/billing/currencies",
+    "/superadmin/billing",
+    "/superadmin",
+    "/_index",
+    "/_head"
+  ]
+}

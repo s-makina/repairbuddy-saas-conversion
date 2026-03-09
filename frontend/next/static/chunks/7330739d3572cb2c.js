@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,2999,e=>{"use strict";var t=e.i(71645),l=e.i(18566);function u(){let e=(0,l.useRouter)();return(0,t.useEffect)(()=>{e.replace("/admin/billing/plans")},[e]),null}e.s(["default",()=>u])}]);
