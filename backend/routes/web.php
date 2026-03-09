@@ -74,6 +74,26 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
             ->name('tenant.subdomain.setup');
     });
 
+// Email verification route (must be accessible from API subdomain)
+Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
+    $user = User::query()->findOrFail($id);
+
+    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+        abort(403);
+    }
+
+    if (! $user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+        event(new Verified($user));
+    }
+
+    $frontendUrl = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/');
+    $slug = $user->tenant?->slug;
+    $query = 'verified=1' . ($slug ? '&tenant=' . urlencode($slug) : '');
+
+    return redirect()->away($frontendUrl . '/verify-email?' . $query);
+})->middleware(['signed'])->name('verification.verify');
+
 Route::domain(config('tenancy.base_domain'))
     ->middleware('web')
     ->group(function () {
@@ -135,25 +155,6 @@ Route::domain(config('tenancy.base_domain'))
         Route::post('/logout', [\App\Http\Controllers\Web\AuthController::class, 'logout'])
             ->middleware('auth')
             ->name('web.logout');
-
-        Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
-            $user = User::query()->findOrFail($id);
-
-            if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
-                abort(403);
-            }
-
-            if (! $user->hasVerifiedEmail()) {
-                $user->markEmailAsVerified();
-                event(new Verified($user));
-            }
-
-            $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
-            $slug = $user->tenant?->slug;
-            $query = 'verified=1' . ($slug ? '&tenant=' . urlencode($slug) : '');
-
-            return redirect()->away($frontendUrl . '/verify-email?' . $query);
-        })->middleware(['signed'])->name('verification.verify');
     });
 
 // Tenant Welcome Page
