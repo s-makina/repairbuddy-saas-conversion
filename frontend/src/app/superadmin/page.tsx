@@ -76,14 +76,19 @@ function SuperAdminLoginForm() {
     try {
       if (otpLoginToken) {
         const otpCode = otpDigits.join("");
-        const payload = await apiFetch<{ token: string; user: { must_change_password?: boolean } }>(
+        const payload = await apiFetch<{ token: string; user: { must_change_password?: boolean; is_admin?: boolean }; tenant: unknown; permissions: string[] }>(
           "/api/auth/superadmin/login/otp",
           {
             method: "POST",
             body: { otp_login_token: otpLoginToken, code: otpCode },
           }
         );
-        auth.setToken(payload.token);
+        auth.setAuthFromPayload({
+          token: payload.token,
+          user: payload.user as { id: number; is_admin?: boolean; must_change_password?: boolean },
+          tenant: null,
+          permissions: payload.permissions,
+        });
         if (payload.user?.must_change_password) {
           router.replace(`/set-password?next=${encodeURIComponent(next)}`);
         } else {
@@ -91,11 +96,10 @@ function SuperAdminLoginForm() {
         }
       } else {
         const payload = await apiFetch<
-          | { token: string; user: { must_change_password?: boolean } }
+          | { token: string; user: { must_change_password?: boolean; is_admin?: boolean }; tenant: unknown; permissions: string[] }
           | { otp_required: true; otp_login_token: string }
           | { verification_required: true }
-          | { tenant_redirect: true; tenant_slug: string },
-          { message: string }
+          | { tenant_redirect: true; tenant_slug: string }
         >("/api/auth/superadmin/login", {
           method: "POST",
           body: { email, password },
@@ -129,7 +133,12 @@ function SuperAdminLoginForm() {
         }
 
         if ("token" in payload) {
-          auth.setToken(payload.token);
+          auth.setAuthFromPayload({
+            token: payload.token,
+            user: payload.user as { id: number; is_admin?: boolean; must_change_password?: boolean },
+            tenant: null,
+            permissions: payload.permissions,
+          });
           if (payload.user?.must_change_password) {
             router.replace(`/set-password?next=${encodeURIComponent(next)}`);
           } else {

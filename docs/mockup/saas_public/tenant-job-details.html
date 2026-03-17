@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickFix Electronics — Job Details #QF-2026-00487</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--rb-blue:#063e70;--rb-blue-light:#0a5fa3;--rb-orange:#fd6742;--rb-bg:#fcfdfe;--rb-border:#f1f5f9;--rb-text:#0f172a;--rb-text-2:#475569;--rb-text-3:#94a3b8;--rb-surface:#fff;--rb-surface-2:#f8fafc;--rb-success:#2b8a3e;--rb-success-bg:rgba(43,138,62,.06);--rb-warning:#e67700;--rb-warning-bg:rgba(230,119,0,.06);--rb-info:#1971c2;--rb-info-bg:rgba(25,113,194,.06)}
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--rb-bg);color:var(--rb-text);margin:0;line-height:1.6}
+        .navbar{background:rgba(255,255,255,.92);border-bottom:1px solid var(--rb-border);position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+        .nav-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between}
+        .nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+        .shop-logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--rb-blue),var(--rb-blue-light));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;box-shadow:0 2px 8px rgba(6,62,112,.2)}
+        .shop-name{font-size:17px;font-weight:700;color:var(--rb-text)}
+        .shop-sub{font-size:11px;color:var(--rb-text-3);font-weight:500}
+        .nav-links{display:flex;align-items:center;gap:4px}
+        .nav-links a{padding:8px 14px;border-radius:12px;font-size:13px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+        .nav-links a:hover,.nav-links a.active{background:var(--rb-surface-2);color:var(--rb-text)}
+        .nav-links a.active{color:var(--rb-blue);background:rgba(6,62,112,.06)}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .25s;text-decoration:none}
+        .btn-primary{background:var(--rb-blue);color:#fff;box-shadow:0 4px 14px rgba(6,62,112,.2)}
+        .btn-primary:hover{background:#05335d;transform:translateY(-1px)}
+        .btn-outline{background:var(--rb-surface);border:1.5px solid var(--rb-border);color:var(--rb-text-2)}
+        .btn-outline:hover{background:var(--rb-surface-2);border-color:#d1d5db}
+        .btn-orange{background:var(--rb-orange);color:#fff;box-shadow:0 4px 14px rgba(253,103,66,.25)}
+        .btn svg{width:16px;height:16px}
+        .btn-lg{padding:14px 28px;font-size:15px;border-radius:16px}
+        .nav-mobile-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:10px}
+        .nav-mobile-toggle svg{width:22px;height:22px;color:var(--rb-text)}
+        .nav-mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--rb-surface);border-bottom:1px solid var(--rb-border);padding:12px 20px 16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .nav-mobile-menu.show{display:block}
+        .nav-mobile-menu a{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+
+        /* PAGE */
+        .page-wrapper{max-width:900px;margin:0 auto;padding:32px 28px 80px}
+        .page-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--rb-text-2);text-decoration:none;padding:8px 14px;border-radius:10px;transition:all .2s;margin-bottom:20px}
+        .page-back:hover{background:var(--rb-surface-2);color:var(--rb-text)}
+
+        /* JOB HEADER */
+        .job-header{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:24px;padding:32px;box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:24px}
+        .job-header-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px}
+        .job-case{font-size:14px;font-weight:800;color:var(--rb-blue);margin-bottom:4px}
+        .job-title{font-size:24px;font-weight:800;letter-spacing:-.02em}
+        .status-badge{padding:6px 16px;border-radius:99px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+        .status-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:currentColor}
+        .status-badge.in-progress{background:rgba(6,62,112,.06);color:var(--rb-blue)}
+        .status-badge.waiting{background:var(--rb-warning-bg);color:var(--rb-warning)}
+        .status-badge.completed{background:var(--rb-success-bg);color:var(--rb-success)}
+        .status-badge.ready{background:rgba(253,103,66,.08);color:var(--rb-orange)}
+        .status-badge.received{background:var(--rb-info-bg);color:var(--rb-info)}
+        .job-meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .job-meta-item{text-align:center;padding:12px;background:var(--rb-surface-2);border-radius:14px}
+        .job-meta-label{font-size:10px;font-weight:700;color:var(--rb-text-3);text-transform:uppercase;letter-spacing:.06em}
+        .job-meta-value{font-size:15px;font-weight:800;color:var(--rb-text);margin-top:2px}
+
+        /* STATUS TIMELINE */
+        .timeline-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:24px;padding:32px;box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:24px}
+        .card-title{font-size:18px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+        .timeline{position:relative;padding-left:28px}
+        .timeline::before{content:'';position:absolute;left:10px;top:4px;bottom:4px;width:2px;background:var(--rb-border)}
+        .timeline-item{position:relative;padding-bottom:24px}
+        .timeline-item:last-child{padding-bottom:0}
+        .timeline-dot{position:absolute;left:-28px;top:2px;width:22px;height:22px;border-radius:50%;border:2px solid var(--rb-border);background:var(--rb-surface);display:flex;align-items:center;justify-content:center;font-size:10px}
+        .timeline-item.done .timeline-dot{border-color:var(--rb-success);background:var(--rb-success-bg);color:var(--rb-success)}
+        .timeline-item.current .timeline-dot{border-color:var(--rb-orange);background:var(--rb-orange);color:#fff;box-shadow:0 2px 8px rgba(253,103,66,.3)}
+        .timeline-item.pending .timeline-dot{border-color:var(--rb-border);color:var(--rb-text-3)}
+        .timeline-title{font-size:14px;font-weight:700;color:var(--rb-text)}
+        .timeline-item.pending .timeline-title{color:var(--rb-text-3)}
+        .timeline-date{font-size:11px;color:var(--rb-text-3);font-weight:500;margin-top:1px}
+        .timeline-note{font-size:12px;color:var(--rb-text-2);margin-top:4px;padding:8px 12px;background:var(--rb-surface-2);border-radius:8px;border-left:3px solid var(--rb-blue)}
+
+        /* DEVICE & SERVICE DETAILS */
+        .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+        .detail-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:20px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+        .detail-card .card-title{font-size:16px;margin-bottom:16px}
+        .detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rb-border);font-size:13px}
+        .detail-row:last-child{border:none}
+        .detail-label{color:var(--rb-text-3);font-weight:500}
+        .detail-value{font-weight:600;color:var(--rb-text);text-align:right;max-width:60%}
+
+        /* SERVICE TABLE */
+        .service-table{width:100%;border-collapse:collapse}
+        .service-table th{text-align:left;font-size:11px;font-weight:700;color:var(--rb-text-3);text-transform:uppercase;letter-spacing:.05em;padding:8px 0;border-bottom:2px solid var(--rb-border)}
+        .service-table td{padding:10px 0;border-bottom:1px solid var(--rb-border);font-size:13px}
+        .service-table tr:last-child td{border:none}
+        .service-table .svc-name{font-weight:700}
+        .service-table .svc-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px}
+        .svc-done{background:var(--rb-success-bg);color:var(--rb-success)}
+        .svc-in-progress{background:rgba(6,62,112,.06);color:var(--rb-blue)}
+        .svc-pending{background:var(--rb-surface-2);color:var(--rb-text-3)}
+        .service-total{display:flex;justify-content:space-between;padding:12px 0;margin-top:8px;border-top:2px solid var(--rb-border);font-size:15px;font-weight:800}
+
+        /* NOTES */
+        .notes-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:20px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:24px}
+        .note-item{padding:12px 0;border-bottom:1px solid var(--rb-border)}
+        .note-item:last-child{border:none}
+        .note-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+        .note-author{font-size:12px;font-weight:700;color:var(--rb-blue)}
+        .note-date{font-size:11px;color:var(--rb-text-3)}
+        .note-text{font-size:13px;color:var(--rb-text-2);line-height:1.6}
+
+        /* CUSTOMER INFO */
+        .customer-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:20px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+
+        /* FOOTER */
+        .footer{background:var(--rb-surface);border-top:1px solid var(--rb-border);padding:32px 28px;text-align:center}
+        .footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .footer-copy{font-size:12px;color:var(--rb-text-3)}
+        .footer-links{display:flex;gap:20px}
+        .footer-links a{font-size:12px;color:var(--rb-text-3);text-decoration:none;font-weight:500}
+        .footer-powered{font-size:11px;color:var(--rb-text-3)}
+        .footer-powered a{color:var(--rb-blue);font-weight:700;text-decoration:none}
+
+        @media(max-width:768px){
+            .nav-links{display:none}.nav-mobile-toggle{display:flex}
+            .job-meta-grid{grid-template-columns:1fr 1fr}
+            .details-grid{grid-template-columns:1fr}
+            .footer-links{display:none}
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="tenant-home.html" class="nav-brand">
+                <div class="shop-logo">QF</div>
+                <div><div class="shop-name">QuickFix Electronics</div><div class="shop-sub">quickfix.repairbuddy.com</div></div>
+            </a>
+            <div class="nav-links">
+                <a href="tenant-home.html">Home</a>
+                <a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a>
+                <a href="tenant-status.html">Check Status</a>
+                <a href="tenant-my-account.html">My Account</a>
+                <a href="tenant-login.html" class="btn btn-outline">Sign In</a>
+                <a href="tenant-book.html" class="btn btn-primary"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Book Now</a>
+            </div>
+            <button class="nav-mobile-toggle" onclick="document.getElementById('mobileMenu').classList.toggle('show')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+        <div id="mobileMenu" class="nav-mobile-menu">
+            <a href="tenant-home.html">🏠 Home</a>
+            <a href="tenant-book.html">📱 Book a Repair</a>
+            <a href="tenant-services.html">🔧 Our Services</a>
+            <a href="tenant-status.html">📋 Check Status</a>
+            <a href="tenant-my-account.html">👤 My Account</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <a href="tenant-status.html" class="page-back">← Back to Status Search</a>
+
+        <!-- JOB HEADER -->
+        <div class="job-header">
+            <div class="job-header-top">
+                <div>
+                    <div class="job-case">#QF-2026-00487</div>
+                    <div class="job-title">iPhone 15 Pro — Screen & Battery Repair</div>
+                </div>
+                <span class="status-badge in-progress">In Progress</span>
+            </div>
+            <div class="job-meta-grid">
+                <div class="job-meta-item">
+                    <div class="job-meta-label">Submitted</div>
+                    <div class="job-meta-value">Mar 15, 2026</div>
+                </div>
+                <div class="job-meta-item">
+                    <div class="job-meta-label">Est. Completion</div>
+                    <div class="job-meta-value">Mar 17, 2026</div>
+                </div>
+                <div class="job-meta-item">
+                    <div class="job-meta-label">Technician</div>
+                    <div class="job-meta-value">Mike R.</div>
+                </div>
+                <div class="job-meta-item">
+                    <div class="job-meta-label">Priority</div>
+                    <div class="job-meta-value" style="color:var(--rb-orange)">Normal</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATUS TIMELINE -->
+        <div class="timeline-card">
+            <div class="card-title">📋 Status Timeline</div>
+            <div class="timeline">
+                <div class="timeline-item done">
+                    <div class="timeline-dot">✓</div>
+                    <div class="timeline-title">Booking Received</div>
+                    <div class="timeline-date">Mar 15, 2026 — 10:23 AM</div>
+                    <div class="timeline-note">Your booking has been received and is being reviewed.</div>
+                </div>
+                <div class="timeline-item done">
+                    <div class="timeline-dot">✓</div>
+                    <div class="timeline-title">Device Received</div>
+                    <div class="timeline-date">Mar 15, 2026 — 2:15 PM</div>
+                    <div class="timeline-note">Device checked in. IMEI verified: 353456789012345</div>
+                </div>
+                <div class="timeline-item done">
+                    <div class="timeline-dot">✓</div>
+                    <div class="timeline-title">Diagnosis Complete</div>
+                    <div class="timeline-date">Mar 15, 2026 — 4:30 PM</div>
+                    <div class="timeline-note">Screen cracked at multiple points. Battery health at 72%. Both need replacement.</div>
+                </div>
+                <div class="timeline-item current">
+                    <div class="timeline-dot">⚙</div>
+                    <div class="timeline-title">Repair In Progress</div>
+                    <div class="timeline-date">Mar 16, 2026 — 9:00 AM</div>
+                    <div class="timeline-note">Screen replacement completed. Battery replacement in progress.</div>
+                </div>
+                <div class="timeline-item pending">
+                    <div class="timeline-dot">○</div>
+                    <div class="timeline-title">Quality Check</div>
+                    <div class="timeline-date">Pending</div>
+                </div>
+                <div class="timeline-item pending">
+                    <div class="timeline-dot">○</div>
+                    <div class="timeline-title">Ready for Pickup</div>
+                    <div class="timeline-date">Pending</div>
+                </div>
+                <div class="timeline-item pending">
+                    <div class="timeline-dot">○</div>
+                    <div class="timeline-title">Completed / Collected</div>
+                    <div class="timeline-date">Pending</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DEVICE & SERVICE DETAILS -->
+        <div class="details-grid">
+            <!-- Device Info -->
+            <div class="detail-card">
+                <div class="card-title">📱 Device Information</div>
+                <div class="detail-row"><span class="detail-label">Device</span><span class="detail-value">iPhone 15 Pro</span></div>
+                <div class="detail-row"><span class="detail-label">Brand</span><span class="detail-value">Apple</span></div>
+                <div class="detail-row"><span class="detail-label">IMEI / Serial</span><span class="detail-value">353456789012345</span></div>
+                <div class="detail-row"><span class="detail-label">Pin Code</span><span class="detail-value">••••</span></div>
+                <div class="detail-row"><span class="detail-label">Color</span><span class="detail-value">Natural Titanium</span></div>
+                <div class="detail-row"><span class="detail-label">Storage</span><span class="detail-value">256GB</span></div>
+                <div class="detail-row"><span class="detail-label">Warranty</span><span class="detail-value">Out of warranty</span></div>
+            </div>
+
+            <!-- Appointment -->
+            <div class="detail-card">
+                <div class="card-title">📅 Appointment</div>
+                <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">Walk-in (30 min)</span></div>
+                <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">Mar 15, 2026</span></div>
+                <div class="detail-row"><span class="detail-label">Time Slot</span><span class="detail-value">10:00 AM</span></div>
+                <div class="detail-row"><span class="detail-label">Arrived</span><span class="detail-value" style="color:var(--rb-success)">✓ Yes — 9:55 AM</span></div>
+            </div>
+        </div>
+
+        <!-- SERVICES -->
+        <div class="detail-card" style="margin-bottom:24px">
+            <div class="card-title">🔧 Services</div>
+            <table class="service-table">
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="svc-name">Screen Replacement (OLED)</td>
+                        <td>$189.00</td>
+                        <td><span class="service-table .svc-status svc-done" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">✓ Done</span></td>
+                    </tr>
+                    <tr>
+                        <td class="svc-name">Battery Replacement</td>
+                        <td>$69.00</td>
+                        <td><span class="svc-in-progress" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">In Progress</span></td>
+                    </tr>
+                    <tr>
+                        <td class="svc-name">Diagnostic Fee</td>
+                        <td>$0.00</td>
+                        <td><span class="svc-done" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">✓ Done</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="service-total">
+                <span>Total</span>
+                <span>$258.00</span>
+            </div>
+        </div>
+
+        <!-- TECHNICIAN NOTES -->
+        <div class="notes-card">
+            <div class="card-title">💬 Technician Notes</div>
+            <div class="note-item">
+                <div class="note-header">
+                    <span class="note-author">Mike R. — Technician</span>
+                    <span class="note-date">Mar 16, 2026 — 11:30 AM</span>
+                </div>
+                <div class="note-text">Screen replacement completed successfully. Display calibration passed. Moving on to battery replacement now. Estimated 30 more minutes.</div>
+            </div>
+            <div class="note-item">
+                <div class="note-header">
+                    <span class="note-author">Mike R. — Technician</span>
+                    <span class="note-date">Mar 15, 2026 — 4:30 PM</span>
+                </div>
+                <div class="note-text">Diagnosis complete. The display has a deep crack affecting the OLED panel — needs full screen replacement (not glass-only). Battery health shows 72%, customer opted for replacement. Parts are in stock, starting repair tomorrow morning.</div>
+            </div>
+            <div class="note-item">
+                <div class="note-header">
+                    <span class="note-author">System</span>
+                    <span class="note-date">Mar 15, 2026 — 10:23 AM</span>
+                </div>
+                <div class="note-text">Customer notes: "Dropped phone yesterday, screen is cracked and battery drains fast. Would like both fixed."</div>
+            </div>
+        </div>
+
+        <!-- CUSTOMER INFO -->
+        <div class="customer-card">
+            <div class="card-title">👤 Customer Information</div>
+            <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">John Doe</span></div>
+            <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">john.doe@example.com</span></div>
+            <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">+1 (555) 123-4567</span></div>
+            <div class="detail-row"><span class="detail-label">Address</span><span class="detail-value">742 Maple Ave, Portland, OR 97201</span></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-copy">© 2026 QuickFix Electronics. All rights reserved.</div>
+            <div class="footer-links">
+                <a href="tenant-home.html">Home</a><a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a><a href="tenant-my-account.html">My Account</a>
+            </div>
+            <div class="footer-powered">Powered by <a href="#">RepairBuddy</a></div>
+        </div>
+    </footer>
+</body>
+</html>

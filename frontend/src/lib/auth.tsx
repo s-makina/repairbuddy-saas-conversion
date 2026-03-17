@@ -61,6 +61,7 @@ type AuthContextValue = {
   refresh: () => Promise<void>;
   login: (email: string, password: string) => Promise<LoginResult>;
   loginOtp: (otpLoginToken: string, code: string) => Promise<{ must_change_password: boolean; is_admin: boolean }>;
+  setAuthFromPayload: (payload: AuthPayload) => void;
   register: (input: {
     name: string;
     email: string;
@@ -230,6 +231,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setAuthFromPayload = useCallback((payload: AuthPayload) => {
+    setToken(payload.token);
+    setTokenState(payload.token);
+    setUser(payload.user);
+    setTenant(payload.tenant);
+    setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
+  }, []);
+
   const logout = useCallback(async () => {
     const currentToken = getToken();
 
@@ -277,6 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refresh,
       login,
       loginOtp,
+      setAuthFromPayload,
       register,
       resendVerificationEmail,
       logout,
@@ -294,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh,
     login,
     loginOtp,
+    setAuthFromPayload,
     register,
     resendVerificationEmail,
     logout,

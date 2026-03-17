@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickFix Electronics — My Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--rb-blue:#063e70;--rb-blue-light:#0a5fa3;--rb-orange:#fd6742;--rb-bg:#fcfdfe;--rb-border:#f1f5f9;--rb-text:#0f172a;--rb-text-2:#475569;--rb-text-3:#94a3b8;--rb-surface:#fff;--rb-surface-2:#f8fafc;--rb-success:#2b8a3e;--rb-success-bg:rgba(43,138,62,.06);--rb-warning:#e67700;--rb-warning-bg:rgba(230,119,0,.06)}
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--rb-bg);color:var(--rb-text);margin:0;line-height:1.6}
+        .navbar{background:rgba(255,255,255,.92);border-bottom:1px solid var(--rb-border);position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+        .nav-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between}
+        .nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+        .shop-logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--rb-blue),var(--rb-blue-light));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;box-shadow:0 2px 8px rgba(6,62,112,.2)}
+        .shop-name{font-size:17px;font-weight:700;color:var(--rb-text)}
+        .shop-sub{font-size:11px;color:var(--rb-text-3);font-weight:500}
+        .nav-links{display:flex;align-items:center;gap:4px}
+        .nav-links a{padding:8px 14px;border-radius:12px;font-size:13px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+        .nav-links a:hover,.nav-links a.active{background:var(--rb-surface-2);color:var(--rb-text)}
+        .nav-links a.active{color:var(--rb-blue);background:rgba(6,62,112,.06)}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .25s;text-decoration:none}
+        .btn-primary{background:var(--rb-blue);color:#fff;box-shadow:0 4px 14px rgba(6,62,112,.2)}
+        .btn-primary:hover{background:#05335d;transform:translateY(-1px)}
+        .btn-outline{background:var(--rb-surface);border:1.5px solid var(--rb-border);color:var(--rb-text-2)}
+        .btn-outline:hover{background:var(--rb-surface-2);border-color:#d1d5db}
+        .btn-orange{background:var(--rb-orange);color:#fff;box-shadow:0 4px 14px rgba(253,103,66,.25)}
+        .btn-orange:hover{background:#e5532e;transform:translateY(-1px)}
+        .btn svg{width:16px;height:16px}
+        .btn-lg{padding:14px 28px;font-size:15px;border-radius:16px}
+        .nav-mobile-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:10px}
+        .nav-mobile-toggle svg{width:22px;height:22px;color:var(--rb-text)}
+        .nav-mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--rb-surface);border-bottom:1px solid var(--rb-border);padding:12px 20px 16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .nav-mobile-menu.show{display:block}
+        .nav-mobile-menu a{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+        .nav-mobile-menu a:hover,.nav-mobile-menu a.active{background:var(--rb-surface-2);color:var(--rb-text)}
+
+        /* PAGE */
+        .page-wrapper{max-width:1200px;margin:0 auto;padding:40px 28px 80px}
+        .view-toggle{display:flex;gap:12px;margin-bottom:32px;justify-content:center}
+        .view-toggle-btn{padding:10px 24px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid var(--rb-border);background:var(--rb-surface);color:var(--rb-text-2);transition:all .2s;font-family:inherit}
+        .view-toggle-btn:hover{border-color:#cbd5e1}
+        .view-toggle-btn.active{border-color:var(--rb-blue);background:rgba(6,62,112,.06);color:var(--rb-blue)}
+
+        /* LOGIN VIEW */
+        .login-view{max-width:440px;margin:0 auto}
+        .login-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:24px;padding:40px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+        .login-card h2{font-size:24px;font-weight:800;text-align:center;margin-bottom:6px}
+        .login-card .sub{font-size:14px;color:var(--rb-text-2);text-align:center;margin-bottom:28px}
+        .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+        .form-group label{font-size:13px;font-weight:600;color:var(--rb-text)}
+        .form-group label .req{color:var(--rb-orange)}
+        .form-group input{padding:12px 16px;border:1.5px solid var(--rb-border);border-radius:14px;font-size:14px;font-family:inherit;outline:none;transition:all .2s}
+        .form-group input:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+        .login-actions{margin-top:24px}
+        .login-actions .btn{width:100%;justify-content:center;padding:14px}
+        .login-divider{text-align:center;margin:20px 0;color:var(--rb-text-3);font-size:12px;font-weight:500;position:relative}
+        .login-divider::before,.login-divider::after{content:'';position:absolute;top:50%;width:calc(50% - 20px);height:1px;background:var(--rb-border)}
+        .login-divider::before{left:0}.login-divider::after{right:0}
+        .login-link{text-align:center;margin-top:16px;font-size:13px;color:var(--rb-text-2)}
+        .login-link a{color:var(--rb-blue);font-weight:700;text-decoration:none}
+        .login-extra{margin-top:24px;text-align:center}
+        .login-extra a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;color:var(--rb-text-2);text-decoration:none;border:1.5px solid var(--rb-border);transition:all .2s}
+        .login-extra a:hover{background:var(--rb-surface-2);border-color:#cbd5e1}
+
+        /* DASHBOARD */
+        .dashboard-view{display:none}
+        .dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+        .dash-user{display:flex;align-items:center;gap:14px}
+        .dash-avatar{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--rb-blue),var(--rb-orange));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px}
+        .dash-name{font-size:18px;font-weight:800}
+        .dash-email{font-size:13px;color:var(--rb-text-3)}
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+        .stat-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:18px;padding:20px;text-align:center}
+        .stat-val{font-size:28px;font-weight:800;color:var(--rb-text);letter-spacing:-.02em}
+        .stat-label{font-size:11px;color:var(--rb-text-3);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+        /* TABS */
+        .dash-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--rb-border);padding-bottom:0}
+        .dash-tab{padding:10px 18px;font-size:13px;font-weight:700;color:var(--rb-text-3);border:none;background:none;cursor:pointer;font-family:inherit;position:relative;transition:color .2s}
+        .dash-tab.active{color:var(--rb-blue)}
+        .dash-tab.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--rb-blue);border-radius:2px}
+        .dash-tab .tab-count{font-size:10px;background:var(--rb-orange);color:#fff;padding:1px 6px;border-radius:99px;margin-left:4px;font-weight:700}
+
+        /* REPAIR CARDS */
+        .section-title{font-size:18px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+        .section-title .badge{font-size:11px;background:var(--rb-orange);color:#fff;padding:2px 10px;border-radius:99px;font-weight:700}
+        .repair-list{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
+        .repair-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:18px;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;transition:all .2s;flex-wrap:wrap;text-decoration:none;color:inherit;cursor:pointer}
+        .repair-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:#d1d5db}
+        .repair-info{flex:1;min-width:200px}
+        .repair-case{font-size:12px;color:var(--rb-blue);font-weight:700;margin-bottom:2px}
+        .repair-device{font-size:15px;font-weight:700}
+        .repair-service{font-size:12px;color:var(--rb-text-2);margin-top:2px}
+        .repair-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+        .repair-date{font-size:12px;color:var(--rb-text-3);font-weight:500}
+        .repair-arrow{color:var(--rb-text-3);font-size:16px}
+        .status-badge{padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+        .status-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+        .status-badge.in-progress{background:rgba(6,62,112,.06);color:var(--rb-blue)}
+        .status-badge.waiting{background:var(--rb-warning-bg);color:var(--rb-warning)}
+        .status-badge.completed{background:var(--rb-success-bg);color:var(--rb-success)}
+        .status-badge.ready{background:rgba(253,103,66,.08);color:var(--rb-orange)}
+
+        /* ACCOUNT SETTINGS */
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+        .settings-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:20px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+        .settings-card h4{font-size:15px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+        .settings-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--rb-border);font-size:13px}
+        .settings-row:last-child{border:none}
+        .settings-label{color:var(--rb-text-3);font-weight:500}
+        .settings-value{font-weight:600;color:var(--rb-text)}
+        .settings-action{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--rb-blue);cursor:pointer;padding:4px 10px;border-radius:8px;border:none;background:none;font-family:inherit;transition:all .2s}
+        .settings-action:hover{background:rgba(6,62,112,.06)}
+
+        /* FOOTER */
+        .footer{background:var(--rb-surface);border-top:1px solid var(--rb-border);padding:32px 28px;text-align:center}
+        .footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .footer-copy{font-size:12px;color:var(--rb-text-3)}
+        .footer-links{display:flex;gap:20px}
+        .footer-links a{font-size:12px;color:var(--rb-text-3);text-decoration:none;font-weight:500}
+        .footer-powered{font-size:11px;color:var(--rb-text-3)}
+        .footer-powered a{color:var(--rb-blue);font-weight:700;text-decoration:none}
+
+        @media(max-width:768px){
+            .nav-links{display:none}.nav-mobile-toggle{display:flex}
+            .stats-grid{grid-template-columns:1fr 1fr}
+            .repair-card{flex-direction:column;align-items:flex-start}
+            .settings-grid{grid-template-columns:1fr}
+            .footer-links{display:none}
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="tenant-home.html" class="nav-brand">
+                <div class="shop-logo">QF</div>
+                <div><div class="shop-name">QuickFix Electronics</div><div class="shop-sub">quickfix.repairbuddy.com</div></div>
+            </a>
+            <div class="nav-links">
+                <a href="tenant-home.html">Home</a>
+                <a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a>
+                <a href="tenant-status.html">Check Status</a>
+                <a href="tenant-my-account.html" class="active">My Account</a>
+                <a href="tenant-login.html" class="btn btn-outline">Sign In</a>
+                <a href="tenant-book.html" class="btn btn-primary"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Book Now</a>
+            </div>
+            <button class="nav-mobile-toggle" onclick="document.getElementById('mobileMenu').classList.toggle('show')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+        <div id="mobileMenu" class="nav-mobile-menu">
+            <a href="tenant-home.html">🏠 Home</a>
+            <a href="tenant-book.html">📱 Book a Repair</a>
+            <a href="tenant-services.html">🔧 Our Services</a>
+            <a href="tenant-status.html">📋 Check Status</a>
+            <a href="tenant-my-account.html" class="active">👤 My Account</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <!-- VIEW TOGGLE (mockup only) -->
+        <div class="view-toggle">
+            <button class="view-toggle-btn active" onclick="switchView(this,'guest')">🔑 Sign In</button>
+            <button class="view-toggle-btn" onclick="switchView(this,'dashboard')">📊 Dashboard Preview</button>
+        </div>
+
+        <!-- GUEST / LOGIN VIEW -->
+        <div class="guest-view" id="guestView">
+            <div class="login-view">
+                <div class="login-card">
+                    <h2>Welcome Back</h2>
+                    <p class="sub">Sign in to view your repairs and manage your account.</p>
+                    <div class="form-group"><label>Email Address <span class="req">*</span></label><input type="email" placeholder="you@example.com" /></div>
+                    <div class="form-group"><label>Password <span class="req">*</span></label><input type="password" placeholder="Enter your password" /></div>
+                    <div class="login-actions"><button class="btn btn-primary btn-lg" onclick="switchView(document.querySelectorAll('.view-toggle-btn')[1],'dashboard')">Sign In →</button></div>
+                    <div class="login-link"><a href="#">Forgot your password?</a></div>
+                    <div class="login-divider">or</div>
+                    <div class="login-link">Don't have an account? <a href="#">Create one</a></div>
+                </div>
+                <div class="login-extra">
+                    <a href="tenant-status.html">🔍 Track a repair without signing in →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD VIEW -->
+        <div class="dashboard-view" id="dashboardView">
+            <div class="dash-header">
+                <div class="dash-user">
+                    <div class="dash-avatar">JD</div>
+                    <div><div class="dash-name">John Doe</div><div class="dash-email">john.doe@example.com</div></div>
+                </div>
+                <div style="display:flex;gap:10px">
+                    <a href="tenant-book.html" class="btn btn-orange">📱 New Booking</a>
+                    <button class="btn btn-outline" onclick="switchView(document.querySelectorAll('.view-toggle-btn')[0],'guest')">Sign Out</button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-val">3</div><div class="stat-label">Active Repairs</div></div>
+                <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">Completed</div></div>
+                <div class="stat-card"><div class="stat-val">1</div><div class="stat-label">Upcoming Appt.</div></div>
+                <div class="stat-card"><div class="stat-val">4.9★</div><div class="stat-label">Avg. Rating</div></div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="dash-tabs">
+                <button class="dash-tab active" onclick="switchTab(this,'repairs')">My Repairs <span class="tab-count">3</span></button>
+                <button class="dash-tab" onclick="switchTab(this,'settings')">Account Settings</button>
+            </div>
+
+            <!-- TAB: Repairs -->
+            <div class="tab-content active" id="tab-repairs">
+                <div class="section-title">🔧 Active Repairs <span class="badge">3</span></div>
+                <div class="repair-list">
+                    <a href="tenant-job-details.html" class="repair-card">
+                        <div class="repair-info">
+                            <div class="repair-case">#QF-2026-00487</div>
+                            <div class="repair-device">iPhone 15 Pro</div>
+                            <div class="repair-service">Screen Replacement + Battery Replacement</div>
+                        </div>
+                        <div class="repair-meta">
+                            <div class="repair-date">📅 Mar 15, 2026</div>
+                            <span class="status-badge in-progress">In Progress</span>
+                            <span class="repair-arrow">→</span>
+                        </div>
+                    </a>
+                    <a href="tenant-job-details.html" class="repair-card">
+                        <div class="repair-info">
+                            <div class="repair-case">#QF-2026-00485</div>
+                            <div class="repair-device">MacBook Pro 14"</div>
+                            <div class="repair-service">Keyboard Replacement</div>
+                        </div>
+                        <div class="repair-meta">
+                            <div class="repair-date">📅 Mar 14, 2026</div>
+                            <span class="status-badge waiting">Waiting for Parts</span>
+                            <span class="repair-arrow">→</span>
+                        </div>
+                    </a>
+                    <a href="tenant-job-details.html" class="repair-card">
+                        <div class="repair-info">
+                            <div class="repair-case">#QF-2026-00482</div>
+                            <div class="repair-device">iPad Air 5th Gen</div>
+                            <div class="repair-service">Water Damage Treatment</div>
+                        </div>
+                        <div class="repair-meta">
+                            <div class="repair-date">📅 Mar 12, 2026</div>
+                            <span class="status-badge ready">Ready for Pickup</span>
+                            <span class="repair-arrow">→</span>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="section-title">📋 Past Repairs</div>
+                <div class="repair-list">
+                    <a href="tenant-job-details.html" class="repair-card">
+                        <div class="repair-info">
+                            <div class="repair-case">#QF-2026-00401</div>
+                            <div class="repair-device">Samsung Galaxy S24</div>
+                            <div class="repair-service">Screen Replacement</div>
+                        </div>
+                        <div class="repair-meta">
+                            <div class="repair-date">📅 Feb 28, 2026</div>
+                            <span class="status-badge completed">Completed</span>
+                            <span class="repair-arrow">→</span>
+                        </div>
+                    </a>
+                    <a href="tenant-job-details.html" class="repair-card">
+                        <div class="repair-info">
+                            <div class="repair-case">#QF-2026-00356</div>
+                            <div class="repair-device">iPhone 14</div>
+                            <div class="repair-service">Battery Replacement</div>
+                        </div>
+                        <div class="repair-meta">
+                            <div class="repair-date">📅 Feb 10, 2026</div>
+                            <span class="status-badge completed">Completed</span>
+                            <span class="repair-arrow">→</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- TAB: Account Settings -->
+            <div class="tab-content" id="tab-settings">
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h4>👤 Personal Information</h4>
+                        <div class="settings-row"><span class="settings-label">Full Name</span><span class="settings-value">John Doe</span></div>
+                        <div class="settings-row"><span class="settings-label">Email</span><span class="settings-value">john.doe@example.com</span></div>
+                        <div class="settings-row"><span class="settings-label">Phone</span><span class="settings-value">+1 (555) 123-4567</span></div>
+                        <div class="settings-row"><span class="settings-label">Company</span><span class="settings-value">—</span></div>
+                        <div style="margin-top:12px"><button class="settings-action">✏️ Edit Profile</button></div>
+                    </div>
+                    <div class="settings-card">
+                        <h4>📍 Default Address</h4>
+                        <div class="settings-row"><span class="settings-label">Street</span><span class="settings-value">742 Maple Ave</span></div>
+                        <div class="settings-row"><span class="settings-label">City</span><span class="settings-value">Portland</span></div>
+                        <div class="settings-row"><span class="settings-label">Postal Code</span><span class="settings-value">97201</span></div>
+                        <div class="settings-row"><span class="settings-label">Country</span><span class="settings-value">United States</span></div>
+                        <div style="margin-top:12px"><button class="settings-action">✏️ Edit Address</button></div>
+                    </div>
+                    <div class="settings-card">
+                        <h4>🔒 Security</h4>
+                        <div class="settings-row"><span class="settings-label">Password</span><span class="settings-value">••••••••</span></div>
+                        <div class="settings-row"><span class="settings-label">Last Changed</span><span class="settings-value">Jan 5, 2026</span></div>
+                        <div style="margin-top:12px"><button class="settings-action">🔑 Change Password</button></div>
+                    </div>
+                    <div class="settings-card">
+                        <h4>🔔 Notifications</h4>
+                        <div class="settings-row"><span class="settings-label">Email Updates</span><span class="settings-value" style="color:var(--rb-success)">✓ Enabled</span></div>
+                        <div class="settings-row"><span class="settings-label">SMS Alerts</span><span class="settings-value" style="color:var(--rb-text-3)">✕ Disabled</span></div>
+                        <div class="settings-row"><span class="settings-label">Marketing</span><span class="settings-value" style="color:var(--rb-text-3)">✕ Disabled</span></div>
+                        <div style="margin-top:12px"><button class="settings-action">⚙️ Manage Preferences</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-copy">© 2026 QuickFix Electronics. All rights reserved.</div>
+            <div class="footer-links">
+                <a href="tenant-home.html">Home</a><a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a><a href="tenant-my-account.html">My Account</a>
+            </div>
+            <div class="footer-powered">Powered by <a href="#">RepairBuddy</a></div>
+        </div>
+    </footer>
+
+    <script>
+        function switchView(el, view) {
+            document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('guestView').style.display = view === 'guest' ? '' : 'none';
+            document.getElementById('dashboardView').style.display = view === 'dashboard' ? '' : 'none';
+        }
+        function switchTab(el, tab) {
+            document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+    </script>
+</body>
+</html>

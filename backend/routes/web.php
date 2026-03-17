@@ -74,6 +74,42 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
             ->name('tenant.subdomain.setup');
     });
 
+// Subdomain-based public pages: http://{business}.repairbuddy.test/book, /status, etc.
+Route::domain('{business}.' . config('tenancy.base_domain'))
+    ->where(['business' => '[A-Za-z0-9\-]+'])
+    ->middleware(['web', 'tenant', 'branch.public'])
+    ->group(function () {
+        Route::get('/book', [\App\Http\Controllers\Web\TenantBookingController::class, 'show'])
+            ->name('tenant.subdomain.booking.show');
+
+        Route::get('/status', [\App\Http\Controllers\Web\TenantStatusController::class, 'show'])
+            ->name('tenant.subdomain.status.show');
+
+        Route::get('/my-account', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'myaccount'])
+            ->name('tenant.subdomain.myaccount');
+
+        Route::get('/services', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'services'])
+            ->name('tenant.subdomain.services');
+
+        Route::get('/parts', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'parts'])
+            ->name('tenant.subdomain.parts');
+
+        Route::get('/review', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'review'])
+            ->name('tenant.subdomain.review');
+    });
+
+// Subdomain-based customer portal (auth required)
+Route::domain('{business}.' . config('tenancy.base_domain'))
+    ->where(['business' => '[A-Za-z0-9\-]+'])
+    ->middleware(['web', 'tenant', 'branch.public', 'auth'])
+    ->group(function () {
+        Route::get('/portal', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'portal'])
+            ->name('tenant.subdomain.customer.portal');
+
+        Route::post('/portal/account', [\App\Http\Controllers\Web\CustomerDashboardController::class, 'updateAccount'])
+            ->name('tenant.subdomain.customer.account.update');
+    });
+
 // Email verification route (must be accessible from API subdomain)
 Route::middleware(['web'])->group(function () {
     Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {

@@ -5,16 +5,23 @@
   $customTitle = trim($__env->yieldContent('title'));
   $thePageTitle = $customTitle !== '' ? $customTitle : ($siteName . ' — RepairBuddy');
 
+  $currentRoute = \Illuminate\Support\Facades\Route::currentRouteName();
+  $isSubdomain  = str_starts_with($currentRoute ?? '', 'tenant.subdomain.');
+  $rp = $isSubdomain ? 'tenant.subdomain.' : 'tenant.';
+
   $navItems = [
-      ['label' => 'Book Device',     'icon' => 'bi-phone',          'route' => 'tenant.booking.show'],
-      ['label' => 'Job Status',      'icon' => 'bi-activity',       'route' => 'tenant.status.show'],
-      ['label' => 'My Portal',       'icon' => 'bi-speedometer2',   'route' => auth()->check() ? 'tenant.customer.portal' : 'tenant.myaccount'],
-      ['label' => 'Our Services',    'icon' => 'bi-tools',          'route' => 'tenant.services'],
-      ['label' => 'Parts',           'icon' => 'bi-box-seam',       'route' => 'tenant.parts'],
-      ['label' => 'Review Your Job', 'icon' => 'bi-file-earmark-check', 'route' => 'tenant.review'],
+      ['label' => 'Book Device',     'icon' => 'bi-phone',          'route' => $rp . 'booking.show'],
+      ['label' => 'Job Status',      'icon' => 'bi-activity',       'route' => $rp . 'status.show'],
+      ['label' => 'My Portal',       'icon' => 'bi-speedometer2',   'route' => auth()->check() ? $rp . 'customer.portal' : $rp . 'myaccount'],
+      ['label' => 'Our Services',    'icon' => 'bi-tools',          'route' => $rp . 'services'],
+      ['label' => 'Parts',           'icon' => 'bi-box-seam',       'route' => $rp . 'parts'],
+      ['label' => 'Review Your Job', 'icon' => 'bi-file-earmark-check', 'route' => $rp . 'review'],
   ];
 
-  $currentRoute = \Illuminate\Support\Facades\Route::currentRouteName();
+  // For active link detection, normalize route name
+  $currentRouteBase = $isSubdomain
+      ? str_replace('tenant.subdomain.', 'tenant.', $currentRoute ?? '')
+      : ($currentRoute ?? '');
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -47,7 +54,7 @@
   <header class="rpn-header">
     <div class="rpn-header-inner">
       {{-- Brand --}}
-      <a href="{{ route('tenant.booking.show', ['business' => $business]) }}" class="rpn-brand">
+      <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="rpn-brand">
         @if($tenant && $tenant->logo_url)
           <img src="{{ $tenant->logo_url }}" alt="{{ $siteName }}" class="rpn-brand-logo">
         @else
@@ -62,7 +69,7 @@
           <li>
             <a
               href="{{ route($nav['route'], ['business' => $business]) }}"
-              class="rpn-nav-link {{ $currentRoute === $nav['route'] ? 'active' : '' }}"
+              class="rpn-nav-link {{ $currentRoute === $nav['route'] || $currentRouteBase === str_replace('tenant.subdomain.', 'tenant.', $nav['route']) ? 'active' : '' }}"
             >
               <i class="bi {{ $nav['icon'] }}"></i>
               {{ $nav['label'] }}
@@ -96,7 +103,7 @@
           <li>
             <a
               href="{{ route($nav['route'], ['business' => $business]) }}"
-              class="rpn-mobile-nav-link {{ $currentRoute === $nav['route'] ? 'active' : '' }}"
+              class="rpn-mobile-nav-link {{ $currentRoute === $nav['route'] || $currentRouteBase === str_replace('tenant.subdomain.', 'tenant.', $nav['route']) ? 'active' : '' }}"
             >
               <i class="bi {{ $nav['icon'] }}"></i>
               {{ $nav['label'] }}

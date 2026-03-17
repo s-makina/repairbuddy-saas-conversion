@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickFix Electronics — Check Repair Status</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--rb-blue:#063e70;--rb-blue-light:#0a5fa3;--rb-orange:#fd6742;--rb-bg:#fcfdfe;--rb-border:#f1f5f9;--rb-text:#0f172a;--rb-text-2:#475569;--rb-text-3:#94a3b8;--rb-surface:#fff;--rb-surface-2:#f8fafc;--rb-success:#2b8a3e;--rb-success-bg:rgba(43,138,62,.06);--rb-warning:#e67700;--rb-warning-bg:rgba(230,119,0,.06)}
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--rb-bg);color:var(--rb-text);margin:0;line-height:1.6}
+        .navbar{background:rgba(255,255,255,.92);border-bottom:1px solid var(--rb-border);position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+        .nav-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between}
+        .nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+        .shop-logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--rb-blue),var(--rb-blue-light));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;box-shadow:0 2px 8px rgba(6,62,112,.2)}
+        .shop-name{font-size:17px;font-weight:700;color:var(--rb-text)}
+        .shop-sub{font-size:11px;color:var(--rb-text-3);font-weight:500}
+        .nav-links{display:flex;align-items:center;gap:4px}
+        .nav-links a{padding:8px 14px;border-radius:12px;font-size:13px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+        .nav-links a:hover,.nav-links a.active{background:var(--rb-surface-2);color:var(--rb-text)}
+        .nav-links a.active{color:var(--rb-blue);background:rgba(6,62,112,.06)}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .25s;text-decoration:none}
+        .btn-primary{background:var(--rb-blue);color:#fff;box-shadow:0 4px 14px rgba(6,62,112,.2)}
+        .btn-primary:hover{background:#05335d;transform:translateY(-1px)}
+        .btn-outline{background:var(--rb-surface);border:1.5px solid var(--rb-border);color:var(--rb-text-2)}
+        .btn-outline:hover{background:var(--rb-surface-2);border-color:#d1d5db}
+        .btn-orange{background:var(--rb-orange);color:#fff;box-shadow:0 4px 14px rgba(253,103,66,.25)}
+        .btn-orange:hover{background:#e5532e;transform:translateY(-1px)}
+        .btn svg{width:16px;height:16px}
+        .btn-lg{padding:14px 28px;font-size:15px;border-radius:16px}
+        .nav-mobile-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:10px}
+        .nav-mobile-toggle svg{width:22px;height:22px;color:var(--rb-text)}
+        .nav-mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--rb-surface);border-bottom:1px solid var(--rb-border);padding:12px 20px 16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .nav-mobile-menu.show{display:block}
+        .nav-mobile-menu a{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+
+        /* PAGE */
+        .page-wrapper{max-width:700px;margin:0 auto;padding:60px 28px 80px}
+        .page-icon{width:72px;height:72px;border-radius:20px;background:rgba(6,62,112,.06);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px}
+        .page-title{font-size:30px;font-weight:800;text-align:center;letter-spacing:-.02em;margin-bottom:6px}
+        .page-sub{font-size:15px;color:var(--rb-text-2);text-align:center;max-width:440px;margin:0 auto 40px}
+
+        /* SEARCH CARD */
+        .search-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:24px;padding:36px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+        .search-row{display:flex;gap:12px}
+        .search-row input{flex:1;padding:14px 18px;border:1.5px solid var(--rb-border);border-radius:14px;font-size:15px;font-family:inherit;outline:none;transition:all .2s}
+        .search-row input:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+        .search-hint{font-size:12px;color:var(--rb-text-3);margin-top:12px;text-align:center}
+        .search-divider{text-align:center;margin:28px 0;color:var(--rb-text-3);font-size:12px;font-weight:500;position:relative}
+        .search-divider::before,.search-divider::after{content:'';position:absolute;top:50%;width:calc(50% - 20px);height:1px;background:var(--rb-border)}
+        .search-divider::before{left:0}.search-divider::after{right:0}
+
+        /* ALT SEARCH */
+        .alt-search{text-align:center}
+        .alt-search p{font-size:14px;color:var(--rb-text-2);margin-bottom:16px}
+        .alt-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:400px;margin:0 auto}
+        .alt-form input{padding:12px 14px;border:1.5px solid var(--rb-border);border-radius:12px;font-size:13px;font-family:inherit;outline:none;transition:all .2s}
+        .alt-form input:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+        .alt-form .full{grid-column:1/-1}
+
+        /* RESULT PREVIEW */
+        .result-preview{margin-top:40px;display:none}
+        .result-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+        .result-header{padding:20px 24px;background:var(--rb-surface-2);border-bottom:1px solid var(--rb-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .result-case{font-size:14px;font-weight:800;color:var(--rb-blue)}
+        .status-badge{padding:5px 14px;border-radius:99px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px}
+        .status-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+        .status-badge.in-progress{background:rgba(6,62,112,.06);color:var(--rb-blue)}
+        .status-badge.waiting{background:var(--rb-warning-bg);color:var(--rb-warning)}
+        .status-badge.completed{background:var(--rb-success-bg);color:var(--rb-success)}
+        .status-badge.ready{background:rgba(253,103,66,.08);color:var(--rb-orange)}
+        .result-body{padding:20px 24px}
+        .result-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rb-border);font-size:13px}
+        .result-row:last-child{border:none}
+        .result-label{color:var(--rb-text-3);font-weight:500}
+        .result-value{font-weight:600;color:var(--rb-text);text-align:right}
+        .result-actions{padding:16px 24px;border-top:1px solid var(--rb-border);display:flex;justify-content:flex-end;gap:10px}
+
+        /* FOOTER */
+        .footer{background:var(--rb-surface);border-top:1px solid var(--rb-border);padding:32px 28px;text-align:center}
+        .footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .footer-copy{font-size:12px;color:var(--rb-text-3)}
+        .footer-links{display:flex;gap:20px}
+        .footer-links a{font-size:12px;color:var(--rb-text-3);text-decoration:none;font-weight:500}
+        .footer-powered{font-size:11px;color:var(--rb-text-3)}
+        .footer-powered a{color:var(--rb-blue);font-weight:700;text-decoration:none}
+
+        @media(max-width:768px){
+            .nav-links{display:none}.nav-mobile-toggle{display:flex}
+            .search-row{flex-direction:column}
+            .alt-form{grid-template-columns:1fr}
+            .footer-links{display:none}
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="tenant-home.html" class="nav-brand">
+                <div class="shop-logo">QF</div>
+                <div><div class="shop-name">QuickFix Electronics</div><div class="shop-sub">quickfix.repairbuddy.com</div></div>
+            </a>
+            <div class="nav-links">
+                <a href="tenant-home.html">Home</a>
+                <a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a>
+                <a href="tenant-status.html" class="active">Check Status</a>
+                <a href="tenant-my-account.html">My Account</a>
+                <a href="tenant-login.html" class="btn btn-outline">Sign In</a>
+                <a href="tenant-book.html" class="btn btn-primary"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Book Now</a>
+            </div>
+            <button class="nav-mobile-toggle" onclick="document.getElementById('mobileMenu').classList.toggle('show')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+        <div id="mobileMenu" class="nav-mobile-menu">
+            <a href="tenant-home.html">🏠 Home</a>
+            <a href="tenant-book.html">📱 Book a Repair</a>
+            <a href="tenant-services.html">🔧 Our Services</a>
+            <a href="tenant-status.html" class="active">📋 Check Status</a>
+            <a href="tenant-my-account.html">👤 My Account</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="page-icon">🔍</div>
+        <h1 class="page-title">Check Your Repair Status</h1>
+        <p class="page-sub">Enter your case number or search by email to view the current status of your repair.</p>
+
+        <div class="search-card">
+            <!-- Case Number Search -->
+            <div class="search-row">
+                <input type="text" id="caseInput" placeholder="Enter case number (e.g. QF-2026-00487)" />
+                <button class="btn btn-orange btn-lg" onclick="showResult()">Track</button>
+            </div>
+            <div class="search-hint">Your case number was provided in your booking confirmation email.</div>
+
+            <div class="search-divider">or</div>
+
+            <!-- Email Search -->
+            <div class="alt-search">
+                <p>Search by your email address and phone number</p>
+                <div class="alt-form">
+                    <input type="email" placeholder="Email address" />
+                    <input type="tel" placeholder="Phone number" />
+                    <button class="btn btn-primary full" onclick="showResult()">Search My Repairs</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Preview -->
+        <div class="result-preview" id="resultPreview">
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="result-case">#QF-2026-00487</span>
+                    <span class="status-badge in-progress">In Progress</span>
+                </div>
+                <div class="result-body">
+                    <div class="result-row"><span class="result-label">Device</span><span class="result-value">iPhone 15 Pro</span></div>
+                    <div class="result-row"><span class="result-label">Services</span><span class="result-value">Screen Replacement, Battery</span></div>
+                    <div class="result-row"><span class="result-label">Submitted</span><span class="result-value">Mar 15, 2026</span></div>
+                    <div class="result-row"><span class="result-label">Technician</span><span class="result-value">Mike R.</span></div>
+                    <div class="result-row"><span class="result-label">Est. Completion</span><span class="result-value">Mar 17, 2026</span></div>
+                </div>
+                <div class="result-actions">
+                    <a href="tenant-job-details.html" class="btn btn-primary">View Full Details →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-copy">© 2026 QuickFix Electronics. All rights reserved.</div>
+            <div class="footer-links">
+                <a href="tenant-home.html">Home</a><a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a><a href="tenant-my-account.html">My Account</a>
+            </div>
+            <div class="footer-powered">Powered by <a href="#">RepairBuddy</a></div>
+        </div>
+    </footer>
+
+    <script>
+        function showResult() {
+            document.getElementById('resultPreview').style.display = 'block';
+            document.getElementById('resultPreview').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    </script>
+</body>
+</html>

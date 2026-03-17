@@ -19,6 +19,7 @@ class ServiceList extends Component
     /* ───────── Data ───────── */
     public array $serviceTypes = [];
     public array $ungroupedServices = [];
+    public array $groupedServices = [];
     public string $search = '';
     public string $filterTypeId = '';
 
@@ -109,6 +110,25 @@ class ServiceList extends Component
             ...array_values($grouped),
             ...[$ungrouped]
         );
+
+        // Also store grouped format for category-based display
+        $this->groupedServices = [];
+        foreach ($this->serviceTypes as $type) {
+            if (isset($grouped[$type['id']])) {
+                $this->groupedServices[] = [
+                    'type_id' => $type['id'],
+                    'type_name' => $type['name'],
+                    'services' => $grouped[$type['id']],
+                ];
+            }
+        }
+        if (! empty($ungrouped)) {
+            $this->groupedServices[] = [
+                'type_id' => null,
+                'type_name' => 'Other Services',
+                'services' => $ungrouped,
+            ];
+        }
     }
 
     /* ─────────── Computed ─────────── */
@@ -133,12 +153,37 @@ class ServiceList extends Component
         return array_values($services);
     }
 
+    public function getFilteredGroupedServicesProperty(): array
+    {
+        $groups = $this->groupedServices;
+
+        if ($this->filterTypeId !== '') {
+            $typeId = (int) $this->filterTypeId;
+            $groups = array_filter($groups, fn ($g) => ($g['type_id'] ?? null) === $typeId);
+        }
+
+        if ($this->search !== '') {
+            $needle = mb_strtolower(trim($this->search));
+            $groups = array_map(function ($g) use ($needle) {
+                $g['services'] = array_values(array_filter($g['services'], function ($s) use ($needle) {
+                    return str_contains(mb_strtolower($s['name']), $needle)
+                        || str_contains(mb_strtolower($s['description'] ?? ''), $needle);
+                }));
+                return $g;
+            }, $groups);
+            $groups = array_values(array_filter($groups, fn ($g) => count($g['services']) > 0));
+        }
+
+        return array_values($groups);
+    }
+
     /* ─────────── Render ─────────── */
 
     public function render()
     {
         return view('livewire.tenant.public-pages.service-list', [
             'filteredServices' => $this->filteredServices,
+            'filteredGroupedServices' => $this->filteredGroupedServices,
         ]);
     }
 }

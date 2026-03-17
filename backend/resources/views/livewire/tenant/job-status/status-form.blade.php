@@ -1,3 +1,7 @@
+@php
+  $currentRoute = \Illuminate\Support\Facades\Route::currentRouteName();
+  $rp = str_starts_with($currentRoute ?? '', 'tenant.subdomain.') ? 'tenant.subdomain.' : 'tenant.';
+@endphp
 <div class="pp-section">
 
   {{-- ══════════ HERO ══════════ --}}
@@ -47,7 +51,7 @@
     @endif
 
     <div class="st-search-footer">
-      <a href="{{ route('tenant.booking.show', ['business' => $business]) }}" class="pp-link">
+      <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="pp-link">
         <i class="bi bi-calendar-plus"></i> Book a new repair
       </a>
       <span class="st-footer-sep"></span>

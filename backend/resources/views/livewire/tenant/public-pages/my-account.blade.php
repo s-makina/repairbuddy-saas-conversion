@@ -1,3 +1,7 @@
+@php
+  $currentRoute = \Illuminate\Support\Facades\Route::currentRouteName();
+  $rp = str_starts_with($currentRoute ?? '', 'tenant.subdomain.') ? 'tenant.subdomain.' : 'tenant.';
+@endphp
 <div class="pp-section">
   {{-- Flash messages --}}
   @if($successMessage)
@@ -17,94 +21,43 @@
       <div class="pp-hero-icon">
         <i class="bi bi-person-circle"></i>
       </div>
-      <p class="pp-kicker">{{ $tenantName ?: 'RepairBuddy' }} Accounts</p>
-      <h1 class="pp-hero-title">My Account</h1>
-      <p class="pp-hero-subtitle">Log in to view your repair history, manage devices, and track open jobs. New here? Register in seconds.</p>
+      <h1 class="pp-hero-title">Welcome Back</h1>
+      <p class="pp-hero-subtitle">Sign in to view your repairs and manage your account.</p>
     </div>
 
-    <div class="pp-auth-grid">
-      {{-- Register card --}}
-      <div class="pp-auth-card">
-        <h2 class="pp-auth-card-title"><i class="bi bi-person-plus"></i> Register</h2>
-        <form wire:submit.prevent="register">
-          <div class="pp-form-row">
-            <div class="pp-form-group">
-              <label class="pp-label">First Name <span class="pp-req">*</span></label>
-              <input type="text" wire:model.defer="regFirstName" class="pp-input" required>
-              @error('regFirstName') <span class="pp-field-error">{{ $message }}</span> @enderror
-            </div>
-            <div class="pp-form-group">
-              <label class="pp-label">Last Name <span class="pp-req">*</span></label>
-              <input type="text" wire:model.defer="regLastName" class="pp-input" required>
-              @error('regLastName') <span class="pp-field-error">{{ $message }}</span> @enderror
-            </div>
-          </div>
-          <div class="pp-form-row">
-            <div class="pp-form-group">
-              <label class="pp-label">Email <span class="pp-req">*</span></label>
-              <input type="email" wire:model.defer="regEmail" class="pp-input" required>
-              @error('regEmail') <span class="pp-field-error">{{ $message }}</span> @enderror
-            </div>
-            <div class="pp-form-group">
-              <label class="pp-label">Phone</label>
-              <input type="text" wire:model.defer="regPhone" class="pp-input">
-            </div>
-          </div>
-          <div class="pp-form-row">
-            <div class="pp-form-group">
-              <label class="pp-label">Company</label>
-              <input type="text" wire:model.defer="regCompany" class="pp-input">
-            </div>
-            <div class="pp-form-group">
-              <label class="pp-label">Address</label>
-              <input type="text" wire:model.defer="regAddress" class="pp-input">
-            </div>
-          </div>
-          <div class="pp-form-row">
-            <div class="pp-form-group">
-              <label class="pp-label">City</label>
-              <input type="text" wire:model.defer="regCity" class="pp-input">
-            </div>
-            <div class="pp-form-group">
-              <label class="pp-label">Postal Code</label>
-              <input type="text" wire:model.defer="regPostalCode" class="pp-input">
-            </div>
-          </div>
-          <div class="pp-form-row">
-            <div class="pp-form-group">
-              <label class="pp-label">State / Province</label>
-              <input type="text" wire:model.defer="regState" class="pp-input">
-            </div>
-          </div>
-          <button type="submit" class="pp-btn pp-btn-primary" wire:loading.attr="disabled">
-            <span wire:loading.remove wire:target="register">Register Account</span>
-            <span wire:loading wire:target="register"><i class="bi bi-arrow-repeat pp-spin"></i> Creating…</span>
-          </button>
-        </form>
-      </div>
-
-      {{-- Login card --}}
-      <div class="pp-auth-card">
-        <h2 class="pp-auth-card-title"><i class="bi bi-box-arrow-in-right"></i> Login</h2>
+    <div class="pp-login-wrapper">
+      <div class="pp-login-card">
+        <h2 class="pp-login-card-title">Sign In</h2>
+        <p class="pp-login-card-sub">Access your repair history and track open jobs.</p>
         <form wire:submit.prevent="login">
           <div class="pp-form-group">
-            <label class="pp-label">Email <span class="pp-req">*</span></label>
-            <input type="email" wire:model.defer="loginEmail" class="pp-input" required>
+            <label class="pp-label">Email Address <span class="pp-req">*</span></label>
+            <input type="email" wire:model.defer="loginEmail" class="pp-input" placeholder="you@example.com" required>
             @error('loginEmail') <span class="pp-field-error">{{ $message }}</span> @enderror
           </div>
           <div class="pp-form-group">
             <label class="pp-label">Password <span class="pp-req">*</span></label>
-            <input type="password" wire:model.defer="loginPassword" class="pp-input" required>
+            <input type="password" wire:model.defer="loginPassword" class="pp-input" placeholder="Enter your password" required>
             @error('loginPassword') <span class="pp-field-error">{{ $message }}</span> @enderror
           </div>
-          <button type="submit" class="pp-btn pp-btn-primary" wire:loading.attr="disabled">
-            <span wire:loading.remove wire:target="login">Sign In</span>
-            <span wire:loading wire:target="login"><i class="bi bi-arrow-repeat pp-spin"></i> Signing in…</span>
-          </button>
+          <div class="pp-login-actions">
+            <button type="submit" class="pp-btn pp-btn-primary pp-btn-full" wire:loading.attr="disabled">
+              <span wire:loading.remove wire:target="login">Sign In →</span>
+              <span wire:loading wire:target="login"><i class="bi bi-arrow-repeat pp-spin"></i> Signing in…</span>
+            </button>
+          </div>
+          <div class="pp-login-link">
+            <a href="{{ url('/login') }}">Forgot your password?</a>
+          </div>
+          <div class="pp-login-divider">or</div>
+          <div class="pp-login-link">Don't have an account? <a href="{{ route($rp . 'register', ['business' => $business]) }}">Create one</a></div>
         </form>
-        <p class="pp-auth-help">
-          <a href="{{ url('/login') }}">Forgot password?</a>
-        </p>
+      </div>
+
+      <div class="pp-login-extra">
+        <a href="{{ route($rp . 'status.show', ['business' => $business]) }}" class="pp-login-extra-link">
+          <i class="bi bi-search"></i> Track a repair without signing in →
+        </a>
       </div>
     </div>
 
@@ -112,72 +65,115 @@
     {{-- ═══════════ AUTHENTICATED VIEW: Dashboard ═══════════ --}}
     <div class="pp-dash">
       <div class="pp-dash-header">
-        <div>
-          <h1 class="pp-dash-title">Welcome, {{ $currentUser->name ?? 'Customer' }}</h1>
-          <p class="pp-dash-subtitle">{{ $currentUser->email ?? '' }}</p>
+        <div class="pp-dash-user">
+          <div class="pp-dash-avatar">
+            {{ strtoupper(substr($currentUser->name ?? 'U', 0, 1)) }}{{ strtoupper(substr(explode(' ', $currentUser->name ?? 'U U')[1] ?? '', 0, 1)) }}
+          </div>
+          <div>
+            <div class="pp-dash-name">{{ $currentUser->name ?? 'Customer' }}</div>
+            <div class="pp-dash-email">{{ $currentUser->email ?? '' }}</div>
+          </div>
         </div>
-        <button wire:click="logout" class="pp-btn pp-btn-outline-sm">
-          <i class="bi bi-box-arrow-right"></i> Sign Out
-        </button>
+        <div class="pp-dash-actions">
+          <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="pp-btn pp-btn-accent">
+            <i class="bi bi-phone"></i> New Booking
+          </a>
+          <button wire:click="logout" class="pp-btn pp-btn-outline-sm">
+            <i class="bi bi-box-arrow-right"></i> Sign Out
+          </button>
+        </div>
+      </div>
+
+      {{-- Stats Grid --}}
+      @php
+        $openCount = collect($jobs)->whereNull('closed_at')->filter(fn($j) => empty($j['closed_at']))->count();
+        $closedCount = collect($jobs)->filter(fn($j) => !empty($j['closed_at']))->count();
+      @endphp
+      <div class="pp-stats-grid">
+        <div class="pp-stat-card">
+          <div class="pp-stat-val">{{ $openCount }}</div>
+          <div class="pp-stat-label">Active Repairs</div>
+        </div>
+        <div class="pp-stat-card">
+          <div class="pp-stat-val">{{ $closedCount }}</div>
+          <div class="pp-stat-label">Completed</div>
+        </div>
+        <div class="pp-stat-card">
+          <div class="pp-stat-val">{{ count($jobs) }}</div>
+          <div class="pp-stat-label">Total Jobs</div>
+        </div>
       </div>
 
       {{-- Tab navigation --}}
-      <div class="pp-tab-bar">
-        <button wire:click="setTab('jobs')" class="pp-tab {{ $activeTab === 'jobs' ? 'active' : '' }}">
-          <i class="bi bi-briefcase"></i> My Jobs
+      <div class="pp-dash-tabs">
+        <button wire:click="setTab('jobs')" class="pp-dash-tab {{ $activeTab === 'jobs' ? 'active' : '' }}">
+          <i class="bi bi-wrench-adjustable"></i> My Repairs
+          @if($openCount > 0) <span class="pp-tab-count">{{ $openCount }}</span> @endif
         </button>
-        <button wire:click="setTab('profile')" class="pp-tab {{ $activeTab === 'profile' ? 'active' : '' }}">
-          <i class="bi bi-person"></i> Profile
+        <button wire:click="setTab('profile')" class="pp-dash-tab {{ $activeTab === 'profile' ? 'active' : '' }}">
+          <i class="bi bi-gear"></i> Account Settings
         </button>
       </div>
 
-      {{-- Tab content --}}
+      {{-- Tab: Repairs --}}
       @if($activeTab === 'jobs')
         <div class="pp-tab-content">
-          @if(count($jobs) > 0)
-            <div class="pp-table-wrap">
-              <table class="pp-table">
-                <thead>
-                  <tr>
-                    <th>Case #</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Payment</th>
-                    <th>Opened</th>
-                    <th>Closed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @foreach($jobs as $job)
-                    <tr>
-                      <td>
-                        <a href="{{ route('tenant.status.show', ['business' => $business, 'case' => $job['case_number'] ?? '']) }}" class="pp-link">
-                          {{ $job['case_number'] ?? '—' }}
-                        </a>
-                      </td>
-                      <td>{{ $job['title'] ?? '—' }}</td>
-                      <td>
-                        <span class="pp-status-badge pp-status-{{ \Illuminate\Support\Str::slug($job['status_slug'] ?? 'unknown') }}">
-                          {{ ucfirst(str_replace(['-','_'], ' ', $job['status_slug'] ?? 'Unknown')) }}
-                        </span>
-                      </td>
-                      <td>
-                        <span class="pp-badge pp-badge-muted">
-                          {{ ucfirst(str_replace(['-','_'], ' ', $job['payment_status_slug'] ?? '—')) }}
-                        </span>
-                      </td>
-                      <td>{{ $job['opened_at'] ?? '—' }}</td>
-                      <td>{{ $job['closed_at'] ?? '—' }}</td>
-                    </tr>
-                  @endforeach
-                </tbody>
-              </table>
+          @php
+            $activeJobs = collect($jobs)->filter(fn($j) => empty($j['closed_at']))->values();
+            $pastJobs = collect($jobs)->filter(fn($j) => !empty($j['closed_at']))->values();
+          @endphp
+
+          @if($activeJobs->isNotEmpty())
+            <div class="pp-section-title">
+              <i class="bi bi-wrench"></i> Active Repairs <span class="pp-section-badge">{{ $activeJobs->count() }}</span>
             </div>
-          @else
+            <div class="pp-repair-list">
+              @foreach($activeJobs as $job)
+                <a href="{{ route($rp . 'status.show', ['business' => $business, 'caseNumber' => $job['case_number'] ?? '']) }}" class="pp-repair-card">
+                  <div class="pp-repair-info">
+                    <div class="pp-repair-case">#{{ $job['case_number'] ?? '—' }}</div>
+                    <div class="pp-repair-device">{{ $job['title'] ?? '—' }}</div>
+                  </div>
+                  <div class="pp-repair-meta">
+                    <div class="pp-repair-date"><i class="bi bi-calendar3"></i> {{ $job['opened_at'] ?? '—' }}</div>
+                    <span class="pp-status-badge pp-status-{{ \Illuminate\Support\Str::slug($job['status_slug'] ?? 'unknown') }}">
+                      {{ ucfirst(str_replace(['-','_'], ' ', $job['status_slug'] ?? 'Unknown')) }}
+                    </span>
+                    <span class="pp-repair-arrow">→</span>
+                  </div>
+                </a>
+              @endforeach
+            </div>
+          @endif
+
+          @if($pastJobs->isNotEmpty())
+            <div class="pp-section-title" style="margin-top: 2rem;">
+              <i class="bi bi-check-circle"></i> Past Repairs
+            </div>
+            <div class="pp-repair-list">
+              @foreach($pastJobs as $job)
+                <a href="{{ route($rp . 'status.show', ['business' => $business, 'caseNumber' => $job['case_number'] ?? '']) }}" class="pp-repair-card">
+                  <div class="pp-repair-info">
+                    <div class="pp-repair-case">#{{ $job['case_number'] ?? '—' }}</div>
+                    <div class="pp-repair-device">{{ $job['title'] ?? '—' }}</div>
+                  </div>
+                  <div class="pp-repair-meta">
+                    <div class="pp-repair-date"><i class="bi bi-calendar3"></i> {{ $job['opened_at'] ?? '—' }}</div>
+                    <span class="pp-status-badge pp-status-{{ \Illuminate\Support\Str::slug($job['status_slug'] ?? 'completed') }}">
+                      {{ ucfirst(str_replace(['-','_'], ' ', $job['status_slug'] ?? 'Completed')) }}
+                    </span>
+                    <span class="pp-repair-arrow">→</span>
+                  </div>
+                </a>
+              @endforeach
+            </div>
+          @endif
+
+          @if(count($jobs) === 0)
             <div class="pp-empty">
               <i class="bi bi-briefcase"></i>
               <p>No jobs found for your account yet.</p>
-              <a href="{{ route('tenant.booking.show', ['business' => $business]) }}" class="pp-btn pp-btn-primary" style="margin-top: 1rem;">
+              <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="pp-btn pp-btn-primary" style="margin-top: 1rem;">
                 Book a Device
               </a>
             </div>
@@ -185,24 +181,47 @@
         </div>
       @endif
 
+      {{-- Tab: Account Settings --}}
       @if($activeTab === 'profile')
         <div class="pp-tab-content">
-          <div class="pp-profile-card">
-            <div class="pp-profile-row">
-              <span class="pp-profile-label">Name</span>
-              <span class="pp-profile-value">{{ $currentUser->name ?? '—' }}</span>
+          <div class="pp-settings-grid">
+            <div class="pp-settings-card">
+              <h4 class="pp-settings-title"><i class="bi bi-person"></i> Personal Information</h4>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Full Name</span>
+                <span class="pp-settings-value">{{ $currentUser->name ?? '—' }}</span>
+              </div>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Email</span>
+                <span class="pp-settings-value">{{ $currentUser->email ?? '—' }}</span>
+              </div>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Phone</span>
+                <span class="pp-settings-value">{{ $currentUser->phone ?? '—' }}</span>
+              </div>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Company</span>
+                <span class="pp-settings-value">{{ $currentUser->company ?? '—' }}</span>
+              </div>
             </div>
-            <div class="pp-profile-row">
-              <span class="pp-profile-label">Email</span>
-              <span class="pp-profile-value">{{ $currentUser->email ?? '—' }}</span>
-            </div>
-            <div class="pp-profile-row">
-              <span class="pp-profile-label">Role</span>
-              <span class="pp-profile-value">{{ ucfirst($currentUser->role ?? 'customer') }}</span>
-            </div>
-            <div class="pp-profile-row">
-              <span class="pp-profile-label">Member Since</span>
-              <span class="pp-profile-value">{{ $currentUser->created_at?->format('M d, Y') ?? '—' }}</span>
+            <div class="pp-settings-card">
+              <h4 class="pp-settings-title"><i class="bi bi-geo-alt"></i> Default Address</h4>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Street</span>
+                <span class="pp-settings-value">{{ $currentUser->address ?? '—' }}</span>
+              </div>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">City</span>
+                <span class="pp-settings-value">{{ $currentUser->city ?? '—' }}</span>
+              </div>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Postal Code</span>
+                <span class="pp-settings-value">{{ $currentUser->zip ?? '—' }}</span>
+              </div>
+              <div class="pp-settings-row">
+                <span class="pp-settings-label">Member Since</span>
+                <span class="pp-settings-value">{{ $currentUser->created_at?->format('M d, Y') ?? '—' }}</span>
+              </div>
             </div>
           </div>
         </div>

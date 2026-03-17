@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickFix Electronics — Book a Repair</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--rb-blue:#063e70;--rb-blue-light:#0a5fa3;--rb-orange:#fd6742;--rb-orange-light:#ff8a6b;--rb-bg:#fcfdfe;--rb-border:#f1f5f9;--rb-text:#0f172a;--rb-text-2:#475569;--rb-text-3:#94a3b8;--rb-surface:#fff;--rb-surface-2:#f8fafc;--rb-success:#2b8a3e;--rb-success-bg:rgba(43,138,62,.06)}
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--rb-bg);color:var(--rb-text);margin:0;line-height:1.6}
+
+        /* NAV */
+        .navbar{background:rgba(255,255,255,.92);border-bottom:1px solid var(--rb-border);position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+        .nav-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between}
+        .nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+        .shop-logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--rb-blue),var(--rb-blue-light));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;box-shadow:0 2px 8px rgba(6,62,112,.2)}
+        .shop-name{font-size:17px;font-weight:700;color:var(--rb-text)}
+        .shop-sub{font-size:11px;color:var(--rb-text-3);font-weight:500}
+        .nav-links{display:flex;align-items:center;gap:4px}
+        .nav-links a{padding:8px 14px;border-radius:12px;font-size:13px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+        .nav-links a:hover,.nav-links a.active{background:var(--rb-surface-2);color:var(--rb-text)}
+        .nav-links a.active{color:var(--rb-blue);background:rgba(6,62,112,.06)}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .25s;text-decoration:none}
+        .btn-primary{background:var(--rb-blue);color:#fff;box-shadow:0 4px 14px rgba(6,62,112,.2)}
+        .btn-primary:hover{background:#05335d;transform:translateY(-1px)}
+        .btn-outline{background:var(--rb-surface);border:1.5px solid var(--rb-border);color:var(--rb-text-2)}
+        .btn-outline:hover{background:var(--rb-surface-2);border-color:#d1d5db}
+        .btn-orange{background:var(--rb-orange);color:#fff;box-shadow:0 4px 14px rgba(253,103,66,.25)}
+        .btn-orange:hover{background:#e5532e;transform:translateY(-1px)}
+        .btn svg{width:16px;height:16px}
+        .btn-lg{padding:14px 28px;font-size:15px;border-radius:16px}
+        .btn-back{background:none;border:1.5px solid var(--rb-border);color:var(--rb-text-2);padding:8px 18px;font-size:13px;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+        .btn-back:hover{background:var(--rb-surface-2);border-color:#d1d5db}
+
+        /* MOBILE NAV */
+        .nav-mobile-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:10px}
+        .nav-mobile-toggle svg{width:22px;height:22px;color:var(--rb-text)}
+        .nav-mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--rb-surface);border-bottom:1px solid var(--rb-border);padding:12px 20px 16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .nav-mobile-menu.show{display:block}
+        .nav-mobile-menu a{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;color:var(--rb-text-2);transition:all .2s}
+        .nav-mobile-menu a:hover,.nav-mobile-menu a.active{background:var(--rb-surface-2);color:var(--rb-text)}
+
+        /* BOOKING WRAPPER */
+        .booking-page{max-width:860px;margin:0 auto;padding:40px 28px 80px}
+        .booking-page-header{text-align:center;margin-bottom:36px}
+        .booking-page-header h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+        .booking-page-header p{font-size:15px;color:var(--rb-text-2)}
+
+        /* PROGRESS BAR */
+        .progress-bar{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:40px;padding:0 20px}
+        .progress-step{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1;flex:0 0 auto}
+        .progress-step-circle{width:44px;height:44px;border-radius:50%;border:2px solid var(--rb-border);background:var(--rb-surface);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--rb-text-3);transition:all .3s;font-weight:700}
+        .progress-step.active .progress-step-circle{border-color:var(--rb-blue);color:var(--rb-blue);background:rgba(6,62,112,.04)}
+        .progress-step.current .progress-step-circle{border-color:var(--rb-orange);background:var(--rb-orange);color:#fff;box-shadow:0 4px 14px rgba(253,103,66,.3)}
+        .progress-step.done .progress-step-circle{border-color:var(--rb-success);background:var(--rb-success-bg);color:var(--rb-success)}
+        .progress-step-label{font-size:11px;font-weight:600;color:var(--rb-text-3);white-space:nowrap}
+        .progress-step.active .progress-step-label,.progress-step.current .progress-step-label{color:var(--rb-text)}
+        .progress-connector{width:48px;height:2px;background:var(--rb-border);margin-bottom:20px;transition:background .3s}
+        .progress-connector.active{background:var(--rb-blue)}
+
+        /* STEP CARD */
+        .step-card{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:24px;padding:36px;box-shadow:0 1px 4px rgba(0,0,0,.04);animation:fadeIn .3s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .step-header{margin-bottom:28px}
+        .step-header h2{font-size:22px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
+        .step-header p{font-size:14px;color:var(--rb-text-2)}
+
+        /* SELECTION GRID */
+        .selection-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+        .selection-card{background:var(--rb-surface);border:2px solid var(--rb-border);border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .25s}
+        .selection-card:hover{border-color:#cbd5e1;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+        .selection-card.selected{border-color:var(--rb-orange);background:rgba(253,103,66,.03);box-shadow:0 0 0 3px rgba(253,103,66,.12)}
+        .selection-card-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px}
+        .selection-card-name{font-size:14px;font-weight:700;color:var(--rb-text)}
+        .selection-card-sub{font-size:11px;color:var(--rb-text-3);margin-top:2px}
+
+        /* COMPACT GRID */
+        .selection-grid-compact{grid-template-columns:repeat(4,1fr)}
+        .selection-grid-compact .selection-card{padding:16px 12px}
+        .selection-grid-compact .selection-card-icon{width:40px;height:40px;font-size:18px;margin-bottom:8px}
+        .selection-grid-compact .selection-card-name{font-size:13px}
+
+        /* SEARCH */
+        .search-wrapper{margin-bottom:20px;position:relative}
+        .search-wrapper input{width:100%;padding:12px 16px 12px 44px;border-radius:14px;border:1.5px solid var(--rb-border);font-size:14px;font-family:inherit;background:var(--rb-surface);transition:all .2s;outline:none}
+        .search-wrapper input:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+        .search-wrapper svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--rb-text-3)}
+
+        /* SERVICE CARDS */
+        .service-category{margin-bottom:24px}
+        .service-category-title{font-size:13px;font-weight:700;color:var(--rb-text-2);margin-bottom:10px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.05em}
+        .service-category-title .badge{background:rgba(6,62,112,.06);color:var(--rb-blue);font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700}
+        .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .service-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--rb-border);border-radius:14px;cursor:pointer;transition:all .2s;background:var(--rb-surface)}
+        .service-card:hover{border-color:#cbd5e1;background:var(--rb-surface-2)}
+        .service-card.selected{border-color:var(--rb-blue);background:rgba(6,62,112,.03)}
+        .service-card-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--rb-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
+        .service-card.selected .service-card-check{border-color:var(--rb-blue);background:var(--rb-blue);color:#fff}
+        .service-card-body{flex:1;min-width:0}
+        .service-card-name{font-size:13px;font-weight:700;color:var(--rb-text)}
+        .service-card-desc{font-size:11px;color:var(--rb-text-3);margin-top:1px}
+        .service-card-price{font-size:14px;font-weight:800;color:var(--rb-text);white-space:nowrap}
+
+        /* APPOINTMENT */
+        .appointment-section{background:var(--rb-surface-2);border:1px solid var(--rb-border);border-radius:16px;padding:24px;margin-top:24px}
+        .appointment-section h5{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+        .appointment-section .opt-badge{font-size:10px;background:rgba(6,62,112,.06);color:var(--rb-blue);padding:2px 8px;border-radius:99px;font-weight:700}
+        .appointment-section p{font-size:13px;color:var(--rb-text-2);margin-bottom:16px}
+        .appt-options{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+        .appt-option{padding:12px 18px;border:2px solid var(--rb-border);border-radius:12px;cursor:pointer;transition:all .2s;background:var(--rb-surface);font-size:13px;font-weight:600;color:var(--rb-text-2)}
+        .appt-option:hover{border-color:#cbd5e1}
+        .appt-option.selected{border-color:var(--rb-blue);background:rgba(6,62,112,.03);color:var(--rb-blue)}
+        .appt-datetime{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+        .appt-datetime label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--rb-text)}
+        .appt-datetime input{width:100%;padding:10px 14px;border:1.5px solid var(--rb-border);border-radius:12px;font-size:14px;font-family:inherit;outline:none;transition:all .2s}
+        .appt-datetime input:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+        .time-slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+        .time-slot{padding:8px 14px;border:1.5px solid var(--rb-border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--rb-surface);color:var(--rb-text-2)}
+        .time-slot:hover{border-color:#cbd5e1}
+        .time-slot.selected{border-color:var(--rb-orange);background:var(--rb-orange);color:#fff}
+
+        /* FORM */
+        .form-section{margin-bottom:28px}
+        .form-section-title{font-size:14px;font-weight:700;color:var(--rb-text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+        .form-section-title svg{width:18px;height:18px;color:var(--rb-blue)}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .form-group{display:flex;flex-direction:column;gap:5px}
+        .form-group.full{grid-column:1/-1}
+        .form-group label{font-size:13px;font-weight:600;color:var(--rb-text)}
+        .form-group label .req{color:var(--rb-orange)}
+        .form-group input,.form-group textarea,.form-group select{padding:10px 14px;border:1.5px solid var(--rb-border);border-radius:12px;font-size:14px;font-family:inherit;outline:none;transition:all .2s;background:var(--rb-surface);resize:vertical}
+        .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+
+        /* SUMMARY */
+        .booking-summary{background:var(--rb-surface-2);border:1px solid var(--rb-border);border-radius:16px;padding:20px;margin-bottom:24px}
+        .booking-summary h6{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .summary-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--rb-border);font-size:13px}
+        .summary-item:last-child{border:none}
+        .summary-device{font-weight:600;display:flex;align-items:center;gap:6px}
+        .summary-service{color:var(--rb-text-2);font-size:12px}
+
+        /* GDPR */
+        .gdpr-check{display:flex;align-items:flex-start;gap:10px;padding:16px;background:var(--rb-surface-2);border-radius:12px;margin-top:16px}
+        .gdpr-check input[type=checkbox]{margin-top:3px;accent-color:var(--rb-blue);width:16px;height:16px}
+        .gdpr-check label{font-size:13px;color:var(--rb-text-2);line-height:1.5}
+        .gdpr-check a{color:var(--rb-blue);font-weight:600;text-decoration:none}
+
+        /* STEP ACTIONS */
+        .step-actions{display:flex;justify-content:space-between;align-items:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--rb-border)}
+
+        /* SELECTED DEVICES */
+        .selected-devices{margin-top:28px;padding-top:24px;border-top:1px solid var(--rb-border)}
+        .selected-devices-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+        .selected-devices-title .count{background:var(--rb-orange);color:#fff;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700}
+        .selected-device{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:16px;margin-bottom:12px;overflow:hidden;transition:box-shadow .2s}
+        .selected-device:hover{box-shadow:0 4px 16px rgba(0,0,0,.05)}
+        .selected-device-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--rb-surface-2);border-bottom:1px solid var(--rb-border);transition:background .2s}
+        .selected-device-header:hover{background:rgba(6,62,112,.03)}
+        .selected-device-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+        .selected-device-actions{display:flex;align-items:center;gap:6px}
+        .selected-device-toggle{background:none;border:none;color:var(--rb-text-3);cursor:pointer;padding:4px;font-size:14px;transition:transform .2s}
+        .selected-device-toggle.open{transform:rotate(180deg)}
+        .selected-device-remove{background:none;border:none;color:var(--rb-text-3);cursor:pointer;padding:4px;border-radius:8px;transition:all .2s;font-size:14px}
+        .selected-device-remove:hover{color:var(--rb-orange);background:rgba(253,103,66,.06)}
+        .selected-device-fields{padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .selected-device-fields.collapsed{display:none}
+        .sd-field{display:flex;flex-direction:column;gap:4px}
+        .sd-field.full{grid-column:1/-1}
+        .sd-field label{font-size:12px;font-weight:600;color:var(--rb-text-2)}
+        .sd-field input,.sd-field textarea{padding:9px 12px;border:1.5px solid var(--rb-border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;transition:all .2s;background:var(--rb-surface);resize:vertical}
+        .sd-field input:focus,.sd-field textarea:focus{border-color:var(--rb-blue);box-shadow:0 0 0 3px rgba(6,62,112,.08)}
+        .sd-field-dynamic{position:relative}
+        .sd-field-dynamic label::after{content:'Dynamic';font-size:9px;background:rgba(112,72,232,.08);color:#7048e8;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:700;vertical-align:middle}
+
+        /* DEVICE ENTRY (step 4) */
+        .device-entry{background:var(--rb-surface);border:1px solid var(--rb-border);border-radius:16px;margin-bottom:16px;overflow:hidden}
+        .device-entry-header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background .2s}
+        .device-entry-header:hover{background:var(--rb-surface-2)}
+        .device-entry-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+        .device-entry-badge{font-size:10px;background:var(--rb-success-bg);color:var(--rb-success);padding:2px 8px;border-radius:99px;font-weight:700}
+        .device-entry-body{padding:0 20px 20px}
+
+        /* SUCCESS */
+        .success-card{text-align:center;padding:60px 40px}
+        .success-icon{width:80px;height:80px;border-radius:50%;background:var(--rb-success-bg);color:var(--rb-success);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:40px}
+        .success-card h2{font-size:26px;font-weight:800;margin-bottom:8px}
+        .success-card p{font-size:15px;color:var(--rb-text-2);max-width:420px;margin:0 auto}
+        .case-number{display:inline-flex;flex-direction:column;gap:4px;background:var(--rb-surface-2);border:1px solid var(--rb-border);border-radius:14px;padding:16px 32px;margin-top:20px}
+        .case-number .label{font-size:11px;font-weight:700;color:var(--rb-text-3);text-transform:uppercase;letter-spacing:.06em}
+        .case-number .value{font-size:22px;font-weight:800;color:var(--rb-blue);letter-spacing:.04em}
+
+        /* FOOTER */
+        .footer{background:var(--rb-surface);border-top:1px solid var(--rb-border);padding:32px 28px;text-align:center}
+        .footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .footer-copy{font-size:12px;color:var(--rb-text-3)}
+        .footer-links{display:flex;gap:20px}
+        .footer-links a{font-size:12px;color:var(--rb-text-3);text-decoration:none;font-weight:500;transition:color .2s}
+        .footer-links a:hover{color:var(--rb-text-2)}
+        .footer-powered{font-size:11px;color:var(--rb-text-3)}
+        .footer-powered a{color:var(--rb-blue);font-weight:700;text-decoration:none}
+
+        @media(max-width:768px){
+            .nav-links{display:none}
+            .nav-mobile-toggle{display:flex}
+            .selection-grid,.selection-grid-compact{grid-template-columns:1fr 1fr}
+            .service-grid{grid-template-columns:1fr}
+            .form-grid{grid-template-columns:1fr}
+            .appt-datetime{grid-template-columns:1fr}
+            .booking-page{padding:24px 16px 60px}
+            .step-card{padding:24px 20px}
+            .progress-connector{width:24px}
+            .progress-step-label{font-size:9px}
+            .footer-links{display:none}
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV -->
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="tenant-home.html" class="nav-brand">
+                <div class="shop-logo">QF</div>
+                <div><div class="shop-name">QuickFix Electronics</div><div class="shop-sub">quickfix.repairbuddy.com</div></div>
+            </a>
+            <div class="nav-links">
+                <a href="tenant-home.html">Home</a>
+                <a href="tenant-book.html" class="active">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a>
+                <a href="tenant-my-account.html">My Account</a>
+                <a href="tenant-login.html" class="btn btn-outline">Sign In</a>
+                <a href="tenant-book.html" class="btn btn-primary"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Book Now</a>
+            </div>
+            <button class="nav-mobile-toggle" onclick="document.getElementById('mobileMenu').classList.toggle('show')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+        <div id="mobileMenu" class="nav-mobile-menu">
+            <a href="tenant-home.html">🏠 Home</a>
+            <a href="tenant-book.html" class="active">📱 Book a Repair</a>
+            <a href="tenant-services.html">🔧 Our Services</a>
+            <a href="tenant-my-account.html">👤 My Account</a>
+        </div>
+    </nav>
+
+    <!-- BOOKING -->
+    <div class="booking-page">
+        <div class="booking-page-header">
+            <h1>Book a Repair</h1>
+            <p>Follow the steps below to submit your repair request</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-step current" data-step="1"><div class="progress-step-circle">1</div><span class="progress-step-label">Device Type</span></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="2"><div class="progress-step-circle">2</div><span class="progress-step-label">Brand</span></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="3"><div class="progress-step-circle">3</div><span class="progress-step-label">Device</span></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="4"><div class="progress-step-circle">4</div><span class="progress-step-label">Service</span></div>
+            <div class="progress-connector"></div>
+            <div class="progress-step" data-step="5"><div class="progress-step-circle">5</div><span class="progress-step-label">Details</span></div>
+        </div>
+
+        <!-- STEP 1: Device Type -->
+        <div class="step-card" id="step1">
+            <div class="step-header"><h2>Select Device Type</h2><p>What type of device needs repair?</p></div>
+            <div class="selection-grid">
+                <div class="selection-card" onclick="selectCard(this);goToStep(2)">
+                    <div class="selection-card-icon" style="background:rgba(253,103,66,.08);color:var(--rb-orange)">📱</div>
+                    <div class="selection-card-name">Smartphone</div><div class="selection-card-sub">iPhone, Samsung, etc.</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(2)">
+                    <div class="selection-card-icon" style="background:rgba(6,62,112,.06);color:var(--rb-blue)">📋</div>
+                    <div class="selection-card-name">Tablet</div><div class="selection-card-sub">iPad, Galaxy Tab, etc.</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(2)">
+                    <div class="selection-card-icon" style="background:rgba(43,138,62,.06);color:#2b8a3e">💻</div>
+                    <div class="selection-card-name">Laptop</div><div class="selection-card-sub">MacBook, Dell, HP, etc.</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(2)">
+                    <div class="selection-card-icon" style="background:rgba(112,72,232,.06);color:#7048e8">🖥️</div>
+                    <div class="selection-card-name">Desktop</div><div class="selection-card-sub">PC, iMac, etc.</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(2)">
+                    <div class="selection-card-icon" style="background:rgba(25,113,194,.06);color:#1971c2">⌚</div>
+                    <div class="selection-card-name">Smartwatch</div><div class="selection-card-sub">Apple Watch, etc.</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(2)">
+                    <div class="selection-card-icon" style="background:rgba(230,119,0,.06);color:#e67700">🎮</div>
+                    <div class="selection-card-name">Game Console</div><div class="selection-card-sub">PS5, Xbox, Switch</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Brand -->
+        <div class="step-card" id="step2" style="display:none">
+            <div class="step-header"><h2>Select Brand</h2><p>Which manufacturer or brand?</p></div>
+            <button class="btn-back" onclick="goToStep(1)">← Back to Device Types</button>
+            <div class="selection-grid" style="margin-top:20px">
+                <div class="selection-card" onclick="selectCard(this);goToStep(3)">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333">🍎</div>
+                    <div class="selection-card-name">Apple</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(3)">
+                    <div class="selection-card-icon" style="background:rgba(6,62,112,.06);color:var(--rb-blue)">📱</div>
+                    <div class="selection-card-name">Samsung</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(3)">
+                    <div class="selection-card-icon" style="background:rgba(43,138,62,.06);color:#2b8a3e">📱</div>
+                    <div class="selection-card-name">Google</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(3)">
+                    <div class="selection-card-icon" style="background:rgba(253,103,66,.08);color:var(--rb-orange)">📱</div>
+                    <div class="selection-card-name">Huawei</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(3)">
+                    <div class="selection-card-icon" style="background:rgba(112,72,232,.06);color:#7048e8">📱</div>
+                    <div class="selection-card-name">OnePlus</div>
+                </div>
+                <div class="selection-card" onclick="selectCard(this);goToStep(3)">
+                    <div class="selection-card-icon" style="background:rgba(148,163,184,.1);color:var(--rb-text-3)">❓</div>
+                    <div class="selection-card-name">Other</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Device -->
+        <div class="step-card" id="step3" style="display:none">
+            <div class="step-header"><h2>Select Device</h2><p>Search and select the device(s) that need repair.</p></div>
+            <button class="btn-back" onclick="goToStep(2)">← Back to Brands</button>
+            <div class="search-wrapper" style="margin-top:20px">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" placeholder="Search devices..." />
+            </div>
+            <div class="selection-grid selection-grid-compact">
+                <div class="selection-card" onclick="addDevice(this,'iPhone 15 Pro')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone 15 Pro</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'iPhone 15')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone 15</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'iPhone 14 Pro')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone 14 Pro</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'iPhone 14')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone 14</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'iPhone 13 Pro')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone 13 Pro</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'iPhone 13')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone 13</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'iPhone SE')">
+                    <div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">📱</div>
+                    <div class="selection-card-name">iPhone SE</div>
+                </div>
+                <div class="selection-card" onclick="addDevice(this,'Other')" style="border-style:dashed">
+                    <div class="selection-card-icon" style="background:rgba(148,163,184,.1);color:var(--rb-text-3);font-size:16px">❓</div>
+                    <div class="selection-card-name">Other</div>
+                </div>
+            </div>
+
+            <!-- Selected Devices -->
+            <div class="selected-devices" id="selectedDevices" style="display:none">
+                <div class="selected-devices-title">✅ Selected Devices <span class="count" id="deviceCount">0</span></div>
+                <div id="deviceList"></div>
+                <div class="step-actions">
+                    <div></div>
+                    <button class="btn btn-primary btn-lg" onclick="goToStep(4)">Continue to Services →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Services -->
+        <div class="step-card" id="step4" style="display:none">
+            <div class="step-header"><h2>Select Services</h2><p>Choose one or more services for each device.</p></div>
+            <button class="btn-back" onclick="goToStep(3)">← Back to Devices</button>
+
+            <div class="device-entry" style="margin-top:20px">
+                <div class="device-entry-header">
+                    <div class="device-entry-name">📱 iPhone 15 Pro <span class="device-entry-badge">2 selected</span></div>
+                    <span style="color:var(--rb-text-3)">▼</span>
+                </div>
+                <div class="device-entry-body">
+                    <div class="service-category">
+                        <div class="service-category-title">Screen Repairs <span class="badge">3</span></div>
+                        <div class="service-grid">
+                            <div class="service-card selected" onclick="this.classList.toggle('selected')">
+                                <div class="service-card-check">✓</div>
+                                <div class="service-card-body"><div class="service-card-name">Screen Replacement</div><div class="service-card-desc">Full OLED screen replacement</div></div>
+                                <div class="service-card-price">$189</div>
+                            </div>
+                            <div class="service-card" onclick="this.classList.toggle('selected')">
+                                <div class="service-card-check">✓</div>
+                                <div class="service-card-body"><div class="service-card-name">Glass Only Repair</div><div class="service-card-desc">Front glass replacement</div></div>
+                                <div class="service-card-price">$89</div>
+                            </div>
+                            <div class="service-card" onclick="this.classList.toggle('selected')">
+                                <div class="service-card-check">✓</div>
+                                <div class="service-card-body"><div class="service-card-name">Screen Protector</div><div class="service-card-desc">Premium tempered glass</div></div>
+                                <div class="service-card-price">$29</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="service-category">
+                        <div class="service-category-title">Battery & Power <span class="badge">2</span></div>
+                        <div class="service-grid">
+                            <div class="service-card selected" onclick="this.classList.toggle('selected')">
+                                <div class="service-card-check">✓</div>
+                                <div class="service-card-body"><div class="service-card-name">Battery Replacement</div><div class="service-card-desc">Genuine OEM battery</div></div>
+                                <div class="service-card-price">$69</div>
+                            </div>
+                            <div class="service-card" onclick="this.classList.toggle('selected')">
+                                <div class="service-card-check">✓</div>
+                                <div class="service-card-body"><div class="service-card-name">Charging Port</div><div class="service-card-desc">Lightning port repair</div></div>
+                                <div class="service-card-price">$49</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appointment -->
+            <div class="appointment-section">
+                <h5>📅 Schedule an Appointment <span class="opt-badge">Optional</span></h5>
+                <p>Select a preferred date and time for your visit.</p>
+                <div class="appt-options">
+                    <div class="appt-option selected" onclick="document.querySelectorAll('.appt-option').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">Walk-in (30 min)</div>
+                    <div class="appt-option" onclick="document.querySelectorAll('.appt-option').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">Express (15 min)</div>
+                </div>
+                <div class="appt-datetime">
+                    <div><label>Preferred Date</label><input type="date" /></div>
+                    <div>
+                        <label>Preferred Time</label>
+                        <div class="time-slots">
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">09:00</div>
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">09:30</div>
+                            <div class="time-slot selected" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">10:00</div>
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">10:30</div>
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">11:00</div>
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">11:30</div>
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">14:00</div>
+                            <div class="time-slot" onclick="document.querySelectorAll('.time-slot').forEach(e=>e.classList.remove('selected'));this.classList.add('selected')">14:30</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn btn-outline" onclick="goToStep(3)">+ Add Another Device</button>
+                <button class="btn btn-primary btn-lg" onclick="goToStep(5)">Continue →</button>
+            </div>
+        </div>
+
+        <!-- STEP 5: Your Details -->
+        <div class="step-card" id="step5" style="display:none">
+            <div class="step-header"><h2>Your Details</h2><p>Tell us how to reach you.</p></div>
+            <button class="btn-back" onclick="goToStep(4)">← Back to Services</button>
+
+            <!-- Summary -->
+            <div class="booking-summary" style="margin-top:20px">
+                <h6>🛒 Your Devices</h6>
+                <div class="summary-item"><span class="summary-device">📱 iPhone 15 Pro</span><span class="summary-service">Screen Replacement, Battery Replacement</span></div>
+            </div>
+
+            <!-- Contact -->
+            <div class="form-section">
+                <div class="form-section-title"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Contact Information</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" placeholder="John" /></div>
+                    <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" placeholder="Doe" /></div>
+                    <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" placeholder="john@example.com" /></div>
+                    <div class="form-group"><label>Phone</label><input type="tel" placeholder="+1 (555) 000-0000" /></div>
+                    <div class="form-group"><label>Company</label><input type="text" placeholder="Company name" /></div>
+                    <div class="form-group"><label>Tax ID</label><input type="text" placeholder="Tax ID" /></div>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="form-section">
+                <div class="form-section-title"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Address <span style="color:var(--rb-text-3);font-weight:400;font-size:12px">(Optional)</span></div>
+                <div class="form-grid">
+                    <div class="form-group full"><label>Street Address</label><input type="text" placeholder="123 Main St" /></div>
+                    <div class="form-group"><label>City</label><input type="text" placeholder="Portland" /></div>
+                    <div class="form-group"><label>Postal Code</label><input type="text" placeholder="97201" /></div>
+                </div>
+            </div>
+
+            <!-- Job Details -->
+            <div class="form-section">
+                <div class="form-section-title"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Booking Details</div>
+                <div class="form-grid">
+                    <div class="form-group full"><label>Job Details <span class="req">*</span></label><textarea rows="4" placeholder="Describe the issue or service needed..."></textarea></div>
+                </div>
+            </div>
+
+            <div class="gdpr-check">
+                <input type="checkbox" id="gdpr" />
+                <label for="gdpr">I agree to the processing of my personal data in accordance with the <a href="#">Privacy Policy</a>.</label>
+            </div>
+
+            <div class="step-actions">
+                <div></div>
+                <button class="btn btn-orange btn-lg" onclick="showSuccess()">📨 Submit Booking</button>
+            </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="step-card" id="stepSuccess" style="display:none">
+            <div class="success-card">
+                <div class="success-icon">✓</div>
+                <h2>Booking Submitted!</h2>
+                <p>Thank you! Your repair request has been received. We'll review it and get back to you shortly.</p>
+                <div class="case-number">
+                    <span class="label">Case Number</span>
+                    <span class="value">QF-2026-00487</span>
+                </div>
+                <p style="margin-top:20px;font-size:13px">You will receive an email confirmation shortly.</p>
+                <a href="tenant-home.html" class="btn btn-primary btn-lg" style="margin-top:24px">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-copy">© 2026 QuickFix Electronics. All rights reserved.</div>
+            <div class="footer-links">
+                <a href="tenant-home.html">Home</a><a href="tenant-book.html">Book a Repair</a>
+                <a href="tenant-services.html">Our Services</a><a href="tenant-my-account.html">My Account</a>
+            </div>
+            <div class="footer-powered">Powered by <a href="#">RepairBuddy</a></div>
+        </div>
+    </footer>
+
+    <script>
+        let currentStep = 1;
+        const devices = [];
+
+        function goToStep(step) {
+            document.querySelectorAll('.step-card').forEach(el => el.style.display = 'none');
+            document.getElementById('step' + step).style.display = 'block';
+            currentStep = step;
+            updateProgress(step);
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+        }
+
+        function updateProgress(step) {
+            const steps = document.querySelectorAll('.progress-step');
+            const connectors = document.querySelectorAll('.progress-connector');
+            steps.forEach((el, i) => {
+                const n = i + 1;
+                el.classList.remove('active', 'current', 'done');
+                if (n < step) { el.classList.add('active', 'done'); el.querySelector('.progress-step-circle').textContent = '✓'; }
+                else if (n === step) { el.classList.add('active', 'current'); el.querySelector('.progress-step-circle').textContent = n; }
+                else { el.querySelector('.progress-step-circle').textContent = n; }
+            });
+            connectors.forEach((el, i) => {
+                el.classList.toggle('active', i < step - 1);
+            });
+        }
+
+        function selectCard(el) {
+            el.closest('.selection-grid').querySelectorAll('.selection-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function addDevice(el, name) {
+            el.classList.add('selected');
+            if (!devices.includes(name)) {
+                devices.push(name);
+                renderDevices();
+            }
+        }
+
+        function removeDevice(name) {
+            const idx = devices.indexOf(name);
+            if (idx > -1) devices.splice(idx, 1);
+            renderDevices();
+        }
+
+        function renderDevices() {
+            const container = document.getElementById('selectedDevices');
+            const list = document.getElementById('deviceList');
+            const count = document.getElementById('deviceCount');
+            if (devices.length === 0) { container.style.display = 'none'; return; }
+            container.style.display = 'block';
+            count.textContent = devices.length;
+            list.innerHTML = devices.map((d, i) => `
+                <div class="selected-device">
+                    <div class="selected-device-header" onclick="toggleDeviceFields(${i})">
+                        <div class="selected-device-name">📱 ${d}</div>
+                        <div class="selected-device-actions">
+                            <span class="selected-device-toggle open" id="toggle-${i}">▼</span>
+                            <button class="selected-device-remove" onclick="event.stopPropagation();removeDevice('${d}')">✕</button>
+                        </div>
+                    </div>
+                    <div class="selected-device-fields" id="fields-${i}">
+                        <div class="sd-field">
+                            <label>IMEI / Serial Number</label>
+                            <input type="text" placeholder="e.g. 353456789012345" />
+                        </div>
+                        <div class="sd-field">
+                            <label>Pin / Passcode</label>
+                            <input type="text" placeholder="Device unlock code" />
+                        </div>
+                        <div class="sd-field sd-field-dynamic">
+                            <label>Color</label>
+                            <input type="text" placeholder="e.g. Space Black" />
+                        </div>
+                        <div class="sd-field sd-field-dynamic">
+                            <label>Storage</label>
+                            <input type="text" placeholder="e.g. 256GB" />
+                        </div>
+                        <div class="sd-field sd-field-dynamic">
+                            <label>Warranty Status</label>
+                            <input type="text" placeholder="e.g. In warranty, Out of warranty" />
+                        </div>
+                        <div class="sd-field sd-field-dynamic">
+                            <label>Purchase Date</label>
+                            <input type="date" />
+                        </div>
+                        <div class="sd-field full">
+                            <label>Device Notes</label>
+                            <textarea rows="2" placeholder="Any additional notes about this device..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleDeviceFields(idx) {
+            const fields = document.getElementById('fields-' + idx);
+            const toggle = document.getElementById('toggle-' + idx);
+            fields.classList.toggle('collapsed');
+            toggle.classList.toggle('open');
+        }
+
+        function showSuccess() {
+            document.querySelectorAll('.step-card').forEach(el => el.style.display = 'none');
+            document.getElementById('stepSuccess').style.display = 'block';
+            document.getElementById('progressBar').style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
