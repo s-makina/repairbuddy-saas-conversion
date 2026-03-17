@@ -16,9 +16,9 @@ class TenantBookingController extends Controller
             abort(404);
         }
 
-        return view('tenant.booking', [
+        return view('tenant.book', [
             'tenant' => $tenant,
-            'business' => $business,
+            'tenantSlug' => $business,
         ]);
     }
 }

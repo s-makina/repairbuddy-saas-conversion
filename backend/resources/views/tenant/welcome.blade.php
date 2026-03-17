@@ -1,51 +1,21 @@
 @php
     $tenantSlug = $tenantSlug ?? null;
     $tenant = $tenant ?? null;
-    $shopInitials = $tenant ? strtoupper(collect(explode(' ', $tenant->name))->map(fn($w) => substr($w, 0, 1))->take(2)->join('')) : 'RB';
+    $activePage = 'home';
     $isSubdomain = request()->routeIs('tenant.subdomain.*');
     $tenantRoutePrefix = $isSubdomain ? 'tenant.subdomain' : 'tenant';
-    $tenantHomeUrl = $isSubdomain ? url('/') : url('/t/' . $tenantSlug);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ $tenant->name ?? 'RepairBuddy' }} — Book a Repair</title>
+    <title>{{ $tenant->name ?? 'RepairBuddy' }} — Home</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ asset('css/tenant-public.css') }}">
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
-        :root {
-            --rb-blue: #063e70; --rb-blue-light: #0a5fa3; --rb-orange: #fd6742;
-            --rb-orange-light: #ff8a6b; --rb-bg: #fcfdfe; --rb-border: #f1f5f9;
-            --rb-text: #0f172a; --rb-text-2: #475569; --rb-text-3: #94a3b8;
-            --rb-surface: #fff; --rb-surface-2: #f8fafc
-        }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--rb-bg); color: var(--rb-text); margin: 0; line-height: 1.6 }
-
-        /* NAV */
-        .navbar { background: var(--rb-surface); border-bottom: 1px solid var(--rb-border); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px) }
-        .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 28px; height: 68px; display: flex; align-items: center; justify-content: space-between }
-        .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none }
-        .shop-logo { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--rb-blue), var(--rb-blue-light)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 16px; box-shadow: 0 2px 8px rgba(6,62,112,.2) }
-        .shop-name { font-size: 17px; font-weight: 700; color: var(--rb-text) }
-        .shop-sub { font-size: 11px; color: var(--rb-text-3); font-weight: 500 }
-        .nav-links { display: flex; align-items: center; gap: 8px }
-        .nav-links a { padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; text-decoration: none; color: var(--rb-text-2); transition: all .2s }
-        .nav-links a:hover { background: var(--rb-surface-2); color: var(--rb-text) }
-
-        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 14px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; transition: all .25s; text-decoration: none }
-        .btn-primary { background: var(--rb-blue); color: #fff; box-shadow: 0 4px 14px rgba(6,62,112,.2) }
-        .btn-primary:hover { background: #05335d; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,62,112,.3) }
-        .btn-outline { background: var(--rb-surface); border: 1.5px solid var(--rb-border); color: var(--rb-text-2) }
-        .btn-outline:hover { background: var(--rb-surface-2); border-color: #d1d5db }
-        .btn-orange { background: var(--rb-orange); color: #fff; box-shadow: 0 4px 14px rgba(253,103,66,.25) }
-        .btn-orange:hover { background: #e5532e; transform: translateY(-1px) }
-        .btn svg { width: 16px; height: 16px }
-        .btn-lg { padding: 16px 32px; font-size: 15px; border-radius: 16px }
-
         /* HERO */
         .hero { padding: 80px 28px 60px; text-align: center; position: relative; overflow: hidden }
         .hero::before { content: ''; position: absolute; top: -100px; right: -200px; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(253,103,66,.06) 0%, transparent 60%); pointer-events: none }
@@ -104,13 +74,6 @@
         .btn-white { background: #fff; color: var(--rb-blue); font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.15); position: relative; z-index: 1 }
         .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.2) }
 
-        /* FOOTER */
-        .footer { background: var(--rb-surface); border-top: 1px solid var(--rb-border); padding: 32px 28px; text-align: center }
-        .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px }
-        .footer-copy { font-size: 12px; color: var(--rb-text-3) }
-        .footer-powered { font-size: 11px; color: var(--rb-text-3) }
-        .footer-powered a { color: var(--rb-blue); font-weight: 700; text-decoration: none }
-
         @media(max-width:900px) {
             .services-grid { grid-template-columns: 1fr }
             .info-grid { grid-template-columns: 1fr }
@@ -125,24 +88,11 @@
     </style>
 </head>
 <body>
-    <!-- NAVBAR -->
-    <nav class="navbar">
-        <div class="nav-inner">
-            <a href="{{ $tenantHomeUrl }}" class="nav-brand">
-                <div class="shop-logo">{{ $shopInitials }}</div>
-                <div>
-                    <div class="shop-name">{{ $tenant->name ?? 'RepairBuddy' }}</div>
-                    <div class="shop-sub">{{ $tenantSlug }}.repairbuddy.com</div>
-                </div>
-            </a>
-            <div class="nav-links">
-                <a href="#services">Services</a>
-                <a href="#hours">Hours & Contact</a>
-                <a href="{{ route($tenantRoutePrefix.'.login', ['business' => $tenantSlug]) }}" class="btn btn-outline">Sign In</a>
-                <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}" class="btn btn-primary">Book a Repair</a>
-            </div>
-        </div>
-    </nav>
+    @include('tenant.partials.tenant-nav', [
+        'tenantSlug' => $tenantSlug,
+        'tenant' => $tenant,
+        'activePage' => $activePage
+    ])
 
     <!-- HERO -->
     <section class="hero">
@@ -160,6 +110,10 @@
                     Contact Us
                 </a>
             </div>
+            <p style="margin-top:16px;font-size:13px;color:var(--rb-text-3);">
+                Want to preview the provided mockup UI wired to the live tenant pages?
+                <a href="{{ route($tenantRoutePrefix.'.welcome.alt', ['business' => $tenantSlug]) }}" style="color:var(--rb-blue);font-weight:700;text-decoration:none;">Open the mockup-based page</a>.
+            </p>
             <div class="hero-stats">
                 <div class="h-stat"><div class="h-stat-val">4.9&#9733;</div><div class="h-stat-lbl">Customer Rating</div></div>
                 <div class="h-stat"><div class="h-stat-val">2,400+</div><div class="h-stat-lbl">Repairs Completed</div></div>
@@ -247,12 +201,9 @@
         </div>
     </div>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-        <div class="footer-inner">
-            <div class="footer-copy">&copy; {{ date('Y') }} {{ $tenant->name ?? 'RepairBuddy' }}. All rights reserved.</div>
-            <div class="footer-powered">Powered by <a href="/">RepairBuddy</a></div>
-        </div>
-    </footer>
+    @include('tenant.partials.tenant-footer', [
+        'tenantSlug' => $tenantSlug,
+        'tenant' => $tenant
+    ])
 </body>
 </html>

@@ -1,0 +1,945 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Tenant Book Page - Booking Flow Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Booking Wrapper ── */
+.booking-page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+}
+
+.booking-page-header {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.booking-page-header h1 {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin-bottom: 6px;
+}
+
+.booking-page-header p {
+    font-size: 15px;
+    color: var(--rb-text-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROGRESS BAR
+   ═══════════════════════════════════════════════════════════════════ */
+
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 40px;
+    padding: 0 20px;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+}
+
+.progress-step-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--rb-border);
+    background: var(--rb-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--rb-text-3);
+    transition: all .3s;
+    font-weight: 700;
+}
+
+.progress-step.active .progress-step-circle {
+    border-color: var(--rb-blue);
+    color: var(--rb-blue);
+    background: rgba(6,62,112,.04);
+}
+
+.progress-step.current .progress-step-circle {
+    border-color: var(--rb-orange);
+    background: var(--rb-orange);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(253,103,66,.3);
+}
+
+.progress-step.done .progress-step-circle {
+    border-color: var(--rb-success);
+    background: var(--rb-success-bg);
+    color: var(--rb-success);
+}
+
+.progress-step-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--rb-text-3);
+    white-space: nowrap;
+}
+
+.progress-step.active .progress-step-label,
+.progress-step.current .progress-step-label {
+    color: var(--rb-text);
+}
+
+.progress-connector {
+    width: 48px;
+    height: 2px;
+    background: var(--rb-border);
+    margin-bottom: 20px;
+    transition: background .3s;
+}
+
+.progress-connector.active {
+    background: var(--rb-blue);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STEP CARD
+   ═══════════════════════════════════════════════════════════════════ */
+
+.step-card {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 24px;
+    padding: 36px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    animation: fadeIn .3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.step-header {
+    margin-bottom: 28px;
+}
+
+.step-header h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    margin-bottom: 4px;
+}
+
+.step-header p {
+    font-size: 14px;
+    color: var(--rb-text-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SELECTION GRID
+   ═══════════════════════════════════════════════════════════════════ */
+
+.selection-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.selection-card {
+    background: var(--rb-surface);
+    border: 2px solid var(--rb-border);
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .25s;
+}
+
+.selection-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+}
+
+.selection-card.selected {
+    border-color: var(--rb-orange);
+    background: rgba(253,103,66,.03);
+    box-shadow: 0 0 0 3px rgba(253,103,66,.12);
+}
+
+.selection-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+}
+
+.selection-card-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--rb-text);
+}
+
+.selection-card-sub {
+    font-size: 11px;
+    color: var(--rb-text-3);
+    margin-top: 2px;
+}
+
+/* ── Compact Grid ── */
+.selection-grid-compact {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.selection-grid-compact .selection-card {
+    padding: 16px 12px;
+}
+
+.selection-grid-compact .selection-card-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.selection-grid-compact .selection-card-name {
+    font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEARCH
+   ═══════════════════════════════════════════════════════════════════ */
+
+.search-wrapper {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 12px 16px 12px 44px;
+    border-radius: 14px;
+    border: 1.5px solid var(--rb-border);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--rb-surface);
+    transition: all .2s;
+    outline: none;
+}
+
+.search-wrapper input:focus {
+    border-color: var(--rb-blue);
+    box-shadow: 0 0 0 3px rgba(6,62,112,.08);
+}
+
+.search-wrapper svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--rb-text-3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SERVICE CARDS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.service-category {
+    margin-bottom: 24px;
+}
+
+.service-category-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--rb-text-2);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.service-category-title .badge {
+    background: rgba(6,62,112,.06);
+    color: var(--rb-blue);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+}
+
+.service-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.service-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid var(--rb-border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all .2s;
+    background: var(--rb-surface);
+}
+
+.service-card:hover {
+    border-color: #cbd5e1;
+    background: var(--rb-surface-2);
+}
+
+.service-card.selected {
+    border-color: var(--rb-blue);
+    background: rgba(6,62,112,.03);
+}
+
+.service-card-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--rb-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .2s;
+    font-size: 12px;
+    color: transparent;
+}
+
+.service-card.selected .service-card-check {
+    border-color: var(--rb-blue);
+    background: var(--rb-blue);
+    color: #fff;
+}
+
+.service-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.service-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--rb-text);
+}
+
+.service-card-desc {
+    font-size: 11px;
+    color: var(--rb-text-3);
+    margin-top: 1px;
+}
+
+.service-card-price {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--rb-text);
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   APPOINTMENT
+   ═══════════════════════════════════════════════════════════════════ */
+
+.appointment-section {
+    background: var(--rb-surface-2);
+    border: 1px solid var(--rb-border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 24px;
+}
+
+.appointment-section h5 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.appointment-section .opt-badge {
+    font-size: 10px;
+    background: rgba(6,62,112,.06);
+    color: var(--rb-blue);
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+}
+
+.appointment-section p {
+    font-size: 13px;
+    color: var(--rb-text-2);
+    margin-bottom: 16px;
+}
+
+.appt-options {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.appt-option {
+    padding: 12px 18px;
+    border: 2px solid var(--rb-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .2s;
+    background: var(--rb-surface);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--rb-text-2);
+}
+
+.appt-option:hover {
+    border-color: #cbd5e1;
+}
+
+.appt-option.selected {
+    border-color: var(--rb-blue);
+    background: rgba(6,62,112,.03);
+    color: var(--rb-blue);
+}
+
+.appt-datetime {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.appt-datetime label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--rb-text);
+}
+
+.appt-datetime input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--rb-border);
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all .2s;
+}
+
+.appt-datetime input:focus {
+    border-color: var(--rb-blue);
+    box-shadow: 0 0 0 3px rgba(6,62,112,.08);
+}
+
+.time-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.time-slot {
+    padding: 8px 14px;
+    border: 1.5px solid var(--rb-border);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    background: var(--rb-surface);
+    color: var(--rb-text-2);
+}
+
+.time-slot:hover {
+    border-color: #cbd5e1;
+}
+
+.time-slot.selected {
+    border-color: var(--rb-orange);
+    background: var(--rb-orange);
+    color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FORM
+   ═══════════════════════════════════════════════════════════════════ */
+
+.form-section {
+    margin-bottom: 28px;
+}
+
+.form-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--rb-text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-section-title svg {
+    width: 18px;
+    height: 18px;
+    color: var(--rb-blue);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group.full {
+    grid-column: 1/-1;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--rb-text);
+}
+
+.form-group label .req {
+    color: var(--rb-orange);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    padding: 10px 14px;
+    border: 1.5px solid var(--rb-border);
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all .2s;
+    background: var(--rb-surface);
+    resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: var(--rb-blue);
+    box-shadow: 0 0 0 3px rgba(6,62,112,.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUMMARY
+   ═══════════════════════════════════════════════════════════════════ */
+
+.booking-summary {
+    background: var(--rb-surface-2);
+    border: 1px solid var(--rb-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.booking-summary h6 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rb-border);
+    font-size: 13px;
+}
+
+.summary-item:last-child {
+    border: none;
+}
+
+.summary-device {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.summary-service {
+    color: var(--rb-text-2);
+    font-size: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GDPR
+   ═══════════════════════════════════════════════════════════════════ */
+
+.gdpr-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+    background: var(--rb-surface-2);
+    border-radius: 12px;
+    margin-top: 16px;
+}
+
+.gdpr-check input[type=checkbox] {
+    margin-top: 3px;
+    accent-color: var(--rb-blue);
+    width: 16px;
+    height: 16px;
+}
+
+.gdpr-check label {
+    font-size: 13px;
+    color: var(--rb-text-2);
+    line-height: 1.5;
+}
+
+.gdpr-check a {
+    color: var(--rb-blue);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STEP ACTIONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.step-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rb-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SELECTED DEVICES (Step 3)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.selected-devices {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rb-border);
+}
+
+.selected-devices-title {
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.selected-devices-title .count {
+    background: var(--rb-orange);
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+}
+
+.selected-device {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: box-shadow .2s;
+}
+
+.selected-device:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.05);
+}
+
+.selected-device-header {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: var(--rb-surface-2);
+    border-bottom: 1px solid var(--rb-border);
+    transition: background .2s;
+}
+
+.selected-device-header:hover {
+    background: rgba(6,62,112,.03);
+}
+
+.selected-device-name {
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.selected-device-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.selected-device-toggle {
+    background: none;
+    border: none;
+    color: var(--rb-text-3);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+    transition: transform .2s;
+}
+
+.selected-device-toggle.open {
+    transform: rotate(180deg);
+}
+
+.selected-device-remove {
+    background: none;
+    border: none;
+    color: var(--rb-text-3);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    transition: all .2s;
+    font-size: 14px;
+}
+
+.selected-device-remove:hover {
+    color: var(--rb-orange);
+    background: rgba(253,103,66,.06);
+}
+
+.selected-device-fields {
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.selected-device-fields.collapsed {
+    display: none;
+}
+
+.sd-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sd-field.full {
+    grid-column: 1/-1;
+}
+
+.sd-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--rb-text-2);
+}
+
+.sd-field input,
+.sd-field textarea {
+    padding: 9px 12px;
+    border: 1.5px solid var(--rb-border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: all .2s;
+    background: var(--rb-surface);
+    resize: vertical;
+}
+
+.sd-field input:focus,
+.sd-field textarea:focus {
+    border-color: var(--rb-blue);
+    box-shadow: 0 0 0 3px rgba(6,62,112,.08);
+}
+
+.sd-field-dynamic {
+    position: relative;
+}
+
+.sd-field-dynamic label::after {
+    content: 'Dynamic';
+    font-size: 9px;
+    background: rgba(112,72,232,.08);
+    color: #7048e8;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DEVICE ENTRY (Step 4)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.device-entry {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.device-entry-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.device-entry-header:hover {
+    background: var(--rb-surface-2);
+}
+
+.device-entry-name {
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.device-entry-badge {
+    font-size: 10px;
+    background: var(--rb-success-bg);
+    color: var(--rb-success);
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+}
+
+.device-entry-body {
+    padding: 0 20px 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUCCESS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.success-card {
+    text-align: center;
+    padding: 60px 40px;
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--rb-success-bg);
+    color: var(--rb-success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 40px;
+}
+
+.success-card h2 {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.success-card p {
+    font-size: 15px;
+    color: var(--rb-text-2);
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.case-number {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--rb-surface-2);
+    border: 1px solid var(--rb-border);
+    border-radius: 14px;
+    padding: 16px 32px;
+    margin-top: 20px;
+}
+
+.case-number .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--rb-text-3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.case-number .value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--rb-blue);
+    letter-spacing: .04em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .selection-grid,
+    .selection-grid-compact {
+        grid-template-columns: 1fr 1fr;
+    }
+    .service-grid {
+        grid-template-columns: 1fr;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .appt-datetime {
+        grid-template-columns: 1fr;
+    }
+    .booking-page {
+        padding: 24px 16px 60px;
+    }
+    .step-card {
+        padding: 24px 20px;
+    }
+    .progress-connector {
+        width: 24px;
+    }
+    .progress-step-label {
+        font-size: 9px;
+    }
+    .selected-device-fields {
+        grid-template-columns: 1fr;
+    }
+}

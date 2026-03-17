@@ -21,6 +21,16 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
             ]);
         })->name('tenant.subdomain.welcome');
 
+            Route::get('/alt', function (\Illuminate\Http\Request $request) {
+                $tenant = \App\Support\TenantContext::tenant();
+                $tenantSlug = $request->route('business');
+
+                return view('tenant.welcome-alt', [
+                    'tenant' => $tenant,
+                    'tenantSlug' => $tenantSlug,
+                ]);
+            })->name('tenant.subdomain.welcome.alt');
+
         // Tenant-scoped authentication routes for subdomain access.
         Route::get('/login', [\App\Http\Controllers\Web\AuthController::class, 'showLogin'])
             ->middleware('guest')
@@ -209,6 +219,16 @@ Route::prefix('t/{business}')
                 'tenantSlug' => $tenantSlug,
             ]);
         })->name('tenant.welcome');
+
+        Route::get('/alt', function (\Illuminate\Http\Request $request) {
+            $tenant = \App\Support\TenantContext::tenant();
+            $tenantSlug = $request->route('business');
+
+            return view('tenant.welcome-alt', [
+                'tenant' => $tenant,
+                'tenantSlug' => $tenantSlug,
+            ]);
+        })->name('tenant.welcome.alt');
     });
 
 // Tenant-scoped Authentication (guest routes)
