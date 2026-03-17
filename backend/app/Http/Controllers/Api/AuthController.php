@@ -1043,4 +1043,170 @@ class AuthController extends Controller
             ] : null,
         ]);
     }
+
+    /**
+     * Superadmin-only login endpoint.
+     * Rejects tenant users and returns their tenant_slug for redirect.
+     */
+    public function superadminLogin(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $email = (string) $validated['email'];
+        $user = User::query()->where('email', $email)->first();
+
+        if ($this->isLockedOut($request, $email, $user)) {
+            $this->logAuthEvent($request, 'login_locked_out', $user, $email, $user?->tenant);
+
+            return response()->json([
+                'message' => 'Too many login attempts. Please try again later.',
+            ], 423);
+        }
+
+        if (! $user) {
+            $this->logAuthEvent($request, 'superadmin_login_failed', null, $validated['email'], null);
+            $this->registerFailedAttempt($request, $email, $user);
+
+            return response()->json([
+                'message' => 'Invalid credentials.',
+            ], 422);
+        }
+
+        $passwordOk = Hash::check((string) $validated['password'], (string) $user->password);
+
+        if (! $passwordOk) {
+            $this->logAuthEvent($request, 'superadmin_login_failed', $user, $email, $user->tenant);
+            $this->registerFailedAttempt($request, $email, $user);
+
+            return response()->json([
+                'message' => 'Invalid credentials.',
+            ], 422);
+        }
+
+        $this->clearFailedAttempts($request, $email);
+
+        // Check if user is a superadmin
+        if (! $user->is_admin) {
+            $this->logAuthEvent($request, 'superadmin_login_tenant_rejected', $user, $email, $user->tenant);
+
+            return response()->json([
+                'message' => 'This login page is for administrators only.',
+                'tenant_redirect' => true,
+                'tenant_slug' => $user->tenant?->slug,
+            ], 403);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $this->logAuthEvent($request, 'login_unverified', $user, $user->email, $user->tenant);
+
+            return response()->json([
+                'message' => 'Email address not verified.',
+                'verification_required' => true,
+            ], 403);
+        }
+
+        if ($user->otp_enabled && $user->otp_secret && $user->otp_confirmed_at) {
+            $otpLoginToken = Str::random(64);
+            Cache::put('otp_login:'.$otpLoginToken, (int) $user->id, now()->addMinutes(5));
+
+            $this->logAuthEvent($request, 'superadmin_login_otp_required', $user, $user->email, null);
+
+            return response()->json([
+                'otp_required' => true,
+                'otp_login_token' => $otpLoginToken,
+            ]);
+        }
+
+        /** @var NewAccessToken $newToken */
+        $newToken = $user->createToken('api');
+        $token = $newToken->plainTextToken;
+
+        $this->logAuthEvent($request, 'superadmin_login_success', $user, $user->email, null);
+
+        return response()->json([
+            'token' => $token,
+            'user' => $user,
+            'tenant' => null,
+            'permissions' => Permissions::forUser($user),
+        ]);
+    }
+
+    /**
+     * Superadmin-only OTP verification.
+     */
+    public function superadminLoginOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'otp_login_token' => ['required', 'string'],
+            'code' => ['required', 'string'],
+        ]);
+
+        $userId = Cache::get('otp_login:'.$validated['otp_login_token']);
+
+        if (! $userId) {
+            $this->logAuthEvent($request, 'login_otp_expired', null, null, null);
+
+            return response()->json([
+                'message' => 'OTP challenge expired.',
+            ], 422);
+        }
+
+        $user = User::query()->find($userId);
+        $email = (string) ($user?->email ?? '');
+
+        if ($email !== '' && $this->isLockedOut($request, $email, $user)) {
+            $this->logAuthEvent($request, 'login_otp_locked_out', $user, $email, $user?->tenant);
+
+            return response()->json([
+                'message' => 'Too many login attempts. Please try again later.',
+            ], 423);
+        }
+
+        if (! $user || ! $user->hasVerifiedEmail() || ! $user->otp_enabled || ! $user->otp_secret) {
+            $this->logAuthEvent($request, 'login_otp_invalid', $user, $user?->email, $user?->tenant);
+
+            return response()->json([
+                'message' => 'OTP challenge invalid.',
+            ], 422);
+        }
+
+        // Verify this is a superadmin
+        if (! $user->is_admin) {
+            $this->logAuthEvent($request, 'superadmin_otp_tenant_rejected', $user, $user->email, $user->tenant);
+
+            return response()->json([
+                'message' => 'This login page is for administrators only.',
+                'tenant_redirect' => true,
+                'tenant_slug' => $user->tenant?->slug,
+            ], 403);
+        }
+
+        if (! Totp::verify($user->otp_secret, $validated['code'])) {
+            $this->logAuthEvent($request, 'login_otp_failed', $user, $user->email, $user->tenant);
+            $this->registerFailedAttempt($request, (string) $user->email, $user);
+
+            return response()->json([
+                'message' => 'Invalid OTP code.',
+            ], 422);
+        }
+
+        $this->clearFailedAttempts($request, (string) $user->email);
+        Cache::forget('otp_login:'.$validated['otp_login_token']);
+
+        /** @var NewAccessToken $newToken */
+        $newToken = $user->createToken('api');
+        $token = $newToken->plainTextToken;
+
+        $this->logAuthEvent($request, 'superadmin_login_otp_success', $user, $user->email, null);
+
+        return response()->json([
+            'token' => $token,
+            'user' => $user,
+            'tenant' => null,
+            'permissions' => Permissions::forUser($user),
+        ]);
+    }
 }

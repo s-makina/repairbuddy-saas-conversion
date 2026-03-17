@@ -14,12 +14,12 @@ export function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
     if (auth.loading) return;
 
     if (!auth.isAuthenticated) {
-      router.replace(`/superadmin/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/superadmin?next=${encodeURIComponent(pathname)}`);
       return;
     }
 
     if (!auth.isAdmin) {
-      router.replace(`/superadmin/login?error=access_denied`);
+      router.replace(`/superadmin?error=access_denied`);
       return;
     }
   }, [auth.loading, auth.isAuthenticated, auth.isAdmin, pathname, router]);

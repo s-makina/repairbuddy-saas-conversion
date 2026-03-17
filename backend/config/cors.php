@@ -24,6 +24,7 @@ return [
     'allowed_origins_patterns' => [
         '/^https?:\/\/([a-z0-9-]+\.)?99smartx\.com$/',
         '/^https?:\/\/([a-z0-9-]+\.)?repairbuddy\.test$/',
+        '/^https?:\/\/localhost(:[0-9]+)?$/',
     ],
 
     'allowed_headers' => ['*'],

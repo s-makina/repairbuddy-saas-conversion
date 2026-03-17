@@ -66,7 +66,7 @@ function SetPasswordPageInner() {
   }
 
   if (!auth.isAuthenticated) {
-    router.replace("/login");
+    router.replace(auth.isAdmin ? "/superadmin" : "/login");
     return null;
   }
 

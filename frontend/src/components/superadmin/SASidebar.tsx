@@ -117,7 +117,7 @@ export function SASidebar() {
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
-    router.replace("/");
+    router.replace("/superadmin");
     await logout();
   };
 
@@ -157,7 +157,7 @@ export function SASidebar() {
     {
       label: "Overview",
       items: [
-        { label: "Dashboard", icon: "dashboard", href: "/superadmin" },
+        { label: "Dashboard", icon: "dashboard", href: "/superadmin/dashboard" },
         { label: "Activity Feed", icon: "activity", href: "/superadmin/activity", badge: activityBadge, badgeAlert: activityHasAlerts },
       ],
     },

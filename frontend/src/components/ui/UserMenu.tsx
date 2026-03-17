@@ -14,6 +14,7 @@ export function UserMenu({
   settingsHref,
   securityHref,
   onLogout,
+  isAdmin = false,
   className,
 }: {
   userName: string;
@@ -23,6 +24,7 @@ export function UserMenu({
   settingsHref: string;
   securityHref?: string | null;
   onLogout: () => void | Promise<void>;
+  isAdmin?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -83,7 +85,7 @@ export function UserMenu({
     try {
       await onLogout();
     } finally {
-      router.replace("/login");
+      router.replace(isAdmin ? "/superadmin" : "/login");
       setLoggingOut(false);
     }
   }

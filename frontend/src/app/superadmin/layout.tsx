@@ -24,7 +24,7 @@ export default function AdminV2Layout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
 
   // Login page renders standalone (no sidebar shell)
-  if (pathname === "/superadmin/login") {
+  if (pathname === "/superadmin") {
     return (
       <>
         {SUPERADMIN_FONTS}

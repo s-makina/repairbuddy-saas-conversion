@@ -36,7 +36,8 @@ export function RequireAuth({
     if (auth.loading) return;
 
     if (!auth.isAuthenticated) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      // Redirect admins to superadmin login, others to tenant login
+      router.replace(auth.isAdmin ? `/superadmin?next=${encodeURIComponent(pathname)}` : `/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
 
