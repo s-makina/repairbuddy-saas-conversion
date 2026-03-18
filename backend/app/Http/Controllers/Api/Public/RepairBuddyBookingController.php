@@ -54,24 +54,9 @@ class RepairBuddyBookingController extends Controller
 
         $general = is_array($settings['general'] ?? null) ? $settings['general'] : [];
         $booking = is_array($settings['booking'] ?? null) ? $settings['booking'] : [];
-        $bookingsLegacy = is_array($settings['bookings'] ?? null) ? $settings['bookings'] : [];
         $myAccount = is_array($settings['myAccount'] ?? null) ? $settings['myAccount'] : [];
         $devicesBrands = is_array($settings['devicesBrands'] ?? null) ? $settings['devicesBrands'] : [];
         $estimates = is_array($settings['estimates'] ?? null) ? $settings['estimates'] : [];
-
-        // Legacy fallback: map old 'bookings' (plural) keys to new 'booking' keys
-        if (empty($booking) && ! empty($bookingsLegacy)) {
-            $booking = [
-                'sendBookingQuoteToJobs' => (bool) ($bookingsLegacy['turnBookingFormsToJobs'] ?? false),
-                'turnOffOtherDeviceBrand' => (bool) ($bookingsLegacy['turnOffOtherDeviceBrands'] ?? false),
-                'turnOffOtherService' => (bool) ($bookingsLegacy['turnOffOtherService'] ?? false),
-                'turnOffServicePrice' => (bool) ($bookingsLegacy['turnOffServicePrice'] ?? false),
-                'turnOffIdImeiInBooking' => (bool) ($bookingsLegacy['turnOffIdImeiBooking'] ?? false),
-                'defaultType' => $bookingsLegacy['wc_booking_default_type'] ?? '',
-                'defaultBrand' => $bookingsLegacy['wc_booking_default_brand'] ?? '',
-                'defaultDevice' => $bookingsLegacy['wc_booking_default_device'] ?? '',
-            ];
-        }
 
         return response()->json([
             'disabled' => (bool) ($myAccount['disableBooking'] ?? false),

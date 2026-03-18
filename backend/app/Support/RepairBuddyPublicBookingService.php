@@ -71,20 +71,8 @@ class RepairBuddyPublicBookingService
 
         $general = is_array($settings['general'] ?? null) ? $settings['general'] : [];
         $booking = is_array($settings['booking'] ?? null) ? $settings['booking'] : [];
-        $bookingsLegacy = is_array($settings['bookings'] ?? null) ? $settings['bookings'] : [];
         $myAccount = is_array($settings['myAccount'] ?? null) ? $settings['myAccount'] : [];
         $devicesBrands = is_array($settings['devicesBrands'] ?? null) ? $settings['devicesBrands'] : [];
-
-        // Legacy fallback: map old 'bookings' (plural) keys to new 'booking' keys
-        if (empty($booking) && ! empty($bookingsLegacy)) {
-            $booking = [
-                'sendBookingQuoteToJobs' => (bool) ($bookingsLegacy['turnBookingFormsToJobs'] ?? false),
-                'turnOffOtherDeviceBrand' => (bool) ($bookingsLegacy['turnOffOtherDeviceBrands'] ?? false),
-                'turnOffOtherService' => (bool) ($bookingsLegacy['turnOffOtherService'] ?? false),
-                'turnOffServicePrice' => (bool) ($bookingsLegacy['turnOffServicePrice'] ?? false),
-                'turnOffIdImeiInBooking' => (bool) ($bookingsLegacy['turnOffIdImeiBooking'] ?? false),
-            ];
-        }
         $estimates = is_array($settings['estimates'] ?? null) ? $settings['estimates'] : [];
 
         if ((bool) ($myAccount['disableBooking'] ?? false)) {
@@ -375,21 +363,15 @@ class RepairBuddyPublicBookingService
             'end_anch_status_check_link' => '</a>',
         ];
 
-        // Read from tenant settings (bookings section)
-        $bookingsSettings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings.bookings', []);
-        if (!is_array($bookingsSettings)) {
-            $bookingsSettings = [];
-        }
         $bookingSettings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings.booking', []);
         if (!is_array($bookingSettings)) {
             $bookingSettings = [];
         }
 
-        // Prefer new keys (booking singular) with fallback to legacy keys (bookings plural)
-        $customerSubject = (string) ($bookingSettings['customerEmailSubject'] ?? $bookingsSettings['email_subject_customer'] ?? '');
-        $customerBody = (string) ($bookingSettings['customerEmailBody'] ?? $bookingsSettings['email_body_customer'] ?? '');
-        $adminSubject = (string) ($bookingSettings['adminEmailSubject'] ?? $bookingsSettings['email_subject_admin'] ?? '');
-        $adminBody = (string) ($bookingSettings['adminEmailBody'] ?? $bookingsSettings['email_body_admin'] ?? '');
+        $customerSubject = (string) ($bookingSettings['customerEmailSubject'] ?? '');
+        $customerBody = (string) ($bookingSettings['customerEmailBody'] ?? '');
+        $adminSubject = (string) ($bookingSettings['adminEmailSubject'] ?? '');
+        $adminBody = (string) ($bookingSettings['adminEmailBody'] ?? '');
 
         // Fallback defaults matching WordPress plugin
         if (trim($customerSubject) === '') {

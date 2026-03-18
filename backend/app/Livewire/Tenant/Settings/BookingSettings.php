@@ -98,7 +98,7 @@ class BookingSettings extends Component
     private function loadSettings(): void
     {
         $store = new TenantSettingsStore($this->tenant);
-        $settings = $store->get('bookings', []);
+        $settings = $store->get('booking', []);
         if (! is_array($settings)) {
             $settings = [];
         }
@@ -138,18 +138,18 @@ Job Details are listed below.
 {{order_invoice_details}}
 TEXT;
 
-        $this->email_subject_customer       = (string) ($settings['email_subject_customer'] ?? $defaultCustomerSubject);
-        $this->email_body_customer          = (string) ($settings['email_body_customer'] ?? $defaultCustomerBody);
-        $this->email_subject_admin          = (string) ($settings['email_subject_admin'] ?? $defaultAdminSubject);
-        $this->email_body_admin             = (string) ($settings['email_body_admin'] ?? $defaultAdminBody);
-        $this->send_to_jobs                 = (bool) ($settings['send_to_jobs'] ?? false);
-        $this->turn_off_other_device_brands = (bool) ($settings['turn_off_other_device_brands'] ?? false);
-        $this->turn_off_other_service       = (bool) ($settings['turn_off_other_service'] ?? false);
-        $this->turn_off_service_price       = (bool) ($settings['turn_off_service_price'] ?? false);
-        $this->turn_off_id_imei_booking     = (bool) ($settings['turn_off_id_imei_booking'] ?? false);
-        $this->default_type                 = (string) ($settings['default_type'] ?? '');
-        $this->default_brand                = (string) ($settings['default_brand'] ?? '');
-        $this->default_device               = (string) ($settings['default_device'] ?? '');
+        $this->email_subject_customer       = (string) ($settings['customerEmailSubject'] ?? $defaultCustomerSubject);
+        $this->email_body_customer          = (string) ($settings['customerEmailBody'] ?? $defaultCustomerBody);
+        $this->email_subject_admin          = (string) ($settings['adminEmailSubject'] ?? $defaultAdminSubject);
+        $this->email_body_admin             = (string) ($settings['adminEmailBody'] ?? $defaultAdminBody);
+        $this->send_to_jobs                 = (bool) ($settings['sendBookingQuoteToJobs'] ?? false);
+        $this->turn_off_other_device_brands = (bool) ($settings['turnOffOtherDeviceBrand'] ?? false);
+        $this->turn_off_other_service       = (bool) ($settings['turnOffOtherService'] ?? false);
+        $this->turn_off_service_price       = (bool) ($settings['turnOffServicePrice'] ?? false);
+        $this->turn_off_id_imei_booking     = (bool) ($settings['turnOffIdImeiInBooking'] ?? false);
+        $this->default_type                 = (string) ($settings['defaultType'] ?? '');
+        $this->default_brand                = (string) ($settings['defaultBrand'] ?? '');
+        $this->default_device               = (string) ($settings['defaultDevice'] ?? '');
     }
 
     public function save(): void
@@ -158,19 +158,23 @@ TEXT;
 
         $store = new TenantSettingsStore($this->tenant);
 
-        $store->merge('bookings', [
-            'email_subject_customer'       => $this->email_subject_customer,
-            'email_body_customer'          => $this->email_body_customer,
-            'email_subject_admin'          => $this->email_subject_admin,
-            'email_body_admin'             => $this->email_body_admin,
-            'send_to_jobs'                 => $this->send_to_jobs,
-            'turn_off_other_device_brands' => $this->turn_off_other_device_brands,
-            'turn_off_other_service'       => $this->turn_off_other_service,
-            'turn_off_service_price'       => $this->turn_off_service_price,
-            'turn_off_id_imei_booking'     => $this->turn_off_id_imei_booking,
-            'default_type'                 => $this->default_type,
-            'default_brand'                => $this->default_brand,
-            'default_device'               => $this->default_device,
+        $store->merge('booking', [
+            'customerEmailSubject'       => $this->email_subject_customer,
+            'customerEmailBody'          => $this->email_body_customer,
+            'adminEmailSubject'          => $this->email_subject_admin,
+            'adminEmailBody'             => $this->email_body_admin,
+            'sendBookingQuoteToJobs'     => $this->send_to_jobs,
+            'turnOffOtherDeviceBrand'    => $this->turn_off_other_device_brands,
+            'turnOffOtherService'        => $this->turn_off_other_service,
+            'turnOffServicePrice'        => $this->turn_off_service_price,
+            'turnOffIdImeiInBooking'     => $this->turn_off_id_imei_booking,
+            'defaultType'                => $this->default_type,
+            'defaultBrand'               => $this->default_brand,
+            'defaultDevice'              => $this->default_device,
+        ]);
+
+        $store->merge('estimates', [
+            'bookingQuoteSendToJobs' => $this->send_to_jobs,
         ]);
 
         $store->save();
