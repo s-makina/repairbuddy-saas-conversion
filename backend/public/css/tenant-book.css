@@ -1013,3 +1013,59 @@
 .device-entry-body.collapsed {
     display: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   IMAGES UI STYLE
+   ═══════════════════════════════════════════════════════════════════ */
+
+.selection-grid-images {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.selection-card-image {
+    padding: 0;
+    overflow: hidden;
+}
+
+.selection-card-image .selection-card-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #f7f8fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.selection-card-image .selection-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 12px;
+    transition: transform .25s;
+}
+
+.selection-card-image:hover .selection-card-img img {
+    transform: scale(1.06);
+}
+
+.selection-card-image .selection-card-name {
+    padding: 12px 12px 10px;
+}
+
+.selection-card-image .selection-card-sub {
+    padding: 0 12px 12px;
+}
+
+@media (max-width: 768px) {
+    .selection-grid-images {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .selection-grid-images {
+        grid-template-columns: 1fr;
+    }
+}

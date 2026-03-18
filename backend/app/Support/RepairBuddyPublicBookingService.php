@@ -71,8 +71,20 @@ class RepairBuddyPublicBookingService
 
         $general = is_array($settings['general'] ?? null) ? $settings['general'] : [];
         $booking = is_array($settings['booking'] ?? null) ? $settings['booking'] : [];
+        $bookingsLegacy = is_array($settings['bookings'] ?? null) ? $settings['bookings'] : [];
         $myAccount = is_array($settings['myAccount'] ?? null) ? $settings['myAccount'] : [];
         $devicesBrands = is_array($settings['devicesBrands'] ?? null) ? $settings['devicesBrands'] : [];
+
+        // Legacy fallback: map old 'bookings' (plural) keys to new 'booking' keys
+        if (empty($booking) && ! empty($bookingsLegacy)) {
+            $booking = [
+                'sendBookingQuoteToJobs' => (bool) ($bookingsLegacy['turnBookingFormsToJobs'] ?? false),
+                'turnOffOtherDeviceBrand' => (bool) ($bookingsLegacy['turnOffOtherDeviceBrands'] ?? false),
+                'turnOffOtherService' => (bool) ($bookingsLegacy['turnOffOtherService'] ?? false),
+                'turnOffServicePrice' => (bool) ($bookingsLegacy['turnOffServicePrice'] ?? false),
+                'turnOffIdImeiInBooking' => (bool) ($bookingsLegacy['turnOffIdImeiBooking'] ?? false),
+            ];
+        }
         $estimates = is_array($settings['estimates'] ?? null) ? $settings['estimates'] : [];
 
         if ((bool) ($myAccount['disableBooking'] ?? false)) {
@@ -94,7 +106,7 @@ class RepairBuddyPublicBookingService
             }
         }
 
-        $gdprText = is_string($general['wc_rb_gdpr_acceptance'] ?? null) ? trim((string) $general['wc_rb_gdpr_acceptance']) : '';
+        $gdprText = is_string($general['gdprAcceptanceText'] ?? $general['wc_rb_gdpr_acceptance'] ?? null) ? trim((string) ($general['gdprAcceptanceText'] ?? $general['wc_rb_gdpr_acceptance'] ?? '')) : '';
         if ($gdprText !== '') {
             $accepted = array_key_exists('gdprAccepted', $validated) ? (bool) $validated['gdprAccepted'] : false;
             if (! $accepted) {
@@ -368,11 +380,16 @@ class RepairBuddyPublicBookingService
         if (!is_array($bookingsSettings)) {
             $bookingsSettings = [];
         }
+        $bookingSettings = data_get($tenant->setup_state ?? [], 'repairbuddy_settings.booking', []);
+        if (!is_array($bookingSettings)) {
+            $bookingSettings = [];
+        }
 
-        $customerSubject = (string) ($bookingsSettings['email_subject_customer'] ?? '');
-        $customerBody = (string) ($bookingsSettings['email_body_customer'] ?? '');
-        $adminSubject = (string) ($bookingsSettings['email_subject_admin'] ?? '');
-        $adminBody = (string) ($bookingsSettings['email_body_admin'] ?? '');
+        // Prefer new keys (booking singular) with fallback to legacy keys (bookings plural)
+        $customerSubject = (string) ($bookingSettings['customerEmailSubject'] ?? $bookingsSettings['email_subject_customer'] ?? '');
+        $customerBody = (string) ($bookingSettings['customerEmailBody'] ?? $bookingsSettings['email_body_customer'] ?? '');
+        $adminSubject = (string) ($bookingSettings['adminEmailSubject'] ?? $bookingsSettings['email_subject_admin'] ?? '');
+        $adminBody = (string) ($bookingSettings['adminEmailBody'] ?? $bookingsSettings['email_body_admin'] ?? '');
 
         // Fallback defaults matching WordPress plugin
         if (trim($customerSubject) === '') {

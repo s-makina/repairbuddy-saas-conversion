@@ -82,7 +82,7 @@
         <!-- STEP 2: Brand -->
         <div class="step-card" id="step2" style="display:none">
             <div class="step-header"><h2>Select Brand</h2><p>Which manufacturer or brand?</p></div>
-            <button class="btn-back" onclick="RB.goToStep(1)">← Back to Device Types</button>
+            <button class="btn-back" id="step2Back" onclick="RB.goToStep(1)">← Back to Device Types</button>
             <div id="step2Loading" class="rb-loading-inline" style="margin-top:20px"><div class="rb-spinner"></div></div>
             <div class="selection-grid" id="brandGrid" style="display:none;margin-top:20px"></div>
             <div id="step2Empty" class="rb-empty-state" style="display:none">No brands available for this device type.</div>
@@ -275,6 +275,7 @@
             servicesCache: {},     // deviceId -> {services/groups}
             selectedAppointment: { setting_id: null, date: null, time_slot: null },
             currentStep: 1,
+            uiStyle: 'wizard',
             submitting: false,
         };
 
@@ -349,19 +350,73 @@
                     show('warrantySection');
                 }
 
+                // Setup UI style
+                state.uiStyle = configData.booking.publicBookingUiStyle || 'wizard';
+                if (state.uiStyle === 'images') {
+                    document.querySelectorAll('.selection-grid').forEach(g => g.classList.add('selection-grid-images'));
+                }
+
+                // Setup ungrouped mode (skip Device Type step)
+                const isUngrouped = configData.booking.publicBookingMode === 'ungrouped';
+                if (isUngrouped) {
+                    // Hide step 1 progress indicator + first connector
+                    const progSteps = el('progressBar').querySelectorAll('.progress-step');
+                    const progConns = el('progressBar').querySelectorAll('.progress-connector');
+                    if (progSteps[0]) progSteps[0].style.display = 'none';
+                    if (progConns[0]) progConns[0].style.display = 'none';
+                    // Relabel remaining steps
+                    const labels = ['Brand', 'Device', 'Service', 'Details'];
+                    for (let i = 1; i < progSteps.length; i++) {
+                        const circle = progSteps[i].querySelector('.progress-step-circle');
+                        const label = progSteps[i].querySelector('.progress-step-label');
+                        if (circle) circle.textContent = i;
+                        if (label) label.textContent = labels[i - 1] || '';
+                    }
+                    // Hide "Back to Device Types" button
+                    const step2Back = el('step2Back');
+                    if (step2Back) step2Back.style.display = 'none';
+                }
+
                 // Load appointment settings
                 apiFetch('/appointment-settings').then(data => {
                     state.appointmentSettings = data.appointment_settings || [];
                 }).catch(() => {});
 
-                // Load device types
+                const defaults = configData.booking || {};
+
+                if (isUngrouped) {
+                    // Ungrouped: skip Device Type, go straight to Brands
+                    hide('bookingLoading');
+                    show('bookingMain');
+                    goToStep(2);
+
+                    if (defaults.defaultBrand) {
+                        await loadBrands(null);
+                        const defBrand = state.brands.find(b => b.id == defaults.defaultBrand);
+                        if (defBrand) {
+                            state.selectedBrandId = defBrand.id;
+                            state.selectedBrandName = defBrand.name;
+                            await loadDevices(null, defBrand.id);
+                            if (defaults.defaultDevice) {
+                                const defDev = state.allDevices.find(d => d.id == defaults.defaultDevice);
+                                if (defDev) { addDevice(defDev); goToStep(4); return; }
+                            }
+                            goToStep(3);
+                            return;
+                        }
+                    } else {
+                        await loadBrands(null);
+                    }
+                    return;
+                }
+
+                // Grouped / Warranty: load device types
                 await loadDeviceTypes();
 
                 hide('bookingLoading');
                 show('bookingMain');
 
                 // Default selections
-                const defaults = configData.booking || {};
                 if (defaults.defaultType) {
                     const defType = state.deviceTypes.find(t => t.id == defaults.defaultType);
                     if (defType) {
@@ -410,16 +465,21 @@
         }
 
         function updateProgress(step) {
+            const isUngrouped = state.config?.booking?.publicBookingMode === 'ungrouped';
             const steps = document.querySelectorAll('.progress-step');
             const connectors = document.querySelectorAll('.progress-connector');
             steps.forEach((el, i) => {
                 const n = i + 1;
+                // In ungrouped, step 1 is hidden; display number offset by -1
+                const displayNum = isUngrouped ? n - 1 : n;
                 el.classList.remove('active', 'current', 'done');
+                if (isUngrouped && n === 1) return; // skip hidden step
                 if (n < step) { el.classList.add('active', 'done'); el.querySelector('.progress-step-circle').textContent = '✓'; }
-                else if (n === step) { el.classList.add('active', 'current'); el.querySelector('.progress-step-circle').textContent = n; }
-                else { el.querySelector('.progress-step-circle').textContent = n; }
+                else if (n === step) { el.classList.add('active', 'current'); el.querySelector('.progress-step-circle').textContent = displayNum; }
+                else { el.querySelector('.progress-step-circle').textContent = displayNum; }
             });
             connectors.forEach((el, i) => {
+                if (isUngrouped && i === 0) return; // skip hidden connector
                 el.classList.toggle('active', i < step - 1);
             });
         }
@@ -474,11 +534,20 @@
                 show('step1Empty');
                 return;
             }
+            const isImages = state.uiStyle === 'images';
+            if (isImages) grid.classList.add('selection-grid-images');
             grid.innerHTML = state.deviceTypes.map((t, i) => {
+                const bg = TYPE_COLORS[i % TYPE_COLORS.length];
+                if (isImages && t.image_url) {
+                    return '<div class="selection-card selection-card-image" data-type-id="' + t.id + '" onclick="RB.selectType(' + t.id + ',this)">'
+                        + '<div class="selection-card-img"><img src="' + esc(t.image_url) + '" alt="' + esc(t.name) + '" /></div>'
+                        + '<div class="selection-card-name">' + esc(t.name) + '</div>'
+                        + (t.description ? '<div class="selection-card-sub">' + esc(t.description) + '</div>' : '')
+                        + '</div>';
+                }
                 const icon = t.image_url
                     ? '<img src="' + esc(t.image_url) + '" alt="" style="width:28px;height:28px;object-fit:contain" />'
                     : guessIcon(t.name);
-                const bg = TYPE_COLORS[i % TYPE_COLORS.length];
                 return '<div class="selection-card" data-type-id="' + t.id + '" onclick="RB.selectType(' + t.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:' + bg + '">' + icon + '</div>'
                     + '<div class="selection-card-name">' + esc(t.name) + '</div>'
@@ -506,7 +575,8 @@
             hide('brandGrid');
             hide('step2Empty');
             try {
-                const data = await apiFetch('/brands?typeId=' + typeId);
+                const params = typeId ? '?typeId=' + encodeURIComponent(typeId) : '';
+                const data = await apiFetch('/brands' + params);
                 state.brands = data.brands || [];
                 renderBrands();
             } catch (err) {
@@ -524,11 +594,19 @@
                 show('step2Empty');
                 return;
             }
+            const isImages = state.uiStyle === 'images';
+            if (isImages) grid.classList.add('selection-grid-images');
             grid.innerHTML = state.brands.map((b, i) => {
+                const bg = TYPE_COLORS[i % TYPE_COLORS.length];
+                if (isImages && b.image_url) {
+                    return '<div class="selection-card selection-card-image" data-brand-id="' + b.id + '" onclick="RB.selectBrand(' + b.id + ',this)">'
+                        + '<div class="selection-card-img"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" /></div>'
+                        + '<div class="selection-card-name">' + esc(b.name) + '</div>'
+                        + '</div>';
+                }
                 const icon = b.image_url
                     ? '<img src="' + esc(b.image_url) + '" alt="" style="width:28px;height:28px;object-fit:contain" />'
                     : (b.name.toLowerCase() === 'other' ? '❓' : '🏷️');
-                const bg = TYPE_COLORS[i % TYPE_COLORS.length];
                 return '<div class="selection-card" data-brand-id="' + b.id + '" onclick="RB.selectBrand(' + b.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:' + bg + '">' + icon + '</div>'
                     + '<div class="selection-card-name">' + esc(b.name) + '</div>'
@@ -556,7 +634,10 @@
             hide('step3Empty');
             el('deviceSearch').value = '';
             try {
-                const data = await apiFetch('/devices?typeId=' + typeId + '&brandId=' + brandId);
+                const params = new URLSearchParams();
+                if (typeId) params.set('typeId', typeId);
+                if (brandId) params.set('brandId', brandId);
+                const data = await apiFetch('/devices?' + params.toString());
                 state.allDevices = data.devices || [];
                 state.filteredDevices = [...state.allDevices];
                 renderDeviceGrid();
@@ -589,10 +670,20 @@
             }
             hide('step3Empty');
             const alreadySelected = state.selectedDevices.map(d => d.device_id);
+            const isImages = state.uiStyle === 'images';
+            if (isImages) grid.classList.add('selection-grid-images');
             grid.innerHTML = state.filteredDevices.map(d => {
                 const sel = alreadySelected.includes(d.id) ? ' selected' : '';
                 const isOther = d.is_other;
                 const style = isOther ? ' style="border-style:dashed"' : '';
+
+                if (isImages && d.image_url) {
+                    return '<div class="selection-card selection-card-image' + sel + '"' + style + ' data-device-id="' + d.id + '" onclick="RB.toggleDevice(' + d.id + ',this)">'
+                        + '<div class="selection-card-img"><img src="' + esc(d.image_url) + '" alt="' + esc(d.model) + '" /></div>'
+                        + '<div class="selection-card-name">' + esc(d.model) + '</div>'
+                        + '</div>';
+                }
+
                 const icon = isOther ? '❓' : '📱';
                 return '<div class="selection-card' + sel + '"' + style + ' data-device-id="' + d.id + '" onclick="RB.toggleDevice(' + d.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">' + icon + '</div>'
@@ -1111,6 +1202,10 @@
         // ─── Step transitions with data loading ───
         const originalGoToStep = goToStep;
         function stepAwareGoToStep(step) {
+            // In ungrouped mode, prevent navigating to step 1
+            if (step === 1 && state.config?.booking?.publicBookingMode === 'ungrouped') {
+                step = 2;
+            }
             if (step === 4 && state.selectedDevices.length > 0) {
                 originalGoToStep(step);
                 loadServicesForDevices();

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class RepairBuddyDevice extends Model
 {
@@ -65,6 +66,12 @@ class RepairBuddyDevice extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->image_path);
+        $url = Storage::disk('public')->url($this->image_path);
+
+        if (Str::startsWith($url, ['http://', 'https://', '//'])) {
+            return $url;
+        }
+
+        return asset(ltrim($url, '/'));
     }
 }
