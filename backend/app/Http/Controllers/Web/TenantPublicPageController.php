@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\RepairBuddyServiceType;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 
@@ -31,10 +32,35 @@ class TenantPublicPageController extends Controller
             abort(404);
         }
 
+        $branchId = $tenant->default_branch_id;
+
+        // Fetch service types with their active services for the default branch
+        $serviceTypes = RepairBuddyServiceType::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->whereNull('parent_id')
+            ->with(['services' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get();
+
+        // Also get services without a type
+        $untypedServices = \App\Models\RepairBuddyService::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->whereNull('service_type_id')
+            ->orderBy('name')
+            ->get();
+
         return view('tenant.services', [
-            'tenant'      => $tenant,
-            'tenantSlug'  => $business,
-            'business'    => $business,
+            'tenant'          => $tenant,
+            'tenantSlug'      => $business,
+            'business'        => $business,
+            'serviceTypes'    => $serviceTypes,
+            'untypedServices' => $untypedServices,
         ]);
     }
 
