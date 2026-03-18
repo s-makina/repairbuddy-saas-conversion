@@ -1,0 +1,548 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Tenant My Account Page - Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Page Wrapper ── */
+.page-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+}
+
+/* ── View Toggle (mockup preview) ── */
+.view-toggle {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    justify-content: center;
+}
+
+.view-toggle-btn {
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid var(--rb-border);
+    background: var(--rb-surface);
+    color: var(--rb-text-2);
+    transition: all .2s;
+    font-family: inherit;
+}
+
+.view-toggle-btn:hover {
+    border-color: #cbd5e1;
+}
+
+.view-toggle-btn.active {
+    border-color: var(--rb-blue);
+    background: rgba(6,62,112,.06);
+    color: var(--rb-blue);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOGIN VIEW
+   ═══════════════════════════════════════════════════════════════════ */
+
+.login-view {
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.login-card {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+
+.login-card h2 {
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.login-card .sub {
+    font-size: 14px;
+    color: var(--rb-text-2);
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--rb-text);
+}
+
+.form-group label .req {
+    color: var(--rb-orange);
+}
+
+.form-group input {
+    padding: 12px 16px;
+    border: 1.5px solid var(--rb-border);
+    border-radius: 14px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all .2s;
+    background: var(--rb-surface);
+}
+
+.form-group input:focus {
+    border-color: var(--rb-blue);
+    box-shadow: 0 0 0 3px rgba(6,62,112,.08);
+}
+
+.login-actions {
+    margin-top: 24px;
+}
+
+.login-actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+}
+
+.login-divider {
+    text-align: center;
+    margin: 20px 0;
+    color: var(--rb-text-3);
+    font-size: 12px;
+    font-weight: 500;
+    position: relative;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: calc(50% - 20px);
+    height: 1px;
+    background: var(--rb-border);
+}
+
+.login-divider::before { left: 0; }
+.login-divider::after { right: 0; }
+
+.login-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--rb-text-2);
+}
+
+.login-link a {
+    color: var(--rb-blue);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+.login-extra {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.login-extra a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--rb-text-2);
+    text-decoration: none;
+    border: 1.5px solid var(--rb-border);
+    transition: all .2s;
+}
+
+.login-extra a:hover {
+    background: var(--rb-surface-2);
+    border-color: #cbd5e1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD VIEW
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dashboard-view {
+    display: none;
+}
+
+.dashboard-view.show {
+    display: block;
+}
+
+.dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.dash-user {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dash-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--rb-blue), var(--rb-orange));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 18px;
+}
+
+.dash-name {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.dash-email {
+    font-size: 13px;
+    color: var(--rb-text-3);
+}
+
+/* ── Stats Grid ── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 18px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--rb-text);
+    letter-spacing: -.02em;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--rb-text-3);
+    font-weight: 600;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dash-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--rb-border);
+    padding-bottom: 0;
+}
+
+.dash-tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--rb-text-3);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    position: relative;
+    transition: color .2s;
+}
+
+.dash-tab.active {
+    color: var(--rb-blue);
+}
+
+.dash-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--rb-blue);
+    border-radius: 2px;
+}
+
+.dash-tab .tab-count {
+    font-size: 10px;
+    background: var(--rb-orange);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 99px;
+    margin-left: 4px;
+    font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPAIR CARDS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.section-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title .badge {
+    font-size: 11px;
+    background: var(--rb-orange);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-weight: 700;
+}
+
+.repair-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 40px;
+}
+
+.repair-card {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 18px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    transition: all .2s;
+    flex-wrap: wrap;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.repair-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+    border-color: #d1d5db;
+}
+
+.repair-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.repair-case {
+    font-size: 12px;
+    color: var(--rb-blue);
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.repair-device {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.repair-service {
+    font-size: 12px;
+    color: var(--rb-text-2);
+    margin-top: 2px;
+}
+
+.repair-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.repair-date {
+    font-size: 12px;
+    color: var(--rb-text-3);
+    font-weight: 500;
+}
+
+.repair-arrow {
+    color: var(--rb-text-3);
+    font-size: 16px;
+}
+
+/* ── Status Badges ── */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-badge.in-progress {
+    background: rgba(6,62,112,.06);
+    color: var(--rb-blue);
+}
+
+.status-badge.waiting {
+    background: var(--rb-warning-bg);
+    color: var(--rb-warning);
+}
+
+.status-badge.completed {
+    background: var(--rb-success-bg);
+    color: var(--rb-success);
+}
+
+.status-badge.ready {
+    background: rgba(253,103,66,.08);
+    color: var(--rb-orange);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ACCOUNT SETTINGS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.settings-card {
+    background: var(--rb-surface);
+    border: 1px solid var(--rb-border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+
+.settings-card h4 {
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rb-border);
+    font-size: 13px;
+}
+
+.settings-row:last-child {
+    border: none;
+}
+
+.settings-label {
+    color: var(--rb-text-3);
+    font-weight: 500;
+}
+
+.settings-value {
+    font-weight: 600;
+    color: var(--rb-text);
+}
+
+.settings-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--rb-blue);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    transition: all .2s;
+}
+
+.settings-action:hover {
+    background: rgba(6,62,112,.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .repair-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-wrapper {
+        padding: 24px 16px 60px;
+    }
+    .login-card {
+        padding: 28px 20px;
+    }
+    .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

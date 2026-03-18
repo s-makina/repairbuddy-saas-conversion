@@ -10,12 +10,32 @@ class TenantPublicPageController extends Controller
 {
     public function myaccount(Request $request, string $business)
     {
-        return $this->placeholder('tenant.placeholders.myaccount', $business);
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant) {
+            abort(404);
+        }
+
+        return view('tenant.my-account', [
+            'tenant' => $tenant,
+            'tenantSlug' => $business,
+            'business' => $business,
+        ]);
     }
 
     public function services(Request $request, string $business)
     {
-        return $this->placeholder('tenant.placeholders.services', $business);
+        $tenant = TenantContext::tenant();
+
+        if (! $tenant) {
+            abort(404);
+        }
+
+        return view('tenant.services', [
+            'tenant'      => $tenant,
+            'tenantSlug'  => $business,
+            'business'    => $business,
+        ]);
     }
 
     public function parts(Request $request, string $business)
