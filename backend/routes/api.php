@@ -23,6 +23,8 @@ Route::prefix('t/{business}')
             Route::get('/brands', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'brands']);
             Route::get('/devices', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'devices']);
             Route::get('/services', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'services']);
+            Route::get('/appointment-settings', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'appointmentSettings']);
+            Route::get('/device-field-definitions', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'deviceFieldDefinitions']);
             Route::post('/submit', [\App\Http\Controllers\Api\Public\RepairBuddyBookingController::class, 'submit']);
         });
 

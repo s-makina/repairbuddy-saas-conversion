@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\RepairBuddyAppointmentSetting;
 use App\Models\RepairBuddyBranch;
 use App\Models\RepairBuddyCaseCounter;
 use App\Models\RepairBuddyCustomerDeviceFieldValue;
+use App\Models\RepairBuddyDevice;
+use App\Models\RepairBuddyDeviceBrand;
 use App\Models\RepairBuddyDeviceFieldDefinition;
 use App\Models\RepairBuddyDeviceType;
 use App\Models\RepairBuddyEstimate;
@@ -436,6 +439,45 @@ class RepairBuddyBookingController extends Controller
         ]);
     }
 
+    public function appointmentSettings(Request $request, string $business)
+    {
+        $settings = RepairBuddyAppointmentSetting::query()
+            ->where('is_enabled', true)
+            ->orderBy('title')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'appointment_settings' => $settings->map(fn (RepairBuddyAppointmentSetting $s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'description' => $s->description,
+                'slot_duration_minutes' => $s->slot_duration_minutes,
+                'buffer_minutes' => $s->buffer_minutes,
+                'max_appointments_per_day' => $s->max_appointments_per_day,
+                'time_slots' => is_array($s->time_slots) ? $s->time_slots : [],
+            ]),
+        ]);
+    }
+
+    public function deviceFieldDefinitions(Request $request, string $business)
+    {
+        $fields = RepairBuddyDeviceFieldDefinition::query()
+            ->where('is_active', true)
+            ->where('show_in_booking', true)
+            ->orderBy('id')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'fields' => $fields->map(fn (RepairBuddyDeviceFieldDefinition $f) => [
+                'key' => $f->key,
+                'label' => $f->label,
+                'type' => $f->type,
+            ]),
+        ]);
+    }
+
     public function submit(Request $request, string $business)
     {
         if (is_string($request->input('payload_json')) && trim((string) $request->input('payload_json')) !== '') {
@@ -469,6 +511,11 @@ class RepairBuddyBookingController extends Controller
             'customer.state' => ['sometimes', 'nullable', 'string', 'max:255'],
             'customer.postalCode' => ['sometimes', 'nullable', 'string', 'max:64'],
             'customer.country' => ['sometimes', 'nullable', 'string', 'size:2'],
+
+            'appointment' => ['sometimes', 'nullable', 'array'],
+            'appointment.appointment_setting_id' => ['sometimes', 'nullable', 'integer'],
+            'appointment.date' => ['sometimes', 'nullable', 'date'],
+            'appointment.time_slot' => ['sometimes', 'nullable', 'string', 'max:10'],
 
             'devices' => ['required', 'array', 'min:1', 'max:10'],
             'devices.*.device_id' => ['sometimes', 'nullable', 'integer'],

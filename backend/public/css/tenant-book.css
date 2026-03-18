@@ -943,3 +943,73 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOADING / EMPTY / ERROR STATES
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rb-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--rb-border);
+    border-top-color: var(--rb-orange);
+    border-radius: 50%;
+    animation: rbSpin .7s linear infinite;
+    margin: 0 auto;
+}
+
+.rb-spinner-sm {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: rbSpin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+@keyframes rbSpin {
+    to { transform: rotate(360deg); }
+}
+
+.rb-loading-inline {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.rb-empty-state {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--rb-text-3);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.rb-error-box {
+    background: rgba(253,103,66,.06);
+    border: 1px solid rgba(253,103,66,.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #c0392b;
+    line-height: 1.6;
+}
+
+.rb-error-box div + div {
+    margin-top: 4px;
+}
+
+/* Summary total row */
+.summary-total {
+    border-top: 2px solid var(--rb-border);
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+/* Collapsed device entry body */
+.device-entry-body.collapsed {
+    display: none;
+}
