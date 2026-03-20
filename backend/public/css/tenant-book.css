@@ -848,6 +848,30 @@
     padding: 0 20px 20px;
 }
 
+.other-service-row {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--rb-border);
+}
+
+.rb-other-svc-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--rb-border);
+    border-radius: var(--rb-radius);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--rb-text-1);
+    background: #fff;
+    outline: none;
+    transition: border-color .15s;
+    box-sizing: border-box;
+}
+.rb-other-svc-input:focus {
+    border-color: var(--rb-primary);
+    box-shadow: 0 0 0 3px rgba(0,112,243,.12);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    SUCCESS
    ═══════════════════════════════════════════════════════════════════ */

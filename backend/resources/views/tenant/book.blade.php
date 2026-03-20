@@ -118,14 +118,6 @@
             <div id="step4Loading" class="rb-loading-inline" style="margin-top:20px"><div class="rb-spinner"></div></div>
             <div id="serviceDeviceEntries" style="margin-top:20px;display:none"></div>
 
-            <!-- Other service input (shown when enabled) -->
-            <div id="otherServiceSection" style="display:none;margin-top:16px">
-                <div class="form-group full">
-                    <label>Or describe the service you need</label>
-                    <input type="text" id="otherServiceInput" placeholder="e.g. Water damage repair" maxlength="255" />
-                </div>
-            </div>
-
             <!-- Appointment -->
             <div id="appointmentSection" class="appointment-section" style="display:none;margin-top:24px">
                 <h5>📅 Schedule an Appointment <span class="opt-badge">Optional</span></h5>
@@ -273,6 +265,7 @@
             selectedBrandName: '',
             selectedDevices: [],   // [{device_id, model, is_other, serial, pin, notes, extra_fields:[{key,label,value_text}], services:[{service_id,name,price}], other_service:''}]
             servicesCache: {},     // deviceId -> {services/groups}
+            otherDeviceCounter: 0, // counter for generating unique __other_N__ ids
             selectedAppointment: { setting_id: null, date: null, time_slot: null },
             currentStep: 1,
             uiStyle: 'wizard',
@@ -590,13 +583,14 @@
 
         function renderBrands() {
             const grid = el('brandGrid');
-            if (state.brands.length === 0) {
+            const showOtherBrand = !state.config?.booking?.turnOffOtherDeviceBrand;
+            if (state.brands.length === 0 && !showOtherBrand) {
                 show('step2Empty');
                 return;
             }
             const isImages = state.uiStyle === 'images';
             if (isImages) grid.classList.add('selection-grid-images');
-            grid.innerHTML = state.brands.map((b, i) => {
+            let brandsHtml = state.brands.map((b, i) => {
                 const bg = TYPE_COLORS[i % TYPE_COLORS.length];
                 if (isImages && b.image_url) {
                     return '<div class="selection-card selection-card-image" data-brand-id="' + b.id + '" onclick="RB.selectBrand(' + b.id + ',this)">'
@@ -606,12 +600,19 @@
                 }
                 const icon = b.image_url
                     ? '<img src="' + esc(b.image_url) + '" alt="" style="width:28px;height:28px;object-fit:contain" />'
-                    : (b.name.toLowerCase() === 'other' ? '❓' : '🏷️');
+                    : '🏷️';
                 return '<div class="selection-card" data-brand-id="' + b.id + '" onclick="RB.selectBrand(' + b.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:' + bg + '">' + icon + '</div>'
                     + '<div class="selection-card-name">' + esc(b.name) + '</div>'
                     + '</div>';
             }).join('');
+            if (showOtherBrand) {
+                brandsHtml += '<div class="selection-card" data-brand-id="__other__" style="border-style:dashed" onclick="RB.selectBrand(\'__other__\',this)">'
+                    + '<div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#555;font-size:20px">❓</div>'
+                    + '<div class="selection-card-name">Other</div>'
+                    + '</div>';
+            }
+            grid.innerHTML = brandsHtml;
             show('brandGrid');
         }
 
@@ -620,8 +621,19 @@
                 cardEl.closest('.selection-grid').querySelectorAll('.selection-card').forEach(c => c.classList.remove('selected'));
                 cardEl.classList.add('selected');
             }
-            const brand = state.brands.find(b => b.id === brandId);
             state.selectedBrandId = brandId;
+            if (brandId === '__other__') {
+                state.selectedBrandName = 'Other';
+                goToStep(3);
+                state.allDevices = [];
+                state.filteredDevices = [];
+                hide('step3Loading');
+                hide('step3Empty');
+                el('deviceSearch').value = '';
+                renderDeviceGrid();
+                return;
+            }
+            const brand = state.brands.find(b => b.id === brandId);
             state.selectedBrandName = brand ? brand.name : '';
             goToStep(3);
             await loadDevices(state.selectedTypeId, brandId);
@@ -660,7 +672,8 @@
 
         function renderDeviceGrid() {
             const grid = el('deviceGrid');
-            if (state.filteredDevices.length === 0) {
+            const showOtherDevice = !state.config?.booking?.turnOffOtherDeviceBrand;
+            if (state.filteredDevices.length === 0 && !showOtherDevice) {
                 hide('deviceGrid');
                 show('step3Empty');
                 el('step3Empty').textContent = state.allDevices.length === 0
@@ -672,7 +685,7 @@
             const alreadySelected = state.selectedDevices.map(d => d.device_id);
             const isImages = state.uiStyle === 'images';
             if (isImages) grid.classList.add('selection-grid-images');
-            grid.innerHTML = state.filteredDevices.map(d => {
+            let devicesHtml = state.filteredDevices.map(d => {
                 const sel = alreadySelected.includes(d.id) ? ' selected' : '';
                 const isOther = d.is_other;
                 const style = isOther ? ' style="border-style:dashed"' : '';
@@ -690,6 +703,14 @@
                     + '<div class="selection-card-name">' + esc(d.model) + '</div>'
                     + '</div>';
             }).join('');
+            if (showOtherDevice) {
+                devicesHtml += '<div class="selection-card rb-add-other-btn" style="border-style:dashed;cursor:pointer" onclick="RB.addOtherDevice()">'
+                    + '<div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#555;font-size:20px">❓</div>'
+                    + '<div class="selection-card-name">Other Device</div>'
+                    + '<div style="font-size:10px;color:var(--rb-text-3);margin-top:2px">Tap to add</div>'
+                    + '</div>';
+            }
+            grid.innerHTML = devicesHtml;
             show('deviceGrid');
         }
 
@@ -703,6 +724,13 @@
                 if (dev) addDevice(dev);
                 if (cardEl) cardEl.classList.add('selected');
             }
+            renderSelectedDevices();
+        }
+
+        function addOtherDevice() {
+            state.otherDeviceCounter++;
+            const otherId = '__other_' + state.otherDeviceCounter + '__';
+            addDevice({ id: otherId, model: 'Other Device', is_other: true, image_url: null });
             renderSelectedDevices();
         }
 
@@ -770,12 +798,13 @@
                 fieldsHtml += '<div class="sd-field full"><label>' + esc(notesLabel) + '</label>'
                     + '<textarea rows="2" placeholder="Any additional notes about this device…" onchange="RB.updateDeviceField(' + i + ',\'notes\',this.value)">' + esc(d.notes) + '</textarea></div>';
 
+                const removeIdStr = typeof d.device_id === 'string' ? "'" + d.device_id + "'" : d.device_id;
                 return '<div class="selected-device">'
                     + '<div class="selected-device-header" onclick="RB.toggleDeviceFields(' + i + ')">'
                     + '<div class="selected-device-name">📱 ' + esc(d.model) + '</div>'
                     + '<div class="selected-device-actions">'
                     + '<span class="selected-device-toggle open" id="toggle-' + i + '">▼</span>'
-                    + '<button class="selected-device-remove" onclick="event.stopPropagation();RB.removeDevice(' + d.device_id + ')">✕</button>'
+                    + '<button class="selected-device-remove" onclick="event.stopPropagation();RB.removeDevice(' + removeIdStr + ')">✕</button>'
                     + '</div></div>'
                     + '<div class="selected-device-fields" id="fields-' + i + '">' + fieldsHtml + '</div>'
                     + '</div>';
@@ -784,6 +813,12 @@
 
         function updateDeviceField(idx, field, value) {
             if (state.selectedDevices[idx]) state.selectedDevices[idx][field] = value;
+        }
+
+        function updateDeviceOtherService(idx, value) {
+            if (state.selectedDevices[idx]) {
+                state.selectedDevices[idx].other_service = value;
+            }
         }
 
         function updateExtraField(idx, fieldIdx, value) {
@@ -808,6 +843,11 @@
             const mode = state.config?.booking?.publicBookingMode || 'ungrouped';
             const promises = state.selectedDevices.map(async (dev) => {
                 if (state.servicesCache[dev.device_id]) return;
+                // Virtual "Other" devices have no catalog services — skip API call
+                if (typeof dev.device_id === 'string' && dev.device_id.startsWith('__other_')) {
+                    state.servicesCache[dev.device_id] = { mode, services: [], groups: [] };
+                    return;
+                }
                 try {
                     const data = await apiFetch('/services?deviceId=' + dev.device_id + '&mode=' + mode);
                     state.servicesCache[dev.device_id] = data;
@@ -829,10 +869,7 @@
                 show('appointmentSection');
             }
 
-            // Show other service option
-            if (!state.config?.booking?.turnOffOtherService) {
-                show('otherServiceSection');
-            }
+            // Other service inputs are rendered per-device inside renderServiceEntries()
         }
 
         function renderServiceEntries() {
@@ -871,7 +908,17 @@
                     }
                 }
 
-                const selectedCount = dev.services.length;
+                const showOtherSvc = !state.config?.booking?.turnOffOtherService;
+                const otherSvcHtml = showOtherSvc
+                    ? '<div class="other-service-row">'
+                    + '<label style="font-size:13px;color:var(--rb-text-2);display:block;margin-bottom:4px">Or describe a service not listed</label>'
+                    + '<input type="text" class="rb-other-svc-input" placeholder="e.g. Water damage repair" maxlength="255"'
+                    + ' value="' + esc(dev.other_service || '') + '"'
+                    + ' oninput="RB.updateDeviceOtherService(' + devIdx + ',this.value)" />'
+                    + '</div>'
+                    : '';
+
+                const selectedCount = dev.services.length + (dev.other_service ? 1 : 0);
                 const badgeHtml = selectedCount > 0
                     ? ' <span class="device-entry-badge">' + selectedCount + ' selected</span>'
                     : '';
@@ -880,7 +927,7 @@
                     + '<div class="device-entry-header" onclick="this.parentElement.querySelector(\'.device-entry-body\').classList.toggle(\'collapsed\')">'
                     + '<div class="device-entry-name" id="deviceEntryName-' + devIdx + '">📱 ' + esc(dev.model) + badgeHtml + '</div>'
                     + '<span style="color:var(--rb-text-3)">▼</span></div>'
-                    + '<div class="device-entry-body">' + servicesHtml + '</div>'
+                    + '<div class="device-entry-body">' + servicesHtml + otherSvcHtml + '</div>'
                     + '</div>';
             }).join('');
         }
@@ -989,10 +1036,9 @@
 
         // ─── Step 4 → 5 Validation ───
         function validateAndGoToStep5() {
-            // Check each device has at least one service (or other_service)
-            const otherSvc = el('otherServiceInput')?.value?.trim() || '';
+            // Check each device has at least one service or other_service filled in
             for (const dev of state.selectedDevices) {
-                if (dev.services.length === 0 && otherSvc === '') {
+                if (dev.services.length === 0 && (!dev.other_service || dev.other_service.trim() === '')) {
                     showAlert('Please select at least one service for ' + dev.model + ', or describe the service you need.');
                     return;
                 }
@@ -1000,12 +1046,6 @@
                     showAlert('Please enter a device name for your "Other" device.');
                     return;
                 }
-            }
-            // Store other_service on all devices if set
-            if (otherSvc) {
-                state.selectedDevices.forEach(d => {
-                    if (d.services.length === 0) d.other_service = otherSvc;
-                });
             }
             renderSummary();
             goToStep(5);
@@ -1236,9 +1276,11 @@
             selectType,
             selectBrand,
             toggleDevice,
+            addOtherDevice,
             removeDevice,
             toggleDeviceFields,
             updateDeviceField,
+            updateDeviceOtherService,
             updateExtraField,
             filterDevices,
             toggleService,
