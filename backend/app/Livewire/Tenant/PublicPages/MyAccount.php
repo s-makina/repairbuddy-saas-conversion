@@ -9,9 +9,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class MyAccount extends Component
 {
+    use WithFileUploads;
     /* ───────── Tenant context ───────── */
     public ?Tenant $tenant = null;
     public ?int $tenantId = null;
@@ -56,6 +58,33 @@ class MyAccount extends Component
     public bool $statsLoaded = false;
     public array $jobStatusList = [];
     public array $estimateCountList = ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+
+    /* ───────── Profile form ───────── */
+    public string $profileFirstName = '';
+    public string $profileLastName = '';
+    public string $profileEmail = '';
+    public string $profilePhone = '';
+    public string $profileCompany = '';
+    public string $profileTaxId = '';
+    public string $profileAddress = '';
+    public string $profileCity = '';
+    public string $profileState = '';
+    public string $profilePostalCode = '';
+    public string $profileCountry = '';
+
+    /* ───────── Password form ───────── */
+    public string $currentPassword = '';
+    public string $newPassword = '';
+    public string $confirmPassword = '';
+
+    /* ───────── Profile photo ───────── */
+    public $profilePhoto = null;
+    public bool $profilePhotoUploading = false;
+
+    /* ───────── Activity stats ───────── */
+    public int $totalJobs = 0;
+    public int $totalEstimates = 0;
+    public string $lifetimeValue = '0.00';
 
     /* ─────────── mount ─────────── */
 
@@ -254,6 +283,151 @@ class MyAccount extends Component
     public function setSection(string $section): void
     {
         $this->activeSection = $section;
+    }
+
+    /* ─────────── Profile ─────────── */
+
+    public function loadProfileData(): void
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->profileFirstName = (string) ($user->first_name ?? '');
+        $this->profileLastName = (string) ($user->last_name ?? '');
+        $this->profileEmail = (string) ($user->email ?? '');
+        $this->profilePhone = (string) ($user->phone ?? '');
+        $this->profileCompany = (string) ($user->company ?? '');
+        $this->profileTaxId = (string) ($user->tax_id ?? '');
+        $this->profileAddress = (string) ($user->address_line1 ?? '');
+        $this->profileCity = (string) ($user->address_city ?? '');
+        $this->profileState = (string) ($user->address_state ?? '');
+        $this->profilePostalCode = (string) ($user->address_postal_code ?? '');
+        $this->profileCountry = (string) ($user->address_country_code ?? '');
+
+        $this->loadActivityStats();
+    }
+
+    public function updateProfile(): void
+    {
+        $this->resetMessages();
+
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->validate([
+            'profileFirstName' => ['required', 'string', 'max:100'],
+            'profileLastName' => ['nullable', 'string', 'max:100'],
+            'profileEmail' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'profilePhone' => ['nullable', 'string', 'max:30'],
+            'profileCompany' => ['nullable', 'string', 'max:150'],
+            'profileTaxId' => ['nullable', 'string', 'max:50'],
+            'profileAddress' => ['nullable', 'string', 'max:255'],
+            'profileCity' => ['nullable', 'string', 'max:100'],
+            'profileState' => ['nullable', 'string', 'max:100'],
+            'profilePostalCode' => ['nullable', 'string', 'max:20'],
+            'profileCountry' => ['nullable', 'string', 'max:2'],
+        ]);
+
+        $user->update([
+            'first_name' => $this->profileFirstName,
+            'last_name' => $this->profileLastName,
+            'name' => trim($this->profileFirstName . ' ' . $this->profileLastName),
+            'email' => $this->profileEmail,
+            'phone' => $this->profilePhone,
+            'company' => $this->profileCompany,
+            'tax_id' => $this->profileTaxId,
+            'address_line1' => $this->profileAddress,
+            'address_city' => $this->profileCity,
+            'address_state' => $this->profileState,
+            'address_postal_code' => $this->profilePostalCode,
+            'address_country_code' => $this->profileCountry,
+        ]);
+
+        $this->successMessage = 'Profile updated successfully!';
+    }
+
+    public function updatePassword(): void
+    {
+        $this->resetMessages();
+
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->validate([
+            'currentPassword' => ['required', 'string'],
+            'newPassword' => ['required', 'string', 'min:8'],
+            'confirmPassword' => ['required', 'string', 'same:newPassword'],
+        ]);
+
+        if (! Hash::check($this->currentPassword, $user->password)) {
+            $this->addError('currentPassword', 'Current password is incorrect.');
+            return;
+        }
+
+        $user->update([
+            'password' => Hash::make($this->newPassword),
+        ]);
+
+        $this->currentPassword = '';
+        $this->newPassword = '';
+        $this->confirmPassword = '';
+
+        $this->successMessage = 'Password updated successfully!';
+    }
+
+    public function updatedProfilePhoto(): void
+    {
+        $this->resetMessages();
+
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->validate([
+            'profilePhoto' => ['nullable', 'image', 'max:2048', 'dimensions:max_width=2000,max_height=2000'],
+        ]);
+
+        if ($this->profilePhoto) {
+            // Delete old avatar if exists
+            if ($user->avatar_path) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->avatar_path);
+            }
+
+            // Store new avatar
+            $path = $this->profilePhoto->store('avatars', 'public');
+            $user->update(['avatar_path' => $path]);
+
+            $this->successMessage = 'Profile photo updated successfully!';
+        }
+
+        $this->profilePhoto = null;
+    }
+
+    public function loadActivityStats(): void
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->totalJobs = RepairBuddyJob::where('customer_id', $user->id)->count();
+        $this->totalEstimates = \App\Models\RepairBuddyEstimate::where('customer_id', $user->id)->count();
+
+        // Calculate lifetime value from job items (unit_price_amount_cents * qty)
+        $lifetimeCents = \DB::table('rb_job_items')
+            ->join('rb_jobs', 'rb_job_items.job_id', '=', 'rb_jobs.id')
+            ->where('rb_jobs.customer_id', $user->id)
+            ->selectRaw('SUM(rb_job_items.unit_price_amount_cents * rb_job_items.qty) as total')
+            ->value('total');
+
+        $this->lifetimeValue = number_format(($lifetimeCents ?? 0) / 100, 2, '.', ',');
     }
 
     /* ─────────── Helpers ─────────── */

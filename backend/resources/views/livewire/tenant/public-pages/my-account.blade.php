@@ -371,60 +371,190 @@
                     </div>
                 </div>
 
-                {{-- Section: Account Settings --}}
-                <div x-show="activeSection === 'profile'">
-                    <div class="cd-settings-grid">
-                        <div class="cd-settings-card">
-                            <div class="cd-settings-header">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.28-.55-7.499-1.632z"/>
-                                </svg>
-                                Personal Information
+                {{-- Section: Profile --}}
+                <div x-show="activeSection === 'profile'" wire:init="loadProfileData">
+                    <h2 class="cd-dash-section-title">Profile</h2>
+                    <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
+                        Manage your account information and preferences.
+                    </p>
+
+                    <div class="cd-profile-grid">
+                        {{-- Left Column: Forms --}}
+                        <div class="cd-profile-main">
+                            {{-- Personal Information Card --}}
+                            <div class="cd-card">
+                                <div class="cd-card-header">
+                                    <i class="bi bi-person me-2"></i> Personal Information
+                                </div>
+                                <div class="cd-card-body">
+                                    <form wire:submit.prevent="updateProfile">
+                                        <div class="cd-form-grid">
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">First Name <span class="cd-req">*</span></label>
+                                                <input type="text" wire:model.defer="profileFirstName" class="cd-input" placeholder="John">
+                                                @error('profileFirstName') <span class="cd-field-error">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Last Name</label>
+                                                <input type="text" wire:model.defer="profileLastName" class="cd-input" placeholder="Doe">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Email <span class="cd-req">*</span></label>
+                                                <input type="email" wire:model.defer="profileEmail" class="cd-input" placeholder="john@example.com">
+                                                @error('profileEmail') <span class="cd-field-error">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Phone</label>
+                                                <input type="tel" wire:model.defer="profilePhone" class="cd-input" placeholder="+1 234 567 890">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Company</label>
+                                                <input type="text" wire:model.defer="profileCompany" class="cd-input" placeholder="Company name">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Tax ID</label>
+                                                <input type="text" wire:model.defer="profileTaxId" class="cd-input" placeholder="VAT/Tax number">
+                                            </div>
+                                            <div class="cd-form-group cd-form-full">
+                                                <label class="cd-label">Address</label>
+                                                <input type="text" wire:model.defer="profileAddress" class="cd-input" placeholder="Street address">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">City</label>
+                                                <input type="text" wire:model.defer="profileCity" class="cd-input" placeholder="City">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">State/Province</label>
+                                                <input type="text" wire:model.defer="profileState" class="cd-input" placeholder="State">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Postal Code</label>
+                                                <input type="text" wire:model.defer="profilePostalCode" class="cd-input" placeholder="12345">
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Country</label>
+                                                <select wire:model.defer="profileCountry" class="cd-select">
+                                                    <option value="">Select country</option>
+                                                    <option value="US" {{ $profileCountry === 'US' ? 'selected' : '' }}>United States</option>
+                                                    <option value="GB" {{ $profileCountry === 'GB' ? 'selected' : '' }}>United Kingdom</option>
+                                                    <option value="CA" {{ $profileCountry === 'CA' ? 'selected' : '' }}>Canada</option>
+                                                    <option value="AU" {{ $profileCountry === 'AU' ? 'selected' : '' }}>Australia</option>
+                                                    <option value="DE" {{ $profileCountry === 'DE' ? 'selected' : '' }}>Germany</option>
+                                                    <option value="FR" {{ $profileCountry === 'FR' ? 'selected' : '' }}>France</option>
+                                                    <option value="ES" {{ $profileCountry === 'ES' ? 'selected' : '' }}>Spain</option>
+                                                    <option value="IT" {{ $profileCountry === 'IT' ? 'selected' : '' }}>Italy</option>
+                                                    <option value="NL" {{ $profileCountry === 'NL' ? 'selected' : '' }}>Netherlands</option>
+                                                    <option value="PT" {{ $profileCountry === 'PT' ? 'selected' : '' }}>Portugal</option>
+                                                    <option value="BR" {{ $profileCountry === 'BR' ? 'selected' : '' }}>Brazil</option>
+                                                    <option value="MX" {{ $profileCountry === 'MX' ? 'selected' : '' }}>Mexico</option>
+                                                    <option value="IN" {{ $profileCountry === 'IN' ? 'selected' : '' }}>India</option>
+                                                    <option value="JP" {{ $profileCountry === 'JP' ? 'selected' : '' }}>Japan</option>
+                                                    <option value="CN" {{ $profileCountry === 'CN' ? 'selected' : '' }}>China</option>
+                                                    <option value="OTHER">Other</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="cd-form-actions">
+                                            <small class="cd-form-hint">(*) fields are required</small>
+                                            <button type="submit" class="cd-btn cd-btn-primary" wire:loading.attr="disabled">
+                                                <span wire:loading.remove wire:target="updateProfile">Update Profile</span>
+                                                <span wire:loading wire:target="updateProfile"><i class="bi bi-arrow-repeat pp-spin"></i> Saving…</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <div class="cd-settings-body">
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Full Name</span>
-                                    <span class="cd-settings-value">{{ $currentUser->name ?? '—' }}</span>
+
+                            {{-- Change Password Card --}}
+                            <div class="cd-card mt-4">
+                                <div class="cd-card-header">
+                                    <i class="bi bi-shield-lock me-2"></i> Change Password
                                 </div>
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Email</span>
-                                    <span class="cd-settings-value">{{ $currentUser->email ?? '—' }}</span>
-                                </div>
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Phone</span>
-                                    <span class="cd-settings-value">{{ $currentUser->phone ?? '—' }}</span>
-                                </div>
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Company</span>
-                                    <span class="cd-settings-value">{{ $currentUser->company ?? '—' }}</span>
+                                <div class="cd-card-body">
+                                    <form wire:submit.prevent="updatePassword">
+                                        <div class="cd-form-grid">
+                                            <div class="cd-form-group cd-form-full">
+                                                <label class="cd-label">Current Password <span class="cd-req">*</span></label>
+                                                <input type="password" wire:model.defer="currentPassword" class="cd-input" placeholder="Enter current password">
+                                                @error('currentPassword') <span class="cd-field-error">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">New Password <span class="cd-req">*</span></label>
+                                                <input type="password" wire:model.defer="newPassword" class="cd-input" placeholder="Min 8 characters">
+                                                @error('newPassword') <span class="cd-field-error">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="cd-form-group">
+                                                <label class="cd-label">Confirm Password <span class="cd-req">*</span></label>
+                                                <input type="password" wire:model.defer="confirmPassword" class="cd-input" placeholder="Confirm new password">
+                                                @error('confirmPassword') <span class="cd-field-error">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+                                        <div class="cd-form-actions">
+                                            <button type="submit" class="cd-btn cd-btn-primary" wire:loading.attr="disabled">
+                                                <span wire:loading.remove wire:target="updatePassword">Update Password</span>
+                                                <span wire:loading wire:target="updatePassword"><i class="bi bi-arrow-repeat pp-spin"></i> Updating…</span>
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="cd-settings-card">
-                            <div class="cd-settings-header">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
-                                </svg>
-                                Default Address
+                        {{-- Right Column: Sidebar --}}
+                        <div class="cd-profile-sidebar">
+                            {{-- Profile Picture Card --}}
+                            <div class="cd-card">
+                                <div class="cd-card-header">Profile Picture</div>
+                                <div class="cd-card-body text-center">
+                                    <div class="cd-avatar-wrapper">
+                                        @if($currentUser->avatar_url)
+                                            <img src="{{ $currentUser->avatar_url }}" alt="Avatar" class="cd-avatar">
+                                        @else
+                                            <div class="cd-avatar cd-avatar-placeholder">
+                                                <i class="bi bi-person"></i>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <label class="cd-btn cd-btn-outline cd-btn-sm cd-upload-btn">
+                                        <i class="bi bi-upload me-1"></i> Upload Photo
+                                        <input type="file" wire:model="profilePhoto" accept="image/jpeg,image/png,image/gif" class="d-none">
+                                    </label>
+                                    <small class="cd-form-hint d-block mt-2">JPG, PNG or GIF. Max 2MB.</small>
+                                    @error('profilePhoto') <span class="cd-field-error">{{ $message }}</span> @enderror
+                                </div>
                             </div>
-                            <div class="cd-settings-body">
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Street</span>
-                                    <span class="cd-settings-value">{{ $currentUser->address ?? '—' }}</span>
+
+                            {{-- Your Activity Card --}}
+                            <div class="cd-card mt-4">
+                                <div class="cd-card-header">Your Activity</div>
+                                <div class="cd-card-body">
+                                    <div class="cd-stat-row">
+                                        <span class="cd-stat-label">Total Jobs</span>
+                                        <span class="cd-stat-value">{{ number_format($totalJobs) }}</span>
+                                    </div>
+                                    <div class="cd-stat-row">
+                                        <span class="cd-stat-label">Total Estimates</span>
+                                        <span class="cd-stat-value">{{ number_format($totalEstimates) }}</span>
+                                    </div>
+                                    <div class="cd-stat-row">
+                                        <span class="cd-stat-label">Lifetime Value</span>
+                                        <span class="cd-stat-value">${{ $lifetimeValue }}</span>
+                                    </div>
                                 </div>
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">City</span>
-                                    <span class="cd-settings-value">{{ $currentUser->city ?? '—' }}</span>
-                                </div>
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Postal Code</span>
-                                    <span class="cd-settings-value">{{ $currentUser->zip ?? '—' }}</span>
-                                </div>
-                                <div class="cd-settings-row">
-                                    <span class="cd-settings-label">Member Since</span>
-                                    <span class="cd-settings-value">{{ $currentUser->created_at?->format('M d, Y') ?? '—' }}</span>
+                            </div>
+
+                            {{-- Account Status Card --}}
+                            <div class="cd-card mt-4">
+                                <div class="cd-card-header">Account Status</div>
+                                <div class="cd-card-body">
+                                    <div class="cd-stat-row">
+                                        <span class="cd-stat-label">Member Since</span>
+                                        <span class="cd-stat-value">{{ $currentUser->created_at?->format('M d, Y') ?? '—' }}</span>
+                                    </div>
+                                    <div class="cd-stat-row">
+                                        <span class="cd-stat-label">Account Type</span>
+                                        <span class="cd-badge cd-badge-success">{{ ucfirst($currentUser->role ?? 'Customer') }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
