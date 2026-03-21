@@ -68,7 +68,7 @@
         .forgot-link { font-size: .875rem; color: var(--rb-blue); font-weight: 600; text-decoration: none }
         .forgot-link:hover { text-decoration: underline }
         .input-wrap { position: relative }
-        .input-wrap svg {
+        .input-wrap > svg {
             position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
             width: 18px; height: 18px; color: var(--rb-text-3); pointer-events: none; transition: color .3s
         }
