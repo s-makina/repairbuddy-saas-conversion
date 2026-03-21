@@ -917,6 +917,10 @@
     width: 16px; height: 16px;
     flex-shrink: 0;
     color: rgba(255,255,255,.55);
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .cd-sidebar-item:hover .cd-nav-icon { color: rgba(255,255,255,.85); }
 .cd-sidebar-item.active .cd-nav-icon { color: #fd6742; }
@@ -928,6 +932,14 @@
     border-radius: 999px;
     background: rgba(253,103,66,.25);
     color: #fda98b;
+}
+.cd-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    width: 100%;
+    color: inherit;
+    text-decoration: none;
 }
 
 /* ── Content Area ── */

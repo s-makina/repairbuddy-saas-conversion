@@ -115,28 +115,30 @@
                 </div>
                 <ul class="cd-sidebar-items">
                     @foreach ($sections as $sectionKey => $section)
-                        <li class="cd-sidebar-item"
-                            :class="{ 'active': activeSection === '{{ $sectionKey }}' }"
-                            @click="showSection('{{ $sectionKey }}')">
-                            @if($sectionKey === 'jobs')
-                                <svg class="cd-nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.207-.766M11.42 15.17l-2.496 3.03A2.65 2.65 0 016.531 21H5.25a.75.75 0 01-.75-.75v-1.281c0-.597.237-1.17.659-1.591l5.877-5.877M11.42 15.17l-5.877-5.877A2.65 2.65 0 015.25 6.531V5.25A.75.75 0 016 4.5h1.281c.597 0 1.17.237 1.591.659l5.877 5.877"/>
-                                </svg>
-                            @else
-                                <svg class="cd-nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.198.275-.34.476-.379A11.408 11.408 0 0112 3.75c2.03 0 3.977.365 5.75 1.03.201.04.386.18.476.379M9.594 3.94L8.485 4.72a2.25 2.25 0 00-.688.657l-.896 1.512a2.25 2.25 0 00-.278 1.056v3.175a2.25 2.25 0 00.278 1.056l.896 1.512c.19.32.427.587.688.657l1.11.78m0 0l1.11.78a2.25 2.25 0 001.544.285l1.77-.363a2.25 2.25 0 001.544-.285l1.11-.78m-6.224 0l-1.11.78a2.25 2.25 0 00-.688.657l-.896 1.512a2.25 2.25 0 00-.278 1.056v3.175a2.25 2.25 0 00.278 1.056l.896 1.512c.19.32.427.587.688.657l1.11.78m6.224 0l1.11-.78a2.25 2.25 0 00.688-.657l.896-1.512a2.25 2.25 0 00.278-1.056v-3.175a2.25 2.25 0 00-.278-1.056l-.896-1.512a2.25 2.25 0 00-.688-.657l-1.11-.78m-6.224 0l-1.11-.78a2.25 2.25 0 01-.688-.657l-.896-1.512a2.25 2.25 0 01-.278-1.056V7.887c0-.376.094-.747.278-1.056l.896-1.512c.19-.32.427-.587.688-.657l1.11-.78m6.224 0l1.11.78c.261.07.498.337.688.657l.896 1.512c.184.309.278.68.278 1.056v3.175c0 .376-.094.747-.278 1.056l-.896 1.512c-.19.32-.427.587-.688.657l-1.11.78"/>
-                                </svg>
-                            @endif
-                            <span>{{ $section['label'] }}</span>
-                            @if($sectionKey === 'jobs')
-                                @php
-                                    $openCount = collect($jobs)->filter(fn($j) => empty($j['closed_at']))->count();
-                                @endphp
-                                @if($openCount > 0)
-                                    <span class="cd-nav-badge">{{ $openCount }}</span>
+                        @if(!empty($section['external']))
+                            {{-- External link (Book My Device) --}}
+                            <li class="cd-sidebar-item">
+                                <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-sidebar-link">
+                                    <i class="bi {{ $section['icon'] }} cd-nav-icon"></i>
+                                    <span>{{ $section['label'] }}</span>
+                                </a>
+                            </li>
+                        @else
+                            <li class="cd-sidebar-item"
+                                :class="{ 'active': activeSection === '{{ $sectionKey }}' }"
+                                @click="showSection('{{ $sectionKey }}')">
+                                <i class="bi {{ $section['icon'] }} cd-nav-icon"></i>
+                                <span>{{ $section['label'] }}</span>
+                                @if($sectionKey === 'jobs')
+                                    @php
+                                        $openCount = collect($jobs)->filter(fn($j) => empty($j['closed_at']))->count();
+                                    @endphp
+                                    @if($openCount > 0)
+                                        <span class="cd-nav-badge">{{ $openCount }}</span>
+                                    @endif
                                 @endif
-                            @endif
-                        </li>
+                            </li>
+                        @endif
                     @endforeach
                 </ul>
             </aside>
@@ -322,6 +324,51 @@
                             </div>
                         </div>
                     @endif
+                </div>
+
+                {{-- Section: Estimates --}}
+                <div x-show="activeSection === 'estimates'">
+                    <h2 class="cd-dash-section-title">Estimates</h2>
+                    <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
+                        View and manage your repair estimates.
+                    </p>
+                    <div class="cd-empty">
+                        <i class="bi bi-file-earmark-text" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                        <div class="cd-empty-title">No Estimates Yet</div>
+                        <div class="cd-empty-text">Your estimates will appear here once created.</div>
+                        <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-btn cd-btn-primary" style="margin-top: 1rem;">
+                            Request an Estimate
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Section: My Devices --}}
+                <div x-show="activeSection === 'my-devices'">
+                    <h2 class="cd-dash-section-title">My Devices</h2>
+                    <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
+                        Your registered devices for repair.
+                    </p>
+                    <div class="cd-empty">
+                        <i class="bi bi-phone" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                        <div class="cd-empty-title">No Devices Registered</div>
+                        <div class="cd-empty-text">Your registered devices will appear here.</div>
+                        <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-btn cd-btn-primary" style="margin-top: 1rem;">
+                            Register a Device
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Section: Reviews --}}
+                <div x-show="activeSection === 'reviews'">
+                    <h2 class="cd-dash-section-title">Reviews</h2>
+                    <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
+                        Your reviews and feedback on completed repairs.
+                    </p>
+                    <div class="cd-empty">
+                        <i class="bi bi-star" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                        <div class="cd-empty-title">No Reviews Yet</div>
+                        <div class="cd-empty-text">Your reviews will appear here after completing repairs.</div>
+                    </div>
                 </div>
 
                 {{-- Section: Account Settings --}}

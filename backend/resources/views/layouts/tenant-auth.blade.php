@@ -175,7 +175,7 @@
         <div class="shop-logo">{{ $shopInitials }}</div>
         <div>
             <div class="shop-name">{{ $tenant->name ?? 'RepairBuddy' }}</div>
-            <div class="shop-sub">{{ $tenantSlug ? $tenantSlug . '.repairbuddy.com' : 'repairbuddy.com' }}</div>
+            <div class="shop-sub">{{ $tenantSlug ? $tenantSlug . '.' . config('tenancy.base_domain', 'repairbuddy.test') : config('tenancy.base_domain', 'repairbuddy.test') }}</div>
         </div>
     </a>
 

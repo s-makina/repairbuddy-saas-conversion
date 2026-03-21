@@ -23,9 +23,13 @@ class MyAccount extends Component
 
     /* ───────── Section configuration ───────── */
     public array $sections = [
-        'dashboard' => ['label' => 'Dashboard', 'icon' => 'grid'],
-        'jobs' => ['label' => 'My Repairs', 'icon' => 'wrench-adjustable'],
-        'profile' => ['label' => 'Account Settings', 'icon' => 'gear'],
+        'dashboard'   => ['label' => 'Dashboard',     'icon' => 'bi-speedometer2'],
+        'jobs'        => ['label' => 'Jobs',          'icon' => 'bi-wrench'],
+        'estimates'   => ['label' => 'Estimates',     'icon' => 'bi-file-earmark-text'],
+        'my-devices'  => ['label' => 'My Devices',    'icon' => 'bi-phone'],
+        'reviews'     => ['label' => 'Reviews',       'icon' => 'bi-star'],
+        'book-device' => ['label' => 'Book My Device', 'icon' => 'bi-calendar-plus', 'external' => true],
+        'profile'     => ['label' => 'Profile',       'icon' => 'bi-person-circle'],
     ];
 
     /* ───────── Login form ───────── */

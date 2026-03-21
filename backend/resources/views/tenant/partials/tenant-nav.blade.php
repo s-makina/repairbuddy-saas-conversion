@@ -27,7 +27,7 @@
             <div class="shop-logo">{{ $shopInitials }}</div>
             <div>
                 <div class="shop-name">{{ $tenant->name ?? 'RepairBuddy' }}</div>
-                <div class="shop-sub">{{ $tenantSlug }}.repairbuddy.com</div>
+                <div class="shop-sub">{{ $tenantSlug }}.{{ config('tenancy.base_domain') }}</div>
             </div>
         </a>
         <div class="nav-links">
