@@ -38,11 +38,20 @@
 
                 <div class="st-grid st-grid-2">
                     <div class="st-fg">
-                        <label for="logo_url">Logo URL</label>
-                        <input type="url" id="logo_url" wire:model.defer="logo_url"
-                               placeholder="https://example.com/logo.png" />
-                        <p class="st-help">Logo used on invoices, estimates, and customer-facing pages</p>
-                        @error('logo_url') <p class="st-field-error">{{ $message }}</p> @enderror
+                        <label for="logo_file">Logo</label>
+                        <div class="logo-upload-container" x-data="{ showPreview: {{ $logo_url ? 'true' : 'false' }} }">
+                            @if($logo_url)
+                                <div class="logo-preview mb-2">
+                                    <img src="{{ $logo_url }}" alt="Logo preview" class="logo-preview-img" style="max-height: 80px; max-width: 200px; border-radius: 4px; border: 1px solid #e5e7eb;" />
+                                </div>
+                            @endif
+                            <input type="file" id="logo_file" wire:model="logo_file" accept="image/*" class="form-control" />
+                            @error('logo_file') <p class="st-field-error">{{ $message }}</p> @enderror
+                            <p class="st-help">Upload a logo (PNG, JPG, SVG - max 2MB). Used on invoices, estimates, and customer-facing pages.</p>
+                            @if($logo_url && !$logo_file)
+                                <p class="st-help text-muted">Current: <a href="{{ $logo_url }}" target="_blank" class="text-primary">{{ basename($logo_url) }}</a></p>
+                            @endif
+                        </div>
                     </div>
                     <div class="st-fg">
                         <label for="email">Contact Email</label>

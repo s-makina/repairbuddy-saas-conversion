@@ -6,10 +6,14 @@ use App\Models\Tenant;
 use App\Services\TenantSettings\TenantSettingsStore;
 use App\Support\BranchContext;
 use App\Support\TenantContext;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class GeneralSettings extends Component
 {
+    use WithFileUploads;
+
     public $tenant;
 
     /* ─── Form Fields ────────────────────────────── */
@@ -17,6 +21,7 @@ class GeneralSettings extends Component
     public string $business_phone = '';
     public string $business_address = '';
     public string $logo_url = '';
+    public $logo_file = null;
     public string $email = '';
     public string $case_number_prefix = 'WC_';
     public int $case_number_length = 6;
@@ -42,7 +47,8 @@ class GeneralSettings extends Component
             'business_name' => 'required|string|max:255',
             'business_phone' => 'nullable|string|max:50',
             'business_address' => 'nullable|string|max:500',
-            'logo_url' => 'nullable|url|max:500',
+            'logo_url' => 'nullable|string|max:500',
+            'logo_file' => 'nullable|image|max:2048', // 2MB max
             'email' => 'nullable|email|max:255',
             'case_number_prefix' => 'nullable|string|max:20',
             'case_number_length' => 'required|integer|min:1|max:20',
@@ -82,6 +88,7 @@ class GeneralSettings extends Component
         $this->business_phone = (string) ($general['wc_rb_business_phone'] ?? ($this->tenant->contact_phone ?? ''));
         $this->business_address = (string) ($general['wc_rb_business_address'] ?? '');
         $this->logo_url = (string) ($general['computer_repair_logo'] ?? (is_string($this->tenant->logo_url) ? $this->tenant->logo_url : ''));
+        // logo_file is not loaded - it's only for new uploads
         $this->email = (string) ($general['computer_repair_email'] ?? ($this->tenant->contact_email ?? ''));
         $this->case_number_prefix = (string) ($general['case_number_prefix'] ?? 'WC_');
         $this->case_number_length = (int) ($general['case_number_length'] ?? 6);
@@ -101,6 +108,19 @@ class GeneralSettings extends Component
     public function save(): void
     {
         $this->validate();
+
+        // Handle logo file upload
+        if ($this->logo_file) {
+            // Delete old logo if exists
+            if ($this->tenant->logo_path && Storage::disk('public')->exists($this->tenant->logo_path)) {
+                Storage::disk('public')->delete($this->tenant->logo_path);
+            }
+
+            // Store new logo
+            $path = $this->logo_file->store('logos', 'public');
+            $this->tenant->logo_path = $path;
+            $this->logo_url = Storage::disk('public')->url($path);
+        }
 
         $store = new TenantSettingsStore($this->tenant);
 
@@ -132,6 +152,7 @@ class GeneralSettings extends Component
             $this->tenant->contact_phone = $this->business_phone;
         }
 
+        $this->tenant->save();
         $store->save();
 
         $this->dispatch('settings-saved', message: 'General settings saved successfully.');

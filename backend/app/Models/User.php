@@ -30,9 +30,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        // Admin users use the parent implementation
+        // Admin users have all permissions
         if ($this->is_admin) {
-            return parent::hasPermissionTo($permission, $guardName);
+            return true;
         }
 
         // Check if user has Owner role via roleModel relationship
@@ -55,7 +55,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
             }
         }
 
-        return parent::hasPermissionTo($permission, $guardName);
+        // Fall back to Spatie's HasRoles trait implementation using an alias
+        return $this->hasDirectPermission($permission) || $this->hasPermissionViaRole($permission);
     }
 
     protected $appends = [

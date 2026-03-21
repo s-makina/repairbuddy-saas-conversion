@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairBuddyAppointment;
 use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyJob;
+use App\Services\TenantSettings\TenantSettingsStore;
 use App\Support\BranchContext;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -25,15 +26,28 @@ class CalendarController extends Controller
             abort(400, 'Tenant context is missing.');
         }
 
+        // Load settings from TenantSettingsStore
+        $store = new TenantSettingsStore($tenant);
+        $general = $store->get('general', []);
+        $styling = $store->get('styling', []);
+
+        // General settings
+        $enableNextService = (bool) ($general['wcrb_next_service_date'] ?? false);
+
+        // Styling labels
+        $pickupDateLabel = (string) ($styling['pickup_date_label'] ?? 'Pickup date');
+        $deliveryDateLabel = (string) ($styling['delivery_date_label'] ?? 'Delivery date');
+        $nextServiceDateLabel = (string) ($styling['nextservice_date_label'] ?? 'Next service date');
+
         return view('tenant.calendar', [
             'tenant' => $tenant,
             'user' => $user,
             'activeNav' => 'calendar',
             'pageTitle' => 'Calendar',
-            'pickup_date_label' => 'Pickup date',
-            'delivery_date_label' => 'Delivery date',
-            'nextservice_date_label' => 'Next service date',
-            'enable_next_service' => true,
+            'pickup_date_label' => $pickupDateLabel,
+            'delivery_date_label' => $deliveryDateLabel,
+            'nextservice_date_label' => $nextServiceDateLabel,
+            'enable_next_service' => $enableNextService,
             'calendar_events_url' => $tenant->slug
                 ? route('tenant.calendar.events', ['business' => $tenant->slug])
                 : '#',

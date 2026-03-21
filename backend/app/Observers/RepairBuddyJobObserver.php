@@ -9,7 +9,10 @@ use App\Mail\JobStatusUpdateMail;
 use App\Models\RepairBuddyJob;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Documents\JobPdfService;
+use App\Services\TenantSettings\TenantSettingsStore;
 use App\Support\TenantContext;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +49,18 @@ class RepairBuddyJobObserver
         if (!$tenant instanceof Tenant) {
             return;
         }
+
+        // Check if email notifications are enabled for status changes
+        $store = new TenantSettingsStore($tenant);
+        $general = $store->get('general', []);
+        $emailCustomerOnStatusChange = (bool) ($general['wc_job_status_cr_notice'] ?? false);
+
+        if (!$emailCustomerOnStatusChange) {
+            return;
+        }
+
+        // Check if PDF should be attached
+        $attachPdf = (bool) ($general['wcrb_attach_pdf_in_customer_emails'] ?? false);
 
         try {
             $frontendBase = rtrim((string) env('FRONTEND_URL', (string) env('APP_URL', '')), '/');
@@ -89,7 +104,7 @@ class RepairBuddyJobObserver
                     tenantLogoUrl: $tenantLogoUrl,
                 );
 
-                Mail::to($customer->email)->send(new JobCompletedMail($data));
+                Mail::to($customer->email)->send($this->attachPdfIfEnabled(new JobCompletedMail($data), $job, $tenant, $attachPdf));
             } else {
                 // Send status update email
                 $data = new JobStatusUpdateData(
@@ -108,7 +123,7 @@ class RepairBuddyJobObserver
                     tenantLogoUrl: $tenantLogoUrl,
                 );
 
-                Mail::to($customer->email)->send(new JobStatusUpdateMail($data));
+                Mail::to($customer->email)->send($this->attachPdfIfEnabled(new JobStatusUpdateMail($data), $job, $tenant, $attachPdf));
             }
         } catch (\Throwable $e) {
             Log::error('job.status_email_failed', [
@@ -200,5 +215,33 @@ class RepairBuddyJobObserver
             'completed', 'delivered' => '#16a34a',
             default => '#0ea5e9',
         };
+    }
+
+    /**
+     * Attach PDF to email if setting is enabled.
+     */
+    protected function attachPdfIfEnabled(object $mailable, RepairBuddyJob $job, Tenant $tenant, bool $attachPdf): object
+    {
+        if (! $attachPdf) {
+            return $mailable;
+        }
+
+        try {
+            $pdfService = new JobPdfService();
+            $pdfContent = $pdfService->generatePdfContent($job, $tenant, $job->branch);
+            $filename = $pdfService->generateFilename($job);
+
+            $mailable->attachData($pdfContent, $filename, [
+                'mime' => 'application/pdf',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('job.pdf_attachment_failed', [
+                'job_id' => $job->id,
+                'case_number' => $job->case_number,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $mailable;
     }
 }
