@@ -49,20 +49,15 @@ jQuery(document).ready(function($) {
                 var startDate = fetchInfo.startStr.split('T')[0];
                 var endDate = fetchInfo.endStr.split('T')[0];
                 
-                // Use localized ajax_url or fallback
+                // Use localized ajax_url from Laravel
                 var ajaxUrl = typeof calendar_frontend_vars !== 'undefined' ? 
-                    calendar_frontend_vars.ajax_url : 
-                    (typeof ajax_obj !== 'undefined' ? ajax_obj.ajax_url : '/wp-admin/admin-ajax.php');
-                
-                var nonce = typeof calendar_frontend_vars !== 'undefined' ? 
-                    calendar_frontend_vars.nonce : '';
+                    calendar_frontend_vars.ajax_url : '/calendar/events';
                 
                 $.ajax({
                     url: ajaxUrl,
                     type: 'POST',
                     data: {
-                        action: 'wcrb_get_frontend_calendar_events',
-                        security: nonce,
+                        _token: $('meta[name="csrf-token"]').attr('content') || '',
                         start: startDate,
                         end: endDate,
                         filter: currentFilter,
@@ -70,12 +65,16 @@ jQuery(document).ready(function($) {
                     },
                     success: function(response) {
                         $('#calendar-loading').removeClass('d-flex').addClass('d-none');
-                        if (response.success) {
+                        if (response.success && response.data) {
                             successCallback(response.data);
                             updateStats(response.data);
                         } else {
                             successCallback([]);
                         }
+                    },
+                    error: function() {
+                        $('#calendar-loading').removeClass('d-flex').addClass('d-none');
+                        successCallback([]);
                     }
                 });
             },

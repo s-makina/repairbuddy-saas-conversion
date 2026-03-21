@@ -80,7 +80,7 @@
       'id' => 'calendar',
       'title' => 'Calendar',
       'icon' => 'bi bi-bag-check',
-      'url' => $screenUrl('calendar'),
+      'url' => $tenantSlug ? route('tenant.calendar', ['business' => $tenantSlug]) : '#',
       'visible' => $isAuthed && ! $isCustomer,
     ],
     [
@@ -359,6 +359,8 @@
 
   if (request()->routeIs('tenant.jobs.*')) {
     $currentPage = 'jobs';
+  } elseif (request()->routeIs('tenant.calendar')) {
+    $currentPage = 'calendar';
   } elseif (request()->routeIs('tenant.settings')) {
     $currentPage = 'settings';
   } elseif (request()->routeIs('tenant.settings.section')) {

@@ -330,6 +330,12 @@ Route::prefix('t/{business}')
         Route::get('/dashboard', [\App\Http\Controllers\Web\TenantDashboardController::class, 'show'])
             ->name('tenant.dashboard');
 
+        // Calendar standalone routes
+        Route::get('/calendar', [\App\Http\Controllers\Web\CalendarController::class, 'show'])
+            ->name('tenant.calendar');
+        Route::post('/calendar/events', [\App\Http\Controllers\Web\CalendarController::class, 'events'])
+            ->name('tenant.calendar.events');
+
         Route::get('/settings', [\App\Http\Controllers\Web\TenantSettingsController::class, 'show'])
             ->name('tenant.settings');
 
@@ -1188,9 +1194,6 @@ Route::prefix('t/{business}')
         Route::get('/estimates/{estimateId}/pdf', [\App\Http\Controllers\Web\PrintDocumentController::class, 'pdfEstimate'])
             ->where(['estimateId' => '[0-9]+'])
             ->name('tenant.estimates.pdf');
-
-        Route::post('/calendar/events', [\App\Http\Controllers\Web\TenantDashboardController::class, 'calendarEvents'])
-            ->name('tenant.calendar.events');
 
         // Legacy AJAX handler
         Route::match(['get', 'post'], '/legacy-ajax', [\App\Http\Controllers\Web\AjaxController::class, 'handle'])
