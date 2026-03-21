@@ -1023,9 +1023,47 @@
             if (!setting || !date) { el('appointmentTimeSlots').innerHTML = ''; return; }
 
             const slots = setting.time_slots || [];
-            el('appointmentTimeSlots').innerHTML = slots.length === 0
-                ? '<div style="font-size:13px;color:var(--rb-text-3)">No time slots configured.</div>'
-                : slots.map(slot => '<div class="time-slot" onclick="RB.selectTimeSlot(\'' + esc(slot) + '\',this)">' + esc(slot) + '</div>').join('');
+            if (slots.length === 0) {
+                el('appointmentTimeSlots').innerHTML = '<div style="font-size:13px;color:var(--rb-text-3)">No time slots configured.</div>';
+                return;
+            }
+
+            // Get day of week from selected date (e.g., 'monday', 'tuesday')
+            const dateObj = new Date(date + 'T00:00:00');
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayOfWeek = dayNames[dateObj.getDay()];
+
+            // Find the slot configuration for this day
+            const daySlot = slots.find(s => s && s.day === dayOfWeek && s.enabled !== false);
+            if (!daySlot || !daySlot.start || !daySlot.end) {
+                el('appointmentTimeSlots').innerHTML = '<div style="font-size:13px;color:var(--rb-text-3)">No availability for this day.</div>';
+                return;
+            }
+
+            // Generate time slots from start to end
+            const duration = setting.slot_duration_minutes || 30;
+            const buffer = setting.buffer_minutes || 0;
+            const startParts = daySlot.start.split(':');
+            const endParts = daySlot.end.split(':');
+            let currentMinutes = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            const endMinutes = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+
+            const timeSlotButtons = [];
+            while (currentMinutes + duration <= endMinutes) {
+                const h = String(Math.floor(currentMinutes / 60)).padStart(2, '0');
+                const m = String(currentMinutes % 60).padStart(2, '0');
+                const endH = String(Math.floor((currentMinutes + duration) / 60)).padStart(2, '0');
+                const endM = String((currentMinutes + duration) % 60).padStart(2, '0');
+                const slotValue = h + ':' + m;
+                const slotLabel = h + ':' + m + ' - ' + endH + ':' + endM;
+
+                timeSlotButtons.push('<div class="time-slot" data-slot="' + esc(slotValue) + '" onclick="RB.selectTimeSlot(\'' + esc(slotValue) + '\',this)">' + esc(slotLabel) + '</div>');
+                currentMinutes += duration + buffer;
+            }
+
+            el('appointmentTimeSlots').innerHTML = timeSlotButtons.length === 0
+                ? '<div style="font-size:13px;color:var(--rb-text-3)">No available time slots.</div>'
+                : timeSlotButtons.join('');
         }
 
         function selectTimeSlot(slot, cardEl) {

@@ -180,6 +180,16 @@ class MyAccount extends Component
         }
 
         session()->regenerate();
+
+        $user = Auth::user();
+
+        // If non-customer role, redirect to dashboard
+        if ($user && $user->role !== 'customer') {
+            $rp = $this->tenantId ? 'tenant.' : '';
+            $this->redirect(route($rp . 'dashboard', ['business' => $this->business]));
+            return;
+        }
+
         $this->loadDashboardData();
         $this->successMessage = 'Welcome back!';
     }

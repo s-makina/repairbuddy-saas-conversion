@@ -85,6 +85,11 @@ class AuthController extends Controller
                     ->withErrors(['email' => 'You are not authorized for this business.']);
             }
 
+            // If customer, redirect to my-account
+            if ($user->role === 'customer') {
+                return redirect()->route($this->tenantRouteName($request, 'myaccount'), ['business' => $tenantSlug]);
+            }
+
             $tenantId = is_numeric($user?->tenant_id) ? (int) $user->tenant_id : null;
 
             return redirect()->intended($this->dashboardFallbackUrl($tenantId, $tenantSlug));
@@ -125,9 +130,9 @@ class AuthController extends Controller
             ]);
         }
 
-        // Check user status
+        // Check user status - customers with pending status can still access my-account
         $status = $user->status ?? 'active';
-        if ($status === 'pending') {
+        if ($status === 'pending' && $user->role !== 'customer') {
             throw ValidationException::withMessages([
                 'auth' => ['Your account is pending activation. Please wait for an administrator to approve your account.'],
             ]);
@@ -147,6 +152,11 @@ class AuthController extends Controller
         // Check if 2FA is enabled for this user
         if ($user->two_factor_enabled ?? false) {
             return redirect()->route($this->tenantRouteName($request, '2fa.show'), ['business' => $tenantSlug]);
+        }
+
+        // If customer role, redirect to my-account page
+        if ($user->role === 'customer') {
+            return redirect()->route($this->tenantRouteName($request, 'myaccount'), ['business' => $tenantSlug]);
         }
 
         $tenantId = is_numeric($user?->tenant_id) ? (int) $user->tenant_id : null;
@@ -226,6 +236,7 @@ class AuthController extends Controller
             'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'role' => 'customer',
             'status' => 'pending',
             'tenant_id' => $tenantId,
         ]);
