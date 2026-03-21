@@ -237,138 +237,434 @@
                 </div>
 
                 {{-- Section: My Repairs --}}
-                <div x-show="activeSection === 'jobs'">
-                    @php
-                        $activeJobs = collect($jobs)->filter(fn($j) => empty($j['closed_at']))->values();
-                        $pastJobs = collect($jobs)->filter(fn($j) => !empty($j['closed_at']))->values();
-                    @endphp
+                <div x-show="activeSection === 'jobs'" wire:init="loadJobsData">
+                    <h2 class="cd-dash-section-title">My Repairs</h2>
+                    <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
+                        Track and manage your repair jobs.
+                    </p>
 
-                    @if($activeJobs->isNotEmpty())
-                        <div class="cd-section">
-                            <div class="cd-section-header">
-                                <h3 class="cd-section-title">
-                                    <svg class="cd-sec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.207-.766M11.42 15.17l-2.496 3.03A2.65 2.65 0 016.531 21H5.25a.75.75 0 01-.75-.75v-1.281c0-.597.237-1.17.659-1.591l5.877-5.877M11.42 15.17l-5.877-5.877A2.65 2.65 0 015.25 6.531V5.25A.75.75 0 016 4.5h1.281c.597 0 1.17.237 1.591.659l5.877 5.877"/>
-                                    </svg>
-                                    Active Repairs
-                                </h3>
-                                <span class="cd-section-badge">{{ $activeJobs->count() }}</span>
-                            </div>
-                            <div class="cd-section-body">
-                                <div class="cd-repair-list">
-                                    @foreach($activeJobs as $job)
-                                        <a href="{{ route($rp . 'status.show', ['business' => $business, 'caseNumber' => $job['case_number'] ?? '']) }}" class="cd-repair-card">
-                                            <div class="cd-repair-info">
-                                                <div class="cd-repair-case">#{{ $job['case_number'] ?? '—' }}</div>
-                                                <div class="cd-repair-device">{{ $job['title'] ?? '—' }}</div>
-                                            </div>
-                                            <div class="cd-repair-meta">
-                                                <div class="cd-repair-date">{{ $job['opened_at'] ?? '—' }}</div>
-                                                <span class="cd-repair-status {{ \Illuminate\Support\Str::slug($job['status_slug'] ?? 'in-progress') }}">
-                                                    {{ ucfirst(str_replace(['-','_'], ' ', $job['status_slug'] ?? 'In Progress')) }}
-                                                </span>
-                                                <span class="cd-repair-arrow">→</span>
-                                            </div>
-                                        </a>
-                                    @endforeach
-                                </div>
-                            </div>
+                    {{-- Status Cards --}}
+                    @if(count($jobsStatusCards) > 0)
+                        <div class="cd-status-cards">
+                            @foreach($jobsStatusCards as $card)
+                                <button type="button" 
+                                    class="cd-status-card {{ $jobsStatusFilter === $card['slug'] ? 'active' : '' }}"
+                                    wire:click="$set('jobsStatusFilter', '{{ $card['slug'] }}'); applyJobsFilters">
+                                    <div class="cd-status-count">{{ $card['count'] }}</div>
+                                    <div class="cd-status-name">{{ $card['name'] }}</div>
+                                </button>
+                            @endforeach
+                            @if($jobsStatusFilter)
+                                <button type="button" class="cd-status-card cd-status-clear" wire:click="clearJobsFilters">
+                                    <i class="bi bi-x-lg"></i> Clear
+                                </button>
+                            @endif
                         </div>
                     @endif
 
-                    @if($pastJobs->isNotEmpty())
-                        <div class="cd-section">
-                            <div class="cd-section-header">
-                                <h3 class="cd-section-title">
-                                    <svg class="cd-sec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    Past Repairs
-                                </h3>
+                    {{-- Filters --}}
+                    <div class="cd-filter-bar">
+                        <div class="cd-filter-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" wire:model.defer="jobsSearch" placeholder="Search by case #, title..." />
+                        </div>
+                        <select wire:model.defer="jobsPriorityFilter" class="cd-filter-select">
+                            <option value="">All Priorities</option>
+                            <option value="high">High</option>
+                            <option value="normal">Normal</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <button type="button" class="cd-btn cd-btn-outline" wire:click="applyJobsFilters">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                        <button type="button" class="cd-btn cd-btn-ghost" wire:click="clearJobsFilters">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+
+                    {{-- Jobs Table --}}
+                    @if(count($jobsList) > 0)
+                        <div class="cd-card">
+                            <div class="cd-card-header">
+                                <i class="bi bi-wrench me-2"></i> Jobs
                             </div>
-                            <div class="cd-section-body">
-                                <div class="cd-repair-list">
-                                    @foreach($pastJobs as $job)
-                                        <a href="{{ route($rp . 'status.show', ['business' => $business, 'caseNumber' => $job['case_number'] ?? '']) }}" class="cd-repair-card">
-                                            <div class="cd-repair-info">
-                                                <div class="cd-repair-case">#{{ $job['case_number'] ?? '—' }}</div>
-                                                <div class="cd-repair-device">{{ $job['title'] ?? '—' }}</div>
-                                            </div>
-                                            <div class="cd-repair-meta">
-                                                <div class="cd-repair-date">{{ $job['opened_at'] ?? '—' }}</div>
-                                                <span class="cd-repair-status completed">
-                                                    {{ ucfirst(str_replace(['-','_'], ' ', $job['status_slug'] ?? 'Completed')) }}
-                                                </span>
-                                                <span class="cd-repair-arrow">→</span>
-                                            </div>
-                                        </a>
-                                    @endforeach
+                            <div class="cd-card-body p-0">
+                                <div class="cd-data-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Job #</th>
+                                                <th>Case #</th>
+                                                <th>Title</th>
+                                                <th>Devices</th>
+                                                <th>Opened</th>
+                                                <th>Closed</th>
+                                                <th>Status</th>
+                                                <th>Priority</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($jobsList as $job)
+                                                <tr>
+                                                    <td><span class="cd-badge cd-badge-secondary">#{{ $job['job_number'] }}</span></td>
+                                                    <td>{{ $job['case_number'] }}</td>
+                                                    <td>{{ $job['title'] }}</td>
+                                                    <td>{{ $job['devices'] }}</td>
+                                                    <td>{{ $job['opened_at'] }}</td>
+                                                    <td>{{ $job['closed_at'] ?: '-' }}</td>
+                                                    <td>
+                                                        <span class="cd-status-badge cd-status-{{ \Illuminate\Support\Str::slug($job['status_slug']) }}">
+                                                            {{ ucfirst(str_replace(['-','_'], ' ', $job['status_slug'])) }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="cd-priority cd-priority-{{ $job['priority'] }}">
+                                                            {{ ucfirst($job['priority']) }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ route($rp . 'status.show', ['business' => $business, 'caseNumber' => $job['case_number']]) }}" class="cd-btn cd-btn-sm">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
-                    @endif
-
-                    @if(count($jobs) === 0)
-                        <div class="cd-section">
-                            <div class="cd-section-body">
-                                <div class="cd-empty">
-                                    <svg class="cd-empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
-                                    </svg>
-                                    <div class="cd-empty-title">No jobs found</div>
-                                    <div class="cd-empty-text">You don't have any repair jobs yet.</div>
-                                    <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-btn cd-btn-primary" style="margin-top: 1rem;">
-                                        Book a Device
-                                    </a>
-                                </div>
-                            </div>
+                    @else
+                        <div class="cd-empty">
+                            <i class="bi bi-wrench" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                            <div class="cd-empty-title">No Jobs Found</div>
+                            <div class="cd-empty-text">No repair jobs match your criteria.</div>
                         </div>
                     @endif
                 </div>
 
                 {{-- Section: Estimates --}}
-                <div x-show="activeSection === 'estimates'">
+                <div x-show="activeSection === 'estimates'" wire:init="loadEstimatesData">
                     <h2 class="cd-dash-section-title">Estimates</h2>
                     <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
                         View and manage your repair estimates.
                     </p>
-                    <div class="cd-empty">
-                        <i class="bi bi-file-earmark-text" style="font-size:3rem;color:var(--rb-text-3);"></i>
-                        <div class="cd-empty-title">No Estimates Yet</div>
-                        <div class="cd-empty-text">Your estimates will appear here once created.</div>
-                        <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-btn cd-btn-primary" style="margin-top: 1rem;">
-                            Request an Estimate
-                        </a>
+
+                    {{-- Status Cards --}}
+                    <div class="cd-status-cards">
+                        @foreach($estimatesStatusCards as $card)
+                            <button type="button" 
+                                class="cd-status-card cd-status-{{ $card['color'] }} {{ $estimatesStatusFilter === $card['slug'] ? 'active' : '' }}"
+                                wire:click="$set('estimatesStatusFilter', '{{ $card['slug'] }}'); applyEstimatesFilters">
+                                <div class="cd-status-count">{{ $card['count'] }}</div>
+                                <div class="cd-status-name">{{ $card['name'] }}</div>
+                            </button>
+                        @endforeach
+                        @if($estimatesStatusFilter)
+                            <button type="button" class="cd-status-card cd-status-clear" wire:click="clearEstimatesFilters">
+                                <i class="bi bi-x-lg"></i> Clear
+                            </button>
+                        @endif
                     </div>
+
+                    {{-- Filters --}}
+                    <div class="cd-filter-bar">
+                        <div class="cd-filter-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" wire:model.defer="estimatesSearch" placeholder="Search by case #, title..." />
+                        </div>
+                        <button type="button" class="cd-btn cd-btn-outline" wire:click="applyEstimatesFilters">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                        <button type="button" class="cd-btn cd-btn-ghost" wire:click="clearEstimatesFilters">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+
+                    {{-- Estimates Table --}}
+                    @if(count($estimatesList) > 0)
+                        <div class="cd-card">
+                            <div class="cd-card-header">
+                                <i class="bi bi-file-earmark-text me-2"></i> Estimates
+                            </div>
+                            <div class="cd-card-body p-0">
+                                <div class="cd-data-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Case #</th>
+                                                <th>Title</th>
+                                                <th>Created</th>
+                                                <th>Status</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($estimatesList as $est)
+                                                <tr>
+                                                    <td>#{{ $est['id'] }}</td>
+                                                    <td>{{ $est['case_number'] }}</td>
+                                                    <td>{{ $est['title'] }}</td>
+                                                    <td>{{ $est['created_at'] }}</td>
+                                                    <td>
+                                                        <span class="cd-status-badge cd-status-{{ $est['status'] }}">
+                                                            {{ ucfirst($est['status']) }}
+                                                        </span>
+                                                    </td>
+                                                    <td>${{ $est['total'] }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="cd-empty">
+                            <i class="bi bi-file-earmark-text" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                            <div class="cd-empty-title">No Estimates Found</div>
+                            <div class="cd-empty-text">No estimates match your criteria.</div>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Section: My Devices --}}
-                <div x-show="activeSection === 'my-devices'">
+                <div x-show="activeSection === 'my-devices'" wire:init="loadDevicesData">
                     <h2 class="cd-dash-section-title">My Devices</h2>
                     <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
                         Your registered devices for repair.
                     </p>
-                    <div class="cd-empty">
-                        <i class="bi bi-phone" style="font-size:3rem;color:var(--rb-text-3);"></i>
-                        <div class="cd-empty-title">No Devices Registered</div>
-                        <div class="cd-empty-text">Your registered devices will appear here.</div>
-                        <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-btn cd-btn-primary" style="margin-top: 1rem;">
-                            Register a Device
-                        </a>
+
+                    {{-- Stats --}}
+                    <div class="cd-status-cards">
+                        <div class="cd-status-card cd-status-primary">
+                            <div class="cd-status-count">{{ $devicesTotal }}</div>
+                            <div class="cd-status-name">Total Devices</div>
+                        </div>
                     </div>
+
+                    {{-- Filters & Add Button --}}
+                    <div class="cd-filter-bar">
+                        <div class="cd-filter-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" wire:model.defer="devicesSearch" placeholder="Search by name, ID/IMEI..." />
+                        </div>
+                        <button type="button" class="cd-btn cd-btn-primary" wire:click="openAddDeviceModal">
+                            <i class="bi bi-plus-circle"></i> Add Device
+                        </button>
+                    </div>
+
+                    {{-- Devices Table --}}
+                    @if(count($devicesList) > 0)
+                        <div class="cd-card">
+                            <div class="cd-card-header">
+                                <i class="bi bi-phone me-2"></i> My Devices
+                            </div>
+                            <div class="cd-card-body p-0">
+                                <div class="cd-data-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Type</th>
+                                                <th>Brand</th>
+                                                <th>ID/IMEI</th>
+                                                <th>Pin Code</th>
+                                                <th>Notes</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($devicesList as $dev)
+                                                <tr>
+                                                    <td>{{ $dev['name'] }}</td>
+                                                    <td>{{ $dev['type'] }}</td>
+                                                    <td>{{ $dev['brand'] }}</td>
+                                                    <td>{{ $dev['identifier'] }}</td>
+                                                    <td>{{ $dev['pin_code'] }}</td>
+                                                    <td>{{ $dev['notes'] }}</td>
+                                                    <td>
+                                                        <div class="cd-actions">
+                                                            <button type="button" class="cd-btn cd-btn-sm cd-btn-ghost" wire:click="editDevice({{ $dev['id'] }})">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button type="button" class="cd-btn cd-btn-sm cd-btn-ghost cd-btn-danger" wire:click="deleteDevice({{ $dev['id'] }})" wire:confirm="Are you sure you want to delete this device?">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="cd-empty">
+                            <i class="bi bi-phone" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                            <div class="cd-empty-title">No Devices Found</div>
+                            <div class="cd-empty-text">No devices match your search.</div>
+                        </div>
+                    @endif
                 </div>
 
+                {{-- Add/Edit Device Modal --}}
+                @if($showAddDeviceModal)
+                    <div class="cd-modal-overlay" wire:click.self="closeAddDeviceModal">
+                        <div class="cd-modal">
+                            <div class="cd-modal-header">
+                                <h3>{{ $editingDeviceId ? 'Edit Device' : 'Add Device' }}</h3>
+                                <button type="button" class="cd-modal-close" wire:click="closeAddDeviceModal">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <form class="cd-modal-body" wire:submit.prevent="saveDevice">
+                                <div class="cd-form-group">
+                                    <label>Device Name *</label>
+                                    <input type="text" wire:model.defer="deviceName" required />
+                                </div>
+                                <div class="cd-form-row">
+                                    <div class="cd-form-group">
+                                        <label>Device Type</label>
+                                        <select wire:model.defer="deviceTypeId">
+                                            <option value="">Select Type</option>
+                                            @foreach(\App\Models\RepairBuddyDeviceType::orderBy('name')->get() as $type)
+                                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="cd-form-group">
+                                        <label>Brand</label>
+                                        <select wire:model.defer="deviceBrandId">
+                                            <option value="">Select Brand</option>
+                                            @foreach(\App\Models\RepairBuddyDeviceBrand::orderBy('name')->get() as $brand)
+                                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="cd-form-row">
+                                    <div class="cd-form-group">
+                                        <label>ID/IMEI</label>
+                                        <input type="text" wire:model.defer="deviceIdentifier" placeholder="Serial number, IMEI..." />
+                                    </div>
+                                    <div class="cd-form-group">
+                                        <label>Pin Code/Password</label>
+                                        <input type="text" wire:model.defer="devicePinCode" placeholder="Device unlock code" />
+                                    </div>
+                                </div>
+                                <div class="cd-form-group">
+                                    <label>Notes</label>
+                                    <textarea wire:model.defer="deviceNotes" rows="3" placeholder="Any additional details..."></textarea>
+                                </div>
+                                <div class="cd-modal-footer">
+                                    <button type="button" class="cd-btn cd-btn-ghost" wire:click="closeAddDeviceModal">Cancel</button>
+                                    <button type="submit" class="cd-btn cd-btn-primary">{{ $editingDeviceId ? 'Update' : 'Add' }} Device</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Section: Reviews --}}
-                <div x-show="activeSection === 'reviews'">
+                <div x-show="activeSection === 'reviews'" wire:init="loadReviewsData">
                     <h2 class="cd-dash-section-title">Reviews</h2>
                     <p style="font-size:.82rem;color:var(--rb-text-3);margin:-0.75rem 0 1.5rem;">
                         Your reviews and feedback on completed repairs.
                     </p>
-                    <div class="cd-empty">
-                        <i class="bi bi-star" style="font-size:3rem;color:var(--rb-text-3);"></i>
-                        <div class="cd-empty-title">No Reviews Yet</div>
-                        <div class="cd-empty-text">Your reviews will appear here after completing repairs.</div>
+
+                    {{-- Stats Overview --}}
+                    <div class="cd-reviews-stats">
+                        <div class="cd-stat-card cd-stat-card-main">
+                            <div class="cd-stat-number">{{ $reviewStats['total'] }}</div>
+                            <div class="cd-stat-label">Total Reviews</div>
+                        </div>
+                        <div class="cd-stat-card">
+                            <div class="cd-stat-number">{{ $reviewStats['avg'] }}</div>
+                            <div class="cd-stat-label">Avg Rating</div>
+                        </div>
+                        <div class="cd-stat-card cd-rating-bars">
+                            <div class="cd-rating-bar-row">
+                                <span>5 <i class="bi bi-star-fill"></i></span>
+                                <div class="cd-rating-bar"><div class="cd-rating-fill" style="width: {{ $reviewStats['total'] > 0 ? ($reviewStats[5] / $reviewStats['total'] * 100) : 0 }}%"></div></div>
+                                <span>{{ $reviewStats[5] }}</span>
+                            </div>
+                            <div class="cd-rating-bar-row">
+                                <span>4 <i class="bi bi-star-fill"></i></span>
+                                <div class="cd-rating-bar"><div class="cd-rating-fill" style="width: {{ $reviewStats['total'] > 0 ? ($reviewStats[4] / $reviewStats['total'] * 100) : 0 }}%"></div></div>
+                                <span>{{ $reviewStats[4] }}</span>
+                            </div>
+                            <div class="cd-rating-bar-row">
+                                <span>3 <i class="bi bi-star-fill"></i></span>
+                                <div class="cd-rating-bar"><div class="cd-rating-fill" style="width: {{ $reviewStats['total'] > 0 ? ($reviewStats[3] / $reviewStats['total'] * 100) : 0 }}%"></div></div>
+                                <span>{{ $reviewStats[3] }}</span>
+                            </div>
+                            <div class="cd-rating-bar-row">
+                                <span>2 <i class="bi bi-star-fill"></i></span>
+                                <div class="cd-rating-bar"><div class="cd-rating-fill" style="width: {{ $reviewStats['total'] > 0 ? ($reviewStats[2] / $reviewStats['total'] * 100) : 0 }}%"></div></div>
+                                <span>{{ $reviewStats[2] }}</span>
+                            </div>
+                            <div class="cd-rating-bar-row">
+                                <span>1 <i class="bi bi-star-fill"></i></span>
+                                <div class="cd-rating-bar"><div class="cd-rating-fill" style="width: {{ $reviewStats['total'] > 0 ? ($reviewStats[1] / $reviewStats['total'] * 100) : 0 }}%"></div></div>
+                                <span>{{ $reviewStats[1] }}</span>
+                            </div>
+                        </div>
                     </div>
+
+                    {{-- Reviews List --}}
+                    @if(count($reviews) > 0)
+                        <div class="cd-card">
+                            <div class="cd-card-header">
+                                <i class="bi bi-star me-2"></i> My Reviews
+                            </div>
+                            <div class="cd-card-body p-0">
+                                <div class="cd-reviews-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Case #</th>
+                                                <th>Job Title</th>
+                                                <th>Rating</th>
+                                                <th>Feedback</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($reviews as $review)
+                                                <tr>
+                                                    <td><span class="cd-badge cd-badge-secondary">{{ $review['job_case_number'] }}</span></td>
+                                                    <td>{{ $review['job_title'] }}</td>
+                                                    <td>
+                                                        <span class="cd-stars">
+                                                            @for($i = 1; $i <= 5; $i++)
+                                                                @if($i <= $review['rating'])
+                                                                    <i class="bi bi-star-fill"></i>
+                                                                @else
+                                                                    <i class="bi bi-star"></i>
+                                                                @endif
+                                                            @endfor
+                                                        </span>
+                                                    </td>
+                                                    <td class="cd-feedback-cell">{{ $review['feedback'] ?? '-' }}</td>
+                                                    <td>{{ $review['created_at'] }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="cd-empty">
+                            <i class="bi bi-star" style="font-size:3rem;color:var(--rb-text-3);"></i>
+                            <div class="cd-empty-title">No Reviews Yet</div>
+                            <div class="cd-empty-text">Your reviews will appear here after completing repairs.</div>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Section: Profile --}}
