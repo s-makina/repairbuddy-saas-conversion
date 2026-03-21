@@ -11,15 +11,8 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
     ->where(['business' => '[A-Za-z0-9\-]+'])
     ->middleware(['web', 'tenant'])
     ->group(function () {
-        Route::get('/', function (\Illuminate\Http\Request $request) {
-            $tenant = \App\Support\TenantContext::tenant();
-            $tenantSlug = $request->route('business');
-
-            return view('tenant.welcome', [
-                'tenant' => $tenant,
-                'tenantSlug' => $tenantSlug,
-            ]);
-        })->name('tenant.subdomain.welcome');
+        Route::get('/', \App\Livewire\Tenant\PublicPages\WelcomePage::class)
+            ->name('tenant.subdomain.welcome');
 
             Route::get('/alt', function (\Illuminate\Http\Request $request) {
                 $tenant = \App\Support\TenantContext::tenant();
@@ -210,15 +203,8 @@ Route::prefix('t/{business}')
     ->where(['business' => '[A-Za-z0-9\-]+' ])
     ->middleware(['web', 'tenant'])
     ->group(function () {
-        Route::get('/', function (\Illuminate\Http\Request $request) {
-            $tenant = \App\Support\TenantContext::tenant();
-            $tenantSlug = $request->route('business');
-
-            return view('tenant.welcome', [
-                'tenant' => $tenant,
-                'tenantSlug' => $tenantSlug,
-            ]);
-        })->name('tenant.welcome');
+        Route::get('/', \App\Livewire\Tenant\PublicPages\WelcomePage::class)
+            ->name('tenant.welcome');
 
         Route::get('/alt', function (\Illuminate\Http\Request $request) {
             $tenant = \App\Support\TenantContext::tenant();

@@ -90,6 +90,48 @@
             </div>
         </div>
 
+        {{-- ── Welcome Page Hero ── --}}
+        <div class="st-section" x-data="{ open: false }">
+            <div class="st-section-header" @click="open = !open">
+                <h3 class="st-section-title">
+                    <svg class="st-sec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M5.25 7.5l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 7.5M12 21.75l8.955-8.955c.439-.44.439-1.152 0-1.591L12 2.25M21.75 12l-8.955 8.955c-.439.44-1.152.44-1.591 0L2.25 12"/></svg>
+                    Welcome Page Hero
+                </h3>
+                <svg class="st-section-chevron" :class="{ 'open': open }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+            <div class="st-section-body" x-show="open" x-collapse>
+                <p class="st-help" style="margin-bottom:1rem;">Customize the hero section on your public welcome page. Leave fields empty to use default text based on your business name.</p>
+
+                <div class="st-fg" style="margin-bottom:1rem;">
+                    <label for="hero_title">Hero Title</label>
+                    <input type="text" id="hero_title" wire:model.defer="hero_title"
+                           placeholder="e.g. Expert Repairs, <span>{{ $tenant->name ?? 'Our Shop' }}</span>" />
+                    <p class="st-help">Main headline displayed at the top of your welcome page. Use <code>&lt;span&gt;</code> around text for gradient effect.</p>
+                </div>
+
+                <div class="st-fg" style="margin-bottom:1rem;">
+                    <label for="hero_subtitle">Hero Subtitle</label>
+                    <textarea id="hero_subtitle" wire:model.defer="hero_subtitle" rows="2"
+                              placeholder="e.g. From cracked screens to water damage — get fast, reliable repairs from our certified technicians."></textarea>
+                    <p class="st-help">Supporting text below the main headline</p>
+                </div>
+
+                <div class="st-fg" style="margin-bottom:1rem;">
+                    <label for="hero_badge_text">Badge Text</label>
+                    <input type="text" id="hero_badge_text" wire:model.defer="hero_badge_text"
+                           placeholder="e.g. Now accepting online bookings" />
+                    <p class="st-help">Small badge displayed above the title (optional)</p>
+                </div>
+
+                <div class="st-fg">
+                    <label for="hero_stats">Custom Stats (JSON)</label>
+                    <textarea id="hero_stats" wire:model.defer="hero_stats" rows="3"
+                              placeholder='[{"value":"4.9★","label":"Rating"},{"value":"1000+","label":"Repairs"}]'></textarea>
+                    <p class="st-help">Optional: JSON array of stat items with "value" and "label" keys. Leave empty to hide stats section.</p>
+                </div>
+            </div>
+        </div>
+
         {{-- ── Save ── --}}
         <div class="st-save-bar">
             <button type="submit" class="st-btn-save" wire:loading.attr="disabled">

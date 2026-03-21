@@ -22,6 +22,12 @@ class StylingSettings extends Component
     public string $primary_color = '#063e70';
     public string $secondary_color = '#fd6742';
 
+    /* ─── Hero Settings (Welcome Page) ───────────── */
+    public string $hero_title = '';
+    public string $hero_subtitle = '';
+    public string $hero_badge_text = '';
+    public string $hero_stats = '';
+
     protected function rules(): array
     {
         return [
@@ -31,6 +37,10 @@ class StylingSettings extends Component
             'casenumber_label'       => 'nullable|string|max:100',
             'primary_color'          => 'nullable|string|max:20',
             'secondary_color'        => 'nullable|string|max:20',
+            'hero_title'             => 'nullable|string|max:255',
+            'hero_subtitle'          => 'nullable|string|max:500',
+            'hero_badge_text'        => 'nullable|string|max:100',
+            'hero_stats'             => 'nullable|string|max:1000',
         ];
     }
 
@@ -65,6 +75,13 @@ class StylingSettings extends Component
         $this->casenumber_label       = (string) ($settings['casenumber_label'] ?? '');
         $this->primary_color          = (string) ($settings['primary_color'] ?? '#063e70');
         $this->secondary_color        = (string) ($settings['secondary_color'] ?? '#fd6742');
+
+        // Hero settings with defaults based on business name
+        $businessName = $this->tenant->name ?? 'Our Shop';
+        $this->hero_title       = (string) ($settings['hero_title'] ?? "Expert Repairs, <span>{$businessName}</span>");
+        $this->hero_subtitle    = (string) ($settings['hero_subtitle'] ?? 'From cracked screens to water damage — get fast, reliable repairs from our certified technicians. Book online in seconds.');
+        $this->hero_badge_text  = (string) ($settings['hero_badge_text'] ?? 'Now accepting online bookings');
+        $this->hero_stats       = (string) ($settings['hero_stats'] ?? '');
     }
 
     public function save(): void
@@ -80,6 +97,10 @@ class StylingSettings extends Component
             'casenumber_label'       => $this->casenumber_label,
             'primary_color'          => $this->primary_color,
             'secondary_color'        => $this->secondary_color,
+            'hero_title'             => $this->hero_title,
+            'hero_subtitle'          => $this->hero_subtitle,
+            'hero_badge_text'        => $this->hero_badge_text,
+            'hero_stats'             => $this->hero_stats,
         ]);
 
         $store->save();
