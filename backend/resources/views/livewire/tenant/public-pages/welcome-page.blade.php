@@ -113,9 +113,9 @@
             <h1>{!! $heroTitle !!}</h1>
             <p>{{ $heroSubtitle }}</p>
             <div class="hero-ctas">
-                <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}" class="btn btn-orange btn-lg">
+                <a href="{{ route($tenantRoutePrefix.'.booking.show', ['business' => $tenantSlug]) }}" class="btn btn-orange btn-lg">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Book Appointment
+                    Book Repair
                 </a>
                 @if($contactPhone || $contactEmail)
                 <a href="#hours" class="btn btn-outline btn-lg">
@@ -222,7 +222,7 @@
         <div class="cta-inner">
             <h2>Ready to get your device fixed?</h2>
             <p>Book an appointment online and skip the wait. Most repairs done while you wait.</p>
-            <a href="{{ route($tenantRoutePrefix.'.register', ['business' => $tenantSlug]) }}" class="btn btn-white btn-lg">Book Your Repair &rarr;</a>
+            <a href="{{ route($tenantRoutePrefix.'.booking.show', ['business' => $tenantSlug]) }}" class="btn btn-white btn-lg">Book Your Repair &rarr;</a>
         </div>
     </div>
 

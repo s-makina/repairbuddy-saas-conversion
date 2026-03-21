@@ -144,7 +144,7 @@ class WelcomePage extends Component
             'time_required' => $service->time_required ?? '',
             'warranty' => $service->warranty ?? '',
             'base_price_amount_cents' => $service->base_price_amount_cents,
-            'base_price_currency' => $service->base_price_currency ?? 'USD',
+            'base_price_currency' => $service->base_price_currency ?? $this->tenant->currency ?? 'USD',
             'type_name' => $service->type?->name ?? null,
         ])->toArray();
     }
@@ -295,6 +295,28 @@ class WelcomePage extends Component
             'GBP' => '£',
             'CAD' => 'CA$',
             'AUD' => 'A$',
+            'NZD' => 'NZ$',
+            'CHF' => 'CHF ',
+            'JPY' => '¥',
+            'CNY' => '¥',
+            'INR' => '₹',
+            'MXN' => 'MX$',
+            'BRL' => 'R$',
+            'ZAR' => 'R ',
+            'SGD' => 'S$',
+            'HKD' => 'HK$',
+            'KRW' => '₩',
+            'TRY' => '₺',
+            'RUB' => '₽',
+            'PLN' => 'zł ',
+            'SEK' => 'kr ',
+            'NOK' => 'kr ',
+            'DKK' => 'kr ',
+            'PHP' => '₱',
+            'IDR' => 'Rp ',
+            'THB' => '฿',
+            'MYR' => 'RM ',
+            'VND' => '₫',
         ];
 
         $symbol = $symbols[$currency] ?? $currency . ' ';

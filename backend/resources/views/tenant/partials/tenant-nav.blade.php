@@ -16,7 +16,6 @@
         ['id' => 'home', 'label' => 'Home', 'route' => $tenantRoutePrefix . '.welcome', 'icon' => '🏠'],
         ['id' => 'book', 'label' => 'Book a Repair', 'route' => $tenantRoutePrefix . '.booking.show', 'icon' => '📱'],
         ['id' => 'services', 'label' => 'Our Services', 'route' => $tenantRoutePrefix . '.services', 'icon' => '🔧'],
-        ['id' => 'account', 'label' => 'My Account', 'route' => $tenantRoutePrefix . '.myaccount', 'icon' => '👤'],
     ];
 @endphp
 
@@ -36,7 +35,15 @@
                     {{ $item['label'] }}
                 </a>
             @endforeach
-            <a href="{{ route($tenantRoutePrefix . '.login', ['business' => $tenantSlug]) }}" class="btn btn-outline">Sign In</a>
+            @auth
+                <a href="{{ route($tenantRoutePrefix . '.myaccount', ['business' => $tenantSlug]) }}" class="btn btn-outline">My Account</a>
+                <form method="POST" action="{{ route($tenantRoutePrefix . '.logout', ['business' => $tenantSlug]) }}" style="display:inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-outline">Sign Out</button>
+                </form>
+            @else
+                <a href="{{ route($tenantRoutePrefix . '.login', ['business' => $tenantSlug]) }}" class="btn btn-outline">Sign In</a>
+            @endauth
             <a href="{{ route($tenantRoutePrefix . '.booking.show', ['business' => $tenantSlug]) }}" class="btn btn-primary text-white">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 Book Now
@@ -52,5 +59,14 @@
                 {{ $item['icon'] }} {{ $item['label'] }}
             </a>
         @endforeach
+        @auth
+            <a href="{{ route($tenantRoutePrefix . '.myaccount', ['business' => $tenantSlug]) }}">👤 My Account</a>
+            <form method="POST" action="{{ route($tenantRoutePrefix . '.logout', ['business' => $tenantSlug]) }}" style="display:inline;">
+                @csrf
+                <button type="submit" class="btn btn-outline" style="width:100%;text-align:left;">🚪 Sign Out</button>
+            </form>
+        @else
+            <a href="{{ route($tenantRoutePrefix . '.login', ['business' => $tenantSlug]) }}">🔑 Sign In</a>
+        @endauth
     </div>
 </nav>
