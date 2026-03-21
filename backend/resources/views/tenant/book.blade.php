@@ -542,18 +542,20 @@
                 if (isImages && t.image_url) {
                     return '<div class="selection-card selection-card-image" data-type-id="' + t.id + '" onclick="RB.selectType(' + t.id + ',this)">'
                         + '<div class="selection-card-img"><img src="' + esc(t.image_url) + '" alt="' + esc(t.name) + '" /></div>'
+                        + '<div class="selection-card-text">'
                         + '<div class="selection-card-name">' + esc(t.name) + '</div>'
                         + (t.description ? '<div class="selection-card-sub">' + esc(t.description) + '</div>' : '')
-                        + '</div>';
+                        + '</div></div>';
                 }
                 const icon = t.image_url
                     ? '<img src="' + esc(t.image_url) + '" alt="" style="width:28px;height:28px;object-fit:contain" />'
                     : guessIcon(t.name);
                 return '<div class="selection-card" data-type-id="' + t.id + '" onclick="RB.selectType(' + t.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:' + bg + '">' + icon + '</div>'
+                    + '<div class="selection-card-text">'
                     + '<div class="selection-card-name">' + esc(t.name) + '</div>'
                     + (t.description ? '<div class="selection-card-sub">' + esc(t.description) + '</div>' : '')
-                    + '</div>';
+                    + '</div></div>';
             }).join('');
             show('deviceTypeGrid');
         }
@@ -603,22 +605,25 @@
                 if (isImages && b.image_url) {
                     return '<div class="selection-card selection-card-image" data-brand-id="' + b.id + '" onclick="RB.selectBrand(' + b.id + ',this)">'
                         + '<div class="selection-card-img"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" /></div>'
+                        + '<div class="selection-card-text">'
                         + '<div class="selection-card-name">' + esc(b.name) + '</div>'
-                        + '</div>';
+                        + '</div></div>';
                 }
                 const icon = b.image_url
                     ? '<img src="' + esc(b.image_url) + '" alt="" style="width:28px;height:28px;object-fit:contain" />'
                     : '🏷️';
                 return '<div class="selection-card" data-brand-id="' + b.id + '" onclick="RB.selectBrand(' + b.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:' + bg + '">' + icon + '</div>'
+                    + '<div class="selection-card-text">'
                     + '<div class="selection-card-name">' + esc(b.name) + '</div>'
-                    + '</div>';
+                    + '</div></div>';
             }).join('');
             if (showOtherBrand) {
                 brandsHtml += '<div class="selection-card" data-brand-id="__other__" style="border-style:dashed" onclick="RB.selectBrand(\'__other__\',this)">'
                     + '<div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#555;font-size:20px">❓</div>'
+                    + '<div class="selection-card-text">'
                     + '<div class="selection-card-name">Other</div>'
-                    + '</div>';
+                    + '</div></div>';
             }
             grid.innerHTML = brandsHtml;
             show('brandGrid');
@@ -701,22 +706,25 @@
                 if (isImages && d.image_url) {
                     return '<div class="selection-card selection-card-image' + sel + '"' + style + ' data-device-id="' + d.id + '" onclick="RB.toggleDevice(' + d.id + ',this)">'
                         + '<div class="selection-card-img"><img src="' + esc(d.image_url) + '" alt="' + esc(d.model) + '" /></div>'
+                        + '<div class="selection-card-text">'
                         + '<div class="selection-card-name">' + esc(d.model) + '</div>'
-                        + '</div>';
+                        + '</div></div>';
                 }
 
                 const icon = isOther ? '❓' : '📱';
                 return '<div class="selection-card' + sel + '"' + style + ' data-device-id="' + d.id + '" onclick="RB.toggleDevice(' + d.id + ',this)">'
                     + '<div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#333;font-size:16px">' + icon + '</div>'
+                    + '<div class="selection-card-text">'
                     + '<div class="selection-card-name">' + esc(d.model) + '</div>'
-                    + '</div>';
+                    + '</div></div>';
             }).join('');
             if (showOtherDevice) {
                 devicesHtml += '<div class="selection-card rb-add-other-btn" style="border-style:dashed;cursor:pointer" onclick="RB.addOtherDevice()">'
                     + '<div class="selection-card-icon" style="background:rgba(0,0,0,.04);color:#555;font-size:20px">❓</div>'
+                    + '<div class="selection-card-text">'
                     + '<div class="selection-card-name">Other Device</div>'
                     + '<div style="font-size:10px;color:var(--rb-text-3);margin-top:2px">Tap to add</div>'
-                    + '</div>';
+                    + '</div></div>';
             }
             grid.innerHTML = devicesHtml;
             show('deviceGrid');
