@@ -295,7 +295,7 @@
                                             <tr>
                                                 <th>Job #</th>
                                                 <th>Case #</th>
-                                                <th>Title</th>
+                                                <!-- <th>Title</th> -->
                                                 <th>Devices</th>
                                                 <th>Opened</th>
                                                 <th>Closed</th>
@@ -309,7 +309,7 @@
                                                 <tr>
                                                     <td><span class="cd-badge cd-badge-secondary">#{{ $job['job_number'] }}</span></td>
                                                     <td>{{ $job['case_number'] }}</td>
-                                                    <td>{{ $job['title'] }}</td>
+                                                    <!-- <td>{{ $job['title'] }}</td> -->
                                                     <td>{{ $job['devices'] }}</td>
                                                     <td>{{ $job['opened_at'] }}</td>
                                                     <td>{{ $job['closed_at'] ?: '-' }}</td>

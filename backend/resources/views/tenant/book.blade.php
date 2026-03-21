@@ -1,11 +1,19 @@
 @php
     $tenantSlug = $tenantSlug ?? $business ?? null;
     $tenant = $tenant ?? null;
+    $user = $user ?? null;
     $activePage = 'book';
     $isSubdomain = request()->routeIs('tenant.subdomain.*');
     $tenantRoutePrefix = $isSubdomain ? 'tenant.subdomain' : 'tenant';
     $homeRoute = $tenantRoutePrefix . '.welcome';
     $apiBase = '/api/t/' . e($tenantSlug) . '/booking';
+    
+    // Prepopulate contact info from logged-in user
+    $prefillFirstName = $user?->first_name ?? '';
+    $prefillLastName = $user?->last_name ?? '';
+    $prefillEmail = $user?->email ?? '';
+    $prefillPhone = $user?->phone ?? '';
+    $prefillCompany = $user?->company ?? '';
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -165,11 +173,11 @@
             <div class="form-section">
                 <div class="form-section-title"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Contact Information</div>
                 <div class="form-grid">
-                    <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" id="customerFirstName" placeholder="John" maxlength="255" required /></div>
-                    <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" id="customerLastName" placeholder="Doe" maxlength="255" required /></div>
-                    <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" id="customerEmail" placeholder="john@example.com" maxlength="255" required /></div>
-                    <div class="form-group"><label>Phone</label><input type="tel" id="customerPhone" placeholder="+1 (555) 000-0000" maxlength="64" /></div>
-                    <div class="form-group"><label>Company</label><input type="text" id="customerCompany" placeholder="Company name" maxlength="255" /></div>
+                    <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" id="customerFirstName" placeholder="John" maxlength="255" required value="{{ $prefillFirstName }}" /></div>
+                    <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" id="customerLastName" placeholder="Doe" maxlength="255" required value="{{ $prefillLastName }}" /></div>
+                    <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" id="customerEmail" placeholder="john@example.com" maxlength="255" required value="{{ $prefillEmail }}" /></div>
+                    <div class="form-group"><label>Phone</label><input type="tel" id="customerPhone" placeholder="+1 (555) 000-0000" maxlength="64" value="{{ $prefillPhone }}" /></div>
+                    <div class="form-group"><label>Company</label><input type="text" id="customerCompany" placeholder="Company name" maxlength="255" value="{{ $prefillCompany }}" /></div>
                     <div class="form-group"><label>Tax ID</label><input type="text" id="customerTaxId" placeholder="Tax ID" maxlength="64" /></div>
                 </div>
             </div>
@@ -1222,6 +1230,7 @@
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     },
                     body: formData,
                 });

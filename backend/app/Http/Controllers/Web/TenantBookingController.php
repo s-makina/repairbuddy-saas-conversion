@@ -16,9 +16,13 @@ class TenantBookingController extends Controller
             abort(404);
         }
 
+        // Get logged-in user (if any) for prepopulating contact info
+        $user = $request->user();
+
         return view('tenant.book', [
             'tenant' => $tenant,
             'tenantSlug' => $business,
+            'user' => $user,
         ]);
     }
 }

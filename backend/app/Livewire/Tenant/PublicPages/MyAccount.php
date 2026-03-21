@@ -562,7 +562,7 @@ class MyAccount extends Component
 
         // Build query
         $query = RepairBuddyJob::where('customer_id', $user->id)
-            ->with(['jobDevices.deviceType', 'jobDevices.deviceBrand']);
+            ->with(['jobDevices.customerDevice.device.type', 'jobDevices.customerDevice.device.brand']);
 
         if ($this->jobsSearch) {
             $search = $this->jobsSearch;
@@ -589,7 +589,9 @@ class MyAccount extends Component
 
         $this->jobsList = $jobs->map(function ($job) {
             $devices = $job->jobDevices->map(function ($jd) {
-                return trim(($jd->deviceType?->name ?? '') . ' ' . ($jd->deviceBrand?->name ?? ''));
+                $type = $jd->customerDevice?->device?->type?->name ?? '';
+                $brand = $jd->customerDevice?->device?->brand?->name ?? '';
+                return trim($type . ' ' . $brand);
             })->filter()->implode(', ');
 
             return [
@@ -716,7 +718,7 @@ class MyAccount extends Component
         }
 
         $query = \App\Models\RepairBuddyCustomerDevice::where('customer_id', $user->id)
-            ->with(['deviceType', 'deviceBrand']);
+            ->with(['device.type', 'device.brand']);
 
         if ($this->devicesSearch) {
             $search = $this->devicesSearch;
@@ -737,8 +739,8 @@ class MyAccount extends Component
             return [
                 'id' => $dev->id,
                 'name' => $dev->name ?? '-',
-                'type' => $dev->deviceType?->name ?? '-',
-                'brand' => $dev->deviceBrand?->name ?? '-',
+                'type' => $dev->device?->type?->name ?? '-',
+                'brand' => $dev->device?->brand?->name ?? '-',
                 'identifier' => $dev->identifier ?? '-',
                 'pin_code' => $dev->pin_code ?? '-',
                 'notes' => $dev->notes ?? '-',
