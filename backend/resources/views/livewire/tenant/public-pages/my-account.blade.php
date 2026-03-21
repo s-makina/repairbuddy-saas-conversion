@@ -155,33 +155,25 @@
                     <div class="cd-dash-nav-grid">
                         <a href="{{ route($rp . 'booking.show', ['business' => $business]) }}" class="cd-dash-nav-card">
                             <div class="cd-dash-nav-card-img">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:#fd6742;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                                </svg>
+                                <img src="{{ asset('repairbuddy/plugin/assets/admin/images/icons/services.png') }}" alt="New Booking" loading="lazy">
                             </div>
                             <p class="cd-dash-nav-card-label">New Booking</p>
                         </a>
                         <a href="#jobs" class="cd-dash-nav-card" @click.prevent="showSection('jobs')">
                             <div class="cd-dash-nav-card-img">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:#063e70;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.207-.766M11.42 15.17l-2.496 3.03A2.65 2.65 0 016.531 21H5.25a.75.75 0 01-.75-.75v-1.281c0-.597.237-1.17.659-1.591l5.877-5.877M11.42 15.17l-5.877-5.877A2.65 2.65 0 015.25 6.531V5.25A.75.75 0 016 4.5h1.281c.597 0 1.17.237 1.591.659l5.877 5.877"/>
-                                </svg>
+                                <img src="{{ asset('repairbuddy/plugin/assets/admin/images/icons/jobs.png') }}" alt="My Repairs" loading="lazy">
                             </div>
                             <p class="cd-dash-nav-card-label">My Repairs</p>
                         </a>
                         <a href="#profile" class="cd-dash-nav-card" @click.prevent="showSection('profile')">
                             <div class="cd-dash-nav-card-img">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:#063e70;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.28-.55-7.499-1.632z"/>
-                                </svg>
+                                <img src="{{ asset('repairbuddy/plugin/assets/admin/images/icons/clients.png') }}" alt="Account" loading="lazy">
                             </div>
                             <p class="cd-dash-nav-card-label">Account</p>
                         </a>
                         <a href="{{ route($rp . 'status.show', ['business' => $business]) }}" class="cd-dash-nav-card">
                             <div class="cd-dash-nav-card-img">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:#063e70;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
-                                </svg>
+                                <img src="{{ asset('repairbuddy/plugin/assets/admin/images/icons/report.png') }}" alt="Track Repair" loading="lazy">
                             </div>
                             <p class="cd-dash-nav-card-label">Track Repair</p>
                         </a>
@@ -198,9 +190,7 @@
                                     <div class="cd-widget-body">
                                         <div class="cd-widget-media">
                                             <div class="cd-widget-icon">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.207-.766M11.42 15.17l-2.496 3.03A2.65 2.65 0 016.531 21H5.25a.75.75 0 01-.75-.75v-1.281c0-.597.237-1.17.659-1.591l5.877-5.877M11.42 15.17l-5.877-5.877A2.65 2.65 0 015.25 6.531V5.25A.75.75 0 016 4.5h1.281c.597 0 1.17.237 1.591.659l5.877 5.877"/>
-                                                </svg>
+                                                <img src="{{ asset('repairbuddy/plugin/assets/admin/images/icons/jobs.png') }}" alt="" loading="lazy">
                                             </div>
                                             <div class="cd-widget-info">
                                                 <div class="cd-widget-title">{{ $status['label'] }}</div>
@@ -231,9 +221,7 @@
                                 <div class="cd-widget-body">
                                     <div class="cd-widget-media">
                                         <div class="cd-widget-icon">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 0h1.867a1.75 1.75 0 011.746 1.667l.006.088a2.25 2.25 0 00.1.664m-5.8 0A2.251 2.251 0 009 3.25v.664m0 0l-.006.088a2.25 2.25 0 00.1.664m0 0v.664m0 0l.006.088a2.25 2.25 0 01-.1.664m0 0v.664m0 0l-.006.088a2.25 2.25 0 00.1.664m0 0v.664m0 0l.006.088a2.25 2.25 0 01-.1.664M12 10.5V12m0 0v.664m0 0l-.006.088a2.25 2.25 0 00.1.664m0 0v.664m0 0l.006.088a2.25 2.25 0 01-.1.664M12 15v.664m0 0l-.006.088a2.25 2.25 0 00.1.664m0 0v.664m0 0l.006.088a2.25 2.25 0 01-.1.664M12 18v.664m0 0l-.006.088a2.25 2.25 0 00.1.664"/>
-                                            </svg>
+                                            <img src="{{ asset('repairbuddy/plugin/assets/admin/images/icons/estimate.png') }}" alt="" loading="lazy">
                                         </div>
                                         <div class="cd-widget-info">
                                             <div class="cd-widget-title">{{ $est['label'] }}</div>
