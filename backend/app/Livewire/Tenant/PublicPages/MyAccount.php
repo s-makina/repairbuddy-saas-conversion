@@ -19,7 +19,14 @@ class MyAccount extends Component
     public string $tenantName = '';
 
     /* ───────── View state ───────── */
-    public string $activeTab = 'jobs';
+    public string $activeSection = 'dashboard';
+
+    /* ───────── Section configuration ───────── */
+    public array $sections = [
+        'dashboard' => ['label' => 'Dashboard', 'icon' => 'grid'],
+        'jobs' => ['label' => 'My Repairs', 'icon' => 'wrench-adjustable'],
+        'profile' => ['label' => 'Account Settings', 'icon' => 'gear'],
+    ];
 
     /* ───────── Login form ───────── */
     public string $loginEmail = '';
@@ -42,6 +49,9 @@ class MyAccount extends Component
 
     /* ───────── Dashboard data ───────── */
     public array $jobs = [];
+    public bool $statsLoaded = false;
+    public array $jobStatusList = [];
+    public array $estimateCountList = ['pending' => 0, 'approved' => 0, 'rejected' => 0];
 
     /* ─────────── mount ─────────── */
 
@@ -61,6 +71,7 @@ class MyAccount extends Component
 
         if (Auth::check()) {
             $this->loadDashboardData();
+            $this->loadStats();
         }
     }
 
@@ -174,9 +185,71 @@ class MyAccount extends Component
             ->toArray();
     }
 
-    public function setTab(string $tab): void
+    public function loadStats(): void
     {
-        $this->activeTab = $tab;
+        if ($this->statsLoaded) {
+            return;
+        }
+
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->jobStatusList = $this->buildJobStatuses($user->id);
+        $this->estimateCountList = $this->buildEstimateCounts($user->id);
+        $this->statsLoaded = true;
+    }
+
+    private function buildJobStatuses(int $customerId): array
+    {
+        $statuses = \App\Models\Status::query()
+            ->where('status_type', 'Job')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->limit(200)
+            ->get();
+
+        $counts = RepairBuddyJob::query()
+            ->where('customer_id', $customerId)
+            ->selectRaw('status_slug, COUNT(*) as aggregate')
+            ->groupBy('status_slug')
+            ->pluck('aggregate', 'status_slug')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        return $statuses->map(function (\App\Models\Status $s) use ($counts) {
+            $code = trim((string) $s->code);
+            return [
+                'label' => (string) $s->label,
+                'slug'  => $code,
+                'count' => (int) ($counts[$code] ?? 0),
+                'color' => (string) ($s->color ?? '#063e70'),
+            ];
+        })->values()->all();
+    }
+
+    private function buildEstimateCounts(int $customerId): array
+    {
+        $defaults = ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+
+        $raw = \App\Models\RepairBuddyEstimate::query()
+            ->where('customer_id', $customerId)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        foreach ($defaults as $k => $_) {
+            $defaults[$k] = (int) ($raw[$k] ?? 0);
+        }
+        return $defaults;
+    }
+
+    public function setSection(string $section): void
+    {
+        $this->activeSection = $section;
     }
 
     /* ─────────── Helpers ─────────── */

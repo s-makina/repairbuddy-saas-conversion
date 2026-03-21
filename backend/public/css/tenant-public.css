@@ -18,6 +18,10 @@
     --rb-surface-2: #f8fafc;
     --rb-success: #2b8a3e;
     --rb-success-bg: rgba(43,138,62,.06);
+    --rb-danger: #dc2626;
+    --rb-danger-bg: rgba(220,38,38,.06);
+    --rb-warning: #d97706;
+    --rb-warning-bg: rgba(217,119,6,.06);
 }
 
 /* ── Base ── */
