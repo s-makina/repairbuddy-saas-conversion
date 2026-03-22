@@ -7,6 +7,7 @@ use App\Data\Emails\JobStatusUpdateData;
 use App\Mail\JobCompletedMail;
 use App\Mail\JobStatusUpdateMail;
 use App\Models\RepairBuddyJob;
+use App\Models\RepairBuddyJobStatus;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Documents\JobPdfService;
@@ -24,8 +25,8 @@ class RepairBuddyJobObserver
      */
     public function updated(RepairBuddyJob $job): void
     {
-        // Check if status_slug changed
-        if ($job->isDirty('status_slug')) {
+        // Check if status_slug changed during the last save
+        if ($job->wasChanged('status_slug')) {
             $oldStatus = $job->getOriginal('status_slug');
             $newStatus = $job->status_slug;
 
@@ -50,12 +51,22 @@ class RepairBuddyJobObserver
             return;
         }
 
-        // Check if email notifications are enabled for status changes
+        // Check if email notifications are enabled for status changes (global toggle)
         $store = new TenantSettingsStore($tenant);
         $general = $store->get('general', []);
         $emailCustomerOnStatusChange = (bool) ($general['wc_job_status_cr_notice'] ?? false);
 
         if (!$emailCustomerOnStatusChange) {
+            return;
+        }
+
+        // Check if this specific status has email enabled (per-status control)
+        $statusRecord = RepairBuddyJobStatus::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->where('slug', $newStatus)
+            ->first();
+
+        if (!$statusRecord || !$statusRecord->email_enabled) {
             return;
         }
 
