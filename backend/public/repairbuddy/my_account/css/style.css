@@ -448,6 +448,13 @@ h6, .h6 {
     backdrop-filter: blur(10px);
 }
 
+.topbar-logo {
+    height: 32px;
+    width: auto;
+    border-radius: 6px;
+    object-fit: contain;
+}
+
 /* Cards */
 .card {
     border: none;
@@ -874,12 +881,22 @@ body.fullscreen .main-content {
     background-color: #ededed !important;
 }
 
+.sidebar-header{
+    padding: 10px;
+}
 .sidebar-header img {
     width: 100%;
     height: auto;
     max-height: 47px;
     object-fit: contain;
     display: block;
+}
+
+.sidebar-logo {
+    /* max-width: 140px; */
+    max-height: 50px;
+    object-fit: contain;
+    
 }
 
 /* Dashboard Authentication */

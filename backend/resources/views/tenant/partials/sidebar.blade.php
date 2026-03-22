@@ -20,7 +20,7 @@
     $logoUrl = $tenant->logo_url;
   }
 
-  $brandFallback = '/brand/repair-buddy-logo.png';
+  $brandFallback = '/brand/logo.png';
 @endphp
 
 <nav class="rb-sidebar d-flex flex-column text-white" id="sidebar">
@@ -38,7 +38,7 @@
     <div class="nav nav-pills flex-column gap-1">
       <a class="nav-link {{ $activeNav === 'dashboard' ? 'active' : '' }}" href="{{ $tenantSlug ? route('tenant.dashboard', ['business' => $tenantSlug]) : '#' }}">
         <i class="bi bi-speedometer2 me-2" aria-hidden="true"></i>
-        Dashboard
+        Dashboard1
       </a>
 
       <a class="nav-link {{ $activeNav === 'jobs' ? 'active' : '' }}" href="{{ $nextTenantBase . '/jobs' }}">

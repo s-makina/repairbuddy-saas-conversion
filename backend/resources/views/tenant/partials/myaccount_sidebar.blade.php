@@ -401,7 +401,11 @@
 <!-- Sidebar -->
 <nav class="sidebar bg-dark text-white" id="sidebar">
   <div class="bg-grey sidebar-header p-2 border-bottom border-secondary">
-    <h1 class="site-title">{{ $brandText }}</h1>
+    @if($tenant && $tenant->logo_url)
+      <img src="{{ $tenant->logo_url }}" alt="{{ $brandText }}" class="sidebar-logo">
+    @else
+      <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy" class="sidebar-logo">
+    @endif
   </div>
 
   <div class="sidebar-nav p-3">
