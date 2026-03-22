@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\RepairBuddyJob;
+use App\Models\Tenant;
 use App\Observers\RepairBuddyJobObserver;
+use App\Observers\TenantObserver;
 use App\Support\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register observers
         RepairBuddyJob::observe(RepairBuddyJobObserver::class);
+        Tenant::observe(TenantObserver::class);
 
         Paginator::useBootstrapFive();
 

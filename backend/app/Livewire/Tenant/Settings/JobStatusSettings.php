@@ -54,6 +54,16 @@ class JobStatusSettings extends Component
     public function mount($tenant): void
     {
         $this->tenant = $tenant;
+
+        // Set tenant context so TenantScope works correctly
+        if ($this->tenant instanceof Tenant && is_int($this->tenant->id)) {
+            TenantContext::set($this->tenant);
+            $branch = $this->tenant->defaultBranch;
+            if ($branch) {
+                BranchContext::set($branch);
+            }
+        }
+
         $this->loadStatuses();
         $this->loadSettings();
     }

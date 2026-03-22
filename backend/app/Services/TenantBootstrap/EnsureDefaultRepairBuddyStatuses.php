@@ -27,63 +27,116 @@ class EnsureDefaultRepairBuddyStatuses
                 ['slug' => 'partial', 'label' => 'Partially Paid'],
             ];
 
-            if (Schema::hasTable('statuses')) {
-                $hasStatusCode = Schema::hasColumn('statuses', 'code');
-                $hasStatusDescription = Schema::hasColumn('statuses', 'description');
-                $hasStatusInvoiceLabel = Schema::hasColumn('statuses', 'invoice_label');
+            // Seed the generic statuses table (used by some parts of the system)
+            $this->seedStatusesTable($tenantId, $jobDefaults, $paymentDefaults);
 
-                if ($hasStatusCode) {
-                    foreach ($paymentDefaults as $s) {
-                        $exists = DB::table('statuses')->where([
-                            'tenant_id' => $tenantId,
-                            'status_type' => 'Payment',
-                            'code' => $s['slug'],
-                        ])->exists();
+            // Seed the rb_job_statuses and rb_payment_statuses tables (used by settings UI)
+            $this->seedRbJobStatusesTable($tenantId, $jobDefaults);
+            $this->seedRbPaymentStatusesTable($tenantId, $paymentDefaults);
+        });
+    }
 
-                        if (! $exists) {
-                            DB::table('statuses')->insert([
-                                'tenant_id' => $tenantId,
-                                'status_type' => 'Payment',
-                                'code' => $s['slug'],
-                                'label' => $s['label'],
-                                'email_enabled' => false,
-                                'email_template' => null,
-                                'sms_enabled' => false,
-                                'is_active' => true,
-                                'updated_at' => now(),
-                                'created_at' => now(),
-                            ]);
-                        }
-                    }
-                }
+    private function seedStatusesTable(int $tenantId, array $jobDefaults, array $paymentDefaults): void
+    {
+        if (! Schema::hasTable('statuses')) {
+            return;
+        }
 
-                if ($hasStatusCode) {
-                    foreach ($jobDefaults as $s) {
-                        $update = [
-                            'label' => $s['label'],
-                            'email_enabled' => false,
-                            'email_template' => null,
-                            'sms_enabled' => false,
-                            'is_active' => true,
-                            'updated_at' => now(),
-                            'created_at' => now(),
-                        ];
+        $hasStatusCode = Schema::hasColumn('statuses', 'code');
+        $hasStatusDescription = Schema::hasColumn('statuses', 'description');
+        $hasStatusInvoiceLabel = Schema::hasColumn('statuses', 'invoice_label');
 
-                        if ($hasStatusDescription) {
-                            $update['description'] = null;
-                        }
-                        if ($hasStatusInvoiceLabel) {
-                            $update['invoice_label'] = $s['invoice_label'];
-                        }
+        if ($hasStatusCode) {
+            foreach ($paymentDefaults as $s) {
+                $exists = DB::table('statuses')->where([
+                    'tenant_id' => $tenantId,
+                    'status_type' => 'Payment',
+                    'code' => $s['slug'],
+                ])->exists();
 
-                        DB::table('statuses')->updateOrInsert([
-                            'tenant_id' => $tenantId,
-                            'status_type' => 'Job',
-                            'code' => $s['slug'],
-                        ], $update);
-                    }
+                if (! $exists) {
+                    DB::table('statuses')->insert([
+                        'tenant_id' => $tenantId,
+                        'status_type' => 'Payment',
+                        'code' => $s['slug'],
+                        'label' => $s['label'],
+                        'email_enabled' => false,
+                        'email_template' => null,
+                        'sms_enabled' => false,
+                        'is_active' => true,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]);
                 }
             }
-        });
+
+            foreach ($jobDefaults as $s) {
+                $update = [
+                    'label' => $s['label'],
+                    'email_enabled' => false,
+                    'email_template' => null,
+                    'sms_enabled' => false,
+                    'is_active' => true,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+
+                if ($hasStatusDescription) {
+                    $update['description'] = null;
+                }
+                if ($hasStatusInvoiceLabel) {
+                    $update['invoice_label'] = $s['invoice_label'];
+                }
+
+                DB::table('statuses')->updateOrInsert([
+                    'tenant_id' => $tenantId,
+                    'status_type' => 'Job',
+                    'code' => $s['slug'],
+                ], $update);
+            }
+        }
+    }
+
+    private function seedRbJobStatusesTable(int $tenantId, array $jobDefaults): void
+    {
+        if (! Schema::hasTable('rb_job_statuses')) {
+            return;
+        }
+
+        foreach ($jobDefaults as $s) {
+            DB::table('rb_job_statuses')->updateOrInsert([
+                'tenant_id' => $tenantId,
+                'slug' => $s['slug'],
+            ], [
+                'label' => $s['label'],
+                'invoice_label' => $s['invoice_label'],
+                'email_enabled' => false,
+                'email_template' => null,
+                'sms_enabled' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    private function seedRbPaymentStatusesTable(int $tenantId, array $paymentDefaults): void
+    {
+        if (! Schema::hasTable('rb_payment_statuses')) {
+            return;
+        }
+
+        foreach ($paymentDefaults as $s) {
+            DB::table('rb_payment_statuses')->updateOrInsert([
+                'tenant_id' => $tenantId,
+                'slug' => $s['slug'],
+            ], [
+                'label' => $s['label'],
+                'email_template' => null,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }
