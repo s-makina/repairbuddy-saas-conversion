@@ -1335,7 +1335,7 @@
     $oldTypes = (array) old('item_type', []);
     $oldNames = (array) old('item_name', []);
     $oldQtys = (array) old('item_qty', []);
-    $oldPrices = (array) old('item_unit_price_cents', []);
+    $oldPrices = (array) old('item_unit_price', []);
     $oldMax = max(count($oldTypes), count($oldNames), count($oldQtys), count($oldPrices));
 
     $seedItems = [];
@@ -1347,8 +1347,8 @@
                 continue;
             }
             $q = is_numeric($oldQtys[$i] ?? null) ? (int) $oldQtys[$i] : 1;
-            $p = is_numeric($oldPrices[$i] ?? null) ? (int) $oldPrices[$i] : 0;
-            $seedItems[] = ['item_type' => $t, 'name_snapshot' => $n, 'qty' => $q, 'unit_price_amount_cents' => $p];
+            $p = is_numeric($oldPrices[$i] ?? null) ? (float) $oldPrices[$i] : 0;
+            $seedItems[] = ['item_type' => $t, 'name_snapshot' => $n, 'qty' => $q, 'unit_price_amount' => $p];
         }
     } elseif ($isEdit) {
         $seedItems = collect($jobItems)
@@ -1356,7 +1356,7 @@
                 'item_type' => $it->item_type,
                 'name_snapshot' => $it->name_snapshot,
                 'qty' => $it->qty,
-                'unit_price_amount_cents' => $it->unit_price_amount_cents,
+                'unit_price_amount' => $it->unit_price_amount,
                 'meta_json' => $it->meta_json,
             ])
             ->values()
@@ -1378,7 +1378,7 @@
             'device_id' => is_string($meta['device_id'] ?? null) ? (string) $meta['device_id'] : '',
             'device' => is_string($meta['device_label'] ?? null) ? (string) $meta['device_label'] : '',
             'qty' => (string) ((int) ($it['qty'] ?? 1)),
-            'price' => (string) ((int) ($it['unit_price_amount_cents'] ?? 0)),
+            'price' => (string) ((float) ($it['unit_price_amount'] ?? 0)),
         ];
 
         if ($type === 'part') {

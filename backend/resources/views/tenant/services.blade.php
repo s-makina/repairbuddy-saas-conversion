@@ -132,9 +132,9 @@
                             <p>{{ $service->description ?? 'Professional repair service.' }}</p>
                             <div class="svc-meta">
                                 <span class="svc-price">
-                                    @if($service->base_price_amount_cents)
+                                    @if($service->base_price_amount)
                                         @php $svcCurrency = $service->base_price_currency ?? $currency; $svcSymbol = $currencySymbols[$svcCurrency] ?? $svcCurrency; @endphp
-                                        From {{ $svcSymbol }}{{ number_format($service->base_price_amount_cents / 100, 2) }}
+                                        From {{ $svcSymbol }}{{ number_format($service->base_price_amount, 2) }}
                                     @else
                                         Contact for price
                                     @endif
@@ -174,9 +174,9 @@
                             <p>{{ $service->description ?? 'Professional repair service.' }}</p>
                             <div class="svc-meta">
                                 <span class="svc-price">
-                                    @if($service->base_price_amount_cents)
+                                    @if($service->base_price_amount)
                                         @php $svcCurrency = $service->base_price_currency ?? $currency; $svcSymbol = $currencySymbols[$svcCurrency] ?? $svcCurrency; @endphp
-                                        From {{ $svcSymbol }}{{ number_format($service->base_price_amount_cents / 100, 2) }}
+                                        From {{ $svcSymbol }}{{ number_format($service->base_price_amount, 2) }}
                                     @else
                                         Contact for price
                                     @endif

@@ -63,10 +63,10 @@
           @endif
 
           <div class="pp-card-meta">
-            @if($part['price_amount_cents'])
+            @if($part['price_amount'])
               <span class="pp-meta-item pp-meta-price">
                 <i class="bi bi-tag"></i>
-                {{ $part['price_currency'] === 'USD' ? '$' : $part['price_currency'] . ' ' }}{{ number_format($part['price_amount_cents'] / 100, 2) }}
+                {{ $part['price_currency'] === 'USD' ? '$' : $part['price_currency'] . ' ' }}{{ number_format($part['price_amount'], 2) }}
               </span>
             @endif
 

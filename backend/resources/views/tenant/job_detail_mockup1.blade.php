@@ -42,9 +42,9 @@
             : route('tenant.jobs.edit', ['business' => $tenantSlug, 'jobId' => $record->id]))
         : '#';
 
-    $formatMoney = function ($cents) {
-        if ($cents === null) return '—';
-        return '$' . number_format(((int) $cents) / 100, 2, '.', ',');
+    $formatMoney = function ($amount) {
+        if ($amount === null) return '—';
+        return '$' . number_format((float) $amount, 2, '.', ',');
     };
 @endphp
 
@@ -356,12 +356,12 @@
             {{-- Grand Total --}}
             <div class="jd-kpi-card">
                 <div class="jd-kpi-label">{{ __('Grand Total') }}</div>
-                <div class="jd-kpi-value">{{ $formatMoney($totals['total_cents'] ?? $totals['grand_total_cents'] ?? null) }} {{ $currency }}</div>
+                <div class="jd-kpi-value">{{ $formatMoney($totals['total'] ?? $totals['grand_total'] ?? null) }} {{ $currency }}</div>
             </div>
             {{-- Balance --}}
             <div class="jd-kpi-card">
                 <div class="jd-kpi-label">{{ __('Balance Due') }}</div>
-                <div class="jd-kpi-value" style="color: var(--rb-danger);">{{ $formatMoney($totals['balance_cents'] ?? null) }} {{ $currency }}</div>
+                <div class="jd-kpi-value" style="color: var(--rb-danger);">{{ $formatMoney($totals['balance'] ?? null) }} {{ $currency }}</div>
             </div>
             {{-- Customer --}}
             <div class="jd-kpi-card">
@@ -500,7 +500,7 @@
                                         @foreach ($jobItems as $item)
                                             @php
                                                 $qty = max(1, (int)($item->qty ?? 1));
-                                                $unit = (int)($item->unit_price_amount_cents ?? 0);
+                                                $unit = (float)($item->unit_price_amount ?? 0);
                                                 $lineTotal = $qty * $unit;
                                                 if (($item->item_type ?? null) === 'discount') $lineTotal = 0 - $lineTotal;
                                             @endphp
@@ -528,16 +528,16 @@
                                 <h4>{{ __('Financial Summary') }}</h4>
                             </div>
                             <div class="jd-card-body">
-                                <div class="jd-kv"><div class="jd-kv-label">{{ __('Subtotal') }}</div><div class="jd-kv-value">{{ $formatMoney($totals['subtotal_cents'] ?? null) }} {{ $currency }}</div></div>
-                                <div class="jd-kv"><div class="jd-kv-label">{{ __('Tax') }}</div><div class="jd-kv-value">{{ $formatMoney($totals['tax_cents'] ?? null) }} {{ $currency }}</div></div>
+                                <div class="jd-kv"><div class="jd-kv-label">{{ __('Subtotal') }}</div><div class="jd-kv-value">{{ $formatMoney($totals['subtotal'] ?? null) }} {{ $currency }}</div></div>
+                                <div class="jd-kv"><div class="jd-kv-label">{{ __('Tax') }}</div><div class="jd-kv-value">{{ $formatMoney($totals['tax'] ?? null) }} {{ $currency }}</div></div>
                                 <div class="jd-kv" style="border-top:2px solid var(--rb-text); margin-top:.5rem; padding-top:.75rem;">
                                     <div class="jd-kv-label" style="font-size:.78rem;">{{ __('Grand Total') }}</div>
-                                    <div class="jd-kv-value fw-bold" style="font-size:1.1rem;">{{ $formatMoney($totals['total_cents'] ?? $totals['grand_total_cents'] ?? null) }} {{ $currency }}</div>
+                                    <div class="jd-kv-value fw-bold" style="font-size:1.1rem;">{{ $formatMoney($totals['total'] ?? $totals['grand_total'] ?? null) }} {{ $currency }}</div>
                                 </div>
-                                @if (isset($totals['balance_cents']))
+                                @if (isset($totals['balance']))
                                 <div class="jd-kv">
                                     <div class="jd-kv-label">{{ __('Balance Due') }}</div>
-                                    <div class="jd-kv-value fw-bold" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance_cents']) }} {{ $currency }}</div>
+                                    <div class="jd-kv-value fw-bold" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance']) }} {{ $currency }}</div>
                                 </div>
                                 @endif
                             </div>

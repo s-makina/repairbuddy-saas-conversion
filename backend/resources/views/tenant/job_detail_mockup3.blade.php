@@ -43,9 +43,9 @@
             : route('tenant.jobs.edit', ['business' => $tenantSlug, 'jobId' => $record->id]))
         : '#';
 
-    $formatMoney = function ($cents) {
-        if ($cents === null) return '—';
-        return '$' . number_format(((int) $cents) / 100, 2, '.', ',');
+    $formatMoney = function ($amount) {
+        if ($amount === null) return '—';
+        return '$' . number_format((float) $amount, 2, '.', ',');
     };
 
     $statusSlug = $record?->status_slug ?? ($record?->status ?? 'open');
@@ -474,7 +474,7 @@
                                 @foreach ($jobItems as $item)
                                     @php
                                         $qty = max(1, (int)($item->qty ?? 1));
-                                        $unit = (int)($item->unit_price_amount_cents ?? 0);
+                                        $unit = (float)($item->unit_price_amount ?? 0);
                                         $lt = $qty * $unit;
                                         if (($item->item_type ?? null) === 'discount') $lt = 0 - $lt;
                                     @endphp
@@ -703,18 +703,18 @@
                 <div style="margin-bottom:1.25rem;">
                     <div style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--rb-text-3); margin-bottom:.5rem;">{{ __('Financial Summary') }}</div>
                     <div style="background:var(--rb-card); border:1px solid var(--rb-border); border-radius:var(--rb-radius); padding:.85rem; box-shadow:var(--rb-shadow);">
-                        <div class="jv-fin-row"><span class="jv-fin-label">{{ __('Subtotal') }}</span><span class="jv-fin-val">{{ $formatMoney($totals['subtotal_cents'] ?? null) }}</span></div>
-                        @if (($totals['tax_cents'] ?? 0) > 0)
-                        <div class="jv-fin-row"><span class="jv-fin-label">{{ __('Tax') }}</span><span class="jv-fin-val">{{ $formatMoney($totals['tax_cents']) }}</span></div>
+                        <div class="jv-fin-row"><span class="jv-fin-label">{{ __('Subtotal') }}</span><span class="jv-fin-val">{{ $formatMoney($totals['subtotal'] ?? null) }}</span></div>
+                        @if (($totals['tax'] ?? 0) > 0)
+                        <div class="jv-fin-row"><span class="jv-fin-label">{{ __('Tax') }}</span><span class="jv-fin-val">{{ $formatMoney($totals['tax']) }}</span></div>
                         @endif
                         <div class="jv-fin-grand">
                             <span>{{ __('Total') }}</span>
-                            <span>{{ $formatMoney($totals['total_cents'] ?? $totals['grand_total_cents'] ?? null) }} {{ $currency }}</span>
+                            <span>{{ $formatMoney($totals['total'] ?? $totals['grand_total'] ?? null) }} {{ $currency }}</span>
                         </div>
-                        @if (isset($totals['balance_cents']))
+                        @if (isset($totals['balance']))
                         <div class="jv-fin-row" style="margin-top:.35rem;">
                             <span class="jv-fin-label">{{ __('Balance') }}</span>
-                            <span class="jv-fin-val" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance_cents']) }}</span>
+                            <span class="jv-fin-val" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance']) }}</span>
                         </div>
                         @endif
                     </div>

@@ -97,8 +97,8 @@
 										<div class="col-sm-9">
 											@php
 												$priceUi = '';
-												if (is_numeric($part->price_amount_cents ?? null)) {
-													$priceUi = number_format(((int) $part->price_amount_cents) / 100, 2, '.', '');
+												if (is_numeric($part->price_amount ?? null)) {
+													$priceUi = number_format((float) $part->price_amount, 2, '.', '');
 												}
 											@endphp
 											<div class="input-group">
@@ -108,7 +108,6 @@
 													<div class="invalid-feedback">{{ $message }}</div>
 												@enderror
 											</div>
-											<input type="hidden" name="price_currency" value="{{ old('price_currency', (string) ($part->price_currency ?? ($tenantCurrency ?? ''))) }}">
 										</div>
 									</div>
 								</div>
@@ -155,8 +154,8 @@
 										<div class="col-sm-9">
 											@php
 												$installUi = '';
-												if (is_numeric($part->installation_charges_amount_cents ?? null)) {
-													$installUi = number_format(((int) $part->installation_charges_amount_cents) / 100, 2, '.', '');
+												if (is_numeric($part->installation_charges_amount ?? null)) {
+													$installUi = number_format((float) $part->installation_charges_amount, 2, '.', '');
 												}
 											@endphp
 											<div class="input-group">

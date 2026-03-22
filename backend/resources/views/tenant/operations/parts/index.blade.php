@@ -34,7 +34,7 @@
         { data: 'type_display', name: 'part_type_id', width: '220px', orderable: false, searchable: false },
         { data: 'brand_display', name: 'part_brand_id', width: '220px', orderable: false, searchable: false },
         { data: 'manufacturing_code', name: 'manufacturing_code', width: '220px' },
-        { data: 'price_display', name: 'price_amount_cents', width: '160px', orderable: false, searchable: false },
+        { data: 'price_display', name: 'price_amount', width: '160px', orderable: false, searchable: false },
         { data: 'status_display', name: 'is_active', width: '140px', orderable: false, searchable: false },
         { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '320px' }
       ]

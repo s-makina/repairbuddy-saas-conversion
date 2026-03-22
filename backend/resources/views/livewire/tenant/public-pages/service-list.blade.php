@@ -68,9 +68,9 @@
                 <p class="pp-svc-card-desc">{{ \Illuminate\Support\Str::limit($service['description'], 120) }}</p>
               @endif
               <div class="pp-svc-meta">
-                @if($service['base_price_amount_cents'])
+                @if($service['base_price_amount'])
                   <span class="pp-svc-price">
-                    From {{ $service['base_price_currency'] === 'USD' ? '$' : $service['base_price_currency'] . ' ' }}{{ number_format($service['base_price_amount_cents'] / 100, 2) }}
+                    From {{ $service['base_price_currency'] === 'USD' ? '$' : $service['base_price_currency'] . ' ' }}{{ number_format($service['base_price_amount'], 2) }}
                   </span>
                 @endif
                 @if($service['time_required'])

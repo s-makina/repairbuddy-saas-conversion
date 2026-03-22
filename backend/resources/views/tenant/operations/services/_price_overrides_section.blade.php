@@ -59,8 +59,8 @@
 								$key = $section . ':' . $rowId;
 								$override = ($servicePriceOverridesIndex ?? [])[$key] ?? null;
 								$priceUi = '';
-								if ($override && is_numeric($override->price_amount_cents)) {
-									$priceUi = number_format(((int) $override->price_amount_cents) / 100, 2, '.', '');
+								if ($override && is_numeric($override->price_amount)) {
+									$priceUi = number_format((float) $override->price_amount, 2, '.', '');
 								}
 
 								$name = '';

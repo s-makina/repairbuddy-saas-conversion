@@ -43,9 +43,9 @@
             : route('tenant.jobs.edit', ['business' => $tenantSlug, 'jobId' => $record->id]))
         : '#';
 
-    $formatMoney = function ($cents) {
-        if ($cents === null) return '—';
-        return '$' . number_format(((int) $cents) / 100, 2, '.', ',');
+    $formatMoney = function ($amount) {
+        if ($amount === null) return '—';
+        return '$' . number_format((float) $amount, 2, '.', ',');
     };
 @endphp
 
@@ -625,8 +625,8 @@
                     <div class="ja-sidebar-body">
                         @php
                             $items = collect($jobItems);
-                            $serviceTotal = $items->where('item_type', 'service')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
-                            $partTotal    = $items->where('item_type', 'part')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0));
+                            $serviceTotal = $items->where('item_type', 'service')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (float)($it->unit_price_amount ?? 0));
+                            $partTotal    = $items->where('item_type', 'part')->sum(fn($it) => max(1, (int)($it->qty ?? 1)) * (float)($it->unit_price_amount ?? 0));
                         @endphp
                         @if ($serviceTotal > 0)
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Services') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($serviceTotal) }}</span></div>
@@ -634,18 +634,18 @@
                         @if ($partTotal > 0)
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Parts') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($partTotal) }}</span></div>
                         @endif
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Subtotal') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['subtotal_cents'] ?? null) }}</span></div>
-                        @if (($totals['tax_cents'] ?? 0) > 0)
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Tax') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['tax_cents']) }}</span></div>
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Subtotal') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['subtotal'] ?? null) }}</span></div>
+                        @if (($totals['tax'] ?? 0) > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Tax') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['tax']) }}</span></div>
                         @endif
                         <div class="ja-sidebar-grand">
                             <span>{{ __('Grand Total') }}</span>
-                            <span>{{ $formatMoney($totals['total_cents'] ?? $totals['grand_total_cents'] ?? null) }} {{ $currency }}</span>
+                            <span>{{ $formatMoney($totals['total'] ?? $totals['grand_total'] ?? null) }} {{ $currency }}</span>
                         </div>
-                        @if (isset($totals['balance_cents']))
+                        @if (isset($totals['balance']))
                         <div class="ja-sidebar-kpi" style="margin-top:.4rem;">
                             <span class="ja-sidebar-kpi-label">{{ __('Balance Due') }}</span>
-                            <span class="ja-sidebar-kpi-value" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance_cents']) }}</span>
+                            <span class="ja-sidebar-kpi-value" style="color:var(--rb-danger);">{{ $formatMoney($totals['balance']) }}</span>
                         </div>
                         @endif
                     </div>
@@ -658,7 +658,7 @@
                         @forelse ($jobItems as $item)
                             @php
                                 $qty = max(1, (int)($item->qty ?? 1));
-                                $unit = (int)($item->unit_price_amount_cents ?? 0);
+                                $unit = (float)($item->unit_price_amount ?? 0);
                                 $lt = $qty * $unit;
                                 if (($item->item_type ?? null) === 'discount') $lt = 0 - $lt;
                             @endphp

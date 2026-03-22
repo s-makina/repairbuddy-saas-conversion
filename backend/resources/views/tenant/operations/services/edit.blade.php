@@ -101,8 +101,8 @@
 
 								@php
 									$basePriceUi = '';
-									if (is_numeric($service->base_price_amount_cents) && (int) $service->base_price_amount_cents !== 0) {
-										$basePriceUi = number_format(((int) $service->base_price_amount_cents) / 100, 2, '.', '');
+									if (is_numeric($service->base_price_amount) && (float) $service->base_price_amount !== 0.0) {
+										$basePriceUi = number_format((float) $service->base_price_amount, 2, '.', '');
 									}
 								@endphp
 

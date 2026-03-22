@@ -442,22 +442,22 @@
           @endif
 
           {{-- Totals --}}
-          @if(($estimate['totals']['total_cents'] ?? 0) > 0)
+          @if(($estimate['totals']['total'] ?? 0) > 0)
             <section class="st-section" style="border-top: 1px solid #edf2f7; padding-top: 1.5rem;">
               <div style="max-width: 300px; margin-left: auto;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: .5rem; font-size: .9rem; color: #718096;">
                   <span>Subtotal</span>
-                  <span>{{ number_format($estimate['totals']['subtotal_cents'] / 100, 2) }} {{ $estimate['totals']['currency'] }}</span>
+                  <span>{{ number_format($estimate['totals']['subtotal'], 2) }} {{ $estimate['totals']['currency'] }}</span>
                 </div>
-                @if($estimate['totals']['tax_cents'] > 0)
+                @if($estimate['totals']['tax'] > 0)
                   <div style="display: flex; justify-content: space-between; margin-bottom: .5rem; font-size: .9rem; color: #718096;">
                     <span>Tax</span>
-                    <span>{{ number_format($estimate['totals']['tax_cents'] / 100, 2) }} {{ $estimate['totals']['currency'] }}</span>
+                    <span>{{ number_format($estimate['totals']['tax'], 2) }} {{ $estimate['totals']['currency'] }}</span>
                   </div>
                 @endif
                 <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; color: #2d3748; margin-top: .75rem; border-top: 2px solid #2d3748; padding-top: .75rem;">
                   <span>Grand Total</span>
-                  <span>{{ number_format($estimate['totals']['total_cents'] / 100, 2) }} {{ $estimate['totals']['currency'] }}</span>
+                  <span>{{ number_format($estimate['totals']['total'], 2) }} {{ $estimate['totals']['currency'] }}</span>
                 </div>
               </div>
             </section>

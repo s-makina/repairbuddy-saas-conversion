@@ -618,8 +618,8 @@
                 <div class="ja-section-body" x-show="open.payments" x-collapse>
                     {{-- Payment summary bar --}}
                     @php
-                        $paidTotal   = collect($jobPayments)->sum('amount_cents');
-                        $grandTotal  = $totals['grand_total_cents'] ?? $totals['total_cents'] ?? 0;
+                        $paidTotal   = collect($jobPayments)->sum('amount');
+                        $grandTotal  = $totals['grand_total'] ?? $totals['total'] ?? 0;
                         $balanceDue  = $grandTotal - $paidTotal;
                     @endphp
                     <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:.75rem; padding:.6rem .75rem; background:var(--rb-bg); border-radius:var(--rb-radius-sm); border:1px solid var(--rb-border);">
@@ -656,7 +656,7 @@
                                         <td><span class="ja-status-pill ja-sp-open">{{ strtoupper($pmt->method ?? 'N/A') }}</span></td>
                                         <td><span class="ja-status-pill ja-sp-done">{{ strtoupper($pmt->payment_status ?? 'N/A') }}</span></td>
                                         <td style="font-family:monospace; font-size:.8rem;">{{ $pmt->transaction_id ?? '—' }}</td>
-                                        <td class="text-end fw-bold">{{ $formatMoney($pmt->amount_cents ?? null) }} {{ $currency }}</td>
+                                        <td class="text-end fw-bold">{{ $formatMoney($pmt->amount ?? null) }} {{ $currency }}</td>
                                         <td style="font-size:.78rem;">{{ $pmt->receiver?->name ?? '—' }}</td>
                                         <td style="font-size:.78rem; color:var(--rb-text-2);">{{ $pmt->notes ?? '' }}</td>
                                     </tr>
@@ -702,7 +702,7 @@
                                         <td>{{ $exp->expense_date?->format('M d, Y') ?? '—' }}</td>
                                         <td><span class="ja-status-pill" style="background:var(--rb-warning-soft); color:#92400e;">{{ $exp->category?->category_name ?? '—' }}</span></td>
                                         <td>{{ $exp->description ?? '—' }}</td>
-                                        <td class="text-end fw-bold">{{ $formatMoney(($exp->amount ?? 0) * 100) }}</td>
+                                        <td class="text-end fw-bold">{{ $formatMoney($exp->amount ?? 0) }}</td>
                                         <td style="font-size:.78rem;">{{ $exp->creator?->name ?? '—' }}</td>
                                     </tr>
                                 @endforeach
@@ -884,8 +884,8 @@
                         <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Discounts') }}</span><span class="ja-sidebar-kpi-value" style="color:var(--rb-danger);">-{{ $formatMoney($dscT['subtotal']) }}</span></div>
                         @endif
                         @endif
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Subtotal') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['subtotal_cents'] ?? null) }}</span></div>
-                        @if (($totals['tax_cents'] ?? 0) > 0)
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ __('Subtotal') }}</span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['subtotal'] ?? null) }}</span></div>
+                        @if (($totals['tax'] ?? 0) > 0)
                         @php
                             $taxLabel = __('Tax');
                             if (!empty($totals['tax_name'])) $taxLabel .= ' (' . e($totals['tax_name']);
@@ -893,20 +893,20 @@
                             if (!empty($totals['tax_name'])) $taxLabel .= ')';
                             $taxModeTag = ($totals['tax_mode'] ?? 'exclusive') === 'inclusive' ? __('incl.') : __('excl.');
                         @endphp
-                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ $taxLabel }} <small class="text-muted">({{ $taxModeTag }})</small></span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['tax_cents']) }}</span></div>
+                        <div class="ja-sidebar-kpi"><span class="ja-sidebar-kpi-label">{{ $taxLabel }} <small class="text-muted">({{ $taxModeTag }})</small></span><span class="ja-sidebar-kpi-value">{{ $formatMoney($totals['tax']) }}</span></div>
                         @endif
                         <div class="ja-sidebar-grand">
                             <span>{{ __('Grand Total') }}</span>
-                            <span>{{ $formatMoney($totals['grand_total_cents'] ?? $totals['total_cents'] ?? null) }}</span>
+                            <span>{{ $formatMoney($totals['grand_total'] ?? $totals['total'] ?? null) }}</span>
                         </div>
-                        @if (isset($totals['balance_cents']))
+                        @if (isset($totals['balance']))
                         <div class="ja-sidebar-kpi" style="margin-top:.4rem;">
                             <span class="ja-sidebar-kpi-label">{{ __('Total Paid') }}</span>
-                            <span class="ja-sidebar-kpi-value" style="color:var(--rb-success);">{{ $formatMoney($totals['paid_cents'] ?? 0) }}</span>
+                            <span class="ja-sidebar-kpi-value" style="color:var(--rb-success);">{{ $formatMoney($totals['paid'] ?? 0) }}</span>
                         </div>
                         <div class="ja-sidebar-kpi">
                             <span class="ja-sidebar-kpi-label">{{ __('Balance Due') }}</span>
-                            <span class="ja-sidebar-kpi-value" style="color:{{ ($totals['balance_cents'] ?? 0) > 0 ? 'var(--rb-danger)' : 'var(--rb-success)' }};">{{ $formatMoney($totals['balance_cents']) }}</span>
+                            <span class="ja-sidebar-kpi-value" style="color:{{ ($totals['balance'] ?? 0) > 0 ? 'var(--rb-danger)' : 'var(--rb-success)' }};">{{ $formatMoney($totals['balance']) }}</span>
                         </div>
                         @endif
                     </div>
@@ -919,7 +919,7 @@
                         @forelse ($jobItems as $item)
                             @php
                                 $qty = max(1, (int)($item->qty ?? 1));
-                                $unit = (int)($item->unit_price_amount_cents ?? 0);
+                                $unit = (float)($item->unit_price_amount ?? 0);
                                 $lt = $qty * $unit;
                                 if (($item->item_type ?? null) === 'discount') $lt = 0 - $lt;
                             @endphp
@@ -1112,8 +1112,8 @@
 {{-- ── Add Payment Modal ── --}}
 @if (!$isEstimate && $record)
 @php
-    $paymentGrandTotal = $totals['grand_total_cents'] ?? $totals['total_cents'] ?? 0;
-    $paymentPaidSoFar  = collect($jobPayments)->sum('amount_cents');
+    $paymentGrandTotal = $totals['grand_total'] ?? $totals['total'] ?? 0;
+    $paymentPaidSoFar  = collect($jobPayments)->sum('amount');
     $paymentBalance    = $paymentGrandTotal - $paymentPaidSoFar;
 @endphp
 <div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">

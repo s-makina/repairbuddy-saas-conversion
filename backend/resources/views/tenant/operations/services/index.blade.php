@@ -32,7 +32,7 @@
         { data: 'id', name: 'id', width: '90px' },
         { data: 'name', name: 'name' },
         { data: 'type_display', name: 'service_type_id', width: '240px', orderable: false, searchable: false },
-        { data: 'base_price_display', name: 'base_price_amount_cents', width: '170px', orderable: false, searchable: false },
+        { data: 'base_price_display', name: 'base_price_amount', width: '170px', orderable: false, searchable: false },
         { data: 'tax_display', name: 'tax_id', width: '240px', orderable: false, searchable: false },
         { data: 'status_display', name: 'is_active', width: '140px', orderable: false, searchable: false },
         { data: 'actions_display', name: 'actions_display', orderable: false, searchable: false, className: 'text-end', width: '320px' }
