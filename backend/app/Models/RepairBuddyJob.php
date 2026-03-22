@@ -87,6 +87,24 @@ class RepairBuddyJob extends Model
         return $this->hasMany(RepairBuddyJobDevice::class, 'job_id');
     }
 
+    /**
+     * Alias for jobDevices() - used by observer/email templates.
+     */
+    public function devices(): HasMany
+    {
+        return $this->jobDevices();
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(RepairBuddyJobItem::class, 'job_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(RepairBuddyPayment::class, 'job_id');
