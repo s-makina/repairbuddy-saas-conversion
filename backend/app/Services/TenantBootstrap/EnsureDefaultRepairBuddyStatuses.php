@@ -11,13 +11,13 @@ class EnsureDefaultRepairBuddyStatuses
     {
         DB::transaction(function () use ($tenantId) {
             $jobDefaults = [
-                ['slug' => 'new', 'label' => 'New Order', 'invoice_label' => 'Invoice'],
-                ['slug' => 'quote', 'label' => 'Quote', 'invoice_label' => 'Quote'],
-                ['slug' => 'cancelled', 'label' => 'Cancelled', 'invoice_label' => 'Cancelled'],
-                ['slug' => 'inprocess', 'label' => 'In Process', 'invoice_label' => 'Work Order'],
-                ['slug' => 'inservice', 'label' => 'In Service', 'invoice_label' => 'Work Order'],
-                ['slug' => 'ready_complete', 'label' => 'Ready/Complete', 'invoice_label' => 'Invoice'],
-                ['slug' => 'delivered', 'label' => 'Delivered', 'invoice_label' => 'Invoice'],
+                ['slug' => 'new', 'label' => 'New Order', 'invoice_label' => 'Invoice', 'email_enabled' => false],
+                ['slug' => 'quote', 'label' => 'Quote', 'invoice_label' => 'Quote', 'email_enabled' => false],
+                ['slug' => 'cancelled', 'label' => 'Cancelled', 'invoice_label' => 'Cancelled', 'email_enabled' => false],
+                ['slug' => 'inprocess', 'label' => 'In Process', 'invoice_label' => 'Work Order', 'email_enabled' => true],
+                ['slug' => 'inservice', 'label' => 'In Service', 'invoice_label' => 'Work Order', 'email_enabled' => true],
+                ['slug' => 'ready_complete', 'label' => 'Ready/Complete', 'invoice_label' => 'Invoice', 'email_enabled' => true],
+                ['slug' => 'delivered', 'label' => 'Delivered', 'invoice_label' => 'Invoice', 'email_enabled' => true],
             ];
 
             $paymentDefaults = [
@@ -110,7 +110,7 @@ class EnsureDefaultRepairBuddyStatuses
             ], [
                 'label' => $s['label'],
                 'invoice_label' => $s['invoice_label'],
-                'email_enabled' => false,
+                'email_enabled' => $s['email_enabled'] ?? false,
                 'email_template' => null,
                 'sms_enabled' => false,
                 'is_active' => true,

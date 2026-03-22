@@ -107,9 +107,11 @@
         }
         .btn-primary {
             background-color: #063e70;
+            color: #ffffff;
         }
         .btn-accent {
             background-color: #fd6742;
+            color: #ffffff;
         }
         .subtext {
             font-size: 13px;

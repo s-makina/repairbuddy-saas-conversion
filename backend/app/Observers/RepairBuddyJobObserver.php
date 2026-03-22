@@ -25,11 +25,22 @@ class RepairBuddyJobObserver
      */
     public function updated(RepairBuddyJob $job): void
     {
-        // Check if status_slug changed during the last save
-        if ($job->wasChanged('status_slug')) {
-            $oldStatus = $job->getOriginal('status_slug');
-            $newStatus = $job->status_slug;
+        $oldStatus = $job->getOriginal('status_slug');
+        $newStatus = $job->status_slug;
+        $wasChanged = $job->wasChanged('status_slug');
 
+        Log::info('job.observer_triggered', [
+            'job_id' => $job->id,
+            'case_number' => $job->case_number,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'was_changed' => $wasChanged,
+            'dirty' => $job->getDirty(),
+            'changes' => $job->getChanges(),
+        ]);
+
+        // Check if status_slug changed during the last save
+        if ($wasChanged) {
             $this->sendStatusUpdateEmail($job, $oldStatus, $newStatus);
         }
     }
@@ -39,15 +50,19 @@ class RepairBuddyJobObserver
      */
     protected function sendStatusUpdateEmail(RepairBuddyJob $job, ?string $oldStatus, ?string $newStatus): void
     {
+        Log::info('job.sendStatusUpdateEmail_start', ['job_id' => $job->id, 'new_status' => $newStatus]);
+
         // Skip if no customer or no email
         $customer = $job->customer;
         if (!$customer instanceof User || !is_string($customer->email) || trim($customer->email) === '') {
+            Log::info('job.sendStatusUpdateEmail_skip', ['reason' => 'no_customer_or_email', 'customer_id' => $job->customer_id]);
             return;
         }
 
         // Get tenant
         $tenant = TenantContext::tenant();
         if (!$tenant instanceof Tenant) {
+            Log::info('job.sendStatusUpdateEmail_skip', ['reason' => 'no_tenant_context']);
             return;
         }
 
@@ -57,6 +72,7 @@ class RepairBuddyJobObserver
         $emailCustomerOnStatusChange = (bool) ($general['wc_job_status_cr_notice'] ?? false);
 
         if (!$emailCustomerOnStatusChange) {
+            Log::info('job.sendStatusUpdateEmail_skip', ['reason' => 'global_toggle_disabled']);
             return;
         }
 
@@ -67,8 +83,20 @@ class RepairBuddyJobObserver
             ->first();
 
         if (!$statusRecord || !$statusRecord->email_enabled) {
+            Log::info('job.sendStatusUpdateEmail_skip', [
+                'reason' => 'status_email_disabled',
+                'status_slug' => $newStatus,
+                'status_record_found' => $statusRecord !== null,
+                'email_enabled' => $statusRecord?->email_enabled,
+            ]);
             return;
         }
+
+        Log::info('job.sendStatusUpdateEmail_proceeding', [
+            'job_id' => $job->id,
+            'customer_email' => $customer->email,
+            'status' => $newStatus,
+        ]);
 
         // Check if PDF should be attached
         $attachPdf = (bool) ($general['wcrb_attach_pdf_in_customer_emails'] ?? false);
