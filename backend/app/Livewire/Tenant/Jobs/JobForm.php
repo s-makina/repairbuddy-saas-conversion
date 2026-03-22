@@ -121,7 +121,7 @@ class JobForm extends Component
     public ?string $extra_description = null;
     public $extra_temp_file = null;
 
-    /** @var array<int,array{type:mixed,name:mixed,qty:mixed,unit_price_cents:mixed,meta_json:mixed}> */
+    /** @var array<int,array{type:mixed,name:mixed,qty:mixed,unit_price:mixed,meta_json:mixed}> */
     public array $items = [];
 
     public function mount(
@@ -304,7 +304,7 @@ class JobForm extends Component
                     'type' => $it->item_type ?? null,
                     'name' => $it->name_snapshot ?? null,
                     'qty' => $it->qty ?? 1,
-                    'unit_price_cents' => ($it->unit_price_amount_cents ?? 0) / 100,
+                    'unit_price' => $it->unit_price_amount ?? 0,
                     'tax_id' => $it->tax_id ?? null,
                     'meta_json' => is_array($it->meta_json ?? null) ? json_encode($it->meta_json) : null,
                 ];
@@ -369,7 +369,7 @@ class JobForm extends Component
             'items.*.name' => ['nullable', 'string', 'max:255'],
             'items.*.code' => ['nullable', 'string', 'max:64'],
             'items.*.qty' => ['nullable', 'integer', 'min:1', 'max:9999'],
-            'items.*.unit_price_cents' => ['nullable', 'integer', 'min:-999999999999999', 'max:999999999999999'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:-999999999999', 'max:999999999999'],
             'items.*.tax_id' => ['nullable', 'integer'],
             'items.*.meta_json' => ['nullable', 'string', 'max:2000'],
 
@@ -662,7 +662,7 @@ class JobForm extends Component
             'name' => null,
             'code' => null,
             'qty' => 1,
-            'unit_price_cents' => 0,
+            'unit_price' => 0,
             'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
@@ -689,7 +689,7 @@ class JobForm extends Component
             'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
             'device_row_index' => $this->selected_device_link_index,
             'qty' => 1,
-            'unit_price_cents' => $part->price_amount_cents / 100,
+            'unit_price' => $part->price_amount ?? 0,
             'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
@@ -718,7 +718,7 @@ class JobForm extends Component
             'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
             'device_row_index' => $this->selected_device_link_index,
             'qty' => 1,
-            'unit_price_cents' => 0,
+            'unit_price' => 0,
             'tax_id' => $this->default_tax_id,
             'meta_json' => null,
         ];
@@ -742,7 +742,7 @@ class JobForm extends Component
                     'name' => $service->name,
                     'code' => $service->service_code,
                     'qty' => 1,
-                    'unit_price_cents' => $service->base_price_amount_cents / 100,
+                    'unit_price' => $service->base_price_amount ?? 0,
                     'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
                     'device_row_index' => $this->selected_device_link_index,
                     'tax_id' => $this->default_tax_id,
@@ -755,7 +755,7 @@ class JobForm extends Component
                 'name' => $this->service_search ?: null,
                 'code' => null,
                 'qty' => 1,
-                'unit_price_cents' => 0,
+                'unit_price' => 0,
                 'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
                 'device_row_index' => $this->selected_device_link_index,
                 'tax_id' => $this->default_tax_id,
@@ -779,7 +779,7 @@ class JobForm extends Component
             'name' => null,
             'code' => null,
             'qty' => 1,
-            'unit_price_cents' => 0,
+            'unit_price' => 0,
             'device_info' => $deviceRow ? ($deviceRow['brand_name'] . ' ' . $deviceRow['device_model']) : '--',
             'device_row_index' => $this->selected_device_link_index,
             'tax_id' => $this->default_tax_id,
@@ -878,7 +878,7 @@ class JobForm extends Component
             'item_name' => array_map(fn ($r) => $r['name'] ?? null, $this->items),
             'item_code' => array_map(fn ($r) => $r['code'] ?? null, $this->items),
             'item_qty' => array_map(fn ($r) => $r['qty'] ?? null, $this->items),
-            'item_unit_price_cents' => array_map(fn ($r) => (int) round(($r['unit_price_cents'] ?? 0) * 100), $this->items),
+            'item_unit_price_amount' => array_map(fn ($r) => (float) ($r['unit_price'] ?? 0), $this->items),
             'item_meta_json' => array_map(fn ($r) => $r['meta_json'] ?? null, $this->items),
             'item_tax_id' => array_map(fn ($r) => is_numeric($r['tax_id'] ?? null) ? (int)$r['tax_id'] : null, $this->items),
 
@@ -1059,18 +1059,18 @@ class JobForm extends Component
 
     public function getPartsTotalProperty(): float
     {
-        return (float) collect($this->items)->where('type', 'part')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price_cents'] ?? 0));
+        return (float) collect($this->items)->where('type', 'part')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price'] ?? 0));
     }
 
     public function getServicesTotalProperty(): float
     {
-        return (float) collect($this->items)->where('type', 'service')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price_cents'] ?? 0));
+        return (float) collect($this->items)->where('type', 'service')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price'] ?? 0));
     }
 
     public function getExtrasTotalProperty(): float
     {
         // 'fee' type in Step 3 corresponds to 'Extras' in the summary
-        return (float) collect($this->items)->where('type', 'fee')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price_cents'] ?? 0));
+        return (float) collect($this->items)->where('type', 'fee')->sum(fn($i) => ($i['qty'] ?? 1) * ($i['unit_price'] ?? 0));
     }
 
     protected function calculateTax(float $subtotal, string $type): float

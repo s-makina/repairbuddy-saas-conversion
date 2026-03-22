@@ -78,7 +78,7 @@ class QuickServiceModal extends Component
         $tenant_id = $this->tenant ? $this->tenant->id : TenantContext::tenant()?->id;
         $tenantCurrency = TenantContext::tenant()?->currency ?? 'USD';
 
-        $priceCents = (int) round(((float) $this->base_price) * 100);
+        $priceAmount = (float) $this->base_price;
 
         $service = RepairBuddyService::create([
             'tenant_id' => $tenant_id,
@@ -86,7 +86,7 @@ class QuickServiceModal extends Component
             'description' => $this->description ?: null,
             'service_type_id' => $this->service_type_id ?: null,
             'service_code' => $this->service_code ?: null,
-            'base_price_amount_cents' => $priceCents,
+            'base_price_amount' => $priceAmount,
             'base_price_currency' => strtoupper($tenantCurrency),
             'tax_id' => $this->tax_id ?: null,
             'warranty' => $this->warranty ?: null,

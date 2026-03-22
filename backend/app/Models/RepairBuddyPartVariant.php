@@ -22,13 +22,13 @@ class RepairBuddyPartVariant extends Model
         'sku',
         'manufacturing_code',
         'stock_code',
-        'price_amount_cents',
+        'price_amount',
         'price_currency',
         'tax_id',
         'warranty',
         'core_features',
         'capacity',
-        'installation_charges_amount_cents',
+        'installation_charges_amount',
         'installation_charges_currency',
         'installation_message',
         'is_active',
@@ -38,9 +38,9 @@ class RepairBuddyPartVariant extends Model
     {
         return [
             'part_id' => 'integer',
-            'price_amount_cents' => 'integer',
+            'price_amount' => 'decimal:2',
             'tax_id' => 'integer',
-            'installation_charges_amount_cents' => 'integer',
+            'installation_charges_amount' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

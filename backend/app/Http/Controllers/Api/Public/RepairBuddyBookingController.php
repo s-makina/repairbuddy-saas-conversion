@@ -373,9 +373,9 @@ class RepairBuddyBookingController extends Controller
                     $override = $priceOverrides[$sid]['type'];
                 }
 
-                $resolvedCents = $override && is_numeric($override->price_amount_cents)
-                    ? (int) $override->price_amount_cents
-                    : (is_numeric($s->base_price_amount_cents) ? (int) $s->base_price_amount_cents : null);
+                $resolvedAmount = $override && is_numeric($override->price_amount)
+                    ? (float) $override->price_amount
+                    : (is_numeric($s->base_price_amount) ? (float) $s->base_price_amount : null);
 
                 $resolvedCurrency = $override && is_string($override->price_currency) && $override->price_currency !== ''
                     ? (string) $override->price_currency
@@ -385,10 +385,10 @@ class RepairBuddyBookingController extends Controller
                     $resolvedTaxId = (int) $override->tax_id;
                 }
 
-                if ($resolvedCents !== null && $resolvedCurrency !== null && $resolvedCurrency !== '') {
+                if ($resolvedAmount !== null && $resolvedCurrency !== null && $resolvedCurrency !== '') {
                     $resolved = [
                         'currency' => $resolvedCurrency,
-                        'amount_cents' => $resolvedCents,
+                        'amount' => $resolvedAmount,
                     ];
                 }
             }
@@ -710,7 +710,7 @@ class RepairBuddyBookingController extends Controller
                     ]);
                 }
 
-                [$unitCents, $currency, $taxId] = $this->resolveServiceUnitPriceAndTax($service, $device?->id, $contextBrandId, $contextTypeId);
+                [$unitAmount, $currency, $taxId] = $this->resolveServiceUnitPriceAndTax($service, $device?->id, $contextBrandId, $contextTypeId);
 
                 RepairBuddyJobItem::query()->create([
                     'job_id' => $job->id,
@@ -718,7 +718,7 @@ class RepairBuddyBookingController extends Controller
                     'ref_id' => $service->id,
                     'name_snapshot' => (string) $service->name,
                     'qty' => $qty,
-                    'unit_price_amount_cents' => $unitCents,
+                    'unit_price_amount' => $unitAmount,
                     'unit_price_currency' => $currency,
                     'tax_id' => $taxId,
                     'meta_json' => [
@@ -734,7 +734,7 @@ class RepairBuddyBookingController extends Controller
                     'ref_id' => null,
                     'name_snapshot' => $otherService,
                     'qty' => 1,
-                    'unit_price_amount_cents' => 0,
+                    'unit_price_amount' => 0,
                     'unit_price_currency' => (string) ($this->tenant()->currency ?? 'USD'),
                     'tax_id' => null,
                     'meta_json' => [
@@ -830,7 +830,7 @@ class RepairBuddyBookingController extends Controller
                     ]);
                 }
 
-                [$unitCents, $currency, $taxId] = $this->resolveServiceUnitPriceAndTax($service, $device?->id, $contextBrandId, $contextTypeId);
+                [$unitAmount, $currency, $taxId] = $this->resolveServiceUnitPriceAndTax($service, $device?->id, $contextBrandId, $contextTypeId);
 
                 RepairBuddyEstimateItem::query()->create([
                     'estimate_id' => $estimate->id,
@@ -838,7 +838,7 @@ class RepairBuddyBookingController extends Controller
                     'ref_id' => $service->id,
                     'name_snapshot' => (string) $service->name,
                     'qty' => $qty,
-                    'unit_price_amount_cents' => $unitCents,
+                    'unit_price_amount' => $unitAmount,
                     'unit_price_currency' => $currency,
                     'tax_id' => $taxId,
                     'meta_json' => [
@@ -854,7 +854,7 @@ class RepairBuddyBookingController extends Controller
                     'ref_id' => null,
                     'name_snapshot' => $otherService,
                     'qty' => 1,
-                    'unit_price_amount_cents' => 0,
+                    'unit_price_amount' => 0,
                     'unit_price_currency' => (string) ($this->tenant()->currency ?? 'USD'),
                     'tax_id' => null,
                     'meta_json' => [
@@ -941,9 +941,9 @@ class RepairBuddyBookingController extends Controller
                 ->first();
         }
 
-        $unitCents = $override && is_numeric($override->price_amount_cents)
-            ? (int) $override->price_amount_cents
-            : (is_numeric($service->base_price_amount_cents) ? (int) $service->base_price_amount_cents : 0);
+        $unitAmount = $override && is_numeric($override->price_amount)
+            ? (float) $override->price_amount
+            : (is_numeric($service->base_price_amount) ? (float) $service->base_price_amount : 0);
 
         $currency = $override && is_string($override->price_currency) && $override->price_currency !== ''
             ? strtoupper((string) $override->price_currency)
@@ -953,7 +953,7 @@ class RepairBuddyBookingController extends Controller
             ? (int) $override->tax_id
             : (is_numeric($service->tax_id) ? (int) $service->tax_id : null);
 
-        return [$unitCents, $currency, $taxId];
+        return [$unitAmount, $currency, $taxId];
     }
 
     protected function attachUploadsToJob(RepairBuddyJob $job, mixed $uploaded): void

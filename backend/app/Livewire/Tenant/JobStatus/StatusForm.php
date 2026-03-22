@@ -451,20 +451,20 @@ class StatusForm extends Component
 
         // Get items (services/parts)
         $items = $estimate->items()->with('tax')->orderBy('id', 'asc')->get();
-        $subtotalCents = 0;
-        $taxCents = 0;
+        $subtotal = 0;
+        $taxTotal = 0;
         $currency = (string) ($this->tenant->currency ?? 'USD');
 
-        $serializedItems = $items->map(function ($item) use (&$subtotalCents, &$taxCents, &$currency) {
+        $serializedItems = $items->map(function ($item) use (&$subtotal, &$taxTotal, &$currency) {
             $qty = (int) $item->qty;
-            $unit = (int) $item->unit_price_amount_cents;
+            $unit = (float) $item->unit_price_amount;
             $lineSubtotal = $qty * $unit;
 
             $rate = $item->tax ? (float) $item->tax->rate : 0.0;
-            $lineTax = (int) round($lineSubtotal * ($rate / 100.0));
+            $lineTax = round($lineSubtotal * ($rate / 100.0), 2);
 
-            $subtotalCents += $lineSubtotal;
-            $taxCents += $lineTax;
+            $subtotal += $lineSubtotal;
+            $taxTotal += $lineTax;
 
             if (is_string($item->unit_price_currency) && $item->unit_price_currency !== '') {
                 $currency = $item->unit_price_currency;

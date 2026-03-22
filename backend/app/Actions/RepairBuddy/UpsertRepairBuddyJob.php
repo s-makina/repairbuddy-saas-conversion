@@ -359,7 +359,7 @@ class UpsertRepairBuddyJob
         $names  = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
         $codes  = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
         $qtys   = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
-        $prices = is_array($validated['item_unit_price_cents'] ?? null) ? $validated['item_unit_price_cents'] : [];
+        $prices = is_array($validated['item_unit_price_amount'] ?? null) ? $validated['item_unit_price_amount'] : [];
         $taxIds = is_array($validated['item_tax_id'] ?? null) ? $validated['item_tax_id'] : [];
 
         $max = max(count($types), count($names), count($codes), count($qtys), count($prices));
@@ -375,7 +375,7 @@ class UpsertRepairBuddyJob
 
             $c = is_string($codes[$i] ?? null) ? trim((string) $codes[$i]) : '';
             $q = is_numeric($qtys[$i] ?? null) ? (int) $qtys[$i] : 1;
-            $p = is_numeric($prices[$i] ?? null) ? (int) $prices[$i] : 0;
+            $p = is_numeric($prices[$i] ?? null) ? (float) $prices[$i] : 0;
 
             $metaJson = $c !== '' ? ['code' => $c] : null;
 
@@ -389,7 +389,7 @@ class UpsertRepairBuddyJob
                 'ref_id' => null,
                 'name_snapshot' => $n,
                 'qty' => $q,
-                'unit_price_amount_cents' => $p,
+                'unit_price_amount' => $p,
                 'unit_price_currency' => is_string($tenant->currency ?? null) ? (string) $tenant->currency : null,
                 'tax_id' => $itemTaxId,
                 'meta_json' => $metaJson,
@@ -405,7 +405,7 @@ class UpsertRepairBuddyJob
         $names  = is_array($validated['item_name'] ?? null) ? $validated['item_name'] : [];
         $codes  = is_array($validated['item_code'] ?? null) ? $validated['item_code'] : [];
         $qtys   = is_array($validated['item_qty'] ?? null) ? $validated['item_qty'] : [];
-        $prices = is_array($validated['item_unit_price_cents'] ?? null) ? $validated['item_unit_price_cents'] : [];
+        $prices = is_array($validated['item_unit_price_amount'] ?? null) ? $validated['item_unit_price_amount'] : [];
         $metas  = is_array($validated['item_meta_json'] ?? null) ? $validated['item_meta_json'] : [];
         $taxIds = is_array($validated['item_tax_id'] ?? null) ? $validated['item_tax_id'] : [];
 
@@ -422,7 +422,7 @@ class UpsertRepairBuddyJob
 
             $c = is_string($codes[$i] ?? null) ? trim((string) $codes[$i]) : '';
             $q = is_numeric($qtys[$i] ?? null) ? (int) $qtys[$i] : 1;
-            $p = is_numeric($prices[$i] ?? null) ? (int) $prices[$i] : 0;
+            $p = is_numeric($prices[$i] ?? null) ? (float) $prices[$i] : 0;
 
             $metaDecoded = null;
             $rawMeta = is_string($metas[$i] ?? null) ? trim((string) $metas[$i]) : '';
@@ -449,7 +449,7 @@ class UpsertRepairBuddyJob
                 'ref_id' => null,
                 'name_snapshot' => $n,
                 'qty' => $q,
-                'unit_price_amount_cents' => $p,
+                'unit_price_amount' => $p,
                 'unit_price_currency' => is_string($tenant->currency ?? null) ? (string) $tenant->currency : null,
                 'tax_id' => $itemTaxId,
                 'meta_json' => $metaDecoded,

@@ -91,7 +91,7 @@ class ServiceList extends Component
                 'service_code' => $service->service_code,
                 'time_required' => $service->time_required,
                 'warranty' => $service->warranty,
-                'base_price_amount_cents' => $service->base_price_amount_cents,
+                'base_price_amount' => $service->base_price_amount,
                 'base_price_currency' => $service->base_price_currency ?? 'USD',
                 'type_id' => $service->service_type_id,
                 'type_name' => $service->type?->name ?? null,

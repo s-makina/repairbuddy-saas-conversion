@@ -85,7 +85,7 @@ class PartList extends Component
                 'name' => $p->name,
                 'sku' => $p->sku,
                 'stock_code' => $p->stock_code,
-                'price_amount_cents' => $p->price_amount_cents,
+                'price_amount' => $p->price_amount,
                 'price_currency' => $p->price_currency ?? 'USD',
                 'stock' => $p->stock,
                 'warranty' => $p->warranty,

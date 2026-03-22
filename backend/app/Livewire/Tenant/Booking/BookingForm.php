@@ -551,11 +551,11 @@ class BookingForm extends Component
                 elseif ($contextBrandId && isset($priceOverrides[$sid]['brand'])) $override = $priceOverrides[$sid]['brand'];
                 elseif ($contextTypeId && isset($priceOverrides[$sid]['type'])) $override = $priceOverrides[$sid]['type'];
 
-                $cents = $override && is_numeric($override->price_amount_cents) ? (int) $override->price_amount_cents : (is_numeric($s->base_price_amount_cents) ? (int) $s->base_price_amount_cents : null);
+                $amount = $override && is_numeric($override->price_amount) ? (float) $override->price_amount : (is_numeric($s->base_price_amount) ? (float) $s->base_price_amount : null);
                 $currency = $override && is_string($override->price_currency) && $override->price_currency !== '' ? $override->price_currency : (is_string($s->base_price_currency) && $s->base_price_currency !== '' ? $s->base_price_currency : null);
 
-                if ($cents !== null && $currency !== null) {
-                    $priceDisplay = $currency . ' ' . number_format($cents / 100, 2);
+                if ($amount !== null && $currency !== null) {
+                    $priceDisplay = $currency . ' ' . number_format($amount, 2);
                 }
             }
 
@@ -792,10 +792,10 @@ class BookingForm extends Component
         foreach ($services as $s) {
             $priceDisplay = null;
             if (! $this->turnOffServicePrice) {
-                $cents = is_numeric($s->base_price_amount_cents) ? (int) $s->base_price_amount_cents : null;
+                $amount = is_numeric($s->base_price_amount) ? (float) $s->base_price_amount : null;
                 $currency = is_string($s->base_price_currency) && $s->base_price_currency !== '' ? $s->base_price_currency : null;
-                if ($cents !== null && $currency !== null) {
-                    $priceDisplay = $currency . ' ' . number_format($cents / 100, 2);
+                if ($amount !== null && $currency !== null) {
+                    $priceDisplay = $currency . ' ' . number_format($amount, 2);
                 }
             }
 

@@ -53,7 +53,7 @@ class RepairBuddyPartVariantController extends Controller
             'manufacturing_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'stock_code' => ['sometimes', 'nullable', 'string', 'max:255'],
 
-            'price_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'price_amount' => ['sometimes', 'nullable', 'numeric'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
 
@@ -61,7 +61,7 @@ class RepairBuddyPartVariantController extends Controller
             'core_features' => ['sometimes', 'nullable', 'string'],
             'capacity' => ['sometimes', 'nullable', 'string', 'max:255'],
 
-            'installation_charges_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'installation_charges_amount' => ['sometimes', 'nullable', 'numeric'],
             'installation_charges_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'installation_message' => ['sometimes', 'nullable', 'string', 'max:255'],
 
@@ -94,7 +94,7 @@ class RepairBuddyPartVariantController extends Controller
             'manufacturing_code' => $validated['manufacturing_code'] ?? null,
             'stock_code' => $validated['stock_code'] ?? null,
 
-            'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? $validated['price_amount_cents'] : null,
+            'price_amount' => array_key_exists('price_amount', $validated) ? $validated['price_amount'] : null,
             'price_currency' => array_key_exists('price_currency', $validated) && is_string($validated['price_currency']) && $validated['price_currency'] !== ''
                 ? strtoupper((string) $validated['price_currency'])
                 : null,
@@ -104,7 +104,7 @@ class RepairBuddyPartVariantController extends Controller
             'core_features' => $validated['core_features'] ?? null,
             'capacity' => $validated['capacity'] ?? null,
 
-            'installation_charges_amount_cents' => array_key_exists('installation_charges_amount_cents', $validated) ? $validated['installation_charges_amount_cents'] : null,
+            'installation_charges_amount' => array_key_exists('installation_charges_amount', $validated) ? $validated['installation_charges_amount'] : null,
             'installation_charges_currency' => array_key_exists('installation_charges_currency', $validated) && is_string($validated['installation_charges_currency']) && $validated['installation_charges_currency'] !== ''
                 ? strtoupper((string) $validated['installation_charges_currency'])
                 : null,
@@ -141,7 +141,7 @@ class RepairBuddyPartVariantController extends Controller
             'manufacturing_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'stock_code' => ['sometimes', 'nullable', 'string', 'max:255'],
 
-            'price_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'price_amount' => ['sometimes', 'nullable', 'numeric'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
 
@@ -149,7 +149,7 @@ class RepairBuddyPartVariantController extends Controller
             'core_features' => ['sometimes', 'nullable', 'string'],
             'capacity' => ['sometimes', 'nullable', 'string', 'max:255'],
 
-            'installation_charges_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'installation_charges_amount' => ['sometimes', 'nullable', 'numeric'],
             'installation_charges_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'installation_message' => ['sometimes', 'nullable', 'string', 'max:255'],
 
@@ -173,7 +173,7 @@ class RepairBuddyPartVariantController extends Controller
             'manufacturing_code' => array_key_exists('manufacturing_code', $validated) ? $validated['manufacturing_code'] : $variant->manufacturing_code,
             'stock_code' => array_key_exists('stock_code', $validated) ? $validated['stock_code'] : $variant->stock_code,
 
-            'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? $validated['price_amount_cents'] : $variant->price_amount_cents,
+            'price_amount' => array_key_exists('price_amount', $validated) ? $validated['price_amount'] : $variant->price_amount,
             'price_currency' => array_key_exists('price_currency', $validated)
                 ? (is_string($validated['price_currency']) && $validated['price_currency'] !== '' ? strtoupper((string) $validated['price_currency']) : null)
                 : $variant->price_currency,
@@ -183,7 +183,7 @@ class RepairBuddyPartVariantController extends Controller
             'core_features' => array_key_exists('core_features', $validated) ? $validated['core_features'] : $variant->core_features,
             'capacity' => array_key_exists('capacity', $validated) ? $validated['capacity'] : $variant->capacity,
 
-            'installation_charges_amount_cents' => array_key_exists('installation_charges_amount_cents', $validated) ? $validated['installation_charges_amount_cents'] : $variant->installation_charges_amount_cents,
+            'installation_charges_amount' => array_key_exists('installation_charges_amount', $validated) ? $validated['installation_charges_amount'] : $variant->installation_charges_amount,
             'installation_charges_currency' => array_key_exists('installation_charges_currency', $validated)
                 ? (is_string($validated['installation_charges_currency']) && $validated['installation_charges_currency'] !== '' ? strtoupper((string) $validated['installation_charges_currency']) : null)
                 : $variant->installation_charges_currency,
@@ -223,18 +223,18 @@ class RepairBuddyPartVariantController extends Controller
     private function serialize(RepairBuddyPartVariant $v): array
     {
         $price = null;
-        if (is_numeric($v->price_amount_cents) && is_string($v->price_currency) && $v->price_currency !== '') {
+        if (is_numeric($v->price_amount) && is_string($v->price_currency) && $v->price_currency !== '') {
             $price = [
                 'currency' => $v->price_currency,
-                'amount_cents' => (int) $v->price_amount_cents,
+                'amount' => (float) $v->price_amount,
             ];
         }
 
         $installationCharges = null;
-        if (is_numeric($v->installation_charges_amount_cents) && is_string($v->installation_charges_currency) && $v->installation_charges_currency !== '') {
+        if (is_numeric($v->installation_charges_amount) && is_string($v->installation_charges_currency) && $v->installation_charges_currency !== '') {
             $installationCharges = [
                 'currency' => $v->installation_charges_currency,
-                'amount_cents' => (int) $v->installation_charges_amount_cents,
+                'amount' => (float) $v->installation_charges_amount,
             ];
         }
 

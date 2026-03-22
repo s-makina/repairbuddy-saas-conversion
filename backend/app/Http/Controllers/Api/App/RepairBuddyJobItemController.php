@@ -39,7 +39,7 @@ class RepairBuddyJobItemController extends Controller
             'ref_id' => ['sometimes', 'nullable', 'integer'],
             'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'qty' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9999'],
-            'unit_price_amount_cents' => ['sometimes', 'nullable', 'integer', 'min:-1000000000', 'max:1000000000'],
+            'unit_price_amount' => ['sometimes', 'nullable', 'numeric', 'min:-1000000000', 'max:1000000000'],
             'unit_price_currency' => ['sometimes', 'nullable', 'string', 'size:3'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
             'meta' => ['sometimes', 'nullable', 'array'],
@@ -56,8 +56,8 @@ class RepairBuddyJobItemController extends Controller
         $name = is_string($validated['name'] ?? null) ? trim((string) $validated['name']) : '';
         $qty = is_numeric($validated['qty'] ?? null) ? (int) $validated['qty'] : 1;
 
-        $unitPriceCents = array_key_exists('unit_price_amount_cents', $validated) && is_numeric($validated['unit_price_amount_cents'])
-            ? (int) $validated['unit_price_amount_cents']
+        $unitPrice = array_key_exists('unit_price_amount', $validated) && is_numeric($validated['unit_price_amount'])
+            ? (float) $validated['unit_price_amount']
             : null;
 
         $currencyFromRequest = is_string($validated['unit_price_currency'] ?? null) && $validated['unit_price_currency'] !== ''
@@ -163,9 +163,9 @@ class RepairBuddyJobItemController extends Controller
                         ->first();
                 }
 
-                $resolvedUnitPriceCents = $override && is_numeric($override->price_amount_cents)
-                    ? (int) $override->price_amount_cents
-                    : (is_numeric($service->base_price_amount_cents) ? (int) $service->base_price_amount_cents : null);
+                $resolvedUnitPriceAmount = $override && is_numeric($override->price_amount)
+                    ? (float) $override->price_amount
+                    : (is_numeric($service->base_price_amount) ? (float) $service->base_price_amount : null);
 
                 if (! $taxId && $override && is_numeric($override->tax_id)) {
                     $taxId = (int) $override->tax_id;
@@ -266,10 +266,10 @@ class RepairBuddyJobItemController extends Controller
 
             $base = $variant ?: $part;
 
-            if ($resolvedUnitPriceCents === null) {
-                $resolvedUnitPriceCents = $override && is_numeric($override->price_amount_cents)
-                    ? (int) $override->price_amount_cents
-                    : (is_numeric($base->price_amount_cents) ? (int) $base->price_amount_cents : null);
+            if ($resolvedUnitPriceAmount === null) {
+                $resolvedUnitPriceAmount = $override && is_numeric($override->price_amount)
+                    ? (float) $override->price_amount
+                    : (is_numeric($base->price_amount) ? (float) $base->price_amount : null);
             }
 
             if (! $taxId) {
@@ -309,7 +309,7 @@ class RepairBuddyJobItemController extends Controller
             'ref_id' => $refId,
             'name_snapshot' => $resolvedName,
             'qty' => $qty,
-            'unit_price_amount_cents' => $resolvedUnitPriceCents,
+            'unit_price_amount' => $resolvedUnitPrice,
             'unit_price_currency' => $currency,
             'tax_id' => $taxId,
             'meta_json' => $validated['meta'] ?? null,
@@ -381,7 +381,7 @@ class RepairBuddyJobItemController extends Controller
             'qty' => $i->qty,
             'unit_price' => [
                 'currency' => $i->unit_price_currency,
-                'amount_cents' => (int) $i->unit_price_amount_cents,
+                'amount' => (float) $i->unit_price_amount,
             ],
             'tax' => $tax,
             'meta' => is_array($i->meta_json) ? $i->meta_json : null,
@@ -399,19 +399,19 @@ class RepairBuddyJobItemController extends Controller
 
         $currency = (string) ($this->tenant()->currency ?? 'USD');
 
-        $subtotalCents = 0;
-        $taxCents = 0;
+        $subtotal = 0;
+        $taxTotal = 0;
 
         foreach ($items as $item) {
             $qty = is_numeric($item->qty) ? (int) $item->qty : 0;
-            $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+            $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
             $lineSubtotal = $qty * $unit;
 
             $rate = $item->tax ? (float) $item->tax->rate : 0.0;
-            $lineTax = (int) round($lineSubtotal * ($rate / 100.0));
+            $lineTax = round($lineSubtotal * ($rate / 100.0), 2);
 
-            $subtotalCents += $lineSubtotal;
-            $taxCents += $lineTax;
+            $subtotal += $lineSubtotal;
+            $taxTotal += $lineTax;
 
             if (is_string($item->unit_price_currency) && $item->unit_price_currency !== '') {
                 $currency = (string) $item->unit_price_currency;
@@ -420,9 +420,9 @@ class RepairBuddyJobItemController extends Controller
 
         return [
             'currency' => $currency,
-            'subtotal_cents' => $subtotalCents,
-            'tax_cents' => $taxCents,
-            'total_cents' => $subtotalCents + $taxCents,
+            'subtotal' => $subtotal,
+            'tax' => $taxTotal,
+            'total' => $subtotal + $taxTotal,
         ];
     }
 }

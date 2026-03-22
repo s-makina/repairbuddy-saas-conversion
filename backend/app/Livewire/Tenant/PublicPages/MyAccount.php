@@ -470,14 +470,14 @@ class MyAccount extends Component
         $this->totalJobs = RepairBuddyJob::where('customer_id', $user->id)->count();
         $this->totalEstimates = \App\Models\RepairBuddyEstimate::where('customer_id', $user->id)->count();
 
-        // Calculate lifetime value from job items (unit_price_amount_cents * qty)
-        $lifetimeCents = \DB::table('rb_job_items')
+        // Calculate lifetime value from job items (unit_price_amount * qty)
+        $lifetimeAmount = \DB::table('rb_job_items')
             ->join('rb_jobs', 'rb_job_items.job_id', '=', 'rb_jobs.id')
             ->where('rb_jobs.customer_id', $user->id)
-            ->selectRaw('SUM(rb_job_items.unit_price_amount_cents * rb_job_items.qty) as total')
+            ->selectRaw('SUM(rb_job_items.unit_price_amount * rb_job_items.qty) as total')
             ->value('total');
 
-        $this->lifetimeValue = number_format(($lifetimeCents ?? 0) / 100, 2, '.', ',');
+        $this->lifetimeValue = number_format($lifetimeAmount ?? 0, 2, '.', ',');
     }
 
     /* ─────────── Reviews ─────────── */

@@ -21,7 +21,7 @@ class RepairBuddyPartPriceOverride extends Model
         'part_variant_id',
         'scope_type',
         'scope_ref_id',
-        'price_amount_cents',
+        'price_amount',
         'price_currency',
         'tax_id',
         'manufacturing_code',
@@ -35,7 +35,7 @@ class RepairBuddyPartPriceOverride extends Model
             'part_id' => 'integer',
             'part_variant_id' => 'integer',
             'scope_ref_id' => 'integer',
-            'price_amount_cents' => 'integer',
+            'price_amount' => 'decimal:2',
             'tax_id' => 'integer',
             'is_active' => 'boolean',
         ];

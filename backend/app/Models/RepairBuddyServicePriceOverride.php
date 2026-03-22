@@ -20,7 +20,7 @@ class RepairBuddyServicePriceOverride extends Model
         'service_id',
         'scope_type',
         'scope_ref_id',
-        'price_amount_cents',
+        'price_amount',
         'price_currency',
         'tax_id',
         'is_active',
@@ -31,7 +31,7 @@ class RepairBuddyServicePriceOverride extends Model
         return [
             'service_id' => 'integer',
             'scope_ref_id' => 'integer',
-            'price_amount_cents' => 'integer',
+            'price_amount' => 'decimal:2',
             'tax_id' => 'integer',
             'is_active' => 'boolean',
         ];

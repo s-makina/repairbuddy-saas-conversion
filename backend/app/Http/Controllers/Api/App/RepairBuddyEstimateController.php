@@ -754,8 +754,8 @@ class RepairBuddyEstimateController extends Controller
         }
 
         $items = [];
-        $subtotalCents = 0;
-        $taxCents = 0;
+        $subtotal = 0;
+        $taxTotal = 0;
         $currency = (string) ($this->tenant()->currency ?? 'USD');
 
         if ($includeItems) {
@@ -763,14 +763,14 @@ class RepairBuddyEstimateController extends Controller
 
             foreach ($loaded as $item) {
                 $qty = is_numeric($item->qty) ? (int) $item->qty : 0;
-                $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
                 $lineSubtotal = $qty * $unit;
 
                 $rate = $item->tax ? (float) $item->tax->rate : 0.0;
-                $lineTax = (int) round($lineSubtotal * ($rate / 100.0));
+                $lineTax = round($lineSubtotal * ($rate / 100.0), 2);
 
-                $subtotalCents += $lineSubtotal;
-                $taxCents += $lineTax;
+                $subtotal += $lineSubtotal;
+                $taxTotal += $lineTax;
 
                 if (is_string($item->unit_price_currency) && $item->unit_price_currency !== '') {
                     $currency = (string) $item->unit_price_currency;
@@ -795,7 +795,7 @@ class RepairBuddyEstimateController extends Controller
                     'qty' => $item->qty,
                     'unit_price' => [
                         'currency' => $item->unit_price_currency,
-                        'amount_cents' => (int) $item->unit_price_amount_cents,
+                        'amount' => (float) $item->unit_price_amount,
                     ],
                     'tax' => $tax,
                     'meta' => is_array($item->meta_json) ? $item->meta_json : null,
@@ -897,10 +897,10 @@ class RepairBuddyEstimateController extends Controller
 
         foreach ($estimate->items as $item) {
             $qty = is_numeric($item->qty) ? (int) $item->qty : 0;
-            $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+            $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
             $lineSubtotal = $qty * $unit;
             $rate = $item->tax ? (float) $item->tax->rate : 0.0;
-            $lineTax = (int) round($lineSubtotal * ($rate / 100.0));
+            $lineTax = round($lineSubtotal * ($rate / 100.0), 2);
 
             $subtotal += $lineSubtotal;
             $tax += $lineTax;
@@ -928,7 +928,7 @@ class RepairBuddyEstimateController extends Controller
             . '</head><body>'
             . '<h1>Estimate ' . $escape($estimate->case_number) . '</h1>'
             . '<div>Customer: ' . $escape($estimate->customer?->name ?? '') . '</div>'
-            . '<table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit (cents)</th><th style="text-align:right">Line (cents)</th></tr></thead><tbody>'
+            . '<table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Line</th></tr></thead><tbody>'
             . $itemsHtml
             . '</tbody></table>'
             . '<table style="margin-top:10px"><tbody>'

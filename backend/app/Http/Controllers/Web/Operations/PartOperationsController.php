@@ -54,16 +54,14 @@ class PartOperationsController extends Controller
             ->addColumn('type_display', fn (RepairBuddyPart $part) => (string) ($part->type?->name ?? ''))
             ->addColumn('brand_display', fn (RepairBuddyPart $part) => (string) ($part->brand?->name ?? ''))
             ->addColumn('price_display', function (RepairBuddyPart $part) {
-                $amountCents = is_numeric($part->price_amount_cents) ? (int) $part->price_amount_cents : null;
+                $amount = is_numeric($part->price_amount) ? (float) $part->price_amount : null;
                 $currency = is_string($part->price_currency) && $part->price_currency !== '' ? (string) $part->price_currency : null;
 
-                if ($amountCents === null || $currency === null) {
+                if ($amount === null || $currency === null) {
                     return '';
                 }
 
-                $amount = number_format($amountCents / 100, 2, '.', '');
-
-                return e($currency) . ' ' . e($amount);
+                return e($currency) . ' ' . e(number_format($amount, 2, '.', ''));
             })
             ->addColumn('status_display', function (RepairBuddyPart $part) {
                 if ($part->is_active) {
@@ -399,7 +397,7 @@ class PartOperationsController extends Controller
                             'scope_ref_id' => $refId,
                         ],
                         [
-                            'price_amount_cents' => $priceCents,
+                            'price_amount' => $priceAmount,
                             'price_currency' => $currency,
                             'manufacturing_code' => $mfg,
                             'stock_code' => $stock,
@@ -461,7 +459,7 @@ class PartOperationsController extends Controller
                 ->withInput();
         }
 
-        $priceCents = (int) round(((float) $validated['price']) * 100);
+        $priceAmount = (float) $validated['price'];
 
         $priceCurrency = is_string($validated['price_currency'] ?? null) && trim((string) $validated['price_currency']) !== ''
             ? strtoupper(trim((string) $validated['price_currency']))
@@ -479,13 +477,13 @@ class PartOperationsController extends Controller
             $priceCurrency = $tenantCurrency;
         }
 
-        $installationCents = null;
+        $installationAmount = null;
         if (array_key_exists('installation_charges', $validated) && $validated['installation_charges'] !== null && $validated['installation_charges'] !== '') {
-            $installationCents = (int) round(((float) $validated['installation_charges']) * 100);
+            $installationAmount = (float) $validated['installation_charges'];
         }
 
         $installationCurrency = null;
-        if ($installationCents !== null) {
+        if ($installationAmount !== null) {
             $installationCurrency = is_string($validated['installation_charges_currency'] ?? null) && trim((string) $validated['installation_charges_currency']) !== ''
                 ? strtoupper(trim((string) $validated['installation_charges_currency']))
                 : $priceCurrency;
@@ -505,13 +503,13 @@ class PartOperationsController extends Controller
             'sku' => $validated['sku'] ?? null,
             'manufacturing_code' => $validated['manufacturing_code'] ?? null,
             'stock_code' => $validated['stock_code'] ?? null,
-            'price_amount_cents' => $priceCents,
+            'price_amount' => $priceAmount,
             'price_currency' => $priceCurrency,
             'tax_id' => null,
             'warranty' => $validated['warranty'] ?? null,
             'core_features' => $validated['core_features'] ?? null,
             'capacity' => $validated['capacity'] ?? null,
-            'installation_charges_amount_cents' => $installationCents,
+            'installation_charges_amount' => $installationAmount,
             'installation_charges_currency' => $installationCurrency,
             'installation_message' => $validated['installation_message'] ?? null,
             'stock' => array_key_exists('stock', $validated) && $validated['stock'] !== null && $validated['stock'] !== '' ? (int) $validated['stock'] : null,
@@ -571,7 +569,7 @@ class PartOperationsController extends Controller
                 ->withInput();
         }
 
-        $priceCents = (int) round(((float) $validated['price']) * 100);
+        $priceAmount = (float) $validated['price'];
 
         $priceCurrency = is_string($validated['price_currency'] ?? null) && trim((string) $validated['price_currency']) !== ''
             ? strtoupper(trim((string) $validated['price_currency']))
@@ -589,17 +587,17 @@ class PartOperationsController extends Controller
             $priceCurrency = $tenantCurrency;
         }
 
-        $installationCents = $model->installation_charges_amount_cents;
+        $installationAmount = $model->installation_charges_amount;
         if (array_key_exists('installation_charges', $validated)) {
             if ($validated['installation_charges'] === null || $validated['installation_charges'] === '') {
-                $installationCents = null;
+                $installationAmount = null;
             } else {
-                $installationCents = (int) round(((float) $validated['installation_charges']) * 100);
+                $installationAmount = (float) $validated['installation_charges'];
             }
         }
 
         $installationCurrency = $model->installation_charges_currency;
-        if ($installationCents !== null) {
+        if ($installationAmount !== null) {
             if (array_key_exists('installation_charges_currency', $validated)) {
                 $installationCurrency = is_string($validated['installation_charges_currency']) && trim((string) $validated['installation_charges_currency']) !== ''
                     ? strtoupper(trim((string) $validated['installation_charges_currency']))
@@ -630,13 +628,13 @@ class PartOperationsController extends Controller
             'sku' => $validated['sku'] ?? null,
             'manufacturing_code' => $validated['manufacturing_code'] ?? null,
             'stock_code' => $validated['stock_code'] ?? null,
-            'price_amount_cents' => $priceCents,
+            'price_amount' => $priceAmount,
             'price_currency' => $priceCurrency,
             'tax_id' => null,
             'warranty' => $validated['warranty'] ?? null,
             'core_features' => $validated['core_features'] ?? null,
             'capacity' => $validated['capacity'] ?? null,
-            'installation_charges_amount_cents' => $installationCents,
+            'installation_charges_amount' => $installationAmount,
             'installation_charges_currency' => $installationCurrency,
             'installation_message' => $validated['installation_message'] ?? null,
             'stock' => array_key_exists('stock', $validated) && $validated['stock'] !== null && $validated['stock'] !== '' ? (int) $validated['stock'] : null,

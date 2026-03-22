@@ -72,9 +72,9 @@ class RepairBuddyServicePricingController extends Controller
             }
         }
 
-        $resolvedPriceCents = $override && is_numeric($override->price_amount_cents)
-            ? (int) $override->price_amount_cents
-            : (is_numeric($service->base_price_amount_cents) ? (int) $service->base_price_amount_cents : null);
+        $resolvedPriceAmount = $override && is_numeric($override->price_amount)
+            ? (float) $override->price_amount
+            : (is_numeric($service->base_price_amount) ? (float) $service->base_price_amount : null);
 
         $resolvedCurrency = $override && is_string($override->price_currency) && $override->price_currency !== ''
             ? (string) $override->price_currency

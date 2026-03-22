@@ -34,31 +34,31 @@ class EstimateToCustomerNotification extends Notification
 
         $this->estimate->load(['items.tax']);
 
-        $subtotalCents = 0;
-        $taxTotalCents = 0;
+        $subtotal = 0;
+        $taxTotal = 0;
         $itemsData = [];
 
         foreach ($this->estimate->items as $item) {
-            $itemSubtotal = $item->qty * $item->unit_price_amount_cents;
+            $itemSubtotal = $item->qty * $item->unit_price_amount;
             $itemTax = 0;
 
             if ($item->tax) {
-                $itemTax = (int) round($itemSubtotal * ((float) $item->tax->rate / 100));
+                $itemTax = (float) round($itemSubtotal * ((float) $item->tax->rate / 100), 2);
             }
 
-            $subtotalCents += $itemSubtotal;
-            $taxTotalCents += $itemTax;
+            $subtotal += $itemSubtotal;
+            $taxTotal += $itemTax;
 
             $itemsData[] = [
                 'name' => $item->name_snapshot,
                 'qty' => $item->qty,
-                'unit_price' => $item->unit_price_amount_cents / 100,
-                'total' => $itemSubtotal / 100,
+                'unit_price' => $item->unit_price_amount,
+                'total' => $itemSubtotal,
                 'currency' => $item->unit_price_currency,
             ];
         }
 
-        $grandTotalCents = $subtotalCents + $taxTotalCents;
+        $grandTotal = $subtotal + $taxTotal;
 
         $msg = (new MailMessage)
             ->subject($this->subject)
@@ -69,9 +69,9 @@ class EstimateToCustomerNotification extends Notification
                 'approveUrl' => $this->approveUrl,
                 'rejectUrl' => $this->rejectUrl,
                 'items' => $itemsData,
-                'subtotal' => $subtotalCents / 100,
-                'taxTotal' => $taxTotalCents / 100,
-                'grandTotal' => $grandTotalCents / 100,
+                'subtotal' => $subtotal,
+                'taxTotal' => $taxTotal,
+                'grandTotal' => $grandTotal,
                 'currency' => $this->estimate->items->first()?->unit_price_currency ?? 'USD',
             ]);
 

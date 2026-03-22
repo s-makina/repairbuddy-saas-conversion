@@ -39,17 +39,17 @@ class DashboardController extends Controller
         $revenueRow = RepairBuddyJobItem::query()
             ->select([
                 DB::raw("COALESCE(NULLIF(unit_price_currency, ''), '{$tenantCurrency}') as currency"),
-                DB::raw('SUM(qty * unit_price_amount_cents) as total_cents'),
+                DB::raw('SUM(qty * unit_price_amount) as total'),
             ])
             ->whereHas('job', function ($q) use ($revenueFrom) {
                 $q->where('status_slug', '!=', 'cancelled')
                     ->where('updated_at', '>=', $revenueFrom);
             })
             ->groupBy('currency')
-            ->orderByRaw('SUM(qty * unit_price_amount_cents) desc')
+            ->orderByRaw('SUM(qty * unit_price_amount) desc')
             ->first();
 
-        $revenueLast30dCents = (int) ($revenueRow?->total_cents ?? 0);
+        $revenueLast30d = (float) ($revenueRow?->total ?? 0);
         $revenueCurrency = is_string($revenueRow?->currency) && $revenueRow?->currency !== '' ? strtoupper((string) $revenueRow->currency) : $tenantCurrency;
 
         $recentJobs = RepairBuddyJob::query()
@@ -61,7 +61,7 @@ class DashboardController extends Controller
         $jobTotals = RepairBuddyJobItem::query()
             ->select([
                 'job_id',
-                DB::raw('SUM(qty * unit_price_amount_cents) as total_cents'),
+                DB::raw('SUM(qty * unit_price_amount) as total'),
                 DB::raw("COALESCE(NULLIF(MAX(unit_price_currency), ''), '{$tenantCurrency}') as currency"),
             ])
             ->whereIn('job_id', $recentJobs->pluck('id')->all())
@@ -78,7 +78,7 @@ class DashboardController extends Controller
         $estimateTotals = RepairBuddyEstimateItem::query()
             ->select([
                 'estimate_id',
-                DB::raw('SUM(qty * unit_price_amount_cents) as total_cents'),
+                DB::raw('SUM(qty * unit_price_amount) as total'),
                 DB::raw("COALESCE(NULLIF(MAX(unit_price_currency), ''), '{$tenantCurrency}') as currency"),
             ])
             ->whereIn('estimate_id', $recentEstimates->pluck('id')->all())

@@ -51,7 +51,7 @@ class RepairBuddyServiceController extends Controller
             'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
             'pick_up_delivery_available' => ['sometimes', 'nullable', 'boolean'],
             'laptop_rental_available' => ['sometimes', 'nullable', 'boolean'],
-            'base_price_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'base_price_amount' => ['sometimes', 'nullable', 'numeric'],
             'base_price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
             'is_active' => ['sometimes', 'nullable', 'boolean'],
@@ -80,7 +80,7 @@ class RepairBuddyServiceController extends Controller
             ? strtoupper((string) $validated['base_price_currency'])
             : null;
 
-        $hasBaseAmount = array_key_exists('base_price_amount_cents', $validated) && is_numeric($validated['base_price_amount_cents']);
+        $hasBaseAmount = array_key_exists('base_price_amount', $validated) && is_numeric($validated['base_price_amount']);
         if ($hasBaseAmount && ($baseCurrency === null || $baseCurrency === '')) {
             $tenantCurrency = TenantContext::tenant()?->currency;
             if (is_string($tenantCurrency) && $tenantCurrency !== '') {
@@ -101,7 +101,7 @@ class RepairBuddyServiceController extends Controller
             'warranty' => array_key_exists('warranty', $validated) ? ($validated['warranty'] ?? null) : null,
             'pick_up_delivery_available' => array_key_exists('pick_up_delivery_available', $validated) ? (bool) $validated['pick_up_delivery_available'] : false,
             'laptop_rental_available' => array_key_exists('laptop_rental_available', $validated) ? (bool) $validated['laptop_rental_available'] : false,
-            'base_price_amount_cents' => array_key_exists('base_price_amount_cents', $validated) ? ($validated['base_price_amount_cents'] ?? null) : null,
+            'base_price_amount' => array_key_exists('base_price_amount', $validated) ? ($validated['base_price_amount'] ?? null) : null,
             'base_price_currency' => $baseCurrency,
             'tax_id' => $taxId,
             'is_active' => array_key_exists('is_active', $validated) ? (bool) $validated['is_active'] : true,
@@ -137,7 +137,7 @@ class RepairBuddyServiceController extends Controller
             'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
             'pick_up_delivery_available' => ['sometimes', 'nullable', 'boolean'],
             'laptop_rental_available' => ['sometimes', 'nullable', 'boolean'],
-            'base_price_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'base_price_amount' => ['sometimes', 'nullable', 'numeric'],
             'base_price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
             'is_active' => ['sometimes', 'nullable', 'boolean'],
@@ -162,7 +162,7 @@ class RepairBuddyServiceController extends Controller
             }
         }
 
-        $baseAmountNext = array_key_exists('base_price_amount_cents', $validated) ? ($validated['base_price_amount_cents'] ?? null) : $service->base_price_amount_cents;
+        $baseAmountNext = array_key_exists('base_price_amount', $validated) ? ($validated['base_price_amount'] ?? null) : $service->base_price_amount;
         $baseCurrencyNext = $service->base_price_currency;
 
         if (array_key_exists('base_price_currency', $validated)) {
@@ -189,7 +189,7 @@ class RepairBuddyServiceController extends Controller
             'warranty' => array_key_exists('warranty', $validated) ? ($validated['warranty'] ?? null) : $service->warranty,
             'pick_up_delivery_available' => array_key_exists('pick_up_delivery_available', $validated) ? (bool) $validated['pick_up_delivery_available'] : $service->pick_up_delivery_available,
             'laptop_rental_available' => array_key_exists('laptop_rental_available', $validated) ? (bool) $validated['laptop_rental_available'] : $service->laptop_rental_available,
-            'base_price_amount_cents' => $baseAmountNext,
+            'base_price_amount' => $baseAmountNext,
             'base_price_currency' => $baseCurrencyNext,
             'tax_id' => array_key_exists('tax_id', $validated) ? $taxId : $service->tax_id,
             'is_active' => array_key_exists('is_active', $validated) ? (bool) $validated['is_active'] : $service->is_active,
@@ -239,10 +239,10 @@ class RepairBuddyServiceController extends Controller
     private function serialize(RepairBuddyService $s): array
     {
         $basePrice = null;
-        if (is_numeric($s->base_price_amount_cents) && is_string($s->base_price_currency) && $s->base_price_currency !== '') {
+        if (is_numeric($s->base_price_amount) && is_string($s->base_price_currency) && $s->base_price_currency !== '') {
             $basePrice = [
                 'currency' => $s->base_price_currency,
-                'amount_cents' => (int) $s->base_price_amount_cents,
+                'amount' => (float) $s->base_price_amount,
             ];
         }
 

@@ -488,8 +488,8 @@ class RepairBuddyTimeLogController extends Controller
             ], 422);
         }
 
-        $rate = is_numeric($timeLog->hourly_rate_cents) ? (int) $timeLog->hourly_rate_cents : 0;
-        if ($rate <= 0) {
+        $rateCents = is_numeric($timeLog->hourly_rate_cents) ? (int) $timeLog->hourly_rate_cents : 0;
+        if ($rateCents <= 0) {
             return response()->json([
                 'message' => 'Hourly rate is required to bill.',
             ], 422);
@@ -497,7 +497,7 @@ class RepairBuddyTimeLogController extends Controller
 
         $currency = is_string($timeLog->currency) && $timeLog->currency !== '' ? strtoupper((string) $timeLog->currency) : (string) ($this->tenant()->currency ?? 'USD');
 
-        $totalCents = (int) round(($minutes * $rate) / 60);
+        $totalAmount = round(($minutes * $rateCents) / 60, 2) / 100;
 
         $settings = data_get($this->tenant()->setup_state ?? [], 'repairbuddy_settings', []);
         $defaultTax = data_get($settings, 'timeLogs.defaultTaxIdForHours');
@@ -507,14 +507,14 @@ class RepairBuddyTimeLogController extends Controller
             $taxId = is_numeric($taxId) ? (int) $taxId : null;
         }
 
-        $result = DB::transaction(function () use ($timeLog, $currency, $totalCents, $taxId) {
+        $result = DB::transaction(function () use ($timeLog, $currency, $totalAmount, $taxId) {
             $item = RepairBuddyJobItem::query()->create([
                 'job_id' => $timeLog->job_id,
                 'item_type' => 'fee',
                 'ref_id' => null,
                 'name_snapshot' => ucfirst((string) $timeLog->activity) . ' - Time Log',
                 'qty' => 1,
-                'unit_price_amount_cents' => $totalCents,
+                'unit_price_amount' => $totalAmount,
                 'unit_price_currency' => $currency,
                 'tax_id' => $taxId,
                 'meta_json' => [

@@ -96,7 +96,7 @@ class RepairBuddyEstimateConversionService
                     'ref_id' => $item->ref_id,
                     'name_snapshot' => (string) $item->name_snapshot,
                     'qty' => $item->qty,
-                    'unit_price_amount_cents' => $item->unit_price_amount_cents,
+                    'unit_price_amount' => $item->unit_price_amount,
                     'unit_price_currency' => $item->unit_price_currency,
                     'tax_id' => $item->tax_id,
                     'meta_json' => is_array($item->meta_json) ? $item->meta_json : null,

@@ -143,7 +143,7 @@ class WelcomePage extends Component
             'description' => $service->description ?? '',
             'time_required' => $service->time_required ?? '',
             'warranty' => $service->warranty ?? '',
-            'base_price_amount_cents' => $service->base_price_amount_cents,
+            'base_price_amount' => $service->base_price_amount,
             'base_price_currency' => $service->base_price_currency ?? $this->tenant->currency ?? 'USD',
             'type_name' => $service->type?->name ?? null,
         ])->toArray();

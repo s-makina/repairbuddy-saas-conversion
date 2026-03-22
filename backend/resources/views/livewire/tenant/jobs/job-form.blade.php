@@ -1546,11 +1546,11 @@
                         $otherItems = array_filter($items, fn($r) => !in_array($r['type'] ?? '', ['part', 'service']));
 
                         $partsSubtotal = 0;
-                        foreach ($partsItems as $r) { $partsSubtotal += (($r['unit_price_cents'] ?? 0) * ($r['qty'] ?? 1)); }
+                        foreach ($partsItems as $r) { $partsSubtotal += (($r['unit_price'] ?? 0) * ($r['qty'] ?? 1)); }
                         $servicesSubtotal = 0;
-                        foreach ($servicesItems as $r) { $servicesSubtotal += (($r['unit_price_cents'] ?? 0) * ($r['qty'] ?? 1)); }
+                        foreach ($servicesItems as $r) { $servicesSubtotal += (($r['unit_price'] ?? 0) * ($r['qty'] ?? 1)); }
                         $otherSubtotal = 0;
-                        foreach ($otherItems as $r) { $otherSubtotal += (($r['unit_price_cents'] ?? 0) * ($r['qty'] ?? 1)); }
+                        foreach ($otherItems as $r) { $otherSubtotal += (($r['unit_price'] ?? 0) * ($r['qty'] ?? 1)); }
 
                         $itemsCount = count($partsItems) + count($servicesItems) + count($otherItems);
                         $itemsTotal = $partsSubtotal + $servicesSubtotal + $otherSubtotal;
@@ -1616,7 +1616,7 @@
                                                 <div class="jf-item-title">{{ $part->name }}</div>
                                                 <div class="jf-item-meta">{{ $part->manufacturing_code ?: $part->sku ?: '--' }}</div>
                                             </div>
-                                            <span class="fw-bold text-primary small">{{ Number::currency(($part->price_amount_cents ?? 0) / 100, $currency_code) }}</span>
+                                            <span class="fw-bold text-primary small">{{ Number::currency($part->price_amount ?? 0, $currency_code) }}</span>
                                         </div>
                                     @empty
                                         <div class="p-3 text-center text-muted small">
@@ -1669,9 +1669,9 @@
                                 <input type="number" min="1" class="qty-input" wire:model.live="items.{{ $i }}.qty" />
                                 <div class="price-group">
                                     <span class="cur">{{ $currency_symbol }}</span>
-                                    <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
+                                    <input type="number" wire:model.live="items.{{ $i }}.unit_price" step="0.01" />
                                 </div>
-                                @error('items.' . $i . '.unit_price_cents')
+                                @error('items.' . $i . '.unit_price')
                                     <div class="text-danger small" style="position:absolute;top:100%;left:0;white-space:nowrap;z-index:10;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);">
                                         <i class="bi bi-exclamation-circle"></i> {{ $message }}
                                     </div>
@@ -1685,7 +1685,7 @@
                                 </select>
                                 @endif
                             </div>
-                            <div class="jf-il-total">{{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
+                            <div class="jf-il-total">{{ Number::currency(($row['unit_price'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
                             <button type="button" class="jf-il-rm" wire:click="removeItem({{ $i }})" title="{{ __('Remove') }}"><i class="bi bi-trash"></i></button>
                         </div>
                     @empty
@@ -1730,7 +1730,7 @@
                                                 <div class="jf-item-title">{{ $service->name }}</div>
                                                 <div class="jf-item-meta">{{ $service->service_code ?: '--' }}</div>
                                             </div>
-                                            <span class="fw-bold text-primary small">{{ Number::currency(($service->base_price_amount_cents ?? 0) / 100, $currency_code) }}</span>
+                                            <span class="fw-bold text-primary small">{{ Number::currency($service->base_price_amount ?? 0, $currency_code) }}</span>
                                         </div>
                                     @empty
                                         <div class="p-3 text-center text-muted small">
@@ -1778,9 +1778,9 @@
                                 <input type="number" min="1" class="qty-input" wire:model.live="items.{{ $i }}.qty" />
                                 <div class="price-group">
                                     <span class="cur">{{ $currency_symbol }}</span>
-                                    <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
+                                    <input type="number" wire:model.live="items.{{ $i }}.unit_price" step="0.01" />
                                 </div>
-                                @error('items.' . $i . '.unit_price_cents')
+                                @error('items.' . $i . '.unit_price')
                                     <div class="text-danger small" style="position:absolute;top:100%;left:0;white-space:nowrap;z-index:10;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);">
                                         <i class="bi bi-exclamation-circle"></i> {{ $message }}
                                     </div>
@@ -1794,7 +1794,7 @@
                                 </select>
                                 @endif
                             </div>
-                            <div class="jf-il-total">{{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
+                            <div class="jf-il-total">{{ Number::currency(($row['unit_price'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
                             <button type="button" class="jf-il-rm" wire:click="removeItem({{ $i }})" title="{{ __('Remove') }}"><i class="bi bi-trash"></i></button>
                         </div>
                     @empty
@@ -1851,9 +1851,9 @@
                                 <input type="number" min="1" class="qty-input" wire:model.live="items.{{ $i }}.qty" />
                                 <div class="price-group">
                                     <span class="cur">{{ $currency_symbol }}</span>
-                                    <input type="number" wire:model.live="items.{{ $i }}.unit_price_cents" step="1" />
+                                    <input type="number" wire:model.live="items.{{ $i }}.unit_price" step="0.01" />
                                 </div>
-                                @error('items.' . $i . '.unit_price_cents')
+                                @error('items.' . $i . '.unit_price')
                                     <div class="text-danger small" style="position:absolute;top:100%;left:0;white-space:nowrap;z-index:10;background:#fff;padding:2px 4px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);">
                                         <i class="bi bi-exclamation-circle"></i> {{ $message }}
                                     </div>
@@ -1867,7 +1867,7 @@
                                 </select>
                                 @endif
                             </div>
-                            <div class="jf-il-total">{{ Number::currency(($row['unit_price_cents'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
+                            <div class="jf-il-total">{{ Number::currency(($row['unit_price'] ?? 0) * ($row['qty'] ?? 1), $currency_code) }}</div>
                             <button type="button" class="jf-il-rm" wire:click="removeItem({{ $i }})" title="{{ __('Remove') }}"><i class="bi bi-trash"></i></button>
                         </div>
                     @empty

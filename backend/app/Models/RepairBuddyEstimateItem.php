@@ -22,7 +22,7 @@ class RepairBuddyEstimateItem extends Model
         'ref_id',
         'name_snapshot',
         'qty',
-        'unit_price_amount_cents',
+        'unit_price_amount',
         'unit_price_currency',
         'tax_id',
         'meta_json',
@@ -34,7 +34,7 @@ class RepairBuddyEstimateItem extends Model
             'estimate_id' => 'integer',
             'ref_id' => 'integer',
             'qty' => 'integer',
-            'unit_price_amount_cents' => 'integer',
+            'unit_price_amount' => 'decimal:2',
             'tax_id' => 'integer',
             'meta_json' => 'array',
         ];

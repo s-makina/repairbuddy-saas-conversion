@@ -134,7 +134,7 @@ class EstimateForm extends JobForm
                     'name' => $it->name_snapshot ?? null,
                     'code' => null,
                     'qty' => $it->qty ?? 1,
-                    'unit_price_cents' => ($it->unit_price_amount_cents ?? 0) / 100,
+                    'unit_price' => $it->unit_price_amount ?? 0,
                     'tax_id' => $it->tax_id ?? null,
                     'meta_json' => is_array($it->meta_json ?? null) ? json_encode($it->meta_json) : null,
                 ];
@@ -290,14 +290,14 @@ class EstimateForm extends JobForm
                 ]);
             }
 
-            // Save items – unit_price_cents is in dollars in the Livewire property, convert to cents
+            // Save items – unit_price is in dollars (major units)
             foreach ($this->items as $item) {
                 $name = $item['name'] ?? '';
                 if (! is_string($name) || trim($name) === '') {
                     continue;
                 }
 
-                $priceCents = (int) round(($item['unit_price_cents'] ?? 0) * 100);
+                $priceDollars = (float) ($item['unit_price'] ?? 0);
                 $itemTaxId  = is_numeric($item['tax_id'] ?? null) ? (int) $item['tax_id'] : null;
 
                 RepairBuddyEstimateItem::query()->create([
@@ -306,7 +306,7 @@ class EstimateForm extends JobForm
                     'ref_id' => null,
                     'name_snapshot' => trim($name),
                     'qty' => is_numeric($item['qty'] ?? null) ? (int) $item['qty'] : 1,
-                    'unit_price_amount_cents' => $priceCents,
+                    'unit_price_amount' => $priceDollars,
                     'unit_price_currency' => $currency,
                     'tax_id' => $itemTaxId,
                     'meta_json' => null,

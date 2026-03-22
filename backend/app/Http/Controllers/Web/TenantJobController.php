@@ -986,7 +986,7 @@ class TenantJobController extends Controller
             $tax = 0;
             foreach ($categoryItems as $item) {
                 $qty  = is_numeric($item->qty) ? max(1, (int) $item->qty) : 1;
-                $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
                 $line = $qty * $unit;
                 $sub += $line;
 

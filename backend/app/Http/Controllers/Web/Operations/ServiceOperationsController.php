@@ -127,17 +127,16 @@ class ServiceOperationsController extends Controller
                 return (string) ($service->type?->name ?? '');
             })
             ->addColumn('base_price_display', function (RepairBuddyService $service) {
-                $amountCents = is_numeric($service->base_price_amount_cents) ? (int) $service->base_price_amount_cents : null;
+                $amount = is_numeric($service->base_price_amount) ? (float) $service->base_price_amount : null;
                 $currency = is_string($service->base_price_currency) && $service->base_price_currency !== ''
                     ? (string) $service->base_price_currency
                     : null;
 
-                if ($amountCents === null || $currency === null) {
+                if ($amount === null || $currency === null) {
                     return '';
                 }
 
-                $amount = number_format($amountCents / 100, 2, '.', '');
-                return e($currency) . ' ' . e($amount);
+                return e($currency) . ' ' . e(number_format($amount, 2, '.', ''));
             })
             ->addColumn('tax_display', function (RepairBuddyService $service) {
                 $tax = $service->tax;
@@ -401,7 +400,7 @@ class ServiceOperationsController extends Controller
                             'scope_ref_id' => $refId,
                         ],
                         [
-                            'price_amount_cents' => $priceCents,
+                            'price_amount' => $priceAmount,
                             'price_currency' => $currency,
                             'is_active' => $isActive,
                         ]
@@ -457,16 +456,16 @@ class ServiceOperationsController extends Controller
                 ->withInput();
         }
 
-        $basePriceCents = null;
+        $basePriceAmount = null;
         if (array_key_exists('base_price', $validated) && $validated['base_price'] !== null && $validated['base_price'] !== '') {
-            $basePriceCents = (int) round(((float) $validated['base_price']) * 100);
+            $basePriceAmount = (float) $validated['base_price'];
         }
 
         $baseCurrency = array_key_exists('base_price_currency', $validated) && is_string($validated['base_price_currency']) && trim((string) $validated['base_price_currency']) !== ''
             ? strtoupper(trim((string) $validated['base_price_currency']))
             : null;
 
-        if ($basePriceCents !== null && ($baseCurrency === null || $baseCurrency === '')) {
+        if ($basePriceAmount !== null && ($baseCurrency === null || $baseCurrency === '')) {
             $tenantCurrency = is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : '';
             if ($tenantCurrency === '') {
                 return redirect()
@@ -477,7 +476,7 @@ class ServiceOperationsController extends Controller
             $baseCurrency = $tenantCurrency;
         }
 
-        if ($basePriceCents === null) {
+        if ($basePriceAmount === null) {
             $baseCurrency = null;
         }
 
@@ -497,7 +496,7 @@ class ServiceOperationsController extends Controller
             'warranty' => $validated['warranty'] ?? null,
             'pick_up_delivery_available' => (bool) ($validated['pick_up_delivery_available'] ?? false),
             'laptop_rental_available' => (bool) ($validated['laptop_rental_available'] ?? false),
-            'base_price_amount_cents' => $basePriceCents,
+            'base_price_amount' => $basePriceAmount,
             'base_price_currency' => $baseCurrency,
             'tax_id' => $taxId,
             'is_active' => true,
@@ -552,12 +551,12 @@ class ServiceOperationsController extends Controller
                 ->withInput();
         }
 
-        $basePriceCents = $model->base_price_amount_cents;
+        $basePriceAmount = $model->base_price_amount;
         if (array_key_exists('base_price', $validated)) {
             if ($validated['base_price'] === null || $validated['base_price'] === '') {
-                $basePriceCents = null;
+                $basePriceAmount = null;
             } else {
-                $basePriceCents = (int) round(((float) $validated['base_price']) * 100);
+                $basePriceAmount = (float) $validated['base_price'];
             }
         }
 
@@ -568,7 +567,7 @@ class ServiceOperationsController extends Controller
                 : null;
         }
 
-        if ($basePriceCents !== null && (! is_string($baseCurrency) || $baseCurrency === '')) {
+        if ($basePriceAmount !== null && (! is_string($baseCurrency) || $baseCurrency === '')) {
             $tenantCurrency = is_string($tenant->currency) && $tenant->currency !== '' ? strtoupper((string) $tenant->currency) : '';
             if ($tenantCurrency === '') {
                 return redirect()
@@ -579,7 +578,7 @@ class ServiceOperationsController extends Controller
             $baseCurrency = $tenantCurrency;
         }
 
-        if ($basePriceCents === null) {
+        if ($basePriceAmount === null) {
             $baseCurrency = null;
         }
 
@@ -602,7 +601,7 @@ class ServiceOperationsController extends Controller
             'warranty' => array_key_exists('warranty', $validated) ? ($validated['warranty'] ?? null) : $model->warranty,
             'pick_up_delivery_available' => (bool) ($validated['pick_up_delivery_available'] ?? false),
             'laptop_rental_available' => (bool) ($validated['laptop_rental_available'] ?? false),
-            'base_price_amount_cents' => $basePriceCents,
+            'base_price_amount' => $basePriceAmount,
             'base_price_currency' => $baseCurrency,
             'tax_id' => $taxId,
         ])->save();

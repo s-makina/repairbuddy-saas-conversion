@@ -24,10 +24,10 @@ class RepairBuddyServicesController extends Controller
     private function serialize(RepairBuddyService $s): array
     {
         $basePrice = null;
-        if (is_numeric($s->base_price_amount_cents) && is_string($s->base_price_currency) && $s->base_price_currency !== '') {
+        if (is_numeric($s->base_price_amount) && is_string($s->base_price_currency) && $s->base_price_currency !== '') {
             $basePrice = [
                 'currency' => $s->base_price_currency,
-                'amount_cents' => (int) $s->base_price_amount_cents,
+                'amount' => (float) $s->base_price_amount,
             ];
         }
 

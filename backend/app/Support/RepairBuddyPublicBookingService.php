@@ -677,7 +677,7 @@ TEXT;
                     'ref_id' => $service->id,
                     'name_snapshot' => (string) $service->name,
                     'qty' => $qty,
-                    'unit_price_amount_cents' => $unitCents,
+                    'unit_price_amount' => $unitCents,
                     'unit_price_currency' => $currency,
                     'tax_id' => $taxId,
                     'meta_json' => [
@@ -697,7 +697,7 @@ TEXT;
                     'ref_id' => null,
                     'name_snapshot' => $otherService,
                     'qty' => 1,
-                    'unit_price_amount_cents' => 0,
+                    'unit_price_amount' => 0,
                     'unit_price_currency' => (string) (TenantContext::tenant()?->currency ?? 'USD'),
                     'tax_id' => null,
                     'meta_json' => [
@@ -837,7 +837,7 @@ TEXT;
                     'ref_id' => $service->id,
                     'name_snapshot' => (string) $service->name,
                     'qty' => $qty,
-                    'unit_price_amount_cents' => $unitCents,
+                    'unit_price_amount' => $unitCents,
                     'unit_price_currency' => $currency,
                     'tax_id' => $taxId,
                     'meta_json' => [
@@ -857,7 +857,7 @@ TEXT;
                     'ref_id' => null,
                     'name_snapshot' => $otherService,
                     'qty' => 1,
-                    'unit_price_amount_cents' => 0,
+                    'unit_price_amount' => 0,
                     'unit_price_currency' => (string) (TenantContext::tenant()?->currency ?? 'USD'),
                     'tax_id' => null,
                     'meta_json' => [
@@ -978,9 +978,9 @@ TEXT;
                 ->first();
         }
 
-        $unitCents = $override && is_numeric($override->price_amount_cents)
-            ? (int) $override->price_amount_cents
-            : (is_numeric($service->base_price_amount_cents) ? (int) $service->base_price_amount_cents : 0);
+        $unitAmount = $override && is_numeric($override->price_amount)
+            ? (float) $override->price_amount
+            : (is_numeric($service->base_price_amount) ? (float) $service->base_price_amount : 0);
 
         $currency = $override && is_string($override->price_currency) && $override->price_currency !== ''
             ? strtoupper((string) $override->price_currency)
@@ -990,7 +990,7 @@ TEXT;
             ? (int) $override->tax_id
             : (is_numeric($service->tax_id) ? (int) $service->tax_id : null);
 
-        return [$unitCents, $currency, $taxId];
+        return [$unitAmount, $currency, $taxId];
     }
 
     protected function attachUploadsToJob(RepairBuddyJob $job, mixed $uploaded): void
@@ -1103,14 +1103,14 @@ TEXT;
                 $qty = is_numeric($item->qty) ? (int) $item->qty : 0;
                 $name = is_string($item->name_snapshot) ? (string) $item->name_snapshot : '';
                 $currency = is_string($item->unit_price_currency) && $item->unit_price_currency !== '' ? (string) $item->unit_price_currency : (string) (TenantContext::tenant()?->currency ?? 'USD');
-                $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
 
                 $meta = is_array($item->meta_json) ? $item->meta_json : [];
                 $deviceLabel = is_string($meta['device_label'] ?? null) ? trim((string) $meta['device_label']) : '';
 
                 $label = $deviceLabel !== '' ? ($deviceLabel.' - '.$name) : $name;
 
-                $amount = ($qty * $unit) / 100;
+                $amount = $qty * $unit;
                 $lines[] = $label.' x'.$qty.' = '.$currency.' '.number_format($amount, 2, '.', '');
             }
 
@@ -1138,14 +1138,14 @@ TEXT;
                 $qty = is_numeric($item->qty) ? (int) $item->qty : 0;
                 $name = is_string($item->name_snapshot) ? (string) $item->name_snapshot : '';
                 $currency = is_string($item->unit_price_currency) && $item->unit_price_currency !== '' ? (string) $item->unit_price_currency : (string) (TenantContext::tenant()?->currency ?? 'USD');
-                $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
 
                 $meta = is_array($item->meta_json) ? $item->meta_json : [];
                 $deviceLabel = is_string($meta['device_label'] ?? null) ? trim((string) $meta['device_label']) : '';
 
                 $label = $deviceLabel !== '' ? ($deviceLabel.' - '.$name) : $name;
 
-                $amount = ($qty * $unit) / 100;
+                $amount = $qty * $unit;
                 $lines[] = $label.' x'.$qty.' = '.$currency.' '.number_format($amount, 2, '.', '');
             }
 

@@ -60,7 +60,7 @@ class RepairBuddyPartPriceOverrideController extends Controller
             'scope_type' => ['required', 'string', 'max:32'],
             'scope_ref_id' => ['required', 'integer'],
 
-            'price_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'price_amount' => ['sometimes', 'nullable', 'numeric'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
 
@@ -128,7 +128,7 @@ class RepairBuddyPartPriceOverrideController extends Controller
             'scope_type' => $scopeType,
             'scope_ref_id' => $scopeRefId,
 
-            'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? $validated['price_amount_cents'] : null,
+            'price_amount' => array_key_exists('price_amount', $validated) ? $validated['price_amount'] : null,
             'price_currency' => array_key_exists('price_currency', $validated) && is_string($validated['price_currency']) && $validated['price_currency'] !== ''
                 ? strtoupper((string) $validated['price_currency'])
                 : null,
@@ -162,7 +162,7 @@ class RepairBuddyPartPriceOverrideController extends Controller
         }
 
         $validated = $request->validate([
-            'price_amount_cents' => ['sometimes', 'nullable', 'integer'],
+            'price_amount' => ['sometimes', 'nullable', 'numeric'],
             'price_currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'tax_id' => ['sometimes', 'nullable', 'integer'],
 
@@ -183,7 +183,7 @@ class RepairBuddyPartPriceOverrideController extends Controller
         }
 
         $override->forceFill([
-            'price_amount_cents' => array_key_exists('price_amount_cents', $validated) ? $validated['price_amount_cents'] : $override->price_amount_cents,
+            'price_amount' => array_key_exists('price_amount', $validated) ? $validated['price_amount'] : $override->price_amount,
             'price_currency' => array_key_exists('price_currency', $validated)
                 ? (is_string($validated['price_currency']) && $validated['price_currency'] !== '' ? strtoupper((string) $validated['price_currency']) : null)
                 : $override->price_currency,
@@ -226,10 +226,10 @@ class RepairBuddyPartPriceOverrideController extends Controller
     private function serialize(RepairBuddyPartPriceOverride $o): array
     {
         $price = null;
-        if (is_numeric($o->price_amount_cents) && is_string($o->price_currency) && $o->price_currency !== '') {
+        if (is_numeric($o->price_amount) && is_string($o->price_currency) && $o->price_currency !== '') {
             $price = [
                 'currency' => $o->price_currency,
-                'amount_cents' => (int) $o->price_amount_cents,
+                'amount' => (float) $o->price_amount,
             ];
         }
 

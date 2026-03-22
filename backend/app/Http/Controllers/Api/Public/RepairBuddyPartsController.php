@@ -24,10 +24,10 @@ class RepairBuddyPartsController extends Controller
     private function serialize(RepairBuddyPart $p): array
     {
         $price = null;
-        if (is_numeric($p->price_amount_cents) && is_string($p->price_currency) && $p->price_currency !== '') {
+        if (is_numeric($p->price_amount) && is_string($p->price_currency) && $p->price_currency !== '') {
             $price = [
                 'currency' => $p->price_currency,
-                'amount_cents' => (int) $p->price_amount_cents,
+                'amount' => (float) $p->price_amount,
             ];
         }
 

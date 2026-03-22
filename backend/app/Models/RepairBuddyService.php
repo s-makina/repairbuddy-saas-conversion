@@ -25,7 +25,7 @@ class RepairBuddyService extends Model
         'warranty',
         'pick_up_delivery_available',
         'laptop_rental_available',
-        'base_price_amount_cents',
+        'base_price_amount',
         'base_price_currency',
         'tax_id',
         'is_active',
@@ -35,7 +35,7 @@ class RepairBuddyService extends Model
     {
         return [
             'service_type_id' => 'integer',
-            'base_price_amount_cents' => 'integer',
+            'base_price_amount' => 'decimal:2',
             'tax_id' => 'integer',
             'pick_up_delivery_available' => 'boolean',
             'laptop_rental_available' => 'boolean',

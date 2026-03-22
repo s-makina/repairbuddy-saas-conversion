@@ -94,11 +94,11 @@ class QuickPartModal extends Component
         $tenant_id = $this->tenant ? $this->tenant->id : TenantContext::tenant()?->id;
         $tenantCurrency = TenantContext::tenant()?->currency ?? 'USD';
 
-        $priceCents = (int) round(((float) $this->price_amount) * 100);
+        $priceAmount = (float) $this->price_amount;
 
-        $installationCents = null;
+        $installationAmount = null;
         if ($this->installation_charges !== null && $this->installation_charges !== '') {
-            $installationCents = (int) round(((float) $this->installation_charges) * 100);
+            $installationAmount = (float) $this->installation_charges;
         }
 
         $part = RepairBuddyPart::create([
@@ -110,13 +110,13 @@ class QuickPartModal extends Component
             'sku' => $this->sku ?: null,
             'manufacturing_code' => $this->manufacturing_code,
             'stock_code' => $this->stock_code ?: null,
-            'price_amount_cents' => $priceCents,
+            'price_amount' => $priceAmount,
             'price_currency' => strtoupper($tenantCurrency),
             'warranty' => $this->warranty ?: null,
             'core_features' => $this->core_features ?: null,
             'capacity' => $this->capacity ?: null,
-            'installation_charges_amount_cents' => $installationCents,
-            'installation_charges_currency' => $installationCents !== null ? strtoupper($tenantCurrency) : null,
+            'installation_charges_amount' => $installationAmount,
+            'installation_charges_currency' => $installationAmount !== null ? strtoupper($tenantCurrency) : null,
             'installation_message' => $this->installation_message ?: null,
             'stock' => $this->stock !== null && $this->stock !== '' ? (int) $this->stock : null,
             'is_active' => true,

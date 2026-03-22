@@ -215,10 +215,10 @@ class TenantEstimateController extends Controller
                 $total = 0;
                 foreach ($e->items as $item) {
                     $qty  = is_numeric($item->qty) ? (int) $item->qty : 1;
-                    $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                    $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
                     $total += ($qty * $unit);
                 }
-                return '$' . number_format($total / 100, 2);
+                return '$' . number_format($total, 2);
             })
             ->addColumn('status_display', function (RepairBuddyEstimate $e) {
                 $status = is_string($e->status) ? $e->status : 'pending';
@@ -337,16 +337,16 @@ class TenantEstimateController extends Controller
             $tax = 0;
             foreach ($categoryItems as $item) {
                 $qty  = is_numeric($item->qty) ? (int) $item->qty : 1;
-                $unit = is_numeric($item->unit_price_amount_cents) ? (int) $item->unit_price_amount_cents : 0;
+                $unit = is_numeric($item->unit_price_amount) ? (float) $item->unit_price_amount : 0;
                 $line = $qty * $unit;
                 $sub += $line;
                 if ($taxEnabled && $item->relationLoaded('tax') && $item->tax) {
                     $rate = (float) ($item->tax->rate ?? 0);
                     if ($rate > 0) {
                         if ($pricesMode === 'inclusive') {
-                            $tax += (int) round($line - ($line / (1 + ($rate / 100))));
+                            $tax += round($line - ($line / (1 + ($rate / 100))), 2);
                         } else {
-                            $tax += (int) round($line * ($rate / 100.0));
+                            $tax += round($line * ($rate / 100.0), 2);
                         }
                     }
                 }
@@ -359,21 +359,21 @@ class TenantEstimateController extends Controller
         $serviceTotals = $computeCategoryTotals($serviceItems);
         $extraTotals   = $computeCategoryTotals($extraItems);
 
-        $subtotalCents = $productTotals['subtotal'] + $partTotals['subtotal'] + $serviceTotals['subtotal'] + $extraTotals['subtotal'];
-        $taxCents = $productTotals['tax'] + $partTotals['tax'] + $serviceTotals['tax'] + $extraTotals['tax'];
+        $subtotal = $productTotals['subtotal'] + $partTotals['subtotal'] + $serviceTotals['subtotal'] + $extraTotals['subtotal'];
+        $taxTotal = $productTotals['tax'] + $partTotals['tax'] + $serviceTotals['tax'] + $extraTotals['tax'];
 
         if ($pricesMode === 'inclusive') {
-            $grandTotalCents = $subtotalCents; // tax embedded
+            $grandTotal = $subtotal; // tax embedded
         } else {
-            $grandTotalCents = $subtotalCents + $taxCents;
+            $grandTotal = $subtotal + $taxTotal;
         }
 
         $totals = [
-            'subtotal_cents' => $subtotalCents,
-            'tax_cents'      => $taxCents,
-            'tax_mode'       => $pricesMode,
-            'total_cents'    => $grandTotalCents,
-            'currency'       => $currency,
+            'subtotal' => $subtotal,
+            'tax'      => $taxTotal,
+            'tax_mode' => $pricesMode,
+            'total'    => $grandTotal,
+            'currency' => $currency,
             'products' => $productTotals,
             'parts'    => $partTotals,
             'services' => $serviceTotals,
@@ -455,7 +455,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'sku', 'price_amount_cents', 'price_currency']);
+            ->get(['id', 'name', 'sku', 'price_amount', 'price_currency']);
 
         $services = RepairBuddyService::query()
             ->where('tenant_id', (int) $tenant->id)
@@ -463,7 +463,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'service_code', 'base_price_amount_cents', 'base_price_currency']);
+            ->get(['id', 'name', 'service_code', 'base_price_amount', 'base_price_currency']);
 
         return view('tenant.estimates.create', [
             'tenant'           => $tenant,
@@ -547,7 +547,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'sku', 'price_amount_cents', 'price_currency']);
+            ->get(['id', 'name', 'sku', 'price_amount', 'price_currency']);
 
         $services = RepairBuddyService::query()
             ->where('tenant_id', (int) $tenant->id)
@@ -555,7 +555,7 @@ class TenantEstimateController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(1000)
-            ->get(['id', 'name', 'service_code', 'base_price_amount_cents', 'base_price_currency']);
+            ->get(['id', 'name', 'service_code', 'base_price_amount', 'base_price_currency']);
 
         return view('tenant.estimates.create', [
             'tenant'           => $tenant,
@@ -667,7 +667,6 @@ class TenantEstimateController extends Controller
                 if (! is_string($name) || trim($name) === '') continue;
 
                 $priceDollars = $item['unit_price_dollars'] ?? 0;
-                $priceCents   = (int) round(floatval($priceDollars) * 100);
 
                 RepairBuddyEstimateItem::query()->create([
                     'estimate_id'             => $estimate->id,
@@ -675,7 +674,7 @@ class TenantEstimateController extends Controller
                     'ref_id'                  => null,
                     'name_snapshot'           => trim($name),
                     'qty'                     => is_numeric($item['qty'] ?? null) ? (int) $item['qty'] : 1,
-                    'unit_price_amount_cents' => $priceCents,
+                    'unit_price_amount' => (float) $priceDollars,
                     'unit_price_currency'     => $currency,
                     'tax_id'                  => null,
                     'meta_json'               => null,
@@ -823,7 +822,6 @@ class TenantEstimateController extends Controller
                     if (! is_string($name) || trim($name) === '') continue;
 
                     $priceDollars = $item['unit_price_dollars'] ?? 0;
-                    $priceCents   = (int) round(floatval($priceDollars) * 100);
 
                     RepairBuddyEstimateItem::query()->create([
                         'estimate_id'             => $estimate->id,
@@ -831,7 +829,7 @@ class TenantEstimateController extends Controller
                         'ref_id'                  => null,
                         'name_snapshot'           => trim($name),
                         'qty'                     => is_numeric($item['qty'] ?? null) ? (int) $item['qty'] : 1,
-                        'unit_price_amount_cents' => $priceCents,
+                        'unit_price_amount' => (float) $priceDollars,
                         'unit_price_currency'     => $currency,
                         'tax_id'                  => null,
                         'meta_json'               => null,
