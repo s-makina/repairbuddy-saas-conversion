@@ -33,6 +33,8 @@
         <div class="rb-booking-brand">
           @if($tenant && $tenant->logo_url)
             <img src="{{ $tenant->logo_url }}" alt="{{ $siteName }}" class="rb-booking-logo">
+          @else
+            <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy" class="rb-booking-logo">
           @endif
           <span class="rb-booking-brand-name">{{ $siteName }}</span>
         </div>

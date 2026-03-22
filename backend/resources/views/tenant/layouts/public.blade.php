@@ -58,7 +58,7 @@
         @if($tenant && $tenant->logo_url)
           <img src="{{ $tenant->logo_url }}" alt="{{ $siteName }}" class="rpn-brand-logo">
         @else
-          <span class="rpn-brand-icon">RB</span>
+          <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy" class="rpn-brand-logo">
         @endif
         <span class="rpn-brand-name">{{ $siteName }}</span>
       </a>

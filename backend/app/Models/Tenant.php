@@ -85,6 +85,7 @@ class Tenant extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->logo_path);
+        // Return relative URL so it works on any tenant subdomain
+        return '/storage/' . $this->logo_path;
     }
 }

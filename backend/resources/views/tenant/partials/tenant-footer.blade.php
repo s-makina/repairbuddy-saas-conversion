@@ -17,6 +17,6 @@
             <a href="{{ route($tenantRoutePrefix . '.services', ['business' => $tenantSlug]) }}">Our Services</a>
             <a href="{{ route($tenantRoutePrefix . '.myaccount', ['business' => $tenantSlug]) }}">My Account</a>
         </div>
-        <div class="footer-powered">Powered by <a href="/">RepairBuddy</a></div>
+        <div class="footer-powered">Powered by <a href="/"><img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy" class="footer-logo"></a></div>
     </div>
 </footer>
