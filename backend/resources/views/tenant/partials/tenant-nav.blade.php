@@ -23,14 +23,14 @@
 <nav class="rb-navbar">
     <div class="nav-inner">
         <a href="{{ $tenantHomeUrl }}" class="nav-brand">
+            <div>
             @if($tenant && $tenant->logo_url)
                 <img src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }}" class="shop-logo-img">
             @else
                 <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy" class="shop-logo-img">
             @endif
-            <div>
-                <div class="shop-name">{{ $tenant->name ?? 'RepairBuddy' }}</div>
-                <div class="shop-sub">{{ $tenantSlug }}.{{ config('tenancy.base_domain') }}</div>
+                <!-- <div class="shop-name">{{ $tenant->name ?? 'RepairBuddy' }}</div> -->
+                <!-- <div class="shop-sub">{{ $tenantSlug }}.{{ config('tenancy.base_domain') }}</div> -->
             </div>
         </a>
         <div class="nav-links">
