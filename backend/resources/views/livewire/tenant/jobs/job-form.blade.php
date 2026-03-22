@@ -2224,13 +2224,17 @@
 
                 {{-- Submit (mobile fallback) --}}
                 <div class="d-grid" style="margin-top:.5rem;">
-                    <button type="submit" class="jf-btn jf-btn-save" style="justify-content:center;padding:.75rem;">
-                        <i class="bi bi-check-lg"></i>
-                        @if ($isEstimate)
-                            {{ $isEditing ? __('Update Estimate') : __('Create Estimate') }}
-                        @else
-                            {{ $isEditing ? __('Update Job') : __('Create Job') }}
-                        @endif
+                    <button type="submit" class="jf-btn jf-btn-save" style="justify-content:center;padding:.75rem;" wire:loading.attr="disabled" wire:target="save">
+                        <i class="bi bi-check-lg" wire:loading.remove wire:target="save"></i>
+                        <span wire:loading wire:target="save" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        <span wire:loading.remove wire:target="save">
+                            @if ($isEstimate)
+                                {{ $isEditing ? __('Update Estimate') : __('Create Estimate') }}
+                            @else
+                                {{ $isEditing ? __('Update Job') : __('Create Job') }}
+                            @endif
+                        </span>
+                        <span wire:loading wire:target="save">{{ __('Saving...') }}</span>
                     </button>
                 </div>
             </div>
@@ -2317,6 +2321,13 @@
     document.addEventListener('livewire:init', () => {
         Livewire.on('show-error', ({ message }) => {
             alert(message);
+        });
+
+        Livewire.on('redirect-to', ({ url, message }) => {
+            if (message) {
+                sessionStorage.setItem('flash_success', message);
+            }
+            window.location.href = url;
         });
     });
 </script>

@@ -1344,4 +1344,29 @@
 </div>
 @endif
 
+@push('page-scripts')
+<script>
+    // Check for flash message from job form redirect
+    (function() {
+        const flashSuccess = sessionStorage.getItem('flash_success');
+        if (flashSuccess) {
+            sessionStorage.removeItem('flash_success');
+            // Create and show alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;';
+            alertDiv.innerHTML = `
+                <i class="bi bi-check-circle-fill me-2"></i>${flashSuccess}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }, 5000);
+        }
+    })();
+</script>
+@endpush
 @endsection

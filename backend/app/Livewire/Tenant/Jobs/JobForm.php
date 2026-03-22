@@ -910,7 +910,12 @@ class JobForm extends Component
                 $job = $action->create($this->tenant, $branch, $this->user, $validated, $jobFile, $extraFiles);
             }
 
-            return redirect()->route('tenant.jobs.show', ['business' => $this->tenant->slug, 'jobId' => $job->id]);
+            $isEditing = is_numeric($this->jobId) && (int) $this->jobId > 0 && $this->job instanceof RepairBuddyJob;
+            $message = $isEditing
+                ? __('Job updated successfully.')
+                : __('Job created successfully.');
+            $url = route('tenant.jobs.show', ['business' => $this->tenant->slug, 'jobId' => $job->id]);
+            $this->dispatch('redirect-to', url: $url, message: $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // Let Livewire handle validation errors
         } catch (\Exception $e) {
