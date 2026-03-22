@@ -94,15 +94,15 @@ class RepairBuddyPublicBookingService
             }
         }
 
-        $gdprText = is_string($general['gdprAcceptanceText'] ?? $general['wc_rb_gdpr_acceptance'] ?? null) ? trim((string) ($general['gdprAcceptanceText'] ?? $general['wc_rb_gdpr_acceptance'] ?? '')) : '';
-        if ($gdprText !== '') {
-            $accepted = array_key_exists('gdprAccepted', $validated) ? (bool) $validated['gdprAccepted'] : false;
-            if (! $accepted) {
-                throw ValidationException::withMessages([
-                    'gdprAccepted' => ['GDPR acceptance is required.'],
-                ]);
-            }
-        }
+        // $gdprText = is_string($general['gdprAcceptanceText'] ?? $general['wc_rb_gdpr_acceptance'] ?? null) ? trim((string) ($general['gdprAcceptanceText'] ?? $general['wc_rb_gdpr_acceptance'] ?? '')) : '';
+        // if ($gdprText !== '') {
+        //     $accepted = array_key_exists('gdprAccepted', $validated) ? (bool) $validated['gdprAccepted'] : false;
+        //     if (! $accepted) {
+        //         throw ValidationException::withMessages([
+        //             'gdprAccepted' => ['GDPR acceptance is required.'],
+        //         ]);
+        //     }
+        // }
 
         $sendToJobs = (bool) ($booking['sendBookingQuoteToJobs'] ?? ($estimates['bookingQuoteSendToJobs'] ?? false));
         $disableEstimates = (bool) ($estimates['disableEstimates'] ?? false);

@@ -304,7 +304,7 @@ class JobForm extends Component
                     'type' => $it->item_type ?? null,
                     'name' => $it->name_snapshot ?? null,
                     'qty' => $it->qty ?? 1,
-                    'unit_price_cents' => $it->unit_price_amount_cents ?? 0,
+                    'unit_price_cents' => ($it->unit_price_amount_cents ?? 0) / 100,
                     'tax_id' => $it->tax_id ?? null,
                     'meta_json' => is_array($it->meta_json ?? null) ? json_encode($it->meta_json) : null,
                 ];
