@@ -181,7 +181,7 @@
                                         $dropdownValueKey = $col['dropdownValueKey'] ?? null;
                                         $dropdownType = $col['dropdownType'] ?? 'status';
                                     @endphp
-                                    <div class="dropdown rb-status-dropdown"
+                                    <div class="dropdown position-static rb-status-dropdown"
                                         :data-job-id="row['{{ $dropdownIdKey }}']"
                                         :data-current-value="row['{{ $dropdownValueKey ?? $col['key'] }}']"
                                         data-dropdown-type="{{ $dropdownType }}"
