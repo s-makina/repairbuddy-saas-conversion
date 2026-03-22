@@ -67,9 +67,9 @@
         $currencySymbol = $currencyCode . ' ';
     }
 
-    $formatMoney = function ($cents) use ($currencySymbol) {
-        if ($cents === null) return '—';
-        return $currencySymbol . number_format(((int) $cents) / 100, 2, '.', ',');
+    $formatMoney = function ($amount) use ($currencySymbol) {
+        if ($amount === null) return '—';
+        return $currencySymbol . number_format((float) $amount, 2, '.', ',');
     };
 @endphp
 

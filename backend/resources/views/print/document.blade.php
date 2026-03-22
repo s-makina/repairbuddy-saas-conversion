@@ -372,11 +372,11 @@ body {
         <tbody>
           @foreach($items as $item)
             @php
-              $unitCents = is_numeric($item->unit_price_amount_cents) ? (int)$item->unit_price_amount_cents : 0;
-              $qty       = is_numeric($item->qty) ? (int)$item->qty : 1;
-              $lineCents = $unitCents * $qty;
-              $taxRate   = $item->tax?->rate ?? 0;
-              $currency  = strtoupper($item->unit_price_currency ?? $currencyCode);
+              $unitAmount = is_numeric($item->unit_price_amount) ? (float)$item->unit_price_amount : 0;
+              $qty        = is_numeric($item->qty) ? (int)$item->qty : 1;
+              $lineAmount = $unitAmount * $qty;
+              $taxRate    = $item->tax?->rate ?? 0;
+              $currency   = strtoupper($item->unit_price_currency ?? $currencyCode);
             @endphp
             <tr>
               <td>
@@ -386,11 +386,11 @@ body {
                 <span class="tag">{{ ucfirst($item->item_type ?? 'item') }}</span>
               </td>
               <td class="c">{{ $qty }}</td>
-              <td class="r">{{ $currency }} {{ number_format($unitCents / 100, 2) }}</td>
+              <td class="r">{{ $currency }} {{ number_format($unitAmount, 2) }}</td>
               <td class="r" style="color:var(--ink3);font-weight:400">
                 @if($taxRate > 0){{ number_format($taxRate, 0) }}%@else —@endif
               </td>
-              <td class="r">{{ $currency }} {{ number_format($lineCents / 100, 2) }}</td>
+              <td class="r">{{ $currency }} {{ number_format($lineAmount, 2) }}</td>
             </tr>
           @endforeach
         </tbody>
@@ -400,27 +400,27 @@ body {
       <div class="totals-wrap">
         <div class="totals">
           @php
-            $subtotalCents = 0;
-            $taxCents      = 0;
+            $subtotal = 0;
+            $taxTotal = 0;
             foreach ($items as $item) {
-              $u = is_numeric($item->unit_price_amount_cents) ? (int)$item->unit_price_amount_cents : 0;
+              $u = is_numeric($item->unit_price_amount) ? (float)$item->unit_price_amount : 0;
               $q = is_numeric($item->qty) ? (int)$item->qty : 1;
               $line = $u * $q;
-              $subtotalCents += $line;
+              $subtotal += $line;
               $rate = $item->tax?->rate ?? 0;
-              $taxCents += (int)round($line * $rate / 100);
+              $taxTotal += round($line * $rate / 100, 2);
             }
-            $grandCents = $subtotalCents + $taxCents;
-            $cur        = strtoupper($currencyCode);
+            $grand = $subtotal + $taxTotal;
+            $cur   = strtoupper($currencyCode);
           @endphp
-          <div class="tr"><span>Subtotal (ex tax)</span><span>{{ $cur }} {{ number_format($subtotalCents / 100, 2) }}</span></div>
-          @if($taxCents > 0)
-          <div class="tr"><span>Tax</span><span>{{ $cur }} {{ number_format($taxCents / 100, 2) }}</span></div>
+          <div class="tr"><span>Subtotal (ex tax)</span><span>{{ $cur }} {{ number_format($subtotal, 2) }}</span></div>
+          @if($taxTotal > 0)
+          <div class="tr"><span>Tax</span><span>{{ $cur }} {{ number_format($taxTotal, 2) }}</span></div>
           @endif
           <hr class="tdiv">
           <div class="tgrand">
             <span>Total</span>
-            <span>{{ $cur }} {{ number_format($grandCents / 100, 2) }}</span>
+            <span>{{ $cur }} {{ number_format($grand, 2) }}</span>
           </div>
         </div>
       </div>

@@ -33,9 +33,9 @@
         $convertedJobUrl = route('tenant.jobs.show', ['business' => $tenantSlug, 'jobId' => $estimate->converted_job_id]);
     }
 
-    $formatMoney = function ($cents) {
-        if ($cents === null) return '—';
-        return '$' . number_format(((int) $cents) / 100, 2, '.', ',');
+    $formatMoney = function ($amount) {
+        if ($amount === null) return '—';
+        return '$' . number_format((float) $amount, 2, '.', ',');
     };
 
     $statusBadge = match ($status) {
@@ -339,13 +339,13 @@
                                 @foreach ($cat['items'] as $item)
                                 @php
                                     $qty  = max(1, (int) ($item->qty ?? 1));
-                                    $unit = (int) ($item->unit_price_amount_cents ?? 0);
+                                    $unit = (float) ($item->unit_price_amount ?? 0);
                                     $lineSub = $qty * $unit;
                                     $taxAmount = 0;
                                     $taxLabel = '—';
                                     if ($item->relationLoaded('tax') && $item->tax) {
                                         $rate = (float) ($item->tax->rate ?? 0);
-                                        $taxAmount = (int) round($lineSub * ($rate / 100));
+                                        $taxAmount = round($lineSub * ($rate / 100), 2);
                                         $taxLabel = number_format($rate, 1) . '%';
                                     }
                                 @endphp
@@ -456,19 +456,19 @@
 
                 <div class="est-totals-row" style="border-top:1px solid #e2e8f0; padding-top:.5rem; margin-top:.25rem;">
                     <span class="fw-semibold">{{ __('Subtotal') }}</span>
-                    <span class="fw-semibold">{{ $formatMoney($totals['subtotal_cents'] ?? 0) }}</span>
+                    <span class="fw-semibold">{{ $formatMoney($totals['subtotal'] ?? 0) }}</span>
                 </div>
 
-                @if (($totals['tax_cents'] ?? 0) > 0)
+                @if (($totals['tax'] ?? 0) > 0)
                 <div class="est-totals-row">
                     <span>{{ __('Tax') }}</span>
-                    <span>{{ $formatMoney($totals['tax_cents'] ?? 0) }}</span>
+                    <span>{{ $formatMoney($totals['tax'] ?? 0) }}</span>
                 </div>
                 @endif
 
                 <div class="est-totals-row grand">
                     <span>{{ __('Grand Total') }}</span>
-                    <span>{{ $formatMoney($totals['total_cents'] ?? 0) }}</span>
+                    <span>{{ $formatMoney($totals['total'] ?? 0) }}</span>
                 </div>
             </div>
         </div>

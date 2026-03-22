@@ -34,9 +34,9 @@
         $currencySymbol = $currencyCode . ' ';
     }
 
-    $formatMoney = function ($cents) use ($currencySymbol) {
-        if ($cents === null) return '—';
-        return $currencySymbol . number_format(((int) $cents) / 100, 2, '.', ',');
+    $formatMoney = function ($amount) use ($currencySymbol) {
+        if ($amount === null) return '—';
+        return $currencySymbol . number_format((float) $amount, 2, '.', ',');
     };
 
     // ── Badge map ──
@@ -64,9 +64,9 @@
     foreach ($estimates as $est) {
         $showUrl = $tenantSlug ? route('tenant.estimates.show', ['business' => $tenantSlug, 'estimateId' => $est->id]) : '#';
 
-        $totalCents = 0;
+        $totalAmount = 0;
         foreach ($est->items as $it) {
-            $totalCents += max(1, (int)($it->qty ?? 1)) * (int)($it->unit_price_amount_cents ?? 0);
+            $totalAmount += max(1, (int)($it->qty ?? 1)) * (float)($it->unit_price_amount ?? 0);
         }
 
         $caseTitle = ($est->case_number ?: '—');

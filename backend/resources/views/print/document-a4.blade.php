@@ -403,11 +403,11 @@ body {
         <tbody>
           @foreach($items as $item)
             @php
-              $unitCents = is_numeric($item->unit_price_amount_cents) ? (int)$item->unit_price_amount_cents : 0;
-              $qty       = is_numeric($item->qty) ? (int)$item->qty : 1;
-              $lineCents = $unitCents * $qty;
-              $currency  = strtoupper($item->unit_price_currency ?? $currencyCode);
-              $meta      = is_string($item->meta_json) ? json_decode($item->meta_json, true) : (is_array($item->meta_json) ? $item->meta_json : []);
+              $unitAmount = is_numeric($item->unit_price_amount) ? (float)$item->unit_price_amount : 0;
+              $qty        = is_numeric($item->qty) ? (int)$item->qty : 1;
+              $lineAmount = $unitAmount * $qty;
+              $currency   = strtoupper($item->unit_price_currency ?? $currencyCode);
+              $meta       = is_string($item->meta_json) ? json_decode($item->meta_json, true) : (is_array($item->meta_json) ? $item->meta_json : []);
             @endphp
             <tr>
               <td>
@@ -416,8 +416,8 @@ body {
                 <span class="it-tag">{{ ucfirst($item->item_type ?? 'service') }}</span>
               </td>
               <td>{{ $qty }}</td>
-              <td class="r">{{ $currency }} {{ number_format($unitCents / 100, 2) }}</td>
-              <td class="r">{{ $currency }} {{ number_format($lineCents / 100, 2) }}</td>
+              <td class="r">{{ $currency }} {{ number_format($unitAmount, 2) }}</td>
+              <td class="r">{{ $currency }} {{ number_format($lineAmount, 2) }}</td>
             </tr>
           @endforeach
         </tbody>
@@ -428,21 +428,21 @@ body {
           @php
             $subTotal = 0; $taxTotal = 0;
             foreach ($items as $it) {
-                $line = ((int)$it->unit_price_amount_cents) * ((int)$it->qty);
+                $line = ((float)$it->unit_price_amount) * ((int)$it->qty);
                 $subTotal += $line;
                 $rate = $it->tax?->rate ?? 0;
-                $taxTotal += (int)round($line * $rate / 100);
+                $taxTotal += round($line * $rate / 100, 2);
             }
             $grand = $subTotal + $taxTotal;
             $cur = strtoupper($currencyCode);
           @endphp
-          <div class="tr"><span>Subtotal</span><span>{{ $cur }} {{ number_format($subTotal/100, 2) }}</span></div>
+          <div class="tr"><span>Subtotal</span><span>{{ $cur }} {{ number_format($subTotal, 2) }}</span></div>
           @if($taxTotal > 0)
-          <div class="tr"><span>Tax</span><span>{{ $cur }} {{ number_format($taxTotal/100, 2) }}</span></div>
+          <div class="tr"><span>Tax</span><span>{{ $cur }} {{ number_format($taxTotal, 2) }}</span></div>
           @endif
           <div class="tgrand">
             <span>Total</span>
-            <span>{{ $cur }} {{ number_format($grand/100, 2) }}</span>
+            <span>{{ $cur }} {{ number_format($grand, 2) }}</span>
           </div>
         </div>
       </div>

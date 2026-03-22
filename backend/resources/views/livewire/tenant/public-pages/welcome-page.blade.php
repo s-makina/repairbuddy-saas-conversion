@@ -151,8 +151,8 @@
                 <h3>{{ $service['name'] }}</h3>
                 <p>{{ $service['description'] ?: 'Professional repair service.' }}</p>
                 <div class="svc-meta">
-                    @if($service['base_price_amount_cents'])
-                        <span class="svc-price">From {{ $this->formatPrice($service['base_price_amount_cents'], $service['base_price_currency']) }}</span>
+                    @if($service['base_price_amount'])
+                        <span class="svc-price">From {{ $this->formatPrice($service['base_price_amount'], $service['base_price_currency']) }}</span>
                     @else
                         <span class="svc-price">Contact for price</span>
                     @endif

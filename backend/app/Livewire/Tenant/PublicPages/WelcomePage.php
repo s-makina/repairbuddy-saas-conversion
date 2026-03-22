@@ -283,9 +283,9 @@ class WelcomePage extends Component
 
     /* ─────────── Helpers ─────────── */
 
-    public function formatPrice(?int $cents, string $currency = 'USD'): string
+    public function formatPrice(?float $amount, string $currency = 'USD'): string
     {
-        if ($cents === null) {
+        if ($amount === null) {
             return '';
         }
 
@@ -320,9 +320,8 @@ class WelcomePage extends Component
         ];
 
         $symbol = $symbols[$currency] ?? $currency . ' ';
-        $amount = $cents / 100;
 
-        return $symbol . number_format($amount, 0);
+        return $symbol . number_format($amount, 2);
     }
 
     public function formatTime(?string $time): string
