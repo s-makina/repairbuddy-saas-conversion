@@ -95,6 +95,12 @@
   flex-shrink: 0;
 }
 
+.sa-brand-logo {
+  max-height: 40px;
+  max-width: 180px;
+  object-fit: contain;
+}
+
 .sa-logo-mark {
   width: 32px;
   height: 32px;
@@ -1956,6 +1962,12 @@
   width: 18px;
   height: 18px;
   color: #fff;
+}
+
+.sa-login-logo-img {
+  height: 44px;
+  max-width: 160px;
+  object-fit: contain;
 }
 
 .sa-login-brand-name {

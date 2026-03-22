@@ -157,10 +157,7 @@ function SuperAdminLoginForm() {
     <div className="sa-login-page">
       {/* Brand mark */}
       <div className="sa-login-brand">
-        <div className="sa-login-logo">
-          <WrenchIcon />
-        </div>
-        <span className="sa-login-brand-name">99SmartX</span>
+        <img src="/brand/logo.png" alt="RepairBuddy" className="sa-login-logo-img" />
         <span className="sa-login-badge">Platform Admin</span>
       </div>
 

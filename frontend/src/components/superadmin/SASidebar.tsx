@@ -193,12 +193,7 @@ export function SASidebar() {
     <aside className="sa-sidebar">
       {/* Brand */}
       <div className="sa-brand">
-        <div className="sa-logo-mark">
-          <Icon name="wrench" />
-        </div>
-        <div>
-          <div className="sa-brand-txt">99SmartX</div>
-        </div>
+        <img src="/brand/logo.png" alt="RepairBuddy" className="sa-brand-logo" />
       </div>
 
       {/* Search */}
