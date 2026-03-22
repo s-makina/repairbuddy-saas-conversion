@@ -23,7 +23,6 @@ class RepairBuddyJob extends Model
         'case_number',
         'plugin_device_post_id',
         'plugin_device_id_text',
-        'title',
         'status_slug',
         'payment_status_slug',
         'prices_inclu_exclu',

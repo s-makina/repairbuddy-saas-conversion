@@ -81,9 +81,6 @@
         $jobLabel = '—';
         if ($tl->relationLoaded('job') && $tl->job) {
             $jobLabel = ($tl->job->case_number ?: 'JOB-' . $tl->job_id);
-            if ($tl->job->title) {
-                $jobLabel .= ' — ' . \Illuminate\Support\Str::limit($tl->job->title, 30);
-            }
         }
 
         $techName = '—';

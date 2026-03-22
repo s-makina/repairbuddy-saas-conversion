@@ -43,7 +43,6 @@ class RepairBuddyEstimateController extends Controller
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
                 $sub->where('case_number', 'like', "%{$q}%")
-                    ->orWhere('title', 'like', "%{$q}%")
                     ->orWhere('id', $q);
             });
         }
@@ -93,7 +92,6 @@ class RepairBuddyEstimateController extends Controller
 
         $validated = $request->validate([
             'case_number' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'nullable', 'string', 'max:32'],
 
             'customer_id' => ['sometimes', 'nullable', 'integer'],
@@ -136,11 +134,6 @@ class RepairBuddyEstimateController extends Controller
             return response()->json([
                 'message' => 'Case number is already in use.',
             ], 422);
-        }
-
-        $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
-        if ($title === '') {
-            $title = $caseNumber;
         }
 
         $status = is_string($validated['status'] ?? null) && $validated['status'] !== '' ? (string) $validated['status'] : 'pending';
@@ -237,7 +230,7 @@ class RepairBuddyEstimateController extends Controller
         $createdCustomer = null;
         $createdCustomerOneTimePassword = null;
 
-        $estimate = DB::transaction(function () use ($assignedTechnicianId, $branchId, $caseNumber, $customerId, $devicesPayload, $estimateDevicesPayload, $request, $shouldCreateCustomer, $status, $tenantId, $title, $validated, &$createdCustomer, &$createdCustomerOneTimePassword) {
+        $estimate = DB::transaction(function () use ($assignedTechnicianId, $branchId, $caseNumber, $customerId, $devicesPayload, $estimateDevicesPayload, $request, $shouldCreateCustomer, $status, $tenantId, $validated, &$createdCustomer, &$createdCustomerOneTimePassword) {
             if ($shouldCreateCustomer) {
                 $cc = $validated['customer_create'];
 
@@ -293,7 +286,6 @@ class RepairBuddyEstimateController extends Controller
 
             $estimate = RepairBuddyEstimate::query()->create([
                 'case_number' => $caseNumber,
-                'title' => $title,
                 'status' => $status,
                 'customer_id' => $customerId,
                 'created_by' => $request->user()?->id,
@@ -364,7 +356,6 @@ class RepairBuddyEstimateController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'status' => ['sometimes', 'nullable', 'string', 'max:32'],
             'customer_id' => ['sometimes', 'nullable', 'integer'],
             'pickup_date' => ['sometimes', 'nullable', 'date'],
@@ -408,7 +399,6 @@ class RepairBuddyEstimateController extends Controller
 
         $estimate = DB::transaction(function () use ($estimate, $requestedStatus, $validated, $request) {
             $estimate->forceFill([
-                'title' => array_key_exists('title', $validated) ? $validated['title'] : $estimate->title,
                 'status' => $requestedStatus ?: $estimate->status,
                 'customer_id' => array_key_exists('customer_id', $validated) ? $validated['customer_id'] : $estimate->customer_id,
                 'pickup_date' => array_key_exists('pickup_date', $validated) ? $validated['pickup_date'] : $estimate->pickup_date,
@@ -835,7 +825,6 @@ class RepairBuddyEstimateController extends Controller
         return [
             'id' => $estimate->id,
             'case_number' => $estimate->case_number,
-            'title' => $estimate->title,
             'status' => $estimate->status,
             'customer_id' => $estimate->customer_id,
             'pickup_date' => $estimate->pickup_date,

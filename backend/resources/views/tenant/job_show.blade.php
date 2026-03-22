@@ -438,7 +438,6 @@
                 </div>
                 <div class="ja-section-body" x-show="open.overview" x-collapse>
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Case #') }}</div><div class="ja-kv-value" style="font-weight:700;">{{ $record?->case_number ?? '—' }}</div></div>
-                    <div class="ja-kv"><div class="ja-kv-label">{{ __('Title') }}</div><div class="ja-kv-value">{{ $record?->title ?? '—' }}</div></div>
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Pickup') }}</div><div class="ja-kv-value">{{ $record?->pickup_date ?? '—' }}</div></div>
                     <div class="ja-kv"><div class="ja-kv-label">{{ __('Delivery') }}</div><div class="ja-kv-value">{{ $record?->delivery_date ?? '—' }}</div></div>
                     @if (!$isEstimate)

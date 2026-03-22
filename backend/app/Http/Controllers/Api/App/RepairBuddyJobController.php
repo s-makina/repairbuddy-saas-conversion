@@ -100,7 +100,6 @@ class RepairBuddyJobController extends Controller
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
                 $sub->where('case_number', 'like', "%{$q}%")
-                    ->orWhere('title', 'like', "%{$q}%")
                     ->orWhere('id', $q)
                     ->orWhere('plugin_device_id_text', 'like', "%{$q}%")
                     ->orWhereHas('jobDevices', function ($devices) use ($q) {
@@ -164,7 +163,6 @@ class RepairBuddyJobController extends Controller
             if ($q !== '') {
                 $q2->where(function ($sub) use ($q) {
                     $sub->where('case_number', 'like', "%{$q}%")
-                        ->orWhere('title', 'like', "%{$q}%")
                         ->orWhere('id', $q)
                         ->orWhere('plugin_device_id_text', 'like', "%{$q}%")
                         ->orWhereHas('jobDevices', function ($devices) use ($q) {
@@ -263,7 +261,6 @@ class RepairBuddyJobController extends Controller
 
         $validated = $request->validate([
             'case_number' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'prices_inclu_exclu' => ['sometimes', 'nullable', 'string', 'in:inclusive,exclusive'],
@@ -380,11 +377,6 @@ class RepairBuddyJobController extends Controller
             $pricesIncluExclu = in_array($invoiceAmounts, ['inclusive', 'exclusive'], true) ? $invoiceAmounts : '';
         }
         $pricesIncluExclu = in_array($pricesIncluExclu, ['inclusive', 'exclusive'], true) ? $pricesIncluExclu : null;
-
-        $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
-        if ($title === '') {
-            $title = $caseNumber;
-        }
 
         $customerId = array_key_exists('customer_id', $validated) && is_numeric($validated['customer_id'])
             ? (int) $validated['customer_id']
@@ -521,7 +513,7 @@ class RepairBuddyJobController extends Controller
         $createdCustomer = null;
         $createdCustomerOneTimePassword = null;
 
-        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $devicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $title, $paymentStatusSlug, $priority, $canReviewIt, $pricesIncluExclu) {
+        $job = DB::transaction(function () use ($branchId, $caseNumber, $request, $statusSlug, $tenantId, $validated, $assignedTechnicianId, $assignedTechnicianIds, $jobDevicesPayload, $devicesPayload, $customerId, $shouldCreateCustomer, $pluginDevicePostId, $pluginDeviceIdText, &$createdCustomer, &$createdCustomerOneTimePassword, $paymentStatusSlug, $priority, $canReviewIt, $pricesIncluExclu) {
             if ($shouldCreateCustomer) {
                 $cc = $validated['customer_create'];
 
@@ -580,7 +572,6 @@ class RepairBuddyJobController extends Controller
             $job = RepairBuddyJob::query()->create([
                 'job_number' => $jobNumber,
                 'case_number' => $caseNumber,
-                'title' => $title,
                 'status_slug' => $statusSlug,
                 'payment_status_slug' => $paymentStatusSlug,
                 'prices_inclu_exclu' => $pricesIncluExclu,
@@ -883,7 +874,6 @@ class RepairBuddyJobController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'prices_inclu_exclu' => ['sometimes', 'nullable', 'string', 'in:inclusive,exclusive'],
@@ -960,7 +950,6 @@ class RepairBuddyJobController extends Controller
         }
 
         $job->forceFill([
-            'title' => array_key_exists('title', $validated) ? $validated['title'] : $job->title,
             'status_slug' => array_key_exists('status_slug', $validated) ? ($validated['status_slug'] ?: null) : $job->status_slug,
             'payment_status_slug' => array_key_exists('payment_status_slug', $validated) ? $validated['payment_status_slug'] : $job->payment_status_slug,
             'prices_inclu_exclu' => array_key_exists('prices_inclu_exclu', $validated) ? $validated['prices_inclu_exclu'] : $job->prices_inclu_exclu,
@@ -998,7 +987,6 @@ class RepairBuddyJobController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'payment_status_slug' => ['sometimes', 'nullable', 'string', 'max:64'],
             'priority' => ['sometimes', 'nullable', 'string', 'max:32'],
@@ -1038,7 +1026,6 @@ class RepairBuddyJobController extends Controller
         ]);
 
         $before = $job->only([
-            'title',
             'status_slug',
             'payment_status_slug',
             'priority',
@@ -1075,7 +1062,6 @@ class RepairBuddyJobController extends Controller
             }
 
             $job->forceFill([
-                'title' => array_key_exists('title', $validated) ? ((is_string($validated['title']) && trim((string) $validated['title']) !== '') ? trim((string) $validated['title']) : $job->case_number) : $job->title,
                 'status_slug' => $nextStatus,
                 'payment_status_slug' => array_key_exists('payment_status_slug', $validated)
                     ? ((is_string($validated['payment_status_slug']) && trim((string) $validated['payment_status_slug']) !== '') ? trim((string) $validated['payment_status_slug']) : 'nostatus')
@@ -1498,7 +1484,6 @@ class RepairBuddyJobController extends Controller
             'case_number' => $job->case_number,
             'plugin_device_post_id' => $job->plugin_device_post_id,
             'plugin_device_id_text' => $job->plugin_device_id_text,
-            'title' => $job->title,
             'status' => $job->status_slug,
             'payment_status' => $job->payment_status_slug,
             'prices_inclu_exclu' => $job->prices_inclu_exclu,

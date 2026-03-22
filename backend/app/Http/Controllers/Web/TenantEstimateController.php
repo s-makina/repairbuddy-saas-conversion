@@ -60,7 +60,6 @@ class TenantEstimateController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('case_number', 'like', "%{$search}%")
-                  ->orWhere('title', 'like', "%{$search}%")
                   ->orWhere('case_detail', 'like', "%{$search}%")
                   ->orWhere('id', $search)
                   ->orWhereHas('customer', function ($cq) use ($search) {
@@ -243,7 +242,6 @@ class TenantEstimateController extends Controller
                 if ($search === '') return;
                 $query->where(function ($q) use ($search) {
                     $q->where('case_number', 'like', '%' . $search . '%')
-                      ->orWhere('title', 'like', '%' . $search . '%')
                       ->orWhere('case_detail', 'like', '%' . $search . '%');
                 });
             })
@@ -596,7 +594,6 @@ class TenantEstimateController extends Controller
 
         $validated = $request->validate([
             'case_number'           => ['sometimes', 'nullable', 'string', 'max:64'],
-            'title'                 => ['sometimes', 'nullable', 'string', 'max:255'],
             'customer_id'           => ['sometimes', 'nullable', 'integer'],
             'assigned_technician_id'=> ['sometimes', 'nullable', 'integer'],
             'pickup_date'           => ['sometimes', 'nullable', 'date'],
@@ -626,17 +623,11 @@ class TenantEstimateController extends Controller
             $caseNumber = $this->generateCaseNumber($tenant, $branch);
         }
 
-        $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
-        if ($title === '') {
-            $title = $caseNumber;
-        }
-
-        $estimate = DB::transaction(function () use ($validated, $caseNumber, $title, $tenant, $branch, $user) {
+        $estimate = DB::transaction(function () use ($validated, $caseNumber, $tenant, $branch, $user) {
             $estimate = RepairBuddyEstimate::query()->create([
                 'tenant_id'              => (int) $tenant->id,
                 'branch_id'              => (int) $branch->id,
                 'case_number'            => $caseNumber,
-                'title'                  => $title,
                 'status'                 => 'pending',
                 'customer_id'            => is_numeric($validated['customer_id'] ?? null) ? (int) $validated['customer_id'] : null,
                 'created_by'             => $user->id,
@@ -748,7 +739,6 @@ class TenantEstimateController extends Controller
 
         $validated = $request->validate([
             'case_number'           => ['sometimes', 'nullable', 'string', 'max:64'],
-            'title'                 => ['sometimes', 'nullable', 'string', 'max:255'],
             'customer_id'           => ['sometimes', 'nullable', 'integer'],
             'assigned_technician_id'=> ['sometimes', 'nullable', 'integer'],
             'pickup_date'           => ['sometimes', 'nullable', 'date'],
@@ -777,9 +767,6 @@ class TenantEstimateController extends Controller
             $fills = [];
             if (array_key_exists('case_number', $validated) && is_string($validated['case_number'])) {
                 $fills['case_number'] = trim((string) $validated['case_number']);
-            }
-            if (array_key_exists('title', $validated) && is_string($validated['title'])) {
-                $fills['title'] = trim((string) $validated['title']);
             }
             if (array_key_exists('customer_id', $validated)) {
                 $fills['customer_id'] = is_numeric($validated['customer_id']) ? (int) $validated['customer_id'] : null;

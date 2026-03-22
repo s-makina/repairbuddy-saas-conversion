@@ -19,7 +19,6 @@ class RepairBuddyEstimate extends Model
         'tenant_id',
         'branch_id',
         'case_number',
-        'title',
         'status',
         'customer_id',
         'created_by',

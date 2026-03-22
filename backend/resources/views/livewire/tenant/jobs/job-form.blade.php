@@ -1201,23 +1201,12 @@
                     <i class="bi bi-chevron-down jf-chevron" :style="sections.details ? '' : 'transform:rotate(-90deg)'"></i>
                 </div>
                 <div class="jf-section-body" x-show="sections.details" x-collapse>
-                    {{-- Case Number & Title --}}
-                    <div class="jf-row">
-                        <div class="jf-c2">
-                            <div class="jf-fg">
-                                <label>{{ __('Case Number') }}</label>
-                                <input type="text" class="form-control" wire:model.defer="case_number" placeholder="{{ __('Leave blank to auto-generate') }}" />
-                                <div class="jf-hint">{{ __('Auto-generated if left empty') }}</div>
-                                @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
-                        </div>
-                        <div class="jf-c2">
-                            <div class="jf-fg">
-                                <label>{{ $isEstimate ? __('Estimate Title') : __('Job Title') }}</label>
-                                <input type="text" class="form-control" wire:model.defer="title" placeholder="{{ __('e.g., iPhone 14 Screen Repair') }}" />
-                                @error('title')<div class="text-danger small">{{ $message }}</div>@enderror
-                            </div>
-                        </div>
+                    {{-- Case Number --}}
+                    <div class="jf-fg">
+                        <label>{{ __('Case Number') }}</label>
+                        <input type="text" class="form-control" wire:model.defer="case_number" placeholder="{{ __('Leave blank to auto-generate') }}" />
+                        <div class="jf-hint">{{ __('Auto-generated if left empty') }}</div>
+                        @error('case_number')<div class="text-danger small">{{ $message }}</div>@enderror
                     </div>
 
                     {{-- Customer Selection --}}

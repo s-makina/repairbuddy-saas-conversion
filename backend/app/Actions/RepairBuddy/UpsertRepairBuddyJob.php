@@ -44,11 +44,6 @@ class UpsertRepairBuddyJob
             });
         }
 
-        $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
-        if ($title === '') {
-            $title = $caseNumber;
-        }
-
         $taxes = is_array($settings) ? (array) data_get($settings, 'taxes', []) : [];
         $tenantInvoiceAmounts = is_string(data_get($taxes, 'invoiceAmounts')) ? trim((string) data_get($taxes, 'invoiceAmounts')) : '';
 
@@ -92,7 +87,7 @@ class UpsertRepairBuddyJob
 
         $canReviewIt = array_key_exists('can_review_it', $validated) ? (bool) $validated['can_review_it'] : true;
 
-        return DB::transaction(function () use ($tenant, $branch, $actor, $validated, $jobFile, $extraItemFiles, $caseNumber, $title, $statusSlug, $paymentStatusSlug, $priority, $pricesIncluExclu, $canReviewIt) {
+        return DB::transaction(function () use ($tenant, $branch, $actor, $validated, $jobFile, $extraItemFiles, $caseNumber, $statusSlug, $paymentStatusSlug, $priority, $pricesIncluExclu, $canReviewIt) {
             $jobNumber = $this->nextJobNumber((int) $tenant->id, (int) $branch->id);
 
             $job = RepairBuddyJob::query()->create([
@@ -100,7 +95,6 @@ class UpsertRepairBuddyJob
                 'branch_id' => (int) $branch->id,
                 'job_number' => $jobNumber,
                 'case_number' => $caseNumber,
-                'title' => $title,
                 'status_slug' => $statusSlug,
                 'payment_status_slug' => $paymentStatusSlug,
                 'prices_inclu_exclu' => $pricesIncluExclu,
@@ -166,17 +160,12 @@ class UpsertRepairBuddyJob
     ): RepairBuddyJob {
         return DB::transaction(function () use ($tenant, $actor, $job, $validated, $jobFile, $extraItemFiles) {
             $caseNumber = is_string($validated['case_number'] ?? null) ? trim((string) $validated['case_number']) : '';
-            $title = is_string($validated['title'] ?? null) ? trim((string) $validated['title']) : '';
             if ($caseNumber === '') {
                 $caseNumber = (string) ($job->case_number ?? '');
-            }
-            if ($title === '') {
-                $title = $caseNumber !== '' ? $caseNumber : (string) ($job->title ?? '');
             }
 
             $job->forceFill([
                 'case_number' => $caseNumber,
-                'title' => $title,
                 'status_slug' => $validated['status_slug'] ?? $job->status_slug,
                 'payment_status_slug' => $validated['payment_status_slug'] ?? $job->payment_status_slug,
                 'prices_inclu_exclu' => $validated['prices_inclu_exclu'] ?? $job->prices_inclu_exclu,

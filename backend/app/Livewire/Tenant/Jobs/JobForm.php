@@ -50,7 +50,6 @@ class JobForm extends Component
     public string $formMode = 'job';
 
     public ?string $case_number = null;
-    public ?string $title = null;
     public ?string $status_slug = null;
     public ?string $payment_status_slug = null;
     public ?string $prices_inclu_exclu = null;
@@ -242,7 +241,6 @@ class JobForm extends Component
         $jobModel = $job instanceof RepairBuddyJob ? $job : null;
 
         $this->case_number = $jobModel?->case_number;
-        $this->title = $jobModel?->title;
         $this->status_slug = is_string($jobModel?->status_slug) ? (string) $jobModel?->status_slug : null;
         $this->payment_status_slug = is_string($jobModel?->payment_status_slug) ? (string) $jobModel?->payment_status_slug : null;
         $this->prices_inclu_exclu = is_string($jobModel?->prices_inclu_exclu)
@@ -343,7 +341,6 @@ class JobForm extends Component
     {
         return [
             'case_number' => ['nullable', 'string', 'max:64'],
-            'title' => ['nullable', 'string', 'max:255'],
             'status_slug' => ['nullable', 'string', 'max:64'],
             'payment_status_slug' => ['nullable', 'string', 'max:64'],
             'prices_inclu_exclu' => ['nullable', 'string', 'in:inclusive,exclusive'],
@@ -858,7 +855,6 @@ class JobForm extends Component
 
         $validated = [
             'case_number' => $this->case_number,
-            'title' => $this->title,
             'status_slug' => $this->status_slug,
             'payment_status_slug' => $this->payment_status_slug,
             'prices_inclu_exclu' => $this->prices_inclu_exclu,
