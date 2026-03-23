@@ -140,7 +140,7 @@ export default function RegisterPage() {
                         Password
                       </label>
                       <div className="text-xs text-zinc-600">
-                        Minimum 8 characters, including uppercase, lowercase, numbers, and symbols.
+                        8+ chars with uppercase, lowercase, number & symbol.
                       </div>
                       <div className="relative">
                         <Input

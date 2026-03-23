@@ -45,7 +45,7 @@
             <div class="input-group">
                 <label class="form-label">Password</label>
                 <div class="text-xs text-muted mb-1">
-                    Minimum 8 characters, including uppercase, lowercase, numbers, and symbols.
+                    8+ chars with uppercase, lowercase, number & symbol.
                 </div>
                 <div class="input-wrap">
                     <input type="password" name="password" id="password" class="form-input @error('password') is-invalid @enderror" placeholder="Create a strong password" autocomplete="new-password" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}" title="Password must be at least 8 characters and include uppercase, lowercase, numbers, and symbols" />

@@ -234,7 +234,7 @@ function RegisterForm() {
               <input
                 type={showPassword ? "text" : "password"}
                 className="form-input"
-                placeholder="Min. 8 characters with mixed case, numbers & symbols"
+                placeholder="8+ chars, mixed case, number & symbol"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

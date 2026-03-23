@@ -95,7 +95,7 @@
       <div class="input-group-modern">
         <label for="password" class="form-label">Password</label>
         <div class="text-xs text-muted mb-1">
-          Minimum 8 characters, including uppercase, lowercase, numbers, and symbols.
+          8+ chars with uppercase, lowercase, number & symbol.
         </div>
         <div class="input-wrapper">
           <input
