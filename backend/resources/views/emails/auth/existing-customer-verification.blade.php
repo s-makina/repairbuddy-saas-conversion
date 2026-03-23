@@ -1,6 +1,6 @@
 @extends('emails.layouts.auth-email', [
-    'subject' => 'Verify Your Account — ' . ($tenantName ?? '99SmartX'),
-    'tenantName' => $tenantName ?? '99SmartX',
+    'subject' => 'Verify Your Account — ' . ($tenantName ?? 'RepairBuddy'),
+    'tenantName' => $tenantName ?? 'RepairBuddy',
     'tenantLogoUrl' => $tenantLogoUrl ?? null,
 ])
 
