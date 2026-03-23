@@ -225,8 +225,7 @@ export default function PlansV2() {
       <nav className="sticky-nav">
         <div className="nav-inner">
           <Link href="/" className="nav-brand">
-            <div className="logo-mark"><WrenchIcon /></div>
-            <span className="brand-name">99SmartX</span>
+            <img src="/brand/logo.png" alt="RepairBuddy" className="nav-logo" />
           </Link>
           <div className="nav-actions">
             <Link href="/" className="btn btn-outline" style={{ fontSize: 13, padding: "8px 16px" }}>← Back to Home</Link>

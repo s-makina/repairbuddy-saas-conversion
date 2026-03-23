@@ -86,6 +86,12 @@
   text-decoration: none;
 }
 
+.v2 .nav-logo {
+  height: 36px;
+  max-width: 140px;
+  object-fit: contain;
+}
+
 .v2 .logo-mark {
   width: 36px;
   height: 36px;

@@ -550,8 +550,7 @@ export default function BusinessSetupPage() {
       {/* TOPBAR */}
       <div className="topbar">
         <Link href="/" className="nav-brand">
-          <div className="logo-mark"><WrenchIcon /></div>
-          <span className="brand-name">99SmartX</span>
+          <img src="/brand/logo.png" alt="RepairBuddy" className="nav-logo" />
         </Link>
         <div className="tb-right">
           <Link href="/" className="skip-link">Skip for now →</Link>

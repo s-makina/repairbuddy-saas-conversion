@@ -148,8 +148,7 @@ export default function LandingV2() {
       <nav className={`navbar${scrolled ? " scrolled" : ""}`}>
         <div className="nav-inner">
           <Link href="/" className="nav-brand">
-            <div className="logo-mark"><WrenchIcon /></div>
-            <span className="brand-name">99SmartX</span>
+            <img src="/brand/logo.png" alt="RepairBuddy" className="nav-logo" />
           </Link>
           <ul className="nav-links">
             <li><a href="#features">Features</a></li>
@@ -395,8 +394,7 @@ export default function LandingV2() {
         <div className="footer-inner">
           <div className="footer-brand">
             <Link href="/" className="nav-brand" style={{ marginBottom: 0 }}>
-              <div className="logo-mark"><WrenchIcon /></div>
-              <span className="brand-name">99SmartX</span>
+              <img src="/brand/logo.png" alt="RepairBuddy" className="nav-logo" />
             </Link>
             <p>The all-in-one platform for repair shops. Manage your business smarter.</p>
           </div>
