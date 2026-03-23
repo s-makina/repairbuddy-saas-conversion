@@ -1,0 +1,3 @@
+module.exports=[86537,a=>{"use strict";var b=a.i(72131),c=a.i(50944),d=a.i(22720);function e(){let a=(0,d.useAuth)(),e=(0,c.useRouter)(),f=(0,c.useParams)(),g=f.business??f.tenant;return b.default.useEffect(()=>{if(!a.loading&&a.isAuthenticated){if(!a.can("jobs.view")||!a.can("settings.manage")||"string"!=typeof g||0===g.length)return void e.replace("/app");e.replace(`/app/${g}/business-settings?section=job-statuses`)}},[a,a.isAuthenticated,a.loading,e,g]),null}a.s(["default",()=>e])}];
+
+//# sourceMappingURL=src_app_app_%5Btenant%5D_statuses_page_tsx_db3a8eac._.js.map
