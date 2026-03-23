@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Tenant;
 use App\Support\PlatformAudit;
 use App\Support\TenantContext;
@@ -167,7 +168,7 @@ class SetupController extends Controller
             'billing_address_json' => ['required', 'array'],
             'billing_address_json.line1' => ['required', 'string', 'max:255'],
             'billing_address_json.city' => ['required', 'string', 'max:255'],
-            'billing_address_json.postal_code' => ['required', 'string', 'max:64'],
+            'billing_address_json.postal_code' => ['nullable', 'string', 'max:64'],
             'currency' => ['required', 'string', 'size:3'],
             'timezone' => ['required', 'string', 'max:64'],
             'language' => ['required', 'string', 'max:16'],
@@ -191,6 +192,26 @@ class SetupController extends Controller
             'setup_completed_at' => $tenant->setup_completed_at,
             'setup_step' => $tenant->setup_step,
         ];
+
+        // Ensure tenant has a default branch - create one if missing
+        $tenantId = (int) $tenant->id;
+        if (! $tenant->default_branch_id) {
+            $defaultBranch = Branch::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('id')
+                ->first();
+
+            if (! $defaultBranch) {
+                // Create a default branch if none exists
+                $defaultBranch = Branch::query()->create([
+                    'name' => 'Main Branch',
+                    'code' => Branch::generateUniqueCode($tenantId, 'MAIN'),
+                    'is_active' => true,
+                ]);
+            }
+
+            $tenant->default_branch_id = $defaultBranch->id;
+        }
 
         $tenant->forceFill([
             'name' => $validated['name'],

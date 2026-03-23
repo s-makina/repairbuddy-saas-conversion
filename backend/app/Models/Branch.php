@@ -52,6 +52,9 @@ class Branch extends Model
 
             if (is_string($model->code) && $model->code !== '') {
                 $model->code = strtoupper($model->code);
+            } else {
+                // Auto-generate a unique code if not provided
+                $model->code = static::generateUniqueCode($tenantId);
             }
         });
 
@@ -60,6 +63,32 @@ class Branch extends Model
                 $model->code = strtoupper($model->code);
             }
         });
+    }
+
+    /**
+     * Generate a unique branch code for the tenant.
+     */
+    public static function generateUniqueCode(int $tenantId, string $prefix = 'BR'): string
+    {
+        $baseCode = $prefix;
+        $code = $baseCode;
+        $i = 1;
+
+        while (static::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('code', $code)
+            ->exists()) {
+            $code = $baseCode . (string) $i;
+            $i++;
+            if ($i > 999) {
+                // Fallback to random string if we exhaust numeric suffixes
+                $code = strtoupper(\Illuminate\Support\Str::random(8));
+                break;
+            }
+        }
+
+        return $code;
     }
 
     public function tenant(): BelongsTo

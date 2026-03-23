@@ -140,7 +140,7 @@ class BranchController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:16'],
+            'code' => ['nullable', 'string', 'max:16'],
             'phone' => ['nullable', 'string', 'max:64'],
             'email' => ['nullable', 'email', 'max:255'],
             'address_line1' => ['nullable', 'string', 'max:255'],
@@ -154,18 +154,21 @@ class BranchController extends Controller
 
         $tenantId = TenantContext::tenantId();
 
-        $exists = Branch::query()
-            ->where('tenant_id', $tenantId)
-            ->where('code', strtoupper((string) $validated['code']))
-            ->exists();
+        // Only check for duplicate code if one was provided
+        if (! empty($validated['code'])) {
+            $exists = Branch::query()
+                ->where('tenant_id', $tenantId)
+                ->where('code', strtoupper((string) $validated['code']))
+                ->exists();
 
-        if ($exists) {
-            return response()->json([
-                'message' => 'Branch code already exists.',
-                'errors' => [
-                    'code' => ['Branch code already exists.'],
-                ],
-            ], 422);
+            if ($exists) {
+                return response()->json([
+                    'message' => 'Branch code already exists.',
+                    'errors' => [
+                        'code' => ['Branch code already exists.'],
+                    ],
+                ], 422);
+            }
         }
 
         $branch = Branch::query()->create($validated);
@@ -193,7 +196,7 @@ class BranchController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:16'],
+            'code' => ['nullable', 'string', 'max:16'],
             'phone' => ['nullable', 'string', 'max:64'],
             'email' => ['nullable', 'email', 'max:255'],
             'address_line1' => ['nullable', 'string', 'max:255'],
@@ -205,21 +208,24 @@ class BranchController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $nextCode = strtoupper((string) $validated['code']);
+        // Only check for duplicate code if one was provided
+        if (! empty($validated['code'])) {
+            $nextCode = strtoupper((string) $validated['code']);
 
-        $exists = Branch::query()
-            ->where('tenant_id', $tenantId)
-            ->where('code', $nextCode)
-            ->where('id', '!=', $branchModel->id)
-            ->exists();
+            $exists = Branch::query()
+                ->where('tenant_id', $tenantId)
+                ->where('code', $nextCode)
+                ->where('id', '!=', $branchModel->id)
+                ->exists();
 
-        if ($exists) {
-            return response()->json([
-                'message' => 'Branch code already exists.',
-                'errors' => [
-                    'code' => ['Branch code already exists.'],
-                ],
-            ], 422);
+            if ($exists) {
+                return response()->json([
+                    'message' => 'Branch code already exists.',
+                    'errors' => [
+                        'code' => ['Branch code already exists.'],
+                    ],
+                ], 422);
+            }
         }
 
         $branchModel->forceFill($validated)->save();
