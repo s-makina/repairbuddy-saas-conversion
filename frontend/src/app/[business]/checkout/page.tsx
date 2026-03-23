@@ -76,7 +76,7 @@ export default function CheckoutPage() {
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <Link href="/" className="font-semibold tracking-tight text-[var(--rb-text)]">
-                  99smartx
+                  RepairBuddy
                 </Link>
                 <Badge variant="info" className="hidden sm:inline-flex">
                   Checkout
@@ -204,7 +204,7 @@ export default function CheckoutPage() {
 
               <footer className="mt-12 border-t border-[var(--rb-border)] pt-8 text-xs text-zinc-600">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>© {new Date().getFullYear()} 99smartx</div>
+                  <div>© {new Date().getFullYear()} RepairBuddy</div>
                   <div className="flex items-center gap-4">
                     <Link href="/login" className="hover:text-[var(--rb-text)]">
                       Login

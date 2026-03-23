@@ -420,7 +420,7 @@ export default function SANewTenantContent() {
                   disabled={submitting}
                   style={fieldErrors.subdomain ? { borderColor: '#ef4444' } : undefined}
                 />
-                <span className="sa-sd-suffix">.99smartx.com</span>
+                <span className="sa-sd-suffix">.repairbuddy.com</span>
               </div>
               {fieldErrors.subdomain ? (
                 fieldError('subdomain')

@@ -4,8 +4,8 @@ import "@/app/(public)/v2.css";
 import { Providers } from "@/providers";
 
 export const metadata: Metadata = {
-  title: "99smartx",
-  description: "99smartx SaaS",
+  title: "RepairBuddy",
+  description: "RepairBuddy SaaS",
 };
 
 export default function RootLayout({

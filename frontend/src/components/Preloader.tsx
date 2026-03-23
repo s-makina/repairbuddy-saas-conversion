@@ -20,7 +20,7 @@ export function Preloader({
     >
       <div className="flex flex-col items-center gap-4">
         <Image
-          alt="99smartx"
+          alt="RepairBuddy"
           src="/brand/repair-buddy-logo.png"
           width={160}
           height={42}

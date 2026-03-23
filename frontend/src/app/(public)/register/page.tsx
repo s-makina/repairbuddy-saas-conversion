@@ -59,7 +59,7 @@ function RegisterForm() {
   }
 
   const strength = getPasswordStrength(password);
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "99smartx.com";
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "repairbuddy.com";
   const planLabel = plan
     ? plan.charAt(0).toUpperCase() + plan.slice(1) + " Plan Selected"
     : "Professional Plan Selected";

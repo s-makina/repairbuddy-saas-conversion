@@ -744,7 +744,7 @@ export default function SAAllBusinessesContent() {
                           <td>
                             <div className="sa-td-name">{t.name}</div>
                             <div className="sa-td-sub">
-                              {t.slug}.99smartx.com
+                              {t.slug}.repairbuddy.com
                             </div>
                           </td>
                           <td>{t.owner?.name ?? '\u2014'}</td>

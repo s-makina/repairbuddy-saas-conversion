@@ -596,7 +596,7 @@ export function DashboardShell({
           <div className="border-b border-white/10 bg-white px-4 py-5 text-[var(--rb-text)]">
             <div className="flex items-center gap-3">
               <Image
-                alt="99smartx"
+                alt="RepairBuddy"
                 src="/brand/repair-buddy-logo.png"
                 width={140}
                 height={36}
