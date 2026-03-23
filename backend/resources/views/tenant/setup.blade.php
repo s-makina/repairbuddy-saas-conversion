@@ -5,6 +5,7 @@
     $apiBase = url('api/' . $tenant->slug . '/app');
     $dashboardUrl = route('tenant.dashboard', ['business' => $tenant->slug]);
     $initials = strtoupper(substr($user->name ?? 'U', 0, 2));
+    $shopInitials = strtoupper(collect(explode(' ', $tenant->name ?? 'RepairBuddy'))->map(fn($w) => substr($w, 0, 1))->take(2)->join(''));
     $address = is_array($tenant->billing_address_json) ? $tenant->billing_address_json : [];
     $state = is_array($tenant->setup_state) ? $tenant->setup_state : [];
 @endphp
@@ -38,8 +39,8 @@
         /* TOPBAR */
         .topbar{background:var(--surface);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;flex-shrink:0}
         .nav-brand{display:flex;align-items:center;gap:10px}
-        .logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#e8590c,#f76707);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(232,89,12,.25)}
-        .logo-mark svg{width:18px;height:18px;color:#fff}
+        .logo-mark{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .logo-mark img{width:100%;height:100%;object-fit:contain}
         .brand-name{font-size:18px;font-weight:800;letter-spacing:-.02em}
         .tb-right{display:flex;align-items:center;gap:12px}
         .tb-user{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-2)}
@@ -226,11 +227,13 @@
     <div class="topbar">
         <div class="nav-brand">
             <div class="logo-mark">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
-                </svg>
+                @if($tenant && $tenant->logo_url)
+                    <img src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }}">
+                @else
+                    <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy">
+                @endif
             </div>
-            <span class="brand-name">{{ $siteName }}</span>
+            <span class="brand-name">{{ $tenant->name ?? $siteName }}</span>
         </div>
         <div class="tb-right">
             <button type="button" class="skip-link" onclick="skipSetup()">Skip for now &rarr;</button>
