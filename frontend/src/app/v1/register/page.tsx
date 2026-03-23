@@ -139,7 +139,9 @@ export default function RegisterPage() {
                       <label className="text-sm font-medium" htmlFor="password">
                         Password
                       </label>
-                      <div className="text-xs text-zinc-600">Minimum 12 characters.</div>
+                      <div className="text-xs text-zinc-600">
+                        Minimum 8 characters, including uppercase, lowercase, numbers, and symbols.
+                      </div>
                       <div className="relative">
                         <Input
                           id="password"
@@ -148,7 +150,9 @@ export default function RegisterPage() {
                           onChange={(e) => setPassword(e.target.value)}
                           type={showPassword ? "text" : "password"}
                           required
-                          minLength={12}
+                          minLength={8}
+                          pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}"
+                          title="Password must be at least 8 characters and include uppercase, lowercase, numbers, and symbols"
                           disabled={submitting}
                         />
                         <button

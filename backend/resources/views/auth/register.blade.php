@@ -94,6 +94,9 @@
 
       <div class="input-group-modern">
         <label for="password" class="form-label">Password</label>
+        <div class="text-xs text-muted mb-1">
+          Minimum 8 characters, including uppercase, lowercase, numbers, and symbols.
+        </div>
         <div class="input-wrapper">
           <input
             type="password"
@@ -103,6 +106,9 @@
             placeholder="••••••••"
             autocomplete="new-password"
             required
+            minlength="8"
+            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}"
+            title="Password must be at least 8 characters and include uppercase, lowercase, numbers, and symbols"
           />
           <i class="bi bi-lock"></i>
           <button type="button" class="password-toggle" onclick="togglePassword('password', this)">

@@ -17,6 +17,7 @@ function getPasswordStrength(pw: string): number {
   let score = 0;
   if (pw.length >= 8) score++;
   if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   return score;
@@ -233,10 +234,13 @@ function RegisterForm() {
               <input
                 type={showPassword ? "text" : "password"}
                 className="form-input"
-                placeholder="Min. 8 characters"
+                placeholder="Min. 8 characters with mixed case, numbers & symbols"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={8}
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}"
+                title="Password must be at least 8 characters and include uppercase, lowercase, numbers, and symbols"
                 autoComplete="new-password"
               />
               <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">

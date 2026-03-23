@@ -148,7 +148,7 @@ class AuthController extends Controller
             'password' => [
                 'required',
                 'string',
-                PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(),
+                PasswordRule::min(8)->letters()->mixedCase()->numbers()->symbols(),
             ],
             'tenant_name' => ['nullable', 'string', 'max:255'],
             'tenant_slug' => ['nullable', 'string', 'max:64'],
