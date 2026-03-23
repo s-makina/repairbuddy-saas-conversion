@@ -37,10 +37,11 @@
         a{text-decoration:none;color:inherit}
 
         /* TOPBAR */
-        .topbar{background:var(--surface);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;flex-shrink:0}
-        .nav-brand{display:flex;align-items:center;gap:10px}
-        .logo-mark{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-        .logo-mark img{width:100%;height:100%;object-fit:contain}
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);height:68px;display:flex;align-items:center;flex-shrink:0}
+        .topbar-inner{max-width:1200px;width:100%;margin:0 auto;padding:0 28px;display:flex;align-items:center;justify-content:space-between}
+        .nav-brand{display:flex;align-items:center;gap:12px}
+        .logo-mark{height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .logo-mark img{width:100%;height:100%;object-fit:contain;border-radius:8px}
         .brand-name{font-size:18px;font-weight:800;letter-spacing:-.02em}
         .tb-right{display:flex;align-items:center;gap:12px}
         .tb-user{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-2)}
@@ -225,21 +226,23 @@
 
     {{-- TOPBAR --}}
     <div class="topbar">
-        <div class="nav-brand">
-            <div class="logo-mark">
-                @if($tenant && $tenant->logo_url)
-                    <img src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }}">
-                @else
-                    <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy">
-                @endif
+        <div class="topbar-inner">
+            <div class="nav-brand">
+                <div class="logo-mark">
+                    @if($tenant && $tenant->logo_url)
+                        <img src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }}">
+                    @else
+                        <img src="{{ asset('brand/logo.png') }}" alt="RepairBuddy">
+                    @endif
+                </div>
+                <!-- <span class="brand-name">{{ $tenant->name ?? $siteName }}</span> -->
             </div>
-            <span class="brand-name">{{ $tenant->name ?? $siteName }}</span>
-        </div>
-        <div class="tb-right">
-            <button type="button" class="skip-link" onclick="skipSetup()">Skip for now &rarr;</button>
-            <div class="tb-user">
-                <div class="tb-avatar">{{ $initials }}</div>
-                {{ $user->name }}
+            <div class="tb-right">
+                <button type="button" class="skip-link" onclick="skipSetup()">Skip for now &rarr;</button>
+                <div class="tb-user">
+                    <div class="tb-avatar">{{ $initials }}</div>
+                    {{ $user->name }}
+                </div>
             </div>
         </div>
     </div>
@@ -310,13 +313,14 @@
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                             </div>
                         </div>
-                        <div class="form-group full">
+                        {{-- Display Name field hidden per request --}}
+                        {{-- <div class="form-group full">
                             <label class="form-label">Display Name <span class="form-sub">(optional)</span></label>
                             <div class="input-wrap">
                                 <input type="text" class="form-input" id="f-display-name" placeholder="Defaults to business name" value="{{ data_get($state, 'identity.display_name', '') }}">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="form-group full">
                             <label class="form-label">Primary Contact Person Name</label>
                             <div class="input-wrap">
