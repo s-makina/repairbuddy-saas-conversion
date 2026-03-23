@@ -1,3 +1,0 @@
-{
-  "/admin/tenants/[tenant]/billing/invoices/[invoiceId]/page": "app/admin/tenants/[tenant]/billing/invoices/[invoiceId]/page.js"
-}

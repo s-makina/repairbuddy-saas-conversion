@@ -76,7 +76,7 @@ function SuperAdminLoginForm() {
     try {
       if (otpLoginToken) {
         const otpCode = otpDigits.join("");
-        const payload = await apiFetch<{ token: string; user: { must_change_password?: boolean; is_admin?: boolean }; tenant: unknown; permissions: string[] }>(
+        const payload = await apiFetch<{ token: string; user: { id: number; name: string; email: string; must_change_password?: boolean; is_admin?: boolean }; tenant: unknown; permissions: string[] }>(
           "/api/auth/superadmin/login/otp",
           {
             method: "POST",
@@ -85,7 +85,7 @@ function SuperAdminLoginForm() {
         );
         auth.setAuthFromPayload({
           token: payload.token,
-          user: payload.user as { id: number; is_admin?: boolean; must_change_password?: boolean },
+          user: payload.user,
           tenant: null,
           permissions: payload.permissions,
         });
@@ -96,7 +96,7 @@ function SuperAdminLoginForm() {
         }
       } else {
         const payload = await apiFetch<
-          | { token: string; user: { must_change_password?: boolean; is_admin?: boolean }; tenant: unknown; permissions: string[] }
+          | { token: string; user: { id: number; name: string; email: string; must_change_password?: boolean; is_admin?: boolean }; tenant: unknown; permissions: string[] }
           | { otp_required: true; otp_login_token: string }
           | { verification_required: true }
           | { tenant_redirect: true; tenant_slug: string }
@@ -135,7 +135,7 @@ function SuperAdminLoginForm() {
         if ("token" in payload) {
           auth.setAuthFromPayload({
             token: payload.token,
-            user: payload.user as { id: number; is_admin?: boolean; must_change_password?: boolean },
+            user: payload.user,
             tenant: null,
             permissions: payload.permissions,
           });
