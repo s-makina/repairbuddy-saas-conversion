@@ -85,7 +85,7 @@ function SuperAdminLoginForm() {
         );
         auth.setAuthFromPayload({
           token: payload.token,
-          user: payload.user,
+          user: { ...payload.user, is_admin: payload.user.is_admin ?? true },
           tenant: null,
           permissions: payload.permissions,
         });
@@ -135,7 +135,7 @@ function SuperAdminLoginForm() {
         if ("token" in payload) {
           auth.setAuthFromPayload({
             token: payload.token,
-            user: payload.user,
+            user: { ...payload.user, is_admin: payload.user.is_admin ?? true },
             tenant: null,
             permissions: payload.permissions,
           });
