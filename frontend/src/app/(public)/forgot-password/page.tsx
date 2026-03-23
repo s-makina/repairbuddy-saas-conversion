@@ -4,11 +4,6 @@ import { apiFetch, ApiError } from "@/lib/api";
 import Link from "next/link";
 import React, { useState } from "react";
 
-const WrenchIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-  </svg>
-);
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -38,8 +33,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="auth-page">
       <Link href="/" className="brand-link">
-        <div className="logo-mark-lg"><WrenchIcon /></div>
-        <span className="brand-name-lg">RepairBuddy</span>
+        <img src="/brand/repair-buddy-logo.png" alt="RepairBuddy" className="auth-logo" />
       </Link>
 
       <div className="auth-card">

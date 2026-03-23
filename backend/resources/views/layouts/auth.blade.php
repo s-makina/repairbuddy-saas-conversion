@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>{{ $title ?? '99SmartX' }}</title>
+    <title>{{ $title ?? 'RepairBuddy' }}</title>
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,13 +70,8 @@
       }
 
       .brand-logo {
-        font-weight: 800;
-        font-size: 2rem;
-        color: var(--rb-blue);
-        text-decoration: none;
         display: inline-block;
         margin-bottom: 24px;
-        letter-spacing: -1px;
         transition: opacity 0.3s;
       }
 
@@ -84,8 +79,10 @@
         opacity: 0.8;
       }
 
-      .brand-logo span {
-        color: var(--rb-orange);
+      .brand-logo img {
+        height: 44px;
+        width: auto;
+        object-fit: contain;
       }
 
       .auth-header h1 {

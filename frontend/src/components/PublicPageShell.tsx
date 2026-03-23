@@ -20,8 +20,8 @@ export function PublicPageShell({
       <header className="sticky top-0 z-20 border-b border-[var(--rb-border)] bg-white/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/" className="font-semibold tracking-tight text-[var(--rb-text)]">
-              99smartx
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/brand/repair-buddy-logo.png" alt="RepairBuddy" className="h-8 w-auto" />
             </Link>
             {badge ? (
               <Badge variant="info" className="hidden sm:inline-flex">
@@ -57,7 +57,7 @@ export function PublicPageShell({
         }
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>© {new Date().getFullYear()} 99smartx</div>
+          <div>© {new Date().getFullYear()} RepairBuddy</div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="hover:text-[var(--rb-text)]">
               Login

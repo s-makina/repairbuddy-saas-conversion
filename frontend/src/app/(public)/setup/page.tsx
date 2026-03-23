@@ -405,7 +405,7 @@ function StepReview({
     <>
       <div className="wc-header">
         <h2>Review &amp; launch</h2>
-        <p>Everything looks good? Hit launch to start using 99SmartX!</p>
+        <p>Everything looks good? Hit launch to start using RepairBuddy!</p>
       </div>
       <div className="wc-body">
         <div className="review-sections">
@@ -487,7 +487,7 @@ function StepReview({
 
           {/* Launch */}
           <div className="launch-section">
-            <p>🎉 Your workspace is ready. Launch it and start managing your repair shop like a pro with 99SmartX!</p>
+            <p>🎉 Your workspace is ready. Launch it and start managing your repair shop like a pro with RepairBuddy!</p>
             <button className="btn btn-success" onClick={onLaunch} disabled={launching}>
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"

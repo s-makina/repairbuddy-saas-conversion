@@ -12,7 +12,9 @@
       @if($tenant)
         <div class="tenant-brand mb-2">{{ $tenant->name }}</div>
       @endif
-      <a href="/" class="brand-logo">99<span>SmartX</span></a>
+      <a href="/" class="brand-logo">
+        <img src="/brand/repair-buddy-logo.png" alt="RepairBuddy" />
+      </a>
     </div>
 
     <div class="auth-header text-center">

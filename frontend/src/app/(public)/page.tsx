@@ -136,7 +136,7 @@ export default function LandingV2() {
   }, []);
 
   const faqs = [
-    { q: "Is there a long-term contract?", a: "No contracts at all. 99SmartX is month-to-month. You can upgrade, downgrade, or cancel at any time — no questions asked." },
+    { q: "Is there a long-term contract?", a: "No contracts at all. RepairBuddy is month-to-month. You can upgrade, downgrade, or cancel at any time — no questions asked." },
     { q: "Do I need a credit card for the free trial?", a: "No. Start your 14-day free trial without a credit card. We'll remind you before the trial ends." },
     { q: "Can I import data from my current system?", a: "Yes! We offer free data migration assistance for all plans. Our team will help you import customers, repair history, and inventory." },
     { q: "How many staff accounts can I create?", a: "Starter includes 1 staff account, Professional includes up to 5, and Enterprise allows unlimited staff members." },
@@ -212,7 +212,7 @@ export default function LandingV2() {
           <div className="section-label" style={{ justifyContent: "center" }}>Features</div>
           <h2 className="section-title">Everything you need to<br />grow your repair business</h2>
           <p className="section-sub">
-            From scheduling to invoicing, 99SmartX handles the heavy lifting so you can
+            From scheduling to invoicing, RepairBuddy handles the heavy lifting so you can
             focus on what you do best — fixing things.
           </p>
         </div>
@@ -323,7 +323,7 @@ export default function LandingV2() {
           <div className="test-grid">
             {[
               {
-                quote: "99SmartX cut our admin time in half. We went from sticky notes and spreadsheets to a fully organized shop in just one week.",
+                quote: "RepairBuddy cut our admin time in half. We went from sticky notes and spreadsheets to a fully organized shop in just one week.",
                 initials: "MK", name: "Mike Kowalski", role: "QuickFix Electronics",
                 bg: "linear-gradient(135deg,#e8590c,#f76707)"
               },
@@ -333,7 +333,7 @@ export default function LandingV2() {
                 bg: "linear-gradient(135deg,#7048e8,#9775fa)"
               },
               {
-                quote: "We scaled from one location to three using 99SmartX. The multi-location features saved us from chaos during expansion.",
+                quote: "We scaled from one location to three using RepairBuddy. The multi-location features saved us from chaos during expansion.",
                 initials: "TN", name: "Tom Nguyen", role: "FixItFast Chain",
                 bg: "linear-gradient(135deg,#1971c2,#339af0)"
               },
@@ -359,7 +359,7 @@ export default function LandingV2() {
       {/* CTA BANNER */}
       <div className="cta-banner">
         <h2>Ready to transform your repair shop?</h2>
-        <p>Join 1,200+ repair shops already using 99SmartX. Start your free 14-day trial today.</p>
+        <p>Join 1,200+ repair shops already using RepairBuddy. Start your free 14-day trial today.</p>
         <Link href="/plans" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 36px", borderRadius: "var(--r-lg)", position: "relative", zIndex: 1 }}>
           Start Free Trial — No Card Required
         </Link>
@@ -369,7 +369,7 @@ export default function LandingV2() {
       <div className="faq-section">
         <div className="faq-header">
           <h2>Frequently asked questions</h2>
-          <p>Everything you need to know about 99SmartX</p>
+          <p>Everything you need to know about RepairBuddy</p>
         </div>
         {faqs.map((f, i) => (
           <div key={i} className="faq-item">
@@ -423,7 +423,7 @@ export default function LandingV2() {
           </div>
         </div>
         <div className="footer-bottom">
-          <span>© 2026 99SmartX. All rights reserved.</span>
+          <span>© 2026 RepairBuddy. All rights reserved.</span>
           <span>Made with ♥ for repair shops</span>
         </div>
       </footer>

@@ -396,7 +396,7 @@ export default function PlansV2() {
       {/* FOOTER */}
       <footer className="footer" style={{ textAlign: "center" }}>
         <p style={{ fontSize: 13, color: "var(--text-3)" }}>
-          © 2026 99SmartX. All rights reserved. |{" "}
+          © 2026 RepairBuddy. All rights reserved. |{" "}
           <a href="#" style={{ color: "var(--orange)", fontWeight: 600 }}>Privacy Policy</a>{" "}·{" "}
           <a href="#" style={{ color: "var(--orange)", fontWeight: 600 }}>Terms of Service</a>
         </p>

@@ -8,11 +8,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
-const WrenchIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-  </svg>
-);
 
 function VerifyEmailPageInner() {
   const auth = useAuth();
@@ -65,8 +60,7 @@ function VerifyEmailPageInner() {
     <div className="v2">
       <div className="auth-page">
         <Link href="/" className="brand-link">
-          <div className="logo-mark-lg"><WrenchIcon /></div>
-          <span className="brand-name-lg">RepairBuddy</span>
+          <img src="/brand/repair-buddy-logo.png" alt="RepairBuddy" className="auth-logo" />
         </Link>
 
         <div className="auth-card auth-card-wide text-center">
@@ -116,7 +110,7 @@ function VerifyEmailPageInner() {
 
               <div className="help-text">
                 Check your spam or junk folder if you don{"'"}t see the email. If {"you're"} still having trouble, contact{" "}
-                <a href="mailto:support@99smartx.com">support@99smartx.com</a>
+                <a href="mailto:support@repairbuddy.com">support@repairbuddy.com</a>
               </div>
             </>
           )}

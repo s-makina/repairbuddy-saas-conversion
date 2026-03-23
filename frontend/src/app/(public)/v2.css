@@ -880,6 +880,12 @@
   text-decoration: none;
 }
 
+.v2 .auth-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
 .v2 .auth-card {
   background: var(--surface);
   width: 100%;

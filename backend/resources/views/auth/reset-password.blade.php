@@ -8,7 +8,9 @@
 @section('content')
   <div class="auth-card">
     <div class="text-center">
-      <a href="/" class="brand-logo">99<span>SmartX</span></a>
+      <a href="/" class="brand-logo">
+        <img src="/brand/repair-buddy-logo.png" alt="RepairBuddy" />
+      </a>
     </div>
 
     <div class="auth-header text-center">
