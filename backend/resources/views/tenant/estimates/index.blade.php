@@ -144,7 +144,7 @@
             'devices'       => $est->devices->pluck('label_snapshot')->filter()->implode(', ') ?: '—',
             'technician'    => $est->assignedTechnician?->name ?? '—',
             'dates'         => $est->created_at?->format('M d, Y H:i') ?? '—',
-            'total'         => $formatMoney($totalCents),
+            'total'         => $formatMoney($totalAmount),
             'status'        => ucfirst($est->status ?? 'pending'),
             '_badgeClass_status' => $statusBadgeMap[$est->status ?? 'pending'] ?? 'wcrb-pill--pending',
             'actions'       => $actionHtml,
