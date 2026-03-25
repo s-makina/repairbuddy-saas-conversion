@@ -99,6 +99,15 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
 
         Route::get('/review', [\App\Http\Controllers\Web\TenantPublicPageController::class, 'review'])
             ->name('tenant.subdomain.review');
+
+        // Public estimate actions (no auth required — customer facing)
+        Route::get('/estimates/{caseNumber}/approve', [\App\Http\Controllers\Web\TenantEstimateController::class, 'publicApprove'])
+            ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ])
+            ->name('tenant.estimates.public.approve');
+
+        Route::get('/estimates/{caseNumber}/reject', [\App\Http\Controllers\Web\TenantEstimateController::class, 'publicReject'])
+            ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ])
+            ->name('tenant.estimates.public.reject');
     });
 
 // Subdomain-based customer portal (auth required)
