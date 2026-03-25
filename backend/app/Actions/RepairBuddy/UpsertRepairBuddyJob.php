@@ -18,6 +18,7 @@ use App\Models\Status;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\RepairBuddyCaseNumberService;
+use App\Support\StatusTransitionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -164,9 +165,22 @@ class UpsertRepairBuddyJob
                 $caseNumber = (string) ($job->case_number ?? '');
             }
 
+            // Validate status transition if status is being changed
+            $newStatusSlug = $validated['status_slug'] ?? $job->status_slug;
+            if ($newStatusSlug !== $job->status_slug) {
+                $transitionService = app(StatusTransitionService::class);
+                $transitionError = $transitionService->validateJobTransition($job, $newStatusSlug);
+
+                if ($transitionError !== null) {
+                    throw ValidationException::withMessages([
+                        'status_slug' => [$transitionError],
+                    ]);
+                }
+            }
+
             $job->forceFill([
                 'case_number' => $caseNumber,
-                'status_slug' => $validated['status_slug'] ?? $job->status_slug,
+                'status_slug' => $newStatusSlug,
                 'payment_status_slug' => $validated['payment_status_slug'] ?? $job->payment_status_slug,
                 'prices_inclu_exclu' => $validated['prices_inclu_exclu'] ?? $job->prices_inclu_exclu,
                 'priority' => $validated['priority'] ?? $job->priority,

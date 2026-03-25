@@ -19,6 +19,7 @@ use App\Models\Status;
 use App\Models\User;
 use App\Notifications\OneTimePasswordNotification;
 use App\Support\RepairBuddyCaseNumberService;
+use App\Support\StatusTransitionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -914,6 +915,16 @@ class RepairBuddyJobController extends Controller
                     'message' => 'Job status is invalid.',
                 ], 422);
             }
+
+            // Validate status transition using StatusTransitionService
+            $transitionService = app(StatusTransitionService::class);
+            $transitionError = $transitionService->validateJobTransition($job, $validated['status_slug']);
+
+            if ($transitionError !== null) {
+                return response()->json([
+                    'message' => $transitionError,
+                ], 422);
+            }
         }
 
         if (array_key_exists('assigned_technician_ids', $validated) && is_array($validated['assigned_technician_ids'])) {
@@ -1057,6 +1068,16 @@ class RepairBuddyJobController extends Controller
                 if (! $statusExists) {
                     throw ValidationException::withMessages([
                         'status_slug' => ['Job status is invalid.'],
+                    ]);
+                }
+
+                // Validate status transition using StatusTransitionService
+                $transitionService = app(StatusTransitionService::class);
+                $transitionError = $transitionService->validateJobTransition($job, $nextStatus);
+
+                if ($transitionError !== null) {
+                    throw ValidationException::withMessages([
+                        'status_slug' => [$transitionError],
                     ]);
                 }
             }

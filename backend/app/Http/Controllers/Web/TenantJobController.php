@@ -28,6 +28,7 @@ use App\Models\User;
 use App\Services\RepairBuddyCaseNumberService;
 use App\Services\TenantSettings\TenantSettingsStore;
 use App\Support\BranchContext;
+use App\Support\StatusTransitionService;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;

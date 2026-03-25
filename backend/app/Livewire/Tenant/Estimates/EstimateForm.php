@@ -11,6 +11,7 @@ use App\Models\RepairBuddyEstimateDevice;
 use App\Models\RepairBuddyEstimateItem;
 use App\Models\RepairBuddyEvent;
 use App\Support\BranchContext;
+use App\Support\StatusTransitionService;
 use Illuminate\Support\Facades\DB;
 
 class EstimateForm extends JobForm
@@ -232,10 +233,23 @@ class EstimateForm extends JobForm
             if ($existingEstimate) {
                 // UPDATE existing
                 $estimate = $existingEstimate;
+
+                // Validate status transition if status is changing
+                $newStatus = $this->estimate_status ?? 'draft';
+                if ($newStatus !== $estimate->status) {
+                    $transitionService = app(StatusTransitionService::class);
+                    $transitionError = $transitionService->validateEstimateTransition($estimate, $newStatus);
+
+                    if ($transitionError !== null) {
+                        $this->addError('estimate_status', $transitionError);
+                        return null;
+                    }
+                }
+
                 $estimate->forceFill([
                     'case_number' => $caseNumber,
                     'title' => $title,
-                    'status' => $this->estimate_status ?? 'draft',
+                    'status' => $newStatus,
                     'customer_id' => is_numeric($this->customer_id) ? (int) $this->customer_id : null,
                     'assigned_technician_id' => $assignedTechId,
                     'pickup_date' => $this->pickup_date,
@@ -328,6 +342,11 @@ class EstimateForm extends JobForm
 
             return $estimate;
         });
+
+        if ($estimate === null) {
+            // Validation failed, error already added
+            return null;
+        }
 
         return redirect()->route('tenant.estimates.show', [
             'business'   => $this->tenant->slug,

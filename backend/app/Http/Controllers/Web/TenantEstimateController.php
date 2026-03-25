@@ -19,6 +19,7 @@ use App\Notifications\EstimateToCustomerNotification;
 use App\Support\RepairBuddyCaseNumberService;
 use App\Support\BranchContext;
 use App\Support\RepairBuddyEstimateConversionService;
+use App\Support\StatusTransitionService;
 use App\Support\TenantContext;
 use App\Services\TenantSettings\TenantSettingsStore;
 use Illuminate\Http\Request;
@@ -871,10 +872,14 @@ class TenantEstimateController extends Controller
         $tenant = TenantContext::tenant();
         $user   = $request->user();
 
-        if ($estimate->status === 'approved' && $estimate->converted_job_id) {
+        // Validate status transition
+        $transitionService = app(StatusTransitionService::class);
+        $transitionError = $transitionService->validateEstimateTransition($estimate, 'approved');
+
+        if ($transitionError !== null) {
             return redirect()->route('tenant.estimates.show', [
                 'business' => $tenant->slug, 'estimateId' => $estimate->id,
-            ])->with('info', 'Estimate was already approved.');
+            ])->with('error', $transitionError);
         }
 
         $svc = app(RepairBuddyEstimateConversionService::class);
@@ -895,6 +900,16 @@ class TenantEstimateController extends Controller
         $estimate = $this->findOwnEstimate($estimateId);
         $tenant = TenantContext::tenant();
         $user   = $request->user();
+
+        // Validate status transition
+        $transitionService = app(StatusTransitionService::class);
+        $transitionError = $transitionService->validateEstimateTransition($estimate, 'rejected');
+
+        if ($transitionError !== null) {
+            return redirect()->route('tenant.estimates.show', [
+                'business' => $tenant->slug, 'estimateId' => $estimate->id,
+            ])->with('error', $transitionError);
+        }
 
         $rejectionReason = is_string($validated['rejection_reason'] ?? null) ? trim($validated['rejection_reason']) : null;
         if ($rejectionReason === '') {
@@ -1342,7 +1357,15 @@ class TenantEstimateController extends Controller
                 return 'token_used';
             }
 
+            // Validate status transition using StatusTransitionService
+            $transitionService = app(StatusTransitionService::class);
+
             if ($purpose === 'approve') {
+                $transitionError = $transitionService->validateEstimateTransition($estimate, 'approved');
+                if ($transitionError !== null) {
+                    return ['error' => $transitionError];
+                }
+
                 if ($estimate->status !== 'approved') {
                     $estimate->forceFill([
                         'status' => 'approved',
@@ -1372,6 +1395,11 @@ class TenantEstimateController extends Controller
             }
 
             if ($purpose === 'reject') {
+                $transitionError = $transitionService->validateEstimateTransition($estimate, 'rejected');
+                if ($transitionError !== null) {
+                    return ['error' => $transitionError];
+                }
+
                 if ($estimate->status !== 'rejected') {
                     $estimate->forceFill([
                         'status' => 'rejected',
@@ -1402,6 +1430,17 @@ class TenantEstimateController extends Controller
 
             return 'ok';
         });
+
+        // Handle transition validation error
+        if (is_array($result) && isset($result['error'])) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => $result['error'],
+                'estimate' => $estimate,
+            ], 422);
+        }
 
         return view('tenant.estimates.public_action_result', [
             'tenant' => $tenant,

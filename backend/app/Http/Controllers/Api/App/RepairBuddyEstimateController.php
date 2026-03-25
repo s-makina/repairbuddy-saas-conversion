@@ -14,6 +14,7 @@ use App\Models\RepairBuddyEstimateToken;
 use App\Models\RepairBuddyEvent;
 use App\Models\User;
 use App\Support\RepairBuddyEstimateConversionService;
+use App\Support\StatusTransitionService;
 use App\Notifications\EstimateToCustomerNotification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -137,9 +138,13 @@ class RepairBuddyEstimateController extends Controller
         }
 
         $status = is_string($validated['status'] ?? null) && $validated['status'] !== '' ? (string) $validated['status'] : 'pending';
-        if (! in_array($status, ['pending', 'approved', 'rejected'], true)) {
+
+        // Validate initial status is a valid estimate status
+        $transitionService = app(StatusTransitionService::class);
+        $validStatuses = $transitionService->getValidEstimateStatuses();
+        if (! in_array(strtolower($status), array_map('strtolower', $validStatuses), true)) {
             return response()->json([
-                'message' => 'Estimate status is invalid.',
+                'message' => 'Estimate status is invalid. Valid statuses: ' . implode(', ', $validStatuses),
             ], 422);
         }
 
@@ -379,22 +384,20 @@ class RepairBuddyEstimateController extends Controller
             }
         }
 
-        if (array_key_exists('status', $validated) && is_string($validated['status']) && $validated['status'] !== '') {
-            if (! in_array((string) $validated['status'], ['pending', 'approved', 'rejected'], true)) {
-                return response()->json([
-                    'message' => 'Estimate status is invalid.',
-                ], 422);
-            }
-        }
-
         $requestedStatus = array_key_exists('status', $validated) && is_string($validated['status']) && $validated['status'] !== ''
             ? (string) $validated['status']
             : null;
 
-        if ($requestedStatus && $requestedStatus !== 'approved' && is_numeric($estimate->converted_job_id) && (int) $estimate->converted_job_id > 0) {
-            return response()->json([
-                'message' => 'Converted estimates cannot change status.',
-            ], 422);
+        // Validate status transition using StatusTransitionService
+        if ($requestedStatus) {
+            $transitionService = app(StatusTransitionService::class);
+            $transitionError = $transitionService->validateEstimateTransition($estimate, $requestedStatus);
+
+            if ($transitionError !== null) {
+                return response()->json([
+                    'message' => $transitionError,
+                ], 422);
+            }
         }
 
         $estimate = DB::transaction(function () use ($estimate, $requestedStatus, $validated, $request) {
