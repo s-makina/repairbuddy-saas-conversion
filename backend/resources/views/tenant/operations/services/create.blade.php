@@ -67,7 +67,7 @@
 									</div>
 								</div>
 
-								<div class="col-12"><hr class="my-1" /></div>
+								<!-- <div class="col-12"><hr class="my-1" /></div> -->
 
 								<div class="col-12">
 									<div class="row align-items-start">
@@ -105,7 +105,7 @@
 									</div>
 								</div>
 
-								<div class="col-12"><hr class="my-1" /></div>
+								<!-- <div class="col-12"><hr class="my-1" /></div> -->
 
 								<div class="col-12">
 									<div class="row align-items-start">

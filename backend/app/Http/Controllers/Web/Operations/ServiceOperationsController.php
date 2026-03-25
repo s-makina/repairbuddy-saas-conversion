@@ -187,6 +187,11 @@ class ServiceOperationsController extends Controller
             abort(400, 'Tenant is missing.');
         }
 
+        // Ensure tenant context is set for TenantScope to work correctly
+        if (! TenantContext::tenantId()) {
+            TenantContext::set($tenant);
+        }
+
         $recentServices = RepairBuddyService::query()
             ->with(['type'])
             ->orderByDesc('id')
@@ -234,6 +239,11 @@ class ServiceOperationsController extends Controller
 
         if (! $tenant instanceof Tenant) {
             abort(400, 'Tenant is missing.');
+        }
+
+        // Ensure tenant context is set for TenantScope to work correctly
+        if (! TenantContext::tenantId()) {
+            TenantContext::set($tenant);
         }
 
         $model = RepairBuddyService::query()->with(['type', 'tax'])->whereKey($service)->firstOrFail();
