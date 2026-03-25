@@ -108,6 +108,10 @@ Route::domain('{business}.' . config('tenancy.base_domain'))
         Route::get('/estimates/{caseNumber}/reject', [\App\Http\Controllers\Web\TenantEstimateController::class, 'publicReject'])
             ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ])
             ->name('tenant.estimates.public.reject');
+
+        Route::post('/estimates/{caseNumber}/reject', [\App\Http\Controllers\Web\TenantEstimateController::class, 'publicRejectSubmit'])
+            ->where(['caseNumber' => '[A-Za-z0-9\-_]+' ])
+            ->name('tenant.estimates.public.reject.submit');
     });
 
 // Subdomain-based customer portal (auth required)

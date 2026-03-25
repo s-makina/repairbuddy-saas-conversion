@@ -23,6 +23,14 @@
             'color' => '#6b7280',
             'badge_class' => 'secondary',
         ],
+        'reject_form' => [
+            'icon' => 'bi-x-lg',
+            'title' => 'Reject Estimate',
+            'message' => 'Please let us know why you are rejecting this estimate. This helps us improve our service.',
+            'bg_class' => 'rgba(107, 114, 128, 0.1)',
+            'color' => '#6b7280',
+            'badge_class' => 'secondary',
+        ],
         'error' => [
             'icon' => 'bi-exclamation-triangle',
             'title' => 'Action Failed',
@@ -173,6 +181,42 @@
             text-decoration: underline;
         }
 
+        /* REJECTION FORM */
+        .rejection-form {
+            width: 100%;
+            text-align: left;
+        }
+        .form-group {
+            margin-bottom: 24px;
+        }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--rb-text);
+            margin-bottom: 8px;
+        }
+        .form-textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--rb-border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--rb-text);
+            background: var(--rb-surface);
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--rb-blue);
+            box-shadow: 0 0 0 3px rgba(6, 62, 112, 0.1);
+        }
+        .form-textarea::placeholder {
+            color: var(--rb-text-3);
+        }
+
         @media(max-width:600px) {
             .result-section { padding: 40px 16px; }
             .result-card { padding: 32px 20px; }
@@ -196,44 +240,81 @@
             <h1>{{ $config['title'] }}</h1>
             <p>{{ $config['message'] }}</p>
 
-            <div class="estimate-info">
-                <div class="estimate-info-row">
-                    <span class="estimate-info-label">Estimate Number</span>
-                    <span class="estimate-info-value">#{{ $estimate->case_number ?? 'N/A' }}</span>
+            @if($purpose === 'reject_form')
+                <!-- REJECTION FORM -->
+                <form action="{{ route('tenant.estimates.public.reject.submit', ['business' => $tenantSlug, 'caseNumber' => $estimate->case_number ?? '']) }}" method="POST" class="rejection-form">
+                    @csrf
+                    <input type="hidden" name="token" value="{{ $token ?? '' }}">
+                    
+                    <div class="form-group">
+                        <label for="rejection_reason" class="form-label">Reason for rejection (optional)</label>
+                        <textarea 
+                            name="rejection_reason" 
+                            id="rejection_reason" 
+                            class="form-textarea" 
+                            rows="4" 
+                            placeholder="Please tell us why you are rejecting this estimate..."
+                            maxlength="1000"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="result-actions">
+                        <button type="submit" class="btn btn-orange btn-lg">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            Confirm Rejection
+                        </button>
+                        <a href="{{ route($tenantRoutePrefix . '.booking.show', ['business' => $tenantSlug]) }}" class="btn btn-outline btn-lg">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            @else
+                <div class="estimate-info">
+                    <div class="estimate-info-row">
+                        <span class="estimate-info-label">Estimate Number</span>
+                        <span class="estimate-info-value">#{{ $estimate->case_number ?? 'N/A' }}</span>
+                    </div>
+                    <div class="estimate-info-row">
+                        <span class="estimate-info-label">Status</span>
+                        <span class="estimate-info-value badge {{ $config['badge_class'] }}">
+                            {{ ucfirst($estimate->status ?? 'Unknown') }}
+                        </span>
+                    </div>
+                    @if($estimate->title ?? null)
+                    <div class="estimate-info-row">
+                        <span class="estimate-info-label">Description</span>
+                        <span class="estimate-info-value">{{ $estimate->title }}</span>
+                    </div>
+                    @endif
+                    @if($purpose === 'reject' && ($estimate->rejection_reason ?? null))
+                    <div class="estimate-info-row">
+                        <span class="estimate-info-label">Rejection Reason</span>
+                        <span class="estimate-info-value">{{ $estimate->rejection_reason }}</span>
+                    </div>
+                    @endif
                 </div>
-                <div class="estimate-info-row">
-                    <span class="estimate-info-label">Status</span>
-                    <span class="estimate-info-value badge {{ $config['badge_class'] }}">
-                        {{ ucfirst($estimate->status ?? 'Unknown') }}
-                    </span>
-                </div>
-                @if($estimate->title ?? null)
-                <div class="estimate-info-row">
-                    <span class="estimate-info-label">Description</span>
-                    <span class="estimate-info-value">{{ $estimate->title }}</span>
-                </div>
-                @endif
-            </div>
 
-            <div class="result-actions">
-                <a href="{{ route($tenantRoutePrefix . '.status.show', ['business' => $tenantSlug]) }}" class="btn btn-orange btn-lg">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    View Detailed Status
-                </a>
-                <a href="{{ route($tenantRoutePrefix . '.booking.show', ['business' => $tenantSlug]) }}" class="btn btn-outline btn-lg">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    Back to Home
-                </a>
-            </div>
+                <div class="result-actions">
+                    <a href="{{ route($tenantRoutePrefix . '.status.show', ['business' => $tenantSlug]) }}" class="btn btn-orange btn-lg">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        View Detailed Status
+                    </a>
+                    <a href="{{ route($tenantRoutePrefix . '.booking.show', ['business' => $tenantSlug]) }}" class="btn btn-outline btn-lg">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Back to Home
+                    </a>
+                </div>
 
-            <p class="result-footer">
-                If you have any questions, please contact us at
-                @if($tenant && $tenant->email)
-                    <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
-                @else
-                    our support line.
-                @endif
-            </p>
+                <p class="result-footer">
+                    If you have any questions, please contact us at
+                    @if($tenant && $tenant->email)
+                        <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
+                    @else
+                        our support line.
+                    @endif
+                </p>
+            @endif
         </div>
     </section>
 

@@ -1111,11 +1111,173 @@ class TenantEstimateController extends Controller
 
     /**
      * GET /t/{business}/estimates/{caseNumber}/reject
-     * Public estimate rejection via token link (customer-facing).
+     * Show rejection form (customer-facing).
      */
     public function publicReject(Request $request, string $business, string $caseNumber)
     {
-        return $this->handlePublicAction($request, $business, $caseNumber, 'reject');
+        $validated = $request->validate([
+            'token' => ['required', 'string', 'min:10', 'max:255'],
+        ]);
+
+        $token = (string) $validated['token'];
+        $tokenHash = hash('sha256', $token);
+
+        $tenant = TenantContext::tenant();
+
+        $estimate = RepairBuddyEstimate::query()
+            ->where('case_number', $caseNumber)
+            ->first();
+
+        if (! $estimate) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Estimate not found.',
+                'estimate' => (object)['case_number' => 'N/A', 'status' => 'Not Found'],
+            ], 404);
+        }
+
+        $tokenRow = RepairBuddyEstimateToken::query()
+            ->where('estimate_id', $estimate->id)
+            ->where('purpose', 'reject')
+            ->where('token_hash', $tokenHash)
+            ->first();
+
+        if (! $tokenRow) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Invalid token or rejection already processed.',
+                'estimate' => $estimate,
+            ], 403);
+        }
+
+        if ($tokenRow->expires_at && $tokenRow->expires_at->isPast()) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Token expired.',
+                'estimate' => $estimate,
+            ], 403);
+        }
+
+        // Show rejection form
+        return view('tenant.estimates.public_action_result', [
+            'tenant' => $tenant,
+            'business' => $business,
+            'purpose' => 'reject_form',
+            'estimate' => $estimate,
+            'token' => $token,
+        ]);
+    }
+
+    /**
+     * POST /t/{business}/estimates/{caseNumber}/reject
+     * Process rejection with reason (customer-facing).
+     */
+    public function publicRejectSubmit(Request $request, string $business, string $caseNumber)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string', 'min:10', 'max:255'],
+            'rejection_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $token = (string) $validated['token'];
+        $tokenHash = hash('sha256', $token);
+        $rejectionReason = $validated['rejection_reason'] ?? null;
+
+        $tenant = TenantContext::tenant();
+
+        $estimate = RepairBuddyEstimate::query()
+            ->where('case_number', $caseNumber)
+            ->first();
+
+        if (! $estimate) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Estimate not found.',
+                'estimate' => (object)['case_number' => 'N/A', 'status' => 'Not Found'],
+            ], 404);
+        }
+
+        $tokenRow = RepairBuddyEstimateToken::query()
+            ->where('estimate_id', $estimate->id)
+            ->where('purpose', 'reject')
+            ->where('token_hash', $tokenHash)
+            ->first();
+
+        if (! $tokenRow) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Invalid token or rejection already processed.',
+                'estimate' => $estimate,
+            ], 403);
+        }
+
+        if ($tokenRow->expires_at && $tokenRow->expires_at->isPast()) {
+            return response()->view('tenant.estimates.public_action_result', [
+                'tenant' => $tenant,
+                'business' => $business,
+                'purpose' => 'error',
+                'message' => 'Token expired.',
+                'estimate' => $estimate,
+            ], 403);
+        }
+
+        $result = DB::transaction(function () use ($estimate, $tokenRow, $rejectionReason) {
+            $estimate->refresh();
+            $tokenRow->refresh();
+
+            if ($tokenRow->used_at) {
+                return 'token_used';
+            }
+
+            if ($estimate->status !== 'rejected') {
+                $estimate->forceFill([
+                    'status' => 'rejected',
+                    'rejected_at' => $estimate->rejected_at ?: now(),
+                    'rejected_by' => $estimate->customer_id,
+                    'rejection_reason' => $rejectionReason,
+                    'approved_at' => null,
+                ])->save();
+
+                RepairBuddyEvent::query()->create([
+                    'tenant_id' => (int) $estimate->tenant_id,
+                    'branch_id' => (int) $estimate->branch_id,
+                    'actor_user_id' => null,
+                    'entity_type' => 'estimate',
+                    'entity_id' => $estimate->id,
+                    'visibility' => 'public',
+                    'event_type' => 'estimate.rejected',
+                    'payload_json' => [
+                        'title' => 'Estimate rejected',
+                        'case_number' => $estimate->case_number,
+                        'reason' => $rejectionReason,
+                    ],
+                ]);
+            }
+
+            $tokenRow->forceFill([
+                'used_at' => now(),
+            ])->save();
+
+            return 'ok';
+        });
+
+        return view('tenant.estimates.public_action_result', [
+            'tenant' => $tenant,
+            'business' => $business,
+            'purpose' => 'reject',
+            'estimate' => $estimate->fresh(),
+            'message' => $result === 'token_used' ? 'Already processed.' : 'Success',
+        ]);
     }
 
     /**
