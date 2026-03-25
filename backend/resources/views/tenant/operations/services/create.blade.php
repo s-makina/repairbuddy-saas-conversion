@@ -145,13 +145,13 @@
 									<div class="row align-items-start">
 										<label class="col-sm-3 col-form-label">{{ __('Availability') }}</label>
 										<div class="col-sm-9">
-											<div class="form-check form-switch">
+											<div class="form-check form-switch d-flex align-items-center">
 												<input class="form-check-input" type="checkbox" role="switch" id="pick_up_delivery_available" name="pick_up_delivery_available" value="1" @checked((bool) old('pick_up_delivery_available', false))>
-												<label class="form-check-label" for="pick_up_delivery_available">{{ __('Pick Up & Delivery Available') }}</label>
+												<label class="form-check-label ms-2" for="pick_up_delivery_available">{{ __('Pick Up & Delivery Available') }}</label>
 											</div>
-											<div class="form-check form-switch mt-2">
+											<div class="form-check form-switch d-flex align-items-center mt-2">
 												<input class="form-check-input" type="checkbox" role="switch" id="laptop_rental_available" name="laptop_rental_available" value="1" @checked((bool) old('laptop_rental_available', false))>
-												<label class="form-check-label" for="laptop_rental_available">{{ __('Laptop Rental Availability') }}</label>
+												<label class="form-check-label ms-2" for="laptop_rental_available">{{ __('Laptop Rental Availability') }}</label>
 											</div>
 										</div>
 									</div>

@@ -92,7 +92,7 @@
 
         $actionHtml = '<div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap">'
             . '<a href="' . e($showUrl) . '" class="btn btn-sm btn-primary" style="padding: .25rem .65rem; font-size: .78rem;" title="' . e(__('View')) . '"><i class="bi bi-eye me-1"></i>' . e(__('View')) . '</a>'
-            . '<div class="dropdown">'
+            . '<div class="dropdown position-static">'
             . '<button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false" style="padding: .25rem .45rem;"><i class="bi bi-three-dots" style="font-size:.75rem;"></i></button>'
             . '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem; min-width: 180px;">'
             . '<li><button class="dropdown-item py-2" type="button" onclick="Livewire.dispatch(\'openDocumentPreview\', { type: \'estimate\', id: ' . (int) $est->id . ' })"><i class="bi bi-printer me-2 text-muted"></i>' . e(__('Print / Preview')) . '</button></li>';
