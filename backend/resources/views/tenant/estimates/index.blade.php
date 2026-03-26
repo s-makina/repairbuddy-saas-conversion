@@ -118,15 +118,15 @@
             $actionHtml .= '<li><form method="POST" action="' . e($convertUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Convert this estimate to a repair job?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><button type="submit" class="dropdown-item py-2 text-success"><i class="bi bi-arrow-right-circle me-2"></i>' . e(__('Convert to Job')) . '</button></form></li>';
         }
 
-        // Approve Estimate (if pending)
+        // Approve Estimate
         if ($estIsPending && $tenantSlug) {
             $approveUrl = route('tenant.estimates.approve', ['business' => $tenantSlug, 'estimateId' => $est->id]);
-            $actionHtml .= '<li><form method="POST" action="' . e($approveUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Approve this estimate?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><button type="submit" class="dropdown-item py-2 text-success"><i class="bi bi-check-circle me-2"></i>' . e(__('Approve')) . '</button></form></li>';
+            $actionHtml .= '<li><form method="POST" action="' . e($approveUrl) . '" style="display:inline;" onsubmit="return confirm(\'' . e(__('Approve this estimate?')) . '\')"><input type="hidden" name="_token" value="' . e($csrfToken) . '"><button type="submit" class="dropdown-item py-2 text-success"><i class="bi bi-check-circle me-2"></i>' . e(__('Approve Estimate')) . '</button></form></li>';
         }
 
-        // Reject Estimate (if pending) - opens modal
-        if ($estIsPending) {
-            $actionHtml .= '<li><button type="button" class="dropdown-item py-2 text-warning" data-bs-toggle="modal" data-bs-target="#rejectEstimateModal-' . (int) $est->id . '"><i class="bi bi-x-circle me-2"></i>' . e(__('Reject')) . '</button></li>';
+        // Reject Estimate
+        if ($estIsPending && $tenantSlug) {
+            $actionHtml .= '<li><button type="button" class="dropdown-item py-2 text-danger" data-bs-toggle="modal" data-bs-target="#rejectEstimateModal-' . $est->id . '"><i class="bi bi-x-circle me-2"></i>' . e(__('Reject Estimate')) . '</button></li>';
         }
 
         // Delete Estimate

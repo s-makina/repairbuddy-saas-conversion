@@ -405,14 +405,13 @@
                     onclick="Livewire.dispatch('openDocumentPreview', { type: '{{ $isEstimate ? 'estimate' : 'job' }}', id: {{ $record?->id ?? 0 }} })">
                     <i class="bi bi-printer"></i>{{ __('Preview / Print') }}
                 </button>
+
                 @if ($isEstimate)
-                    @if ($customer && $customer->email)
-                    <button type="button" class="ja-btn ja-btn-outline" data-bs-toggle="modal" data-bs-target="#sendEstimateModal">
-                        <i class="bi bi-envelope"></i>{{ __('Send') }}
-                    </button>
-                    @endif
-                    @if ($estIsPending)
-                    <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline"><i class="bi bi-pencil-square"></i>{{ __('Edit') }}</a>
+                    @if (!$estIsApproved && !$estIsRejected)
+                        <button type="button" class="ja-btn ja-btn-primary" wire:click="sendEstimate" wire:loading.attr="disabled" wire:target="sendEstimate">
+                            <i class="bi bi-send"></i>{{ __('Send Estimate') }}
+                        </button>
+                        <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline"><i class="bi bi-pencil-square"></i>{{ __('Edit') }}</a>
                     @endif
                 @else
                     <a href="{{ $editUrl }}" class="ja-btn ja-btn-outline"><i class="bi bi-pencil-square"></i>{{ __('Edit') }}</a>

@@ -73,6 +73,7 @@ class EstimateToCustomerNotification extends Notification
                 'taxTotal' => $taxTotal,
                 'grandTotal' => $grandTotal,
                 'currency' => $this->estimate->items->first()?->unit_price_currency ?? 'USD',
+                'status' => $this->estimate->status,
             ]);
 
         if ($this->attachPdf && $this->pdfPath) {

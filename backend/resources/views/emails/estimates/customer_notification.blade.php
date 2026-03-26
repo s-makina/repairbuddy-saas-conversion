@@ -64,7 +64,7 @@
                 </div>
                 @endif
                 
-                @if($approveUrl || $rejectUrl)
+                @if(($approveUrl || $rejectUrl) && $status === 'pending')
                 <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
                     @if($approveUrl)
                         <a href="{{ $approveUrl }}" style="display: inline-block; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; text-align: center; background-color: #10b981; color: #ffffff; margin-right: 8px;">Approve Estimate</a>

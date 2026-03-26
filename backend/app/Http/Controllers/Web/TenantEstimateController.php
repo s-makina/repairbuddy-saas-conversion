@@ -1001,11 +1001,27 @@ class TenantEstimateController extends Controller
         /* Build subject & body */
         $subject = $request->input('email_subject',
             'Estimate ' . ($estimate->case_number ?? '#' . $estimate->id) . ' from ' . ($tenant->name ?? 'RepairBuddy'));
-        $body = $request->input('email_body',
-            'Hello ' . ($estimate->customer->name ?? '') . ",\n\n"
-            . 'Please find your estimate ' . ($estimate->case_number ?? '') . " below.\n"
-            . "You can approve or reject this estimate using the buttons below.\n\n"
-            . 'Thank you.');
+
+        // Generate status-aware default body
+        $status = strtolower($estimate->status ?? 'pending');
+        $defaultBody = 'Hello ' . ($estimate->customer->name ?? '') . ",\n\n"
+            . 'Please find your estimate ' . ($estimate->case_number ?? '') . " below.';
+
+        if ($status === 'approved') {
+            $defaultBody .= "\n\nThis estimate has been approved and converted to a job. We will proceed with the repair/service.";
+        } elseif ($status === 'rejected') {
+            $defaultBody .= "\n\nThis estimate has been rejected.";
+            if ($estimate->rejection_reason) {
+                $defaultBody .= "\n\nReason: " . $estimate->rejection_reason;
+            }
+            $defaultBody .= "\n\nIf you have any questions, please contact us.";
+        } else {
+            $defaultBody .= "\n\nYou can approve or reject this estimate using the buttons below.";
+        }
+
+        $defaultBody .= "\n\nThank you.";
+
+        $body = $request->input('email_body', $defaultBody);
 
         /* Create approve/reject tokens */
         $approveToken = Str::random(64);
