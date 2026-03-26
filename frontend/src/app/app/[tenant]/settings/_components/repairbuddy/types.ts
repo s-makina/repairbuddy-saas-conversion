@@ -231,6 +231,27 @@ export type RepairBuddySignatureWorkflowSettings = {
   };
 };
 
+export type EstimateSignatureWorkflowSettings = {
+  approval: {
+    enabled: boolean;
+    triggerStatus: string;
+    statusAfterSubmission: string;
+    templates: RepairBuddySignatureWorkflowChannelTemplates;
+  };
+  pickup: {
+    enabled: boolean;
+    triggerStatus: string;
+    statusAfterSubmission: string;
+    templates: RepairBuddySignatureWorkflowChannelTemplates;
+  };
+  delivery: {
+    enabled: boolean;
+    triggerStatus: string;
+    statusAfterSubmission: string;
+    templates: RepairBuddySignatureWorkflowChannelTemplates;
+  };
+};
+
 export type RepairBuddyBookingSettings = {
   customerEmailSubject: string;
   customerEmailBody: string;
@@ -267,5 +288,6 @@ export type RepairBuddySettingsDraft = {
   maintenanceReminders: RepairBuddyMaintenanceRemindersSettings;
   stylingLabels: RepairBuddyStylingLabelsSettings;
   signatureWorkflow: RepairBuddySignatureWorkflowSettings;
+  estimateSignatureWorkflow: EstimateSignatureWorkflowSettings;
   booking: RepairBuddyBookingSettings;
 };

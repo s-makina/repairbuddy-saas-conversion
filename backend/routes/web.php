@@ -1078,6 +1078,33 @@ Route::prefix('t/{business}')
             ->name('tenant.estimates.destroy');
 
         /* ------------------------------------------------------------ */
+        /*  ESTIMATE SIGNATURES – authenticated management pages         */
+        /* ------------------------------------------------------------ */
+        Route::get('/estimates/{estimateId}/signatures', [\App\Http\Controllers\Web\EstimateSignatureController::class, 'index'])
+            ->where(['estimateId' => '[0-9]+'])
+            ->name('tenant.estimates.signatures.index');
+
+        Route::get('/estimates/{estimateId}/signatures/create', [\App\Http\Controllers\Web\EstimateSignatureController::class, 'create'])
+            ->where(['estimateId' => '[0-9]+'])
+            ->name('tenant.estimates.signatures.create');
+
+        Route::post('/estimates/{estimateId}/signatures', [\App\Http\Controllers\Web\EstimateSignatureController::class, 'store'])
+            ->where(['estimateId' => '[0-9]+'])
+            ->name('tenant.estimates.signatures.store');
+
+        Route::get('/estimates/{estimateId}/signatures/{signatureId}', [\App\Http\Controllers\Web\EstimateSignatureController::class, 'generator'])
+            ->where(['estimateId' => '[0-9]+', 'signatureId' => '[0-9]+'])
+            ->name('tenant.estimates.signatures.generator');
+
+        Route::get('/estimates/{estimateId}/signatures/{signatureId}/show', [\App\Http\Controllers\Web\EstimateSignatureController::class, 'show'])
+            ->where(['estimateId' => '[0-9]+', 'signatureId' => '[0-9]+'])
+            ->name('tenant.estimates.signatures.show');
+
+        Route::post('/estimates/{estimateId}/signatures/{signatureId}/send', [\App\Http\Controllers\Web\EstimateSignatureController::class, 'sendEmail'])
+            ->where(['estimateId' => '[0-9]+', 'signatureId' => '[0-9]+'])
+            ->name('tenant.estimates.signatures.send');
+
+        /* ------------------------------------------------------------ */
         /*  EXPENSES – full expense management                           */
         /* ------------------------------------------------------------ */
         Route::middleware('permission:expenses.view')->group(function () {

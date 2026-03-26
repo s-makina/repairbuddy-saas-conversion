@@ -715,7 +715,7 @@
             </div>
             @endif
 
-            {{-- §6a — Signatures --}}
+            {{-- §6a — Signatures (Job) --}}
             @if (!$isEstimate)
             @php
                 $jobSignatures = $record->signatureRequests ?? collect();
@@ -768,6 +768,89 @@
                             </div>
                         </div>
                     @endforelse
+                </div>
+            </div>
+            @endif
+
+            {{-- §6b — Signatures (Estimate) --}}
+            @if ($isEstimate)
+            @php
+                $estimateSignatures = $record->signatureRequests ?? collect();
+            @endphp
+            <div class="ja-section">
+                <div class="ja-section-head" @click="open.signatures = !open.signatures">
+                    <div class="ja-section-icon ja-icon-violet"><i class="bi bi-pen"></i></div>
+                    <h3>{{ __('Signatures') }}</h3>
+                    <span class="ja-tag ja-tag-blue">{{ $estimateSignatures->count() }}</span>
+                    <a href="{{ route('tenant.estimates.signatures.create', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}"
+                       class="ja-btn ja-btn-primary" style="margin-left:auto; padding:.3rem .75rem; font-size:.76rem;" @click.stop>
+                        <i class="bi bi-plus-circle"></i> {{ __('Request Signature') }}
+                    </a>
+                    <i class="bi ja-chevron" :class="open.signatures ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </div>
+                <div class="ja-section-body" x-show="open.signatures" x-collapse>
+                    @forelse ($estimateSignatures as $sig)
+                        <div style="border:1px solid var(--rb-border); border-radius:var(--rb-radius-sm); padding:.85rem; margin-bottom:.6rem; background:var(--rb-bg); display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:600; font-size:.9rem; color:var(--rb-text);">{{ $sig->signature_label }}</div>
+                                <div style="font-size:.78rem; color:var(--rb-text-3); margin-top:.15rem;">
+                                    @php
+                                        $typeBadgeColors = [
+                                            'approval' => 'success',
+                                            'pickup' => 'info',
+                                            'delivery' => 'warning',
+                                            'custom' => 'secondary',
+                                        ];
+                                        $typeColor = $typeBadgeColors[$sig->signature_type] ?? 'secondary';
+                                    @endphp
+                                    <span class="badge bg-{{ $typeColor }}" style="font-size:.7rem;">{{ ucfirst($sig->signature_type) }}</span>
+                                    &middot;
+                                    @if($sig->status === 'completed')
+                                        <span class="text-success"><i class="bi bi-check-circle"></i> {{ __('Signed') }} {{ $sig->completed_at?->format('M d, Y H:i') }}</span>
+                                    @elseif($sig->isExpired())
+                                        <span class="text-danger"><i class="bi bi-clock"></i> {{ __('Expired') }}</span>
+                                    @else
+                                        <span class="text-warning"><i class="bi bi-hourglass-split"></i> {{ __('Pending') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                @if($sig->isCompleted() && $sig->signature_file_path)
+                                    <a href="{{ $sig->signature_file_path }}" target="_blank" class="btn btn-outline-primary btn-sm" title="{{ __('View Signature') }}">
+                                        <i class="bi bi-image"></i>
+                                    </a>
+                                    <a href="{{ route('tenant.estimates.signatures.show', ['business' => $tenantSlug, 'estimateId' => $record->id, 'signatureId' => $sig->id]) }}"
+                                       class="btn btn-outline-secondary btn-sm" title="{{ __('Details') }}">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                @elseif($sig->isPending() && !$sig->isExpired())
+                                    <a href="{{ route('tenant.estimates.signatures.generator', ['business' => $tenantSlug, 'estimateId' => $record->id, 'signatureId' => $sig->id]) }}"
+                                       class="btn btn-outline-primary btn-sm" title="{{ __('View Link') }}">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="ja-empty">
+                            <i class="bi bi-pen"></i>{{ __('No signatures requested') }}
+                            <div class="mt-2">
+                                <a href="{{ route('tenant.estimates.signatures.create', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}"
+                                   class="btn btn-primary btn-sm rounded-pill px-3">
+                                    <i class="bi bi-plus-circle me-1"></i>{{ __('Request Signature') }}
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
+
+                    @if($estimateSignatures->count() > 0)
+                    <div class="mt-3 pt-2 border-top">
+                        <a href="{{ route('tenant.estimates.signatures.index', ['business' => $tenantSlug, 'estimateId' => $record->id]) }}"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>{{ __('View All Signature Requests') }}
+                        </a>
+                    </div>
+                    @endif
                 </div>
             </div>
             @endif

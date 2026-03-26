@@ -1,6 +1,10 @@
 ﻿@php
     $siteName = ($tenant && $tenant->name) ? $tenant->name : config('app.name', 'RepairBuddy');
     $thePageTitle = __('Signature Submitted') . ' - ' . $siteName;
+    $entity = $isEstimate ? $estimate : $job;
+    $entityTypeLabel = $isEstimate ? __('Estimate') : __('Job');
+    $entityNumber = $isEstimate ? ($estimate->id) : ($job->job_number ?? $job->id);
+    $caseNumber = $entity->case_number ?? $entityNumber;
 @endphp
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
@@ -69,7 +73,7 @@
                 <p class="text-muted mb-4" style="font-size:.9rem;">
                     {{ __('Your signature for') }}
                     <strong>{{ $signatureRequest->signature_label }}</strong>
-                    {{ __('on job') }} <strong>#{{ $job->case_number }}</strong>
+                    {{ __('on :type', ['type' => strtolower($entityTypeLabel)]) }} <strong>#{{ $caseNumber }}</strong>
                     {{ __('has been received.') }}
                 </p>
 
@@ -77,8 +81,8 @@
                 <div class="rounded-3 bg-light p-3 mb-4 text-start" style="font-size:.84rem;">
                     <div class="row">
                         <div class="col-6">
-                            <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;">{{ __('Job #') }}</div>
-                            <div class="fw-bold">{{ $job->case_number }}</div>
+                            <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;">{{ $entityTypeLabel }} #</div>
+                            <div class="fw-bold">{{ $caseNumber }}</div>
                         </div>
                         <div class="col-6">
                             <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;">{{ __('Signed At') }}</div>
@@ -89,7 +93,7 @@
 
                 <p class="text-muted mb-0" style="font-size:.78rem;">
                     <i class="bi bi-shield-lock me-1"></i>
-                    {{ __('Your signature has been securely stored and linked to this job.') }}
+                    {{ __('Your signature has been securely stored and linked to this :type.', ['type' => strtolower($entityTypeLabel)]) }}
                 </p>
             </div>
         </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\RepairBuddyEstimate;
 use App\Models\RepairBuddyEvent;
 use App\Models\RepairBuddyJob;
 use App\Models\RepairBuddySignatureRequest;
@@ -262,7 +263,7 @@ class SignatureController extends Controller
     public function signatureRequest(Request $request, string $business, string $verification)
     {
         $signatureRequest = RepairBuddySignatureRequest::query()
-            ->with(['job.customer', 'job.jobDevices.customerDevice.device'])
+            ->with(['job.customer', 'job.jobDevices.customerDevice.device', 'estimate.customer', 'estimate.devices.customerDevice.device'])
             ->where('verification_code', $verification)
             ->firstOrFail();
 
@@ -271,15 +272,19 @@ class SignatureController extends Controller
             abort(404);
         }
 
-        $job = $signatureRequest->job;
-        $customer = $job->customer;
+        // Determine entity type
+        $isEstimate = $signatureRequest->isForEstimate();
+        $entity = $signatureRequest->getSignableEntity();
+        $customer = $entity?->customer;
 
         // Check if already completed
         if ($signatureRequest->isCompleted()) {
             return view('tenant.signatures.already-signed', [
                 'tenant'           => $tenant,
-                'job'              => $job,
+                'job'              => $signatureRequest->job,
+                'estimate'         => $signatureRequest->estimate,
                 'signatureRequest' => $signatureRequest,
+                'isEstimate'       => $isEstimate,
             ]);
         }
 
@@ -287,40 +292,63 @@ class SignatureController extends Controller
         if ($signatureRequest->isExpired()) {
             return view('tenant.signatures.expired', [
                 'tenant'           => $tenant,
-                'job'              => $job,
+                'job'              => $signatureRequest->job,
+                'estimate'         => $signatureRequest->estimate,
                 'signatureRequest' => $signatureRequest,
+                'isEstimate'       => $isEstimate,
             ]);
         }
 
-        // Check if job status still matches (for pickup/delivery types)
+        // Check if status still matches (for pickup/delivery types)
         $canSign = true;
         $statusMessage = '';
         $store = new TenantSettingsStore($tenant);
-        $settings = $store->get('signature', []);
 
-        if ($signatureRequest->signature_type === 'pickup') {
-            $triggerStatus = $settings['pickup_trigger_status'] ?? '';
-            if (! empty($triggerStatus) && $job->status_slug !== $triggerStatus) {
-                $canSign = false;
-                $statusMessage = __('Job status is different than allowed for this signature.');
+        if ($isEstimate) {
+            // Estimate signature settings
+            $settings = $store->get('estimate_signature', []);
+            $currentStatus = $entity->status ?? '';
+
+            foreach (['approval', 'pickup', 'delivery'] as $type) {
+                if ($signatureRequest->signature_type === $type) {
+                    $triggerStatus = $settings["{$type}_trigger_status"] ?? '';
+                    if (! empty($triggerStatus) && $currentStatus !== $triggerStatus) {
+                        $canSign = false;
+                        $statusMessage = __('Estimate status is different than allowed for this signature.');
+                    }
+                }
             }
-        }
+        } else {
+            // Job signature settings
+            $settings = $store->get('signature', []);
+            $job = $signatureRequest->job;
 
-        if ($signatureRequest->signature_type === 'delivery') {
-            $triggerStatus = $settings['delivery_trigger_status'] ?? '';
-            if (! empty($triggerStatus) && $job->status_slug !== $triggerStatus) {
-                $canSign = false;
-                $statusMessage = __('Job status is different than allowed for this signature.');
+            if ($signatureRequest->signature_type === 'pickup') {
+                $triggerStatus = $settings['pickup_trigger_status'] ?? '';
+                if (! empty($triggerStatus) && $job->status_slug !== $triggerStatus) {
+                    $canSign = false;
+                    $statusMessage = __('Job status is different than allowed for this signature.');
+                }
+            }
+
+            if ($signatureRequest->signature_type === 'delivery') {
+                $triggerStatus = $settings['delivery_trigger_status'] ?? '';
+                if (! empty($triggerStatus) && $job->status_slug !== $triggerStatus) {
+                    $canSign = false;
+                    $statusMessage = __('Job status is different than allowed for this signature.');
+                }
             }
         }
 
         return view('tenant.signatures.sign', [
             'tenant'           => $tenant,
-            'job'              => $job,
+            'job'              => $signatureRequest->job,
+            'estimate'         => $signatureRequest->estimate,
             'customer'         => $customer,
             'signatureRequest' => $signatureRequest,
             'canSign'          => $canSign,
             'statusMessage'    => $statusMessage,
+            'isEstimate'       => $isEstimate,
         ]);
     }
 
@@ -330,7 +358,7 @@ class SignatureController extends Controller
     public function submitSignature(Request $request, string $business, string $verification)
     {
         $signatureRequest = RepairBuddySignatureRequest::query()
-            ->with(['job.customer'])
+            ->with(['job.customer', 'estimate.customer'])
             ->where('verification_code', $verification)
             ->firstOrFail();
 
@@ -361,7 +389,8 @@ class SignatureController extends Controller
 
         // Store the signature file
         $file = $request->file('signature_file');
-        $filename = 'signature_' . $signatureRequest->job_id . '_' . $signatureRequest->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $entityId = $signatureRequest->isForEstimate() ? 'e' . $signatureRequest->estimate_id : 'j' . $signatureRequest->job_id;
+        $filename = 'signature_' . $entityId . '_' . $signatureRequest->id . '_' . time() . '.' . $file->getClientOriginalExtension();
         $path = $file->storeAs(
             "tenants/{$tenant->id}/signatures",
             $filename,
@@ -399,7 +428,7 @@ class SignatureController extends Controller
     public function success(Request $request, string $business, string $verification)
     {
         $signatureRequest = RepairBuddySignatureRequest::query()
-            ->with(['job'])
+            ->with(['job', 'estimate'])
             ->where('verification_code', $verification)
             ->firstOrFail();
 
@@ -408,7 +437,9 @@ class SignatureController extends Controller
         return view('tenant.signatures.success', [
             'tenant'           => $tenant,
             'job'              => $signatureRequest->job,
+            'estimate'         => $signatureRequest->estimate,
             'signatureRequest' => $signatureRequest,
+            'isEstimate'       => $signatureRequest->isForEstimate(),
         ]);
     }
 
@@ -426,16 +457,22 @@ class SignatureController extends Controller
 
     private function notifyAdminOfSignature(Tenant $tenant, RepairBuddySignatureRequest $signatureRequest): void
     {
+        // Determine entity type and ID
+        $entityType = $signatureRequest->isForEstimate() ? 'estimate' : 'job';
+        $entityId = $signatureRequest->isForEstimate() ? $signatureRequest->estimate_id : $signatureRequest->job_id;
+        $entity = $signatureRequest->getSignableEntity();
+        $caseNumber = $entity->case_number ?? $entityId;
+
         // Find tenant admin users and create event
         RepairBuddyEvent::create([
             'tenant_id'    => $tenant->id,
-            'entity_type'  => 'job',
-            'entity_id'    => $signatureRequest->job_id,
+            'entity_type'  => $entityType,
+            'entity_id'    => $entityId,
             'event_type'   => 'signature_admin_notified',
             'actor_user_id' => null,
             'payload_json' => [
                 'title'   => 'Signature submission notification',
-                'message' => "Verified {$signatureRequest->signature_type} signature received for job #{$signatureRequest->job->case_number}.",
+                'message' => "Verified {$signatureRequest->signature_type} signature received for {$entityType} #{$caseNumber}.",
             ],
         ]);
     }

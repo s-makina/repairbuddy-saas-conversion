@@ -1,6 +1,8 @@
 ﻿@php
     $siteName = ($tenant && $tenant->name) ? $tenant->name : config('app.name', 'RepairBuddy');
-    $thePageTitle = __('Sign your job') . ' - ' . $siteName;
+    $entity = $isEstimate ? $estimate : $job;
+    $entityTypeLabel = $isEstimate ? __('Estimate') : __('Job');
+    $thePageTitle = __('Sign your :type', ['type' => $entityTypeLabel]) . ' - ' . $siteName;
 @endphp
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
@@ -174,8 +176,28 @@
                     <div class="{{ $customer ? 'col-md-6' : 'col-12' }}">
                         <div class="rounded-3 bg-light p-3 h-100" style="font-size:.84rem;">
                             <div class="fw-semibold text-muted text-uppercase mb-2" style="font-size:.68rem;letter-spacing:.04em;">
-                                <i class="bi bi-tools me-1"></i>{{ __('Job Information') }}
+                                <i class="bi bi-{{ $isEstimate ? 'file-earmark-text' : 'tools' }} me-1"></i>{{ $entityTypeLabel }} {{ __('Information') }}
                             </div>
+                            @if($isEstimate && $estimate)
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Estimate #') }}</span>
+                                <span class="sig-detail-value text-primary">{{ $estimate->id }}</span>
+                            </div>
+                            @if($estimate->case_number)
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Case #') }}</span>
+                                <span class="sig-detail-value">{{ $estimate->case_number }}</span>
+                            </div>
+                            @endif
+                            @php
+                                $statusColors = ['pending'=>'secondary','approved'=>'success','rejected'=>'danger','converted'=>'info'];
+                                $statusColor = $statusColors[$estimate->status ?? ''] ?? 'secondary';
+                            @endphp
+                            <div class="sig-detail-row">
+                                <span class="sig-detail-label">{{ __('Status') }}</span>
+                                <span class="badge bg-{{ $statusColor }}" style="font-size:.72rem;">{{ ucfirst($estimate->status ?? 'pending') }}</span>
+                            </div>
+                            @elseif(!$isEstimate && $job)
                             <div class="sig-detail-row">
                                 <span class="sig-detail-label">{{ __('Order #') }}</span>
                                 <span class="sig-detail-value text-primary">{{ $job->job_number ?? $job->id }}</span>
@@ -188,6 +210,7 @@
                                 <span class="sig-detail-label">{{ __('Status') }}</span>
                                 <span class="badge bg-secondary" style="font-size:.72rem;">{{ $job->status_slug }}</span>
                             </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -238,7 +261,7 @@
                 <div class="text-center mt-4 pt-3 border-top">
                     <p class="text-muted mb-0" style="font-size:.75rem;">
                         <i class="bi bi-shield-lock me-1"></i>
-                        {{ __('Your information is secure and will only be used for this job approval.') }}
+                        {{ __('Your information is secure and will only be used for this :type approval.', ['type' => strtolower($entityTypeLabel)]) }}
                     </p>
                 </div>
             </div>
