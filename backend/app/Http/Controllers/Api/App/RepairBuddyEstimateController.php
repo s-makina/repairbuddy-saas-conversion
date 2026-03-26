@@ -490,8 +490,22 @@ class RepairBuddyEstimateController extends Controller
             $subject = 'Your estimate is ready';
         }
 
+        // Generate status-aware default body if no custom body is set
         if (trim($body) === '') {
+            $status = strtolower($estimate->status ?? 'pending');
             $body = "Hello,\n\nYour estimate is ready.\n\nCase: {case_number}\n";
+
+            if ($status === 'approved') {
+                $body = "Hello,\n\nYour estimate {case_number} has been approved and converted to a job.\n\nWe will proceed with the repair/service.\n";
+            } elseif ($status === 'rejected') {
+                $body = "Hello,\n\nYour estimate {case_number} has been rejected.\n\n";
+                if ($estimate->rejection_reason) {
+                    $body .= "Reason: " . $estimate->rejection_reason . "\n\n";
+                }
+                $body .= "If you have any questions, please contact us.\n";
+            } else {
+                $body .= "\nYou can approve or reject this estimate using the buttons below.\n";
+            }
         }
 
         $subject = $this->renderTemplate($subject, $estimate);

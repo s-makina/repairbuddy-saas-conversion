@@ -1004,8 +1004,8 @@ class TenantEstimateController extends Controller
 
         // Generate status-aware default body
         $status = strtolower($estimate->status ?? 'pending');
-        $defaultBody = 'Hello ' . ($estimate->customer->name ?? '') . ",\n\n"
-            . 'Please find your estimate ' . ($estimate->case_number ?? '') . " below.';
+        $defaultBody = "Hello " . ($estimate->customer->name ?? '') . ",\n\n"
+            . "Please find your estimate " . ($estimate->case_number ?? '') . " below.";
 
         if ($status === 'approved') {
             $defaultBody .= "\n\nThis estimate has been approved and converted to a job. We will proceed with the repair/service.";

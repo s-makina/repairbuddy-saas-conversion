@@ -17,6 +17,33 @@
                         <div style="display: table-cell; font-weight: 600; padding: 4px 0; width: 120px; font-size: 13px; color: #667085;">Estimate Number:</div>
                         <div style="display: table-cell; padding: 4px 0; font-size: 13px; color: #2c304d;"><strong>{{ $caseNumber }}</strong></div>
                     </div>
+                    @php
+                        $statusColors = [
+                            'pending' => '#f59e0b',
+                            'approved' => '#10b981',
+                            'rejected' => '#ef4444',
+                            'draft' => '#6b7280',
+                            'sent' => '#3b82f6',
+                            'expired' => '#9ca3af',
+                        ];
+                        $statusLabels = [
+                            'pending' => 'Pending Review',
+                            'approved' => 'Approved',
+                            'rejected' => 'Rejected',
+                            'draft' => 'Draft',
+                            'sent' => 'Sent',
+                            'expired' => 'Expired',
+                        ];
+                        $statusLower = strtolower($status ?? 'pending');
+                        $statusColor = $statusColors[$statusLower] ?? '#6b7280';
+                        $statusLabel = $statusLabels[$statusLower] ?? ucfirst($statusLower);
+                    @endphp
+                    <div style="display: table-row;">
+                        <div style="display: table-cell; font-weight: 600; padding: 4px 0; width: 120px; font-size: 13px; color: #667085;">Status:</div>
+                        <div style="display: table-cell; padding: 4px 0; font-size: 13px;">
+                            <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #ffffff; background-color: {{ $statusColor }};">{{ $statusLabel }}</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div style="font-size: 15px; line-height: 1.5; margin-bottom: 25px; white-space: pre-wrap;">{{ $body }}</div>
@@ -64,7 +91,7 @@
                 </div>
                 @endif
                 
-                @if(($approveUrl || $rejectUrl) && $status === 'pending')
+                @if(($approveUrl || $rejectUrl) && $statusLower === 'pending')
                 <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
                     @if($approveUrl)
                         <a href="{{ $approveUrl }}" style="display: inline-block; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; text-align: center; background-color: #10b981; color: #ffffff; margin-right: 8px;">Approve Estimate</a>
