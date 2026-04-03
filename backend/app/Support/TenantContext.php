@@ -22,4 +22,21 @@ class TenantContext
     {
         return self::$tenant?->id;
     }
+
+    /**
+     * Get tenant by slug or fail with 404.
+     */
+    public static function getTenantOrFail(string $slug): Tenant
+    {
+        $tenant = Tenant::where('slug', $slug)->first();
+
+        if (! $tenant) {
+            abort(404, "Tenant not found: {$slug}");
+        }
+
+        // Set as current tenant context
+        self::set($tenant);
+
+        return $tenant;
+    }
 }
