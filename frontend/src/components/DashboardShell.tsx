@@ -252,7 +252,7 @@ export function DashboardShell({
       [
         {
           items: [
-            { label: "Businesses", href: "/admin/businesses", icon: "admin", show: auth.can("admin.tenants.read") },
+            { label: "Businesses", href: "/superadmin/businesses", icon: "admin", show: auth.can("admin.tenants.read") },
           ],
         },
         {
@@ -260,7 +260,7 @@ export function DashboardShell({
           items: [
             {
               label: "Dashboard",
-              href: "/admin",
+              href: "/superadmin/dashboard",
               icon: "dashboard",
               show: auth.can("admin.access"),
             },
@@ -308,7 +308,7 @@ export function DashboardShell({
             },
             {
               label: "Settings",
-              href: auth.isAdmin ? "/admin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/app",
+              href: auth.isAdmin ? "/superadmin/settings" : tenantSlug ? `/app/${tenantSlug}/settings` : "/app",
               icon: "settings",
               show: auth.isAuthenticated && auth.isAdmin && auth.can("settings.manage"),
             },
@@ -323,14 +323,14 @@ export function DashboardShell({
         {
           title: "Billing",
           items: [
-            { label: "Plans", href: "/admin/billing/plans", icon: "payments", show: auth.can("admin.billing.read") },
-            { label: "Plan Builder", href: "/admin/billing/builder", icon: "file", show: auth.can("admin.billing.read") },
-            { label: "Intervals", href: "/admin/billing/intervals", icon: "calendar", show: auth.can("admin.billing.read") },
-            { label: "Entitlements", href: "/admin/billing/entitlements", icon: "tags", show: auth.can("admin.billing.read") },
-            { label: "Currencies", href: "/admin/billing/currencies", icon: "payments", show: auth.can("admin.billing.read") },
+            { label: "Plans", href: "/superadmin/billing/plans", icon: "payments", show: auth.can("admin.billing.read") },
+            { label: "Plan Builder", href: "/superadmin/billing/builder", icon: "file", show: auth.can("admin.billing.read") },
+            { label: "Intervals", href: "/superadmin/billing/intervals", icon: "calendar", show: auth.can("admin.billing.read") },
+            { label: "Entitlements", href: "/superadmin/billing/entitlements", icon: "tags", show: auth.can("admin.billing.read") },
+            { label: "Currencies", href: "/superadmin/billing/currencies", icon: "payments", show: auth.can("admin.billing.read") },
             {
               label: "Business Billing",
-              href: "/admin/billing/businesses",
+              href: "/superadmin/billing/businesses",
               icon: "users",
               show: auth.can("admin.billing.read") && auth.can("admin.tenants.read"),
             },
@@ -417,7 +417,7 @@ export function DashboardShell({
             },
             {
               label: "Settings",
-              href: auth.isAdmin ? "/admin/settings" : "/app/settings",
+              href: auth.isAdmin ? "/superadmin/settings" : "/app/settings",
               icon: "settings",
               show: auth.isAuthenticated && auth.isAdmin && auth.can("settings.manage"),
             },
@@ -529,7 +529,7 @@ export function DashboardShell({
   }, [openSections, sidebarStateKey]);
 
   const pageLabel = (() => {
-    if (pathname === "/admin") return "Dashboard";
+    if (pathname === "/superadmin/dashboard") return "Dashboard";
 
     if (pathname.startsWith("/app/")) {
       const parts = pathname.split("/").filter(Boolean);
@@ -562,18 +562,18 @@ export function DashboardShell({
 
   const breadcrumbText = (() => {
     if (pathname.startsWith("/app/")) return `App / ${pageLabel}`;
-    if (pathname.startsWith("/admin")) return `Admin / ${pageLabel}`;
+    if (pathname.startsWith("/superadmin")) return `Admin / ${pageLabel}`;
     return pageLabel;
   })();
 
   const profileHref = (() => {
-    if (auth.isAdmin) return "/admin/profile";
+    if (auth.isAdmin) return "/superadmin/profile";
     if (tenantSlug) return `/app/${tenantSlug}/profile`;
     return "/app";
   })();
 
   const settingsHref = (() => {
-    if (auth.isAdmin) return "/admin/settings";
+    if (auth.isAdmin) return "/superadmin/settings";
     if (tenantSlug) return `/app/${tenantSlug}/settings`;
     return "/app";
   })();

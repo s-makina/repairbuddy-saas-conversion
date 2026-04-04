@@ -4,12 +4,8 @@ import { NextResponse } from "next/server";
 export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  if (pathname === "/admin/tenants" || pathname.startsWith("/admin/tenants/")) {
-    return NextResponse.json({ message: "Not found." }, { status: 404 });
-  }
-
-  if (pathname === "/admin/billing/tenants" || pathname.startsWith("/admin/billing/tenants/")) {
-    return NextResponse.json({ message: "Not found." }, { status: 404 });
+  if (pathname.startsWith("/admin")) {
+    return NextResponse.redirect(new URL("/superadmin/dashboard", req.url));
   }
 
   return NextResponse.next();

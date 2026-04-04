@@ -26,7 +26,7 @@ export default function AppIndexPage() {
     }
 
     if (auth.isAdmin) {
-      router.replace("/admin");
+      router.replace("/superadmin/dashboard");
       return;
     }
 

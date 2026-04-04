@@ -118,7 +118,7 @@ export default function LandingV2() {
   useEffect(() => {
     if (auth.loading) return;
     if (!auth.isAuthenticated) return;
-    router.replace(auth.isAdmin ? "/admin" : "/app");
+    router.replace(auth.isAdmin ? "/superadmin/dashboard" : "/app");
   }, [auth.loading, auth.isAuthenticated, auth.isAdmin, router]);
 
   useEffect(() => {

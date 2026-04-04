@@ -608,7 +608,7 @@ export default function BusinessSetupPage() {
   useEffect(() => {
     if (auth.loading) return;
     if (auth.isAuthenticated && auth.isAdmin) {
-      router.replace("/admin");
+      router.replace("/superadmin/dashboard");
       return;
     }
   }, [auth.isAdmin, auth.isAuthenticated, auth.loading, router]);
