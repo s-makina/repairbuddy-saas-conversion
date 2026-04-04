@@ -1,0 +1,10 @@
+ID: 1
+Name: Super Admin
+Email: superadmin@99smartx.com
+Status: active
+IsAdmin: Yes
+ID: 1
+Name: Super Admin
+Email: superadmin@99smartx.com
+Status: active
+IsAdmin: Yes

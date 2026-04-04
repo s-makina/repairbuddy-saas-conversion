@@ -1,0 +1,4 @@
+Email: superadmin@99smartx.com
+Password Hash in DB: $2y$12$V.HswgNIpoGokvvGfP.EHO0On0MJQTyReCwHUkXnk9XOfaod4mxmW
+Hash::check(pass): OK
+Hash::make(pass) example: $2y$12$JEQ6f5vmtpTnx7rY3PKp3uY00NxpdpFAZMvZ78MxxOOYVEKcFpV66

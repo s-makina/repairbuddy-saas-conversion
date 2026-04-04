@@ -354,7 +354,7 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $email = (string) $validated['email'];
+        $email = trim((string) $validated['email']);
         $user = User::query()->where('email', $email)->first();
 
         if ($this->isLockedOut($request, $email, $user)) {
@@ -1055,7 +1055,7 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $email = (string) $validated['email'];
+        $email = trim((string) $validated['email']);
         $user = User::query()->where('email', $email)->first();
 
         if ($this->isLockedOut($request, $email, $user)) {
