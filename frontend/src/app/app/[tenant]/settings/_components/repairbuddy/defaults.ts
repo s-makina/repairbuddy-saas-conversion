@@ -230,4 +230,36 @@ export const defaultRepairBuddyDraft: RepairBuddySettingsDraft = {
     defaultBrand: "",
     defaultDevice: "",
   },
+  estimateSignatureWorkflow: {
+    approval: {
+      enabled: false,
+      triggerStatus: "status_received",
+      statusAfterSubmission: "status_received",
+      templates: {
+        emailSubject: "Estimate approval requested",
+        emailTemplate: "Please review and approve the estimate.",
+        smsText: "Please review and approve the estimate.",
+      },
+    },
+    pickup: {
+      enabled: false,
+      triggerStatus: "status_completed",
+      statusAfterSubmission: "status_completed",
+      templates: {
+        emailSubject: "Pickup signature requested",
+        emailTemplate: "Please sign the pickup form.",
+        smsText: "Please sign the pickup form.",
+      },
+    },
+    delivery: {
+      enabled: false,
+      triggerStatus: "status_completed",
+      statusAfterSubmission: "status_completed",
+      templates: {
+        emailSubject: "Delivery signature requested",
+        emailTemplate: "Please sign the delivery form.",
+        smsText: "Please sign the delivery form.",
+      },
+    },
+  },
 };
