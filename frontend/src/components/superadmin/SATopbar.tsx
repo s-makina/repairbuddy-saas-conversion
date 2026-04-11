@@ -46,7 +46,7 @@ export function SAButton({
   style,
   disabled,
 }: {
-  variant?: "primary" | "ghost" | "outline";
+  variant?: "primary" | "ghost" | "outline" | "danger";
   children: React.ReactNode;
   icon?: React.ReactNode;
   onClick?: () => void;
@@ -58,7 +58,9 @@ export function SAButton({
       ? "sa-btn sa-btn-primary"
       : variant === "outline"
         ? "sa-btn sa-btn-outline"
-        : "sa-btn sa-btn-ghost";
+        : variant === "danger"
+          ? "sa-btn sa-btn-danger"
+          : "sa-btn sa-btn-ghost";
   return (
     <button className={cls} type="button" onClick={onClick} style={style} disabled={disabled}>
       {icon}
