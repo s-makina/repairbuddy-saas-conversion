@@ -205,6 +205,32 @@ export async function createBusiness(args: {
   });
 }
 
+export async function updateBusiness(args: {
+  tenantId: number;
+  name: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  currency?: string;
+  billingCountry?: string;
+  timezone?: string;
+  language?: string;
+  reason?: string;
+}): Promise<{ tenant: Tenant }> {
+  return apiFetch<{ tenant: Tenant }>(`/api/admin/businesses/${args.tenantId}`, {
+    method: "PUT",
+    body: {
+      name: args.name,
+      contact_email: args.contactEmail,
+      contact_phone: args.contactPhone,
+      currency: args.currency,
+      billing_country: args.billingCountry,
+      timezone: args.timezone,
+      language: args.language,
+      reason: args.reason,
+    },
+  });
+}
+
 export async function suspendBusiness(args: {
   tenantId: number;
   reason: string;

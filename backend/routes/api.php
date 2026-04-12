@@ -211,6 +211,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'verified', 'admin'])->group
     Route::get('/businesses/{tenant}', [\App\Http\Controllers\Api\Admin\TenantController::class, 'show'])
         ->whereNumber('tenant')
         ->middleware('permission:admin.tenants.read');
+    Route::put('/businesses/{tenant}', [\App\Http\Controllers\Api\Admin\TenantController::class, 'update'])
+        ->whereNumber('tenant')
+        ->middleware('permission:admin.tenants.write');
     Route::get('/businesses/{tenant}/entitlements', [\App\Http\Controllers\Api\Admin\TenantController::class, 'entitlements'])
         ->whereNumber('tenant')
         ->middleware('permission:admin.tenants.read');

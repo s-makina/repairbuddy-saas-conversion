@@ -619,6 +619,45 @@ class TenantController extends Controller
         ]);
     }
 
+    public function update(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:50'],
+            'currency' => ['nullable', 'string', 'max:10'],
+            'billing_country' => ['nullable', 'string', 'max:10'],
+            'timezone' => ['nullable', 'string', 'max:100'],
+            'language' => ['nullable', 'string', 'max:10'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $before = $tenant->only([
+            'name', 'contact_email', 'contact_phone', 'currency', 'billing_country', 'timezone', 'language'
+        ]);
+
+        $tenant->update([
+            'name' => $validated['name'],
+            'contact_email' => $validated['contact_email'] ?? $tenant->contact_email,
+            'contact_phone' => $validated['contact_phone'] ?? $tenant->contact_phone,
+            'currency' => $validated['currency'] ?? $tenant->currency,
+            'billing_country' => $validated['billing_country'] ?? $tenant->billing_country,
+            'timezone' => $validated['timezone'] ?? $tenant->timezone,
+            'language' => $validated['language'] ?? $tenant->language,
+        ]);
+
+        PlatformAudit::log($request, 'tenant.updated', $tenant, $validated['reason'] ?? null, [
+            'before' => $before,
+            'after' => $tenant->only([
+                'name', 'contact_email', 'contact_phone', 'currency', 'billing_country', 'timezone', 'language'
+            ]),
+        ]);
+
+        return response()->json([
+            'tenant' => $tenant->fresh()->load('plan'),
+        ]);
+    }
+
     public function entitlements(Request $request, Tenant $tenant)
     {
         $overrides = is_array($tenant->entitlement_overrides) ? $tenant->entitlement_overrides : [];
