@@ -212,8 +212,15 @@ export async function updateBusiness(args: {
   contactPhone?: string;
   currency?: string;
   billingCountry?: string;
+  billingVatNumber?: string;
   timezone?: string;
   language?: string;
+  brandColor?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressPostalCode?: string;
   reason?: string;
 }): Promise<{ tenant: Tenant }> {
   return apiFetch<{ tenant: Tenant }>(`/api/admin/businesses/${args.tenantId}`, {
@@ -224,8 +231,18 @@ export async function updateBusiness(args: {
       contact_phone: args.contactPhone,
       currency: args.currency,
       billing_country: args.billingCountry,
+      billing_vat_number: args.billingVatNumber,
       timezone: args.timezone,
       language: args.language,
+      brand_color: args.brandColor,
+      billing_address: args.addressLine1 || args.addressCity ? {
+        line1: args.addressLine1,
+        line2: args.addressLine2,
+        city: args.addressCity,
+        state: args.addressState,
+        postal_code: args.addressPostalCode,
+        country: args.billingCountry,
+      } : undefined,
       reason: args.reason,
     },
   });

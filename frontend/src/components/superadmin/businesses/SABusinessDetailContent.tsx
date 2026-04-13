@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  Pencil,
   Ban,
   RotateCcw,
   UserCircle,
@@ -278,6 +279,9 @@ export default function SABusinessDetailContent({ businessId }: SABusinessDetail
           <>
             <SAButton variant="ghost" onClick={() => router.push('/superadmin/businesses')}>
               <ArrowLeft size={14} /> Back
+            </SAButton>
+            <SAButton variant="ghost" onClick={() => router.push(`/superadmin/businesses/${tenant.id}/edit`)}>
+              <Pencil size={14} /> Edit
             </SAButton>
             {tenant.status === 'suspended' ? (
               <SAButton variant="outline" onClick={() => { setConfirmAction('unsuspend'); setConfirmReason(''); setConfirmError(null); }}>

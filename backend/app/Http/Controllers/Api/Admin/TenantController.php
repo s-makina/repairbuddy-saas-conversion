@@ -627,14 +627,41 @@ class TenantController extends Controller
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'currency' => ['nullable', 'string', 'max:10'],
             'billing_country' => ['nullable', 'string', 'max:10'],
+            'billing_vat_number' => ['nullable', 'string', 'max:50'],
+            'billing_address' => ['nullable', 'array'],
+            'billing_address.line1' => ['nullable', 'string', 'max:255'],
+            'billing_address.line2' => ['nullable', 'string', 'max:255'],
+            'billing_address.city' => ['nullable', 'string', 'max:100'],
+            'billing_address.state' => ['nullable', 'string', 'max:100'],
+            'billing_address.postal_code' => ['nullable', 'string', 'max:20'],
+            'billing_address.country' => ['nullable', 'string', 'max:10'],
             'timezone' => ['nullable', 'string', 'max:100'],
             'language' => ['nullable', 'string', 'max:10'],
+            'brand_color' => ['nullable', 'string', 'max:20', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
         $before = $tenant->only([
-            'name', 'contact_email', 'contact_phone', 'currency', 'billing_country', 'timezone', 'language'
+            'name', 'contact_email', 'contact_phone', 'currency', 'billing_country', 'billing_vat_number',
+            'billing_address_json', 'timezone', 'language', 'brand_color'
         ]);
+
+        // Build billing_address_json if provided
+        $billingAddress = null;
+        if (isset($validated['billing_address']) && is_array($validated['billing_address'])) {
+            $addr = $validated['billing_address'];
+            // Only store if at least one field has a value
+            if (!empty($addr['line1']) || !empty($addr['city'])) {
+                $billingAddress = array_filter([
+                    'line1' => $addr['line1'] ?? null,
+                    'line2' => $addr['line2'] ?? null,
+                    'city' => $addr['city'] ?? null,
+                    'state' => $addr['state'] ?? null,
+                    'postal_code' => $addr['postal_code'] ?? null,
+                    'country' => $addr['country'] ?? null,
+                ], fn($v) => $v !== null);
+            }
+        }
 
         $tenant->update([
             'name' => $validated['name'],
@@ -642,14 +669,18 @@ class TenantController extends Controller
             'contact_phone' => $validated['contact_phone'] ?? $tenant->contact_phone,
             'currency' => $validated['currency'] ?? $tenant->currency,
             'billing_country' => $validated['billing_country'] ?? $tenant->billing_country,
+            'billing_vat_number' => $validated['billing_vat_number'] ?? $tenant->billing_vat_number,
+            'billing_address_json' => $billingAddress !== null ? $billingAddress : $tenant->billing_address_json,
             'timezone' => $validated['timezone'] ?? $tenant->timezone,
             'language' => $validated['language'] ?? $tenant->language,
+            'brand_color' => $validated['brand_color'] ?? $tenant->brand_color,
         ]);
 
         PlatformAudit::log($request, 'tenant.updated', $tenant, $validated['reason'] ?? null, [
             'before' => $before,
             'after' => $tenant->only([
-                'name', 'contact_email', 'contact_phone', 'currency', 'billing_country', 'timezone', 'language'
+                'name', 'contact_email', 'contact_phone', 'currency', 'billing_country', 'billing_vat_number',
+                'billing_address_json', 'timezone', 'language', 'brand_color'
             ]),
         ]);
 
