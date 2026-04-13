@@ -333,7 +333,7 @@ export default function SAActivityFeedContent() {
 
   // Fetch businesses for the filter dropdown
   useEffect(() => {
-    listAdminBusinesses({ per_page: 200, sort: 'name', dir: 'asc' })
+    listAdminBusinesses({ per_page: 100, sort: 'name', dir: 'asc' })
       .then((res) => {
         setBusinesses(res.data.map((t) => ({ id: t.id, name: t.name })));
       })
